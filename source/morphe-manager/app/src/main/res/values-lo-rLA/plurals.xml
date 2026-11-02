@@ -1,8 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="other">%s ແພັດ</item>
+    </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="other">%s ຫ້ອງສະໝຸດ</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="other">%s ຕົວເລືອກແພັດ</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="other">%s ລາຍການ</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="other">ເລືອກ %s ໄຟລ໌</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="other">ເພີ່ມແຫຼ່ງທີ່ມາ %s</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="other">ແຫຼ່ງແພັດຊ໌ສຳລັບ %s ແອັບ</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="other">ແຫຼ່ງທີ່ມາ %s ຖືກເຊື່ອງໄວ້ສຳລັບແອັບນີ້. ເລືອກແອັບໃນແທັບ ແອັບ ແລະ ເປີດ Patch sources ເພື່ອເອົາພວກມັນກັບຄືນມາ</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="other">ເຊື່ອງແຫຼ່ງຂໍ້ມູນ %s ແຫຼ່ງ. ແຕະເພື່ອສະແດງ</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="other">ພົບແພັດຊ໌ທີ່ກົງກັນ %s ລາຍການ</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="other">%s ແຫຼ່ງຂໍ້ມູນ</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="other">%s ຊຸດ</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="other">%s ແພັກເກັດ</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="other">ປະຕິບັດການ %s ແພັດແລ້ວ</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="other">%s ໄຟລ໌ APK</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="other">ຕິດຕັ້ງ %s ແອັບ ແລ້ວ</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="other">ຕິດຕັ້ງ %s ແອັບແລ້ວ</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="other">ຕິດຕັ້ງ %s ແອັບ ຄືນໃໝ່ ແລ້ວ</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="other">ຖອນການຕິດຕັ້ງ %s ແອັບ ແລ້ວ</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="other">ຖອນການຕິດຕັ້ງ %s ແອັບ ຫຼື ບໍ່?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="other">%s ແອັບ ພ້ອມທີ່ຈະແພັດຊ໌</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="other">ແອັບ %s ຢູ່ໃນຄິວເພື່ອລໍຖ້າການແພັດ</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="other">ການແຈ້ງເຕືອນທີ່ຖືກເຊື່ອງໄວ້ %s, ແຕະເພື່ອສະແດງພວກມັນ</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="other">%s ແອັບ ສາມາດແພັດຊ໌ຄືນໃໝ່ໄດ້</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="other">ຂ້າມ %s ແອັບ</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="other">ລຶບ %s ແພັດທີ່ຫຼ້າສະໄໝອອກຈາກການເລືອກທີ່ບັນທຶກໄວ້</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="other">ຕິດຕັ້ງແລ້ວ %s ແຫຼ່ງຂໍ້ມູນ</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="other">ເຊື່ອງ %s ແອັບ</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="other">ສະແດງ %s ແອັບ</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="other">ຍົກເລີກການເຊື່ອງ %s ແອັບ?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="other">%s ແອັບທີ່ຖືກເຊື່ອງ</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="other">%s ແອັບ</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="other">ເລືອກແລ້ວ %s</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="other">ຄັດລອກ %s ແພັດຊ໌ ຈາກບັນດລ໌ທີ່ເລືອກແລ້ວ</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="other">%s ຄໍຣ໌</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="other">ຄຸນສົມບັດ %s</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="other">ການແກ້ໄຂ %s ລາຍການ</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="other">ການປັບປຸງໃຫ້ດີຂຶ້ນ %s</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="other">ການປ່ຽນແປງ %s ລາຍການ</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="other">%1$s · ໃໝ່ %2$d</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="other">ເວີຊັນໃໝ່ %s ລາຍການ</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="other">ເປີດໃຊ້ລິງກ໌ %d</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="other">ລິງກ໌ທີ່ບໍ່ໄດ້ຮັບການຢືນຢັນ %d</item>
+    </plurals>
 </resources>

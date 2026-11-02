@@ -5,6 +5,7 @@
 
 package app.morphe.manager.ui.screen.shared
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
@@ -164,11 +165,14 @@ private fun IconMark(
             .size(size)
             .background(color, CircleShape)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = contentColor,
-            modifier = Modifier.size(size * 0.75f)
-        )
+        // A mark swapped for another stays grown in, so only its glyph changes
+        Crossfade(targetState = icon, label = "icon_mark_glyph") {
+            Icon(
+                imageVector = it,
+                contentDescription = null,
+                tint = contentColor,
+                modifier = Modifier.size(size * 0.75f)
+            )
+        }
     }
 }

@@ -48,6 +48,10 @@
         <item quantity="one">%s աղբյուր</item>
         <item quantity="other">%s աղբյուրներ</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s հավաքածու</item>
+        <item quantity="other">%s հավաքածու</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s փաթեթ</item>
         <item quantity="other">%s փաթեթներ</item>

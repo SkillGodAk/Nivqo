@@ -48,6 +48,10 @@
         <item quantity="one">%s källa</item>
         <item quantity="other">%s källor</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s set</item>
+        <item quantity="other">%s set</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s paket</item>
         <item quantity="other">%s paket</item>
@@ -85,8 +89,8 @@
         <item quantity="other">%s appar är redo att modifieras</item>
     </plurals>
     <plurals name="batch_queue_pending_count">
-        <item quantity="one">%s app köad för modifiering</item>
-        <item quantity="other">%s appar köade för modifiering</item>
+        <item quantity="one">%s app i kö för modifiering</item>
+        <item quantity="other">%s appar i kö för modifiering</item>
     </plurals>
     <plurals name="home_alerts_snoozed_count">
         <item quantity="one">%s dold avisering, tryck för att visa den</item>

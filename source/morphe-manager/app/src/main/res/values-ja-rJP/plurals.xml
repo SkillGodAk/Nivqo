@@ -37,6 +37,9 @@
     <plurals name="source_count">
         <item quantity="other">ソース %s 件</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="other">%s セット</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="other">パッケージ %s 件</item>
     </plurals>
@@ -50,7 +53,7 @@
         <item quantity="other">%s 個のアプリをインストールしました</item>
     </plurals>
     <plurals name="batch_mount_summary">
-        <item quantity="other">マウント済みアプリ %s 個</item>
+        <item quantity="other">%s 個のアプリをマウントしました</item>
     </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="other">%s 個のアプリを再インストールしました</item>

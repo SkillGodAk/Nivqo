@@ -48,6 +48,10 @@
         <item quantity="one">%s πηγή</item>
         <item quantity="other">%s πηγές</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s σετ</item>
+        <item quantity="other">%s σετ</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s πακέτο</item>
         <item quantity="other">%s πακέτα</item>

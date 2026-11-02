@@ -48,6 +48,10 @@
         <item quantity="one">%s fonte</item>
         <item quantity="other">%s fonti</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s set</item>
+        <item quantity="other">%s set</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pacchetto</item>
         <item quantity="other">%s pacchetti</item>

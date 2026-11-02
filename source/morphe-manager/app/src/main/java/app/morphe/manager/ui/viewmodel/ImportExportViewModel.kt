@@ -12,10 +12,10 @@ package app.morphe.manager.ui.viewmodel
 
 import android.app.Application
 import android.content.ContentValues
-import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.net.Uri
+import android.os.Build
 import android.util.Log
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -33,7 +33,9 @@ import app.morphe.manager.domain.manager.SigningKeyInfo
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.repository.PatchOptionsRepository
 import app.morphe.manager.domain.repository.PatchSelectionRepository
+import app.morphe.manager.domain.repository.SelectionSetRepository
 import app.morphe.manager.domain.repository.SourceMuteRepository
+import app.morphe.manager.domain.repository.StoredSelectionSet
 import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.util.*
 import com.github.pgreze.process.Redirect
@@ -107,7 +109,29 @@ data class PatchBundleDataExportFile(
 data class AllSelectionsExportFile(
     val version: Int = 1,
     val exportDate: String,
-    val bundles: List<PatchBundleDataExportFile>
+    val bundles: List<PatchBundleDataExportFile>,
+    // Null in backups written before sets could be kept, which leaves the sets on the device alone
+    val sets: List<SelectionSetExportFile>? = null
+)
+
+/** A set kept for one app, see [SelectionSetRepository], as a backup carries it. */
+@Serializable
+data class SelectionSetExportFile(
+    val packageName: String,
+    val name: String,
+    val sources: List<SelectionSetSourceExport>
+)
+
+/** What a [SelectionSetExportFile] holds of one source. */
+@Serializable
+data class SelectionSetSourceExport(
+    val bundleUid: Int,
+    // Normalized endpoint URL, which the source is found by on another device, as with the
+    // bundleSource of a PatchBundleDataExportFile
+    val bundleSource: String? = null,
+    val patches: List<String>,
+    // Map<PatchName, Map<OptionKey, OptionValue>>
+    val options: Map<String, Map<String, String>>? = null
 )
 
 /**
@@ -142,6 +166,7 @@ class ImportExportViewModel(
     private val patchSelectionRepository: PatchSelectionRepository,
     private val sourceMuteRepository: SourceMuteRepository,
     private val patchOptionsRepository: PatchOptionsRepository,
+    private val selectionSetRepository: SelectionSetRepository,
     private val patchBundleRepository: PatchBundleRepository
 ) : ViewModel() {
     private val contentResolver = app.contentResolver
@@ -294,7 +319,7 @@ class ImportExportViewModel(
             // After the sources, so selections made against a source the backup brought back
             // find it in place
             if (SettingsSection.PATCH_SELECTIONS in sections) {
-                exportFile.selections?.let { importSelectionBundles(it.bundles, mode) }
+                exportFile.selections?.let { importSelectionBundles(it.bundles, it.sets, mode) }
             }
 
             messages.show(R.string.settings_system_import_manager_settings_success)
@@ -404,7 +429,7 @@ class ImportExportViewModel(
         }
     }
 
-    /** Every source's patch selections, options and kept apps, as one export. */
+    /** Every source's patch selections, options and kept apps, and every set, as one export. */
     private suspend fun allSelectionsExportFile(): AllSelectionsExportFile {
         val exportDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(LocalDateTime.now())
 
@@ -437,9 +462,28 @@ class ImportExportViewModel(
             }.filter { it.selections.isNotEmpty() || it.mutedPackages != null || it.knownApps != null }
         }
 
+        val sets = withContext(Dispatchers.IO) {
+            selectionSetRepository.exportAll().map { set ->
+                SelectionSetExportFile(
+                    packageName = set.packageName,
+                    name = set.name,
+                    sources = (set.patches.keys + set.options.keys).map { bundleUid ->
+                        SelectionSetSourceExport(
+                            bundleUid = bundleUid,
+                            bundleSource = patchBundleRepository.getEndpointForUid(bundleUid),
+                            patches = set.patches[bundleUid].orEmpty(),
+                            options = set.options[bundleUid]
+                        )
+                    }
+                )
+            }
+        }
+
         return AllSelectionsExportFile(
             exportDate = exportDate,
-            bundles = bundles
+            bundles = bundles,
+            // Written even when empty, so a backup restored in Replace mode clears the sets it lacks
+            sets = sets
         )
     }
 
@@ -474,37 +518,35 @@ class ImportExportViewModel(
                 element.containsKey("bundles")
             }
 
-            val bundleFiles: List<PatchBundleDataExportFile> = withContext(Dispatchers.IO) {
+            // A file of one source's selections carries no sets
+            val (bundleFiles, sets) = withContext(Dispatchers.IO) {
                 if (isAllSelections) {
-                    json.decodeFromString<AllSelectionsExportFile>(bytes.decodeToString()).bundles
+                    json.decodeFromString<AllSelectionsExportFile>(bytes.decodeToString()).let { it.bundles to it.sets }
                 } else {
-                    listOf(json.decodeFromString<PatchBundleDataExportFile>(bytes.decodeToString()))
+                    listOf(json.decodeFromString<PatchBundleDataExportFile>(bytes.decodeToString())) to null
                 }
             }
 
-            importSelectionBundles(bundleFiles, mode)
+            importSelectionBundles(bundleFiles, sets, mode)
 
             messages.show(R.string.settings_system_import_source_data_success)
         }
     }
 
     /**
-     * Applies exported selections onto this device's sources, the way [importAllSelections]
-     * describes for [mode].
+     * Applies exported selections and [sets] onto this device's sources, the way
+     * [importAllSelections] describes for [mode]. Null [sets], from a backup older than sets, leave
+     * the sets on the device alone.
      */
     private suspend fun importSelectionBundles(
         bundleFiles: List<PatchBundleDataExportFile>,
+        sets: List<SelectionSetExportFile>?,
         mode: PatchBundleRepository.ImportMode
     ) {
         withContext(Dispatchers.IO) {
             // Remap exported UIDs to current-device UIDs. Bundle UIDs are randomly generated
             // per device so the raw exported value only matches on the origin device
-            val remapped = bundleFiles.map { file ->
-                val uid = file.bundleSource
-                    ?.let { patchBundleRepository.resolveUidForEndpoint(it) }
-                    ?: file.bundleUid
-                file to uid
-            }
+            val remapped = bundleFiles.map { file -> file to localUid(file.bundleUid, file.bundleSource) }
             val incomingUids = remapped
                 .map { it.second }
                 .filter { patchBundleRepository.isUidLoaded(it) }
@@ -570,8 +612,40 @@ class ImportExportViewModel(
                     }
                 }
             }
+
+            if (sets != null) importSets(sets, mode)
         }
     }
+
+    /**
+     * Restores [sets], each on the sources this device has of it. In Replace mode the sets on the
+     * device go first. A set none of whose sources are here is left out rather than kept empty.
+     */
+    private suspend fun importSets(sets: List<SelectionSetExportFile>, mode: PatchBundleRepository.ImportMode) {
+        if (mode == PatchBundleRepository.ImportMode.Replace) selectionSetRepository.reset()
+
+        sets.forEach { set ->
+            // A set refers to its sources, so one this device does not have cannot be kept
+            val sources = set.sources.mapNotNull { source ->
+                val uid = localUid(source.bundleUid, source.bundleSource)
+                if (patchBundleRepository.isUidLoaded(uid)) uid to source else null
+            }
+            if (sources.isEmpty() && set.sources.isNotEmpty()) return@forEach
+
+            selectionSetRepository.import(
+                StoredSelectionSet(
+                    packageName = set.packageName,
+                    name = set.name,
+                    patches = sources.associate { (uid, source) -> uid to source.patches },
+                    options = sources.mapNotNull { (uid, source) -> source.options?.let { uid to it } }.toMap()
+                )
+            )
+        }
+    }
+
+    /** The uid on this device of a source exported as [bundleUid] from [bundleSource]. */
+    private fun localUid(bundleUid: Int, bundleSource: String?): Int =
+        bundleSource?.let { patchBundleRepository.resolveUidForEndpoint(it) } ?: bundleUid
 
     /**
      * Get filename for package+bundle data export.
@@ -683,9 +757,9 @@ class ImportExportViewModel(
                 put(MediaStore.Downloads.MIME_TYPE, mimeType)
                 put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
             }
-            val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            val uri = app.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
                 ?: return null
-            contentResolver.openOutputStream(uri)
+            app.contentResolver.openOutputStream(uri)
         } else {
             @Suppress("DEPRECATION")
             val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)

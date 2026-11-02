@@ -8,11 +8,17 @@
     <string name="home_unpatched_badge">Nav labots</string>
     <string name="home_no_patches_available">Nav pieejamu labojumu</string>
     <string name="home_app_hide_title">Paslēpt šo lietotni?</string>
+    <string name="home_more_apps_title">Vairāk lietotnes</string>
+    <string name="home_more_apps_hide_title">Paslēpt šo karti?</string>
+    <string name="home_more_apps_hide_message">Tā var tikt atgriezta jebkurā laikā Iestatījumos &gt; Izskats &gt; Sākuma ekrāns</string>
     <string name="home_app_hide_message">Šī lietotne būs paslēpta no galvenā ekrāna. Jūs to varat parādīt atkal vēlāk no paslēpto lietotņu saraksta, izmantojot pogu zem šī saraksta</string>
     <string name="home_app_will_be_hidden">Šī lietotne būs paslēpta</string>
+    <string name="home_app_hidden_named">%s slēpts</string>
+    <string name="home_app_shown_named">%s rādīts</string>
     <string name="home_app_no_hidden">Nav paslēptu lietotņu</string>
     <string name="home_app_hidden_apps_title">Slēptās lietotnes</string>
     <string name="home_app_hidden_apps_hint">Pieskaries, lai parādītu</string>
+    <string name="home_apps_unhide_message">Atraidītās lietotnes atgriežas uz sākuma ekrānu</string>
     <string name="home_app_patch_sources_description">Avoti, kas nav atzīmēti, netiek piedāvāti, kad šīs lietotnes tiek labotas, un to ielāpi nekad automātiski netiek iekļauti atlasē. Katrs avots paliek aktīvs attiecībā uz visām pārējām lietotnēm</string>
     <string name="home_app_patch_sources_mixed">Piedāvāts no %1$s no %2$s</string>
     <string name="home_app_patch_sources_covers">Ir labojumi %1$s no %2$s</string>
@@ -23,157 +29,1486 @@
     <string name="deep_link_add_source_message">Vai Jūs vēlaties pievienot šo labojuma avotu iekš Morphe?</string>
     <string name="deep_link_add_source_warning">Pievienot tikai Jums uzticamus avotus</string>
     <!-- Shown under the app a link was opened for -->
+    <string name="deep_link_add_source_only_app">Pievienota tikai šī lietotne. Jūs varat pievienot citas lietotnes no avota lietotņu saraksta</string>
     <!-- Shown when the link was opened for the universal patches of a source, which no app is added with -->
+    <string name="deep_link_add_source_only_universal">Pievienoti tikai universālie lappisi. Lietotnes varat pievienot no avota lietotņu saraksta</string>
     <!-- Asked when the link names an app of a source that is already added -->
+    <string name="deep_link_add_source_app_back">Šis avots jau ir pievienots. Pievienot šo lietotni no esošā avota?</string>
     <!-- Asked when a .mpp file opened from a file manager is another version of a local source, %s being its name -->
+    <string name="mpp_import_update_message">Šī ir jaunā %s versija. Vai vēlaties to atjaunināt?</string>
+    <string name="mpp_import_unreadable">Šo failu nevar izlasīt</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Morphe atjauninājums ir pieejams</string>
     <string name="home_update_available_subtitle">Jauna versija ir gatava instalēšanai</string>
+    <string name="home_blocked_source_title">Atklauts bloķēts plākuma avots</string>
+    <string name="home_blocked_source_subtitle">Knīciet, lai pārskatītu un noņemtu</string>
+    <string name="home_metadata_errors_title">Daži plākuma avoti nav pieejami</string>
+    <string name="home_metadata_errors_subtitle">Knīciet, lai pārskatītu avotus</string>
+    <string name="home_outdated_manager_title">Morphe versija ir novecotējusi</string>
+    <string name="home_outdated_manager_subtitle">Dažiem patchu avotiem nepieciešama jaunāka versija</string>
+    <string name="home_held_back_title">Lāpīšanas avots izraisīja Morphe avāriju</string>
+    <string name="home_held_back_subtitle">Tas tika izlaists, lai lietotne varētu startēt. Pieskarieties, lai pārskatītu</string>
+    <string name="home_metered_skipped_title">Atjauninājumi apturēti, izmantojot mobilos datus</string>
+    <string name="home_metered_skipped_subtitle">Knīciet, lai atļautu atjauninājumus, izmantojot mobilos datus</string>
+    <string name="home_repatch_available_subtitle">Kārtojiet visas rindā, pieskaroties</string>
+    <string name="home_update_error">Atjaunināšana neizdevās</string>
+    <string name="home_update_error_subtitle">Atkļūda, atjauninot avotus</string>
+    <string name="home_update_skipped_metered">Atjauninājumi izlaidi</string>
+    <string name="home_update_skipped_metered_subtitle">Mobilie dati ir aktīvi</string>
+    <string name="home_updating_sources">Atjaunina avotus…</string>
+    <string name="home_update_success">Avotu atjaunināšana pabeigta</string>
+    <string name="home_update_success_subtitle">Jūsu avoti ir aktualizēti</string>
+    <string name="home_sources_are_loading">Avoti tiek ielādēti, lūdzu, uzgaidiet…</string>
+    <string name="home_search_apps">Meklēt lietotnes</string>
+    <string name="list_options_title">Kārtot un filtrēt</string>
+    <string name="list_options_state_description">Kārtots pēc %1$s, filtrēts pēc %2$s</string>
+    <string name="home_app_filter_all_description">Katra programma sākumekrāna ekrānā</string>
+    <string name="home_app_filter_patched_description">Lietotnes, kuras esat patched vai saglabājis ar Morphe</string>
+    <string name="home_app_filter_not_patched_description">Lietotnes, kuras vēl neesat patched Morphe</string>
+    <string name="home_app_filter_installed_description">Lietotnes, kas pašlaik ir instalētas šajā ierīcē</string>
+    <string name="home_app_filter_uninstalled_description">Ar Morphe patched lietotnes, kuras vairs nav šajā ierīcē</string>
+    <string name="home_app_filter_clones">Kloni</string>
+    <string name="home_app_filter_clones_description">Lietotnes, kas izveidotas ar savu paketes nosaukumu un instalētas līdzsidedīgi ar oriģinālo</string>
     <string name="home_app_grouping_none">Nav</string>
+    <string name="home_app_grouping_all_apps_description">Viens saraksts ar visām lietotnēm</string>
+    <string name="home_app_grouping_sources_description">Lietotnes saskaņā ar patchu avotu, kas tās nodrošina</string>
+    <string name="home_app_grouping_custom_description">Lietotnes jūsu izveidotajās kategorijās</string>
+    <string name="home_app_sort_manual_description">Ilgstoši nospiediet lietotni, pēc tam nospiediet pārkārtošanas pogu</string>
+    <string name="home_app_sort_recommended">Ieteiktā secība</string>
+    <string name="home_app_sort_recommended_description">Vispirms instalētās un fiksētās lietotnes</string>
+    <string name="home_app_sort_name_asc_description">Alfabētiski, no A līdz Z</string>
+    <string name="home_app_sort_name_desc_description">Alfabētiski descending, no Z līdz A</string>
+    <string name="home_app_sort_updates_first">Vispirms rumpja atjauninājumi</string>
+    <string name="home_app_sort_updates_first_description">Vispirms lietotnes ar jaunākajiem lapašiem, pēc tam rekomendētā secība</string>
+    <string name="home_app_sort_recently_patched">Nesavārtoti nesen</string>
+    <string name="home_app_sort_recently_patched_description">Vispirms visnesavārtotākās lietotnes</string>
+    <string name="home_no_apps_title">Nav pieejamu lietotnēm</string>
+    <string name="home_no_apps_subtitle">Pievienojiet lāpumu avotu vai iespējojiet esošo %s</string>
+    <string name="home_no_apps_search_subtitle">Neviena lietotne neatbilst \"%s\"</string>
+    <string name="home_all_apps_hidden_title">Visas lietotnes ir slēptas</string>
+    <string name="home_all_apps_hidden_subtitle">Jūs esat slēpušas visas lietotnes no sākuma ekrāna</string>
+    <string name="home_no_apps_filter_title">Neviena lietotne neatbilst šim filtram</string>
+    <string name="home_no_apps_filter_subtitle">Nekas neatbilst %s</string>
+    <string name="home_category_add">Pievienot kategoriju</string>
+    <string name="home_category_all_apps">Visas lietotnes</string>
+    <string name="home_category_custom">Pielagots</string>
+    <string name="home_category_uncategorized">Bez kategorijas</string>
+    <string name="home_category_new_title">Jauna kategorija</string>
+    <string name="home_category_rename_title">Pārchrist kategoriju</string>
+    <string name="home_category_name">Kategorijas nosaukums</string>
+    <string name="home_category_move_to">Pārcelt uz kategoriju</string>
+    <string name="home_category_move_selected_title">Pārcelt atlasītas lietotnes</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">Dzēst %s?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Tās lietotnes tiek pārceltas atpakaļ uz &lt;b&gt;%s&lt;/b&gt;</string>
+    <string name="home_category_actions_unavailable">Šai kategorijai darbības nav pieejamas</string>
     <!-- Home Screen - Home Greetings -->
+    <string name="home_greeting_1">Kuru lietotni vēlaties patchedēt?</string>
     <!-- Humorous hype message with light nostalgia -->
+    <string name="home_greeting_2">Gatavs atkal padarīt lietotnes leģendāras?</string>
     <!-- "Buckle up" referring to fastening your vehicle seat belt. A light-hearted joke to build excitement -->
+    <string name="home_greeting_3">iespiediet joslas, ir laiks patchedēt</string>
     <!-- Sarcastic joke about blocking ads, intentionally over-the-top -->
+    <string name="home_greeting_4">Vēl viena diena, vēl viens reklāmas bloķēšanas šedevrs</string>
     <!-- "Watch ads" refers to watching video ads in unpatched apps -->
+    <string name="home_greeting_5">Vēlaties skatīties reklāmas? Es arī nē</string>
     <!-- Friendly, slightly mischievous joke about controlling app behavior -->
+    <string name="home_greeting_6">Līdzēsim jūsu lietotnēm sliktiem paradumiem</string>
     <!-- Whimsical forecast-style joke, not meant literally -->
+    <string name="home_greeting_7" formatted="false">Šodienas prognoze: 100% iespēja veikt labojumu</string>
     <!-- From mediocrity to amazing -->
+    <string name="home_greeting_8">Gatavs pārvērst vidējo kaut kā izcilīgu?</string>
     <!-- Playful exaggeration, making patching feel heroic -->
+    <string name="home_greeting_9">Glābjam lietotnes no tām pašām kopš šodienas</string>
     <!-- Light sarcasm, casual and tech-savvy humor -->
+    <string name="home_greeting_10">Darbojas pateles kofeinam un labiem patchiem</string>
     <!-- Morning greetings (5:00–11:59) -->
+    <string name="home_greeting_morning_1">Celies un patchē</string>
+    <string name="home_greeting_morning_2">Labrīt! Lietotnes pati sevi nepatchēs</string>
     <!-- Afternoon greetings (12:00–16:59) -->
+    <string name="home_greeting_afternoon_1">Pusdienu miegainums? Patchē kaut ko</string>
+    <string name="home_greeting_afternoon_2">Patchēšana pēc pusdienām ir cita pieredze</string>
+    <string name="home_greeting_afternoon_3">Pusdienu maiņa: patchēšanas versija</string>
     <!-- Evening greetings (17:00–21:59) -->
+    <string name="home_greeting_evening_1">Labvakar! Vakara patchi ir cita lieta</string>
+    <string name="home_greeting_evening_2">Atpūsties? Vispirms uzpatchi kādu lietotni</string>
+    <string name="home_greeting_evening_3">Aizierē darbu? Vispirms uzpatchi kaut ko</string>
     <!-- Late night greetings (22:00–23:59) -->
+    <string name="home_greeting_late_night_1">Joprojām cecis? Tāpat arī lietotnes, kurām vajag patchingu</string>
+    <string name="home_greeting_late_night_2">Vēlu vakara patchinga sesija? Respekts</string>
+    <string name="home_greeting_late_night_3">Nakts putna režīms: aktivizēts</string>
     <!-- Super late night greetings (0:00–4:59) -->
+    <string name="home_greeting_super_late_1">Patchinga pīka stundas... itkā</string>
+    <string name="home_greeting_super_late_2">Nevari gulēt? Uzpatchi kaut ko</string>
+    <string name="home_greeting_super_late_3">Šajā brīdī vienkārši paliec cecis un patchi</string>
+    <string name="home_greeting_super_late_4">Sveiciens jums un serveriem, visi modāki</string>
+    <string name="home_greeting_super_late_5">Nakts putni un produktīvi</string>
     <!-- Halloween greetings, shown instead of the ones above around October 31 -->
     <!-- Pun on "Trick or treat" -->
+    <string name="home_greeting_halloween_1">Saldums vai patchs?</string>
+    <string name="home_greeting_halloween_2">Šifos APK nav svešinieku, mēs pārbaudījām</string>
+    <string name="home_greeting_halloween_3">Spoku sezona, svaigi patchi</string>
     <!-- Pun on "Something wicked this way comes", a line from Shakespeare's Macbeth -->
+    <string name="home_greeting_halloween_4">Kāds ļauns patchs kllojas šeit</string>
     <!-- Winter holiday greetings, shown instead of the ones above from late December to early January -->
+    <string name="home_greeting_winter_1">Priecīgus svētkus, jauni patchi</string>
     <!-- Pun on the song "Let It Snow! Let It Snow! Let It Snow!" -->
+    <string name="home_greeting_winter_2">Lai krīt sniegs, lai nāk patchi</string>
+    <string name="home_greeting_winter_3">Jauns gads, jauni patchi</string>
     <!-- Pun on "Dashing through the snow", the opening line of "Jingle Bells" -->
+    <string name="home_greeting_winter_4">Patchojam cauri sniegam</string>
     <!-- New Year greetings, shown instead of the ones above on December 31 and January 1 -->
+    <string name="home_greeting_new_year_1">Laimīgu Jauno gadu!</string>
+    <string name="home_greeting_new_year_2">Atskaita minūtes līdz jauniem patchiem</string>
+    <string name="home_greeting_new_year_3">Jauns gads, tās pašas lietotnes bez reklāmām</string>
     <!-- Pun on the saying "Out with the old, in with the new" -->
+    <string name="home_greeting_new_year_4">Āra ar veco versijām, iekšā ar jaunajām</string>
     <!-- Home Screen - Sources Management -->
+    <string name="sources_management_title">Pielāgojumu avoti</string>
+    <string name="sources_search">Meklēt avotos un lapašos</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
+    <string name="sources_filter_all_description">Katrs avots</string>
+    <string name="sources_filter_enabled_description">Avoti, no kuriem tiek paņemti patchi</string>
+    <string name="sources_filter_disabled_description">Avoti izslēgti</string>
+    <string name="sources_filter_issues">Nepieciešama uzmanība</string>
+    <string name="sources_filter_issues_description">Avoti, kas ir bloķēti, nav izlastes vai kam nepieciešama jaunāka Morphe versija</string>
+    <string name="sources_sort_manual">Manuāla secība</string>
+    <string name="sources_sort_manual_hint">Ilgāk nospiediet avotu, lai mainītu secību</string>
+    <string name="sources_sort_last_updated">Pēdējā atjauninājuma datums</string>
+    <string name="sources_sort_last_updated_description">Vispirms jaunākie avotu atjauninājumi</string>
+    <string name="sources_sort_enabled_first">Vispirms iespējotie</string>
+    <string name="sources_sort_enabled_first_description">Rādīt aktīvos avotus pirms nicht iespējotajiem avotiem</string>
+    <string name="sources_patches_source_disabled_hint">Šis avots ir izslēgts. Tā lapaši ir sarakstīti informatīvi un netiek pielietoti</string>
+    <string name="sources_management_open_in_browser">Atvērt pārlūkprogrammā</string>
+    <string name="sources_management_report_issue">Ziņot par problēmu</string>
+    <string name="sources_management_failed_to_open_url">Neizdevās atvērt URL</string>
+    <string name="sources_apps">Lietotnes</string>
+    <string name="sources_apps_description">Atzīmētās lietotnes nāk no šī avoda. Pieskarieties lietotnei, lai to izslēgtu vai atgrieztu. Lietotne pazūd no sākuma ekrāna, ja neviena avoda to neiekļaujas, izņemot gadījumus, ja esat to patched</string>
+    <string name="sources_apps_brought">Atnestu šis avots</string>
+    <string name="sources_apps_left_out">Izlaists no šī avota</string>
     <!-- Under an app left out of a source that keeps its home screen card because the user has patched it -->
+    <string name="sources_apps_stays_patched">Saglabāts kā patched</string>
     <!-- Marks an app (not a patch) the source started supporting since its app list was last opened -->
+    <string name="sources_apps_new">Jauns</string>
+    <string name="sources_apps_new_apps">Atnest jaunas lietotnes</string>
     <!-- Under the Bring new apps switch in a source's app list, whichever way it is set. "It" is the patch source -->
+    <string name="sources_apps_new_apps_description">Vēlāk pievienotās lietotnes parādīsies sākuma ekrānā</string>
+    <string name="sources_management_prerelease_toggle">Pirms izlaides lappisi</string>
+    <string name="sources_management_prerelease_toggle_description">Saņem agri piekļuvi jaunām eksperimentālajām patch versijām</string>
+    <string name="sources_prerelease_warning_title">Activēt pirmizlaiduma lappisus?</string>
+    <string name="sources_prerelease_warning_message">Pirmizlaiduma versijas joprojām tiek izstrādātas. Lappisēšana var neveiksmīgi beigties vai sabojāt lietotni, un funkcijas var mainīties bez brīdinājuma</string>
+    <string name="sources_management_experimental_versions_toggle">Eksperimentālās lietotnes versijas</string>
+    <string name="sources_management_experimental_versions_toggle_description">Rāda un patchē eksperimentālos lietotnes mērķus</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Ienablekt pirmizlaidus patchus</string>
+    <string name="sources_management_prerelease_disable">Aizliegt pirmizlaidus patchus</string>
+    <string name="sources_management_experimental_versions_enable">Ienablekt eksperimentālas lietotnes versijas</string>
+    <string name="sources_management_experimental_versions_disable">Aizliegt eksperimentālas lietotnes versijas</string>
+    <string name="sources_management_already_exists">Šis avots jau ir pievienots</string>
+    <string name="sources_management_invalid_url">Avota URL ir neatbilstošs. Lūdzu, pārbaudiet adresi un mēģiniet vēlreiz</string>
+    <string name="sources_management_blocked">Šis plākuma avots ir bloķēts un to nevar pievienot</string>
+    <string name="sources_management_source_blocked_badge">Bloķēts</string>
+    <string name="sources_management_metadata_unavailable">Metadati nav pieejami</string>
+    <string name="sources_management_metadata_unavailable_hint">Tālstatnējais metadatu fails nav pieejams. Plāstums ar instalēto pakauju joprojām darbojas, taču šim avotam automātiskais atjauninājums ir izslēgts</string>
+    <string name="sources_management_metadata_unavailable_hint_missing">Plāstuma pakauju neizdevās lejupielādēt. Avota URL var būt nepareizs vai fails neeksistē</string>
+    <string name="sources_management_outdated_manager_badge">Atjaunināt Morphe</string>
+    <string name="sources_management_outdated_manager_hint">Šis avots ir izveidots patcherim %1$s, taču Morphe %2$s ietver patcher %3$s. Lai to izmantotu, atjauniniet Morphe</string>
+    <string name="sources_management_held_back_badge">Avārija</string>
+    <string name="sources_management_held_back_hint">Šis avots ielādes laikā izraisīja Morphe avāriju, tāpēc tas tiek izlaists. Atjaunojiet vai importējiet to no jauna, lai mēģinātu vēlreiz</string>
+    <string name="sources_management_signed_by">Parakstījis</string>
+    <string name="sources_management_signing_key_changed_badge">Atslēga mainīta</string>
+    <string name="sources_management_signing_key_changed_hint">Jaunākais izlaidums nav parakstīts ar atslēgu, ko šis avots izmantoja iepriekš, tāpēc tas netika instalēts. Pieskarieties, lai to pārskatītu</string>
+    <string name="sources_management_source_enabled">Avots iespējots</string>
+    <string name="sources_management_source_disabled">Avots nicht iespējots</string>
+    <string name="sources_management_source_updating">Atjaunina avotu</string>
     <!-- Home Screen - Sources Dialogs -->
-    <!-- Button under the files already picked, which opens the picker again -->
+    <string name="sources_dialog_display_name">Rādīšanas nosaukums</string>
+    <string name="sources_dialog_rename">Pārroksti patcha avotu</string>
+    <string name="sources_dialog_duplicate_name_error">Lapaṇu avots ar šādu nosaukumu jau eksistē</string>
+    <string name="sources_dialog_missing_error">Neizdevās atjaunināt šo lapisa avotu</string>
+    <string name="sources_dialog_add_source">Pievienot lapaṇu avotu</string>
+    <string name="sources_dialog_delete_confirm_body">Šo darbību nevar atsaukt</string>
+    <string name="sources_dialog_remote">Tālstatnējais</string>
+    <string name="sources_dialog_remote_url">Avota URL</string>
+    <string name="sources_dialog_remote_url_hint">Repozitorijs vai saite uz patch bundle .json. Ielīmējiet vairākas vienlaicīgi, lai pievienotu visas</string>
+    <string name="sources_dialog_paste_no_links">Starba vairogā saites netika atrastas</string>
+    <string name="sources_dialog_local">Lokālais</string>
+    <string name="sources_dialog_local_files">Atlasiet lappisa avotfailus</string>
+    <string name="sources_dialog_local_invalid_extension">Failam jābūt ar paplašinājumu .mpp</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
+    <string name="sources_dialog_local_updates">Atjauninājumi %s</string>
+    <string name="sources_dialog_url_valid">Derīgs repozitorija vai JSON URL</string>
+    <string name="sources_dialog_url_invalid">URL adresem jānorāda uz GitHub/GitLab repozitoriju vai .json failu</string>
+    <string name="sources_dialog_preinstalled">Iespaidīts</string>
+    <string name="sources_dialog_community">Kopienas plāstumi</string>
+    <string name="sources_dialog_choose_apps">Izvēlieties lietotnes</string>
+    <string name="sources_dialog_choose_apps_description">Izvēlieties, kuras no tās lietotnēm saglabāt, kad avots būs ielādēts</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
+    <string name="sources_dialog_community_notice_title">Trešo pušu plāstumu avoti</string>
+    <string name="sources_dialog_community_notice_message">"Kopienas lapiņu avotus izveido un uztur to autori. Morphe nepārskata un nepārbauda trešo pušu lapiņus un nav atbildīga par to saturu vai par to, ko tie veic jūsu ierīcē"</string>
+    <string name="sources_update_success">Atjauninājums veiksmīgs</string>
+    <string name="sources_update_unavailable">Nav pieejama atjauninājuma</string>
+    <string name="sources_download_fail">Neizdevās lejupielādēt avotus: %s</string>
+    <string name="sources_download_fail_named">\'%s\' neizdevās atjaunināt. Pārbaudiet interneta savienojumu un mēģiniet vēlreiz</string>
+    <string name="sources_download_endpoint_not_found">\'%s\': plāstuma metadati netika atrasti</string>
+    <string name="sources_signing_key_changed_named">\'%s\' netika atjaunināts, jo tā jaunākā versija nav parakstīta ar iepriekš izmantoto atslēgu</string>
+    <string name="sources_signing_key_changed_local">Fails nav parakstīts ar atslēgu, ko šis avots izmantoja iepriekš. Lai uzticētos tam, dzēsiet avotu un pievienojiet failu vēlreiz</string>
+    <string name="sources_signing_key_trust_title">Uzticēties jaunajai atslēgai?</string>
+    <string name="sources_signing_key_trust_message">Jaunākā versija ir parakstīta ar citu atslēgu. Iespējams, izstrādātājs ir nomainījis atslēgu vai šo versiju ir publicējis kāds cits. Uzticieties tai tikai tad, ja izstrādātājs ir paziņojis par jaunu atslēgu</string>
+    <string name="sources_signing_key_trust_message_unsigned">Jaunākā versija nav parakstīta. Iespējams, izstrādātājs ir pārstājis parakstīt versijas vai šo versiju ir publicējis kāds cits. Uzticieties tai tikai tad, ja izstrādātājs to ir paziņojis</string>
+    <string name="sources_signing_key_trusted">Uzticēta atslēga</string>
+    <string name="sources_signing_key_new">Jauna atslēga</string>
+    <string name="sources_patch_expert_badge">Eksperts</string>
+    <string name="sources_patch_expert_badge_tooltip">Ienablet Eksperta režīmu iestatījumos, lai manuāli pievienotu šo patchu</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
+    <string name="home_apk_availability_title">Vai jums ir nepieciešama palīdzība APK meklēšanā?</string>
+    <string name="home_apk_availability_dialog_simple">Lai patchedētu &lt;b&gt;%s&lt;/b&gt;, jums nepieciešama nepachedētā APK versija:</string>
+    <string name="home_apk_availability_dialog_expert">Lai pielāgotu &lt;b&gt;%s&lt;/b&gt;, jums nepieciešams nepielāgots APK šīs versijas:</string>
+    <string name="home_apk_availability_recommended_label">Ieteikts</string>
+    <string name="home_apk_availability_unpatched_label">Nepatika</string>
+    <string name="home_apk_availability_incompatible_label">Nesaderīgs</string>
+    <string name="home_apk_availability_installed_version">Instalēts šajā ierīcē: %s</string>
+    <string name="home_apk_availability_find">Jā, palīdziet man to atrast</string>
+    <string name="home_apk_availability_have">Nē, tā jau ir manā rīcībā</string>
+    <string name="home_apk_helper_download">Izmantot palīglieku lietotni</string>
+    <string name="home_apk_helper_untrusted">Palīglī programma ir instalēta, taču vēl nav uzticēta, tāpēc tā šeit netiek piedāvāta</string>
+    <string name="home_apk_helper_untrusted_action">Pārskatīt palīgus</string>
+    <string name="home_apk_helper_title">Lejupielādēt ar palīglīgo lietotni</string>
+    <string name="home_apk_helper_description">Morphe pieprasīs zemāk norādītajai palīglīgojai lietotnei lejupielādēt oriģinālo APK un nodot failu atpakaļ</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_apk_helper_continue">Atvērt palīgu</string>
+    <string name="home_apk_helper_warning">Turpiniet tikai tad, ja uztīcat šai palīglīgojai lietotnei. Pirms patchošanas Morphe pārbauda visu saņemto pakaujumā, versiju un parakstu</string>
+    <string name="home_apk_helper_warning_unverified">Turpiniet tikai tad, ja uztīcat šai palīglīgojai lietotnei. Morphe nevar pārbaudīt šī APK parakstu, tādēļ modificēts fails netiktu pamanīts</string>
+    <string name="home_apk_helper_no_result">Palīglīgā lietotne neatgrieza APK failu</string>
+    <string name="home_apk_helper_no_access">Palīglī programma nepiešķīra piekļuvi APK failam, kuru tā atgrieza</string>
+    <string name="home_apk_helper_no_package">Palīglī programma nenorādīja, kuru instalēto programmu izmantot</string>
+    <string name="home_apk_helper_wrong_package">Palīglī programma atgrieza citu programmu nekā to, kuru patched</string>
+    <string name="home_apk_helper_installed_unavailable">Morphe nevarēja izmantot instalēto programmu</string>
+    <string name="home_apk_helper_installed_incompatible">Instalēto versiju nevar patched</string>
+    <string name="home_apk_use_saved_copy">Izmantot saglabāto kopiju</string>
+    <string name="home_apk_use_installed_app">Izmantot instalēto lietotni</string>
+    <string name="home_apk_use_saved_unsupported">Lapiņi neatbalsta šo saglabāto kopiju. Veicot lapiņu uzstādīšanu, tiks pieprasīts apstiprinājums vai citas APK izvēle</string>
+    <string name="home_apk_use_installed_unverified">Neizdevās pārbaudīt instalētās lietotnes parakstu, tāpēc tā var būt jau patched</string>
+    <string name="home_unverified">Nepārbaudīts</string>
+    <string name="home_install_verification_pending">Pārbauda instalāciju…</string>
+    <string name="home_app_info_install_unverified">Morphe nevar apstiprināt, ka uzstādītā lietotne ir tāja versija, kuru tā ir lappisējusi. Lai atjaunotu darbības, veiciet lappisēšanu atkārtoti vai pārstādiet to no saglabātā APK faila</string>
+    <string name="home_app_info_no_saved_apk">Nav saglabāta APK. Lai veiktu patched procesu, būs jāizvēlas APK fails vēlreiz</string>
+    <string name="home_version_requires_android">Nepieciešams Android %s+</string>
+    <string name="home_apk_no_compatible_versions_title">Šī ierīce netu baterías</string>
+    <string name="home_apk_no_compatible_versions_message">&lt;b&gt;%1$s&lt;/b&gt; nav atbalstītu versijām Android %2$s (API %3$s). Visām deklarētajām versijām ir nepieciešama augstāka Android versija</string>
     <!-- Home Screen - Dialog 2: Download Instructions -->
+    <string name="home_download_instructions_title">Lejupielādējiet oriģinālo APK</string>
+    <string name="home_download_instructions_finding">Meklēju lejupielādes lapu…</string>
+    <string name="home_download_instructions_step1">Nospiediet tālāk esošo pogu \'%s\'</string>
+    <string name="home_download_instructions_step2_part1">Nokrītojieties lejup lapā un nospiediet</string>
+    <string name="home_download_instructions_step2_generic">Noskrullējiet uznedeņu uz leju un nospiediet tās lejupielādes pogu</string>
+    <string name="home_download_instructions_step2_variant">Noskrullējiet uznedeņu uz leju un nospiediet augstākā &lt;b&gt;APK varianta&lt;/b&gt; lejupielādes pogu</string>
+    <string name="home_download_instructions_step2_search">Atveriet meklēšanas rezultātu no vietnes, kurai uzticaties</string>
+    <string name="home_download_instructions_step2_search_note">Morphe nevar garantēt šo tīmekļa vietņu drošību. Izlaiziet tās, kas piedāvā savu lietotņu veikalu APK faila vietā</string>
+    <string name="home_download_instructions_step3_search">Šajā tīmekļa vietnē lejupielādējiet versijas &lt;b&gt;%s&lt;/b&gt; APK, nevis jaunāko</string>
+    <string name="home_download_instructions_step3_search_any">Šajā tīmekļa vietnē lejupielādējiet lietotnes APK. Var patchēt &lt;b&gt; jebkuru versiju&lt;/b&gt;</string>
+    <string name="home_download_instructions_download_button_toast">Nospiediet lejupielādēšanu vietnē, nevis šeit 😊</string>
+    <string name="home_download_instructions_download_button_toast_2">Lieliski! Tagad noklikšķiniet uz \"turpināt\" un dodies uz tīmekļa vietni 👆</string>
+    <string name="home_download_instructions_download_button_toast_3">Praksis padara perfektu, un jūs tuvājaties mērķim 💪</string>
+    <string name="home_download_instructions_download_button_toast_4">Joprojām nav... joprojām nav... 🙈</string>
+    <string name="home_download_instructions_download_button_toast_5">Labi, es cienu šādustumu 🫡</string>
+    <string name="home_download_instructions_download_button_toast_6">Tagad jūs esat oficiāls Morphe pogu testētājs 🏅</string>
+    <string name="home_download_instructions_step3">Nogaidiet, līdz lejupielāde ir pabeigta, un &lt;b&gt;neinstalējiet&lt;/b&gt; APK</string>
+    <string name="home_download_instructions_step3_mount">Nogaidiet, līdz lejupielāde ir pabeigta, pēc tam &lt;b&gt;instalējiet APK&lt;/b&gt;</string>
+    <string name="home_download_instructions_step4">Kad lejupielāde būs pabeigta, atgriezieties Morphe</string>
+    <string name="home_download_instructions_step4_mount">Pēc oriģinālā APK instalēšanas atgriezieties Morphe</string>
+    <string name="home_download_instructions_continue_to">Turpināt uz %s</string>
+    <string name="home_download_instructions_destination">lejupielādes lapu</string>
+    <string name="home_download_instructions_copy_link">Kopēt saiti</string>
+    <string name="home_download_instructions_link_copied">Saite nokopēta</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">Atlasiet %s APK</string>
+    <string name="home_file_picker_prompt_where">Prebraucēji parasti to saglabā Lejupielādes mapē</string>
+    <string name="home_file_picker_prompt_open_apk">Atvērt APK failu</string>
+    <string name="home_recommended_version">Ieteiktā versija</string>
+    <string name="home_selected_version">Atlasītā versija</string>
+    <string name="home_select_apk_title">Atlasīt APK</string>
+    <string name="home_select_apk_description">"Universālie lāpīumi darbojas ar jebkuru lietotni
+
+Izvēlieties, no kurienes ņemt tās APK"</string>
+    <string name="home_use_installed_app">Izmantot instalēto lietotni</string>
+    <string name="home_use_installed_app_description">Izvēlieties lietotni, kas jau ir šajā ierīcē</string>
+    <string name="home_open_apk_file_description">Izvēlieties APK, APKM, APKS vai XAPK failu no atmiņas</string>
+    <string name="home_installed_app_picker_title">Uzstādītas lietotnes</string>
+    <string name="home_installed_app_picker_empty">Lietotnes neatrastas</string>
+    <string name="home_installed_app_picker_filter_user">Tikai lietotāja lietotnes</string>
+    <string name="home_installed_app_picker_filter_system">Tikai sistēmas lietotnes</string>
+    <string name="home_invalid_apk_unreadable">Neizdevās izlasīt failu. Pārbaudiet, vai \'Ārējais glabātājs\' nav ierobežots akumulatora iestatījumos</string>
+    <string name="home_invalid_apk_not_an_apk">Izvēlētais fails nav derīgs APK</string>
+    <string name="home_invalid_apk_already_patched">Izvēlētais APK jau ir patchedēts. Tā vietā izvēlieties oriģinālo lietotni</string>
+    <string name="home_invalid_apk_io_error">Neizdevās atvērt failu. Lūdzu, mēģiniet vēlreiz</string>
+    <string name="home_external_apk_expert_mode_required">Šī funkcija ir pieejama tikai Eksperta režīmā</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
+    <string name="expert_mode_search">Meklēt patchus</string>
+    <string name="expert_mode_disable_all">Atslēgt visu</string>
+    <string name="expert_mode_enable_all">Iespējot visu</string>
+    <string name="expert_mode_enable_all_universal_pending">Kārtējiet vēlreiz universāliem patchiem</string>
+    <string name="expert_mode_universal_all_warning_title">Akativēt visus universālos patchus?</string>
+    <string name="expert_mode_universal_all_warning_message">Universālie patchi nav testēti kopā. Aktivizējot visus vienlaicīgi, var rasties konflikti, patchošanas kļūme vai programma var crashes</string>
+    <string name="expert_mode_reset_to_default_done">Ieteiktie patches piemērti</string>
+    <string name="expert_mode_restore_saved_done">Saglabātā atlase atjaunota</string>
+    <string name="expert_mode_copy_from_bundle_no_patches">Šajā bundle nav atbilstošu patchiem</string>
+    <string name="expert_mode_no_results">Nekādi patchi netika atrasti</string>
+    <string name="expert_mode_selected_only">Tikai izvēlētie laksti</string>
+    <string name="expert_mode_selected_only_on">Rāda tikai atlasītos plāstumus</string>
+    <string name="expert_mode_selected_only_off">Rāda visus plāstumus</string>
+    <string name="expert_mode_universal_patches">Universālie atlapi</string>
+    <string name="expert_mode_new_patches">Jauns</string>
+    <string name="expert_mode_options_customized">Pielagots</string>
+    <string name="expert_mode_patch_required_by_installer">Nepieciešams izvēlētajam instalācijas mērķim</string>
+    <string name="expert_mode_patch_unavailable_for_installer">Nav pieejams izvēlētajam instalācijas mērķim</string>
+    <string name="expert_mode_multiple_sources_warning_title">Atlasīti vairāki labojumu avoti</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Lapiņi no dažādiem avotiem nav paredzēti kopīgai darbībai un var radīt konfliktu vai sabojāt lietotni</string>
     <!-- Home Screen - Home Sub-Dialogs -->
+    <string name="home_invalid_signature_title">Nenovērtēts APK</string>
+    <string name="home_invalid_signature_message">APK, kuru izvēlējāties &lt;b&gt;%s&lt;/b&gt; elementam, neatbilst gaidītajam parakstīšanas sertifikātam. Tas var būt modificēts vai nākt no neuzticamas avotu</string>
+    <string name="home_invalid_signature_badge">Šis APK var nebūt oriģināls</string>
+    <string name="home_split_apk_warning_title">Atklāts sadalīts APK</string>
+    <string name="home_split_apk_warning_message">"Šis fails ir APK bundle
+(&lt;b&gt;APKM / APKS / XAPK&lt;/b&gt;).
+
+Lai pretendētu uz labākajiem rezultātiem, šī lietotne iesaka patchēt &lt;b&gt;pilnu APK&lt;/b&gt;"</string>
+    <string name="home_split_apk_warning_pick_another">Izvēlieties citu APK</string>
+    <string name="home_dialog_unsupported_version_experimental_label">Eksperimentāls</string>
+    <string name="home_dialog_unsupported_version_experimental_description">Šai versijai ir eksperimentāls atbalsts, un tā var būt nestabila vai nepilnīga</string>
+    <string name="morphe_experimental_app_version_dialog_title">Vai vēlaties eksperimentēt? 🧪</string>
+    <string name="morphe_experimental_app_version_dialog_message">"Šai &lt;b&gt;%s&lt;/b&gt; versijai ir agrīns eksperimentāls atbalsts.
+
+🔧 Gaidiet dīvainu lietotnes uzvedību vai neatklātus kļūdumus, kamēr lāpīumi tiek pilnveidoti šai lietotnes versijai"</string>
+    <string name="home_dialog_unsupported_version_dialog_title">Neatbalstīta versija</string>
+    <string name="home_dialog_unsupported_version_dialog_description">Šis APK nav iesakāita lietotnes versija. Turpinot, lietotne var kļūt nefunkcionāla</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="home_dialog_unsupported_version_dialog_proceed">Turpināt jebkurā gadījumā</string>
+    <string name="home_dialog_unsupported_version_compatible_versions">Saderīgas versijas:</string>
+    <string name="home_dialog_unsupported_version_unsupported_label">Nesaderīgs</string>
     <!-- "Build" here refers to a specific compiled version of the app (versionCode) -->
+    <string name="home_dialog_unsupported_version_build">Builds %s</string>
+    <string name="home_dialog_unsupported_version_build_mismatch_description">Šis ir citas versijas builds. Lapiem ir nepieciešams konkrēts builds</string>
+    <string name="home_dialog_wrong_package_title">Atlasīts nepareizs paketes</string>
+    <string name="home_dialog_wrong_package_description">Izvēlētais APK nav paredzēts lietotnei, kuru vēlaties patchedēt</string>
+    <string name="home_dialog_expected_package"> Sagaidītā pakete:</string>
+    <string name="home_dialog_selected_package">Atlasītā pakete:</string>
+    <string name="home_outdated_patches_dialog_title">Lapaṇi var būt novecotinājuši</string>
+    <string name="home_outdated_patches_dialog_message">Mobilie dati ir aktīvi un lapaṇu atjauninājumi ir deaktivēti</string>
+    <string name="home_outdated_patches_dialog_warning">Lāpīšana ar novecojušiem lāpumiem var izraisīt lietotnes bojājumu</string>
+    <string name="home_outdated_patches_dialog_update_and_patch">Atjaunināt &amp; lapiņot</string>
+    <string name="home_low_disk_space_dialog_title">Maz vietas diskā</string>
     <!-- "%1$s" is the free storage and "%2$s" the amount patching needs, both in gigabytes. -->
+    <string name="home_low_disk_space_dialog_message">Pieejams tikai %1$s GB brīvas vietas. Lai lāpīšana darbotos pareizi, nepieciešams vismaz %2$s GB brīvas vietas</string>
+    <string name="home_low_disk_space_dialog_warning">Turpinot, var rasties kļūda \"failu nenāka\" vai bojāts rezultāta APK</string>
+    <string name="home_simple_bundle_select_title">Izvēlieties plāstuma avotu</string>
+    <string name="home_simple_bundle_select_remember">Šai lietotnei vienmēr izmantot šo avotu</string>
     <!-- Color picker -->
+    <string name="custom_color">Pielagota krāsa</string>
+    <string name="color_picker_shade">Saturācija un spidrums</string>
+    <string name="color_picker_hue">Krāsa</string>
     <!-- Patch Options -->
+    <string name="patch_option_instructions">Instrukcijas</string>
+    <string name="patch_option_enter_value">Ievadīt vērtību</string>
+    <string name="patch_option_enter_number">Ievadiet skaitli</string>
+    <string name="patch_option_enter_decimal">Ievadiet decimālo skaitli</string>
+    <string name="patch_option_slider_edit">Ievadiet precīzu vērtību</string>
+    <string name="patch_option_slider_range_start">No</string>
+    <string name="patch_option_slider_range_end">Līdz</string>
+    <string name="patch_option_list_duplicate">Šī vērtība jau eksistē</string>
+    <string name="patch_option_list_empty">Vērtība nevar būt tukša</string>
+    <string name="patch_option_required_missing">%s: aizpildiet visas obligātās opcijas</string>
     <!-- Badge on a patch option whose value differs from the patch's own, which resets it when tapped -->
+    <string name="patch_option_changed">Mainīts</string>
     <!-- Badge on a patch option that has to be filled in before patching -->
+    <string name="patch_option_required">Obligāti</string>
     <!-- Hint under an image patch option. "%1$s" is the width and "%2$s" the height in pixels -->
+    <string name="patch_option_recommended_size">Ieteicamais: %1$s×%2$s</string>
     <!-- Adaptive Icon Creator -->
+    <string name="adaptive_icon_create">Izveidot adaptīvo ikonu</string>
+    <string name="adaptive_icon_select_image">Atlasīt attēlu</string>
+    <string name="adaptive_icon_change_image">Mainīt attēlu</string>
+    <string name="image_load_failed">Neizdevās ielādēt šo attēlu</string>
     <!-- Card of the adaptive icon creator where the picture is placed on the icon -->
+    <string name="adaptive_icon_launcher">Palaišanas ikona</string>
+    <string name="adaptive_icon_gesture_hint">Velciet, lai pārvietotu, šķipējiet, lai mainītu izmēru</string>
     <!-- Card of the adaptive icon creator showing the icons as the device draws them -->
+    <string name="adaptive_icon_preview">Priekšskatījums</string>
     <!-- Caption under the launcher icon in its own colors -->
+    <string name="adaptive_icon_standard">Standarts</string>
     <!-- Caption under the launcher icon recolored by the system theme -->
+    <string name="adaptive_icon_themed">Tēmas</string>
+    <string name="adaptive_icon_background_color">Fona krāsa</string>
+    <string name="adaptive_icon_reset_transform">Atiestatīt pozīciju un mērogu</string>
+    <string name="adaptive_icon_no_transparency_warning">Šim attēlam nav caurspīdīgu pikseļu, tāpēc tēmas un paziņojumu ikonas saglabā Morphe logotipu</string>
+    <string name="adaptive_icon_created_success">Adaptīvā ikona veiksmīgi izveidota</string>
+    <string name="adaptive_icon_creation_failed">Neizdevās izveidot adaptīvo ikonu</string>
+    <string name="adaptive_icon_guide">Ikonas izveides rokasgrāmata</string>
+    <string name="adaptive_icon_guide_png_title">Izmantojiet PNG ar caurspīdīgu fonu</string>
+    <string name="adaptive_icon_guide_png_body">Vislabāk darbojas logotips ar caurspīdīgu fonu, kurā fona krāsa tiek izvēlēta zemāk. Attēls bez caurspīdības tā vietā aizpilda visu ikonu, un tēmas un paziņojumu ikonas tad saglabā Morphe logotipu.</string>
+    <string name="adaptive_icon_guide_safe_zones_title">Drošības zonas</string>
+    <string name="adaptive_icon_guide_safe_zones_body">Kontūra rāda jūsu palaidītāja ikonas formu, un viss, kas atrodas ārpus tās, tiek nogriezt. Citi palaidītāji izmanto citas formas, tāpēc svarīgas detaļas turiet punktēta apļa ietvaros, ko rāda katra forma.</string>
+    <string name="adaptive_icon_guide_notification_title">Paziņojuma ikona</string>
+    <string name="adaptive_icon_guide_notification_body">Apgrieziens no redzamās attēla daļas un izmērs kā citām statusa joslas ikonām, neatkarīgi no faila marguriem. Noregulējiet to ar slaideri zem priekšskatījuma. Android rāda to vienā krāsā.</string>
+    <string name="adaptive_icon_guide_monochrome_title">Tēmas ikona</string>
+    <string name="adaptive_icon_guide_monochrome_body">Izgrieziet no attēla daļu ar to pašu pozīciju un izmēru kā palaidēja ikona. Android 13 un jaunākās versijās palaidēji, kurās ir iespējas tēmas ikonas, nokrāso to no tapetes.</string>
+    <string name="notification_icon_preview">Paziņojums</string>
     <!-- Header Creator -->
+    <string name="header_creator_create">Izveidot pielāgotu galvenu</string>
+    <string name="header_creator_light_theme">Gaišās tēmas galvene</string>
+    <string name="header_creator_dark_theme">Tumšās tēmas galvene</string>
+    <string name="header_creator_success">Galvene veiksmīgi izveidota</string>
+    <string name="header_creator_failed">Galvenes izveide neizdevās</string>
+    <string name="header_creator_guide">Headera izveides rokasgrāmata</string>
+    <string name="header_creator_guide_image_title">Attēla prasības</string>
+    <string name="header_creator_guide_image_body">PNG fails ar caurspīdīgu fonu saplūst ar lietotņu joslu. Margi ap logo failā netiek ņemti vērā, tāpēc tas sākas standarta logo izmēros un vietā.</string>
+    <string name="header_creator_guide_themes_title">Gaišā un tumšā tēmas</string>
+    <string name="header_creator_guide_themes_body">Lielākajām lietotnēm ir vajadzīgi atsevišķi attēli gaišajai un tumšajai tēmai. Dažas lietotnes (piemēram, YouTube Music) izmanto tikai tumšo tēmu, tāpēc tiek rādīta tikai tā sadaļa.</string>
+    <string name="header_creator_guide_positioning_title">Novietošana un mērogs</string>
+    <string name="header_creator_guide_positioning_body">Editorā velciet un saspiediet attēlu vai mainiet tā izmēru ar slaideri. Punktainais rāmis norāda, kur atrodas standarta logo, un parādās vadlīnijas, kad attēls ar to sakrīt.</string>
     <!-- Batch patching -->
+    <string name="batch_patch_action">Labot atlasīto</string>
+    <string name="batch_patch_title">Grupu patchedēšana</string>
+    <string name="batch_patch_planning">Sagatavojam rindu…</string>
+    <string name="batch_patch_preparing_next">Sagatavojam nākamo lietotni…</string>
+    <string name="batch_patch_progress_counter">Labojam %1$s no %2$s</string>
+    <string name="batch_patch_summary">%1$s patched, %2$s failed, %3$s skipped</string>
+    <string name="batch_patch_saved_hint">Pielāgotās lietotnes ir saglabātas. Instalējiet tās tagad vai vēlāk no pielāgoto APK saraksta iestatījumos</string>
+    <string name="batch_patch_multiple_sources">Dažas lietotnes apvieno pielāgojumus no vairāk nekā viena avota, kas var izraisīt konflikti</string>
+    <string name="batch_patch_needs_apk">APK nav pieejams, pievienojiet failu</string>
+    <string name="batch_patch_wrong_package">Pievienotais fails pieder %s</string>
+    <string name="batch_patch_version_mismatch">Versiju %s nepilnlaikīgi atbalsta pielāgojumi</string>
+    <string name="batch_patch_source_saved">Saglabāts oriģināls</string>
+    <string name="batch_patch_source_installed">Uzstādīta lietotne</string>
+    <string name="batch_patch_source_file">Pievienotais fails</string>
+    <string name="batch_patch_source_unavailable">Neizdevās sagatavot APK</string>
+    <string name="batch_patch_force_version">Tikt izmantot jebkurā gadījumā</string>
+    <string name="batch_patch_force_version_done">Tomēr pievienots rindā, lietotne var rasties kļūdas</string>
+    <string name="batch_patch_accept_signature_done">Tomēr pievienots rindā, APK nav verificēts</string>
+    <string name="batch_patch_apk_selected">APK atlasīts</string>
+    <string name="batch_patch_edit_patches">Izvēlēties labojumus</string>
+    <string name="batch_patch_state_no_apk">Nav APK</string>
+    <string name="batch_patch_state_no_patches">Nav labojumu</string>
+    <string name="batch_patch_state_no_selection">Nekāds nav atlasīts</string>
+    <string name="batch_patch_no_selection">Neviens no pieejamajiem labojumiem nav atlasīts</string>
+    <string name="batch_patch_policy_install">Instalēt, kad pabeigts</string>
+    <string name="batch_patch_policy_install_description">Instalē katru labotu lietotni tūlīt pēc tam, kad rindas apstrāde ir pabeigta. Izslēgšana saglabā APK vēlākai izmantošanai</string>
+    <string name="batch_patch_policy_mount">Pamontēt, kad pabeigtu</string>
+    <string name="batch_patch_policy_mount_description">Piekvieno katru patched lietotni, kad sakārtotā rinda beidzas. Izslēgts saglabā APK failus vēlākai izmantošanai</string>
+    <string name="batch_patch_policy_install_mount">Instalēt vai pievienot, kad pabeigts</string>
+    <string name="batch_patch_policy_install_mount_description">Instalē vai pievieno katru patched lietotni, kad sakārtotā rinda beidzas. Izslēgts saglabā APK failus vēlākai izmantošanai</string>
     <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_start">Sākt</string>
+    <string name="batch_patch_stop_title">Apturēt grupas labošanu?</string>
+    <string name="batch_patch_stop_description">Šobrīd patchedā lietotne un viss, kas vēl ir rindā, tiks atcelts</string>
     <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_patch_install_all">Uzstādīt visu</string>
+    <string name="batch_patch_install_failed">Uzstādīšana neizdevās</string>
+    <string name="batch_patch_in_progress">Grupas patched aplikāciju process jau darbojas</string>
+    <string name="batch_patch_nothing_outdated">Visas patched aplikācijas ir aktualizētas</string>
+    <string name="batch_queue_add_action">Pievienot cērtē</string>
+    <string name="batch_queue_pending_subtitle">Kārtojiet, lai pārskatītu un sāktu</string>
+    <string name="batch_queue_clear_title">Notīrīt rindu?</string>
+    <string name="batch_queue_clear_description">Visas lietotnes tiks izdzēstas no cērtes</string>
+    <string name="shortcut_repatch_short">Atjaunot patch</string>
+    <string name="shortcut_repatch_long">Atjaunot patched novecotušas aplikācijas</string>
+    <string name="shortcut_check_updates_short">Pārbaudīt atjauninājumus</string>
+    <string name="shortcut_check_updates_long">Pārbaudīt patch atjauninājumus</string>
+    <string name="shortcut_patch_app">Lapiņot %s</string>
     <!-- Home Screen - App Info Screen -->
+    <string name="home_app_info_uninstall_title">Atinstalēt šo lietotni?</string>
+    <string name="home_app_info_uninstall_removes_data">Lietotne un tās dati tiekdzēsti no šīs ierīces</string>
+    <string name="batch_uninstall_confirm_body">Izvēlētās lietotnes tiks neatgriezeniski izdzēstas no jūsu ierīces</string>
+    <string name="home_app_info_remove_app_warning">Tas neatgriezeniski izdzēs:</string>
+    <string name="home_app_info_delete_item_database">Datubāzes ieraksts</string>
+    <string name="home_app_info_delete_item_patched_apk">Pārveidots APK fails</string>
+    <string name="home_app_info_delete_item_original_apk">Oriģināls APK fails</string>
+    <string name="home_app_info_delete_preservation_note">Jūsu izvēlētie atlapi vai opcijas tiks saglabāti nākamajām pārveidīšanām</string>
+    <string name="home_app_info_patches_name_default">Lapiņi</string>
+    <string name="home_app_info_patches_name_fallback">Bez nosaukuma</string>
+    <string name="home_app_info_patches_source_removed">Dzēts lappisa avots</string>
+    <string name="home_app_info_patches_replace_fail">Neizdevās importēt lapiņus: %s</string>
+    <string name="home_app_info_repatch_no_original_apk">Oriģinālais APK netika atrasts. Šo lietotni nevar atkārtoti patchedēt</string>
+    <string name="home_app_info_original_package_name">Oriģinālais paketes nosaukums</string>
+    <string name="home_app_info_applied_patches">Pieliktie lapiņi</string>
+    <string name="home_app_info_patch_source_used">Izmantotais labojuma avots</string>
+    <string name="home_app_info_install_type_custom_installer">Pielagots instalators</string>
+    <string name="home_app_info_install_type_system_installer">Sistēmas instalators</string>
+    <string name="home_app_info_install_type_play_store">Play Store instalēšana</string>
+    <string name="home_app_info_install_type_root_play_store">Root Play Store instalēšana</string>
+    <string name="home_app_info_install_type_shizuku_play_store">Shizuku Play Store instalēšana</string>
+    <string name="home_app_info_patch_update_available">Pieejams patch atjauninājums</string>
+    <string name="home_app_info_patch_update_available_description">Pieejama jaunāka atlapi versija. Pārveidojiet lietotni vēlreiz, lai saņemtu jaunākos uzlabojumus un labojumus</string>
+    <string name="home_app_info_app_update_available">Pieejams aplikācijas atjauninājums</string>
+    <string name="home_app_info_app_update_available_description">Lapašu avoti atbalsta jaunāku šīs lietotnes versiju. Lietojiet lapašu vēlreiz, lai pāriet uz šo versiju</string>
+    <string name="home_app_info_newest_supported_version">Jaunākā atbalstītā</string>
+    <string name="home_app_info_version_move">Instalēta %1$s, jaunākā atbalstītā %2$s</string>
+    <string name="home_app_info_version_restore">Instalēts %1$s, patched %2$s</string>
+    <string name="home_app_info_app_deleted_warning">Lietotne tika atinstalēta</string>
+    <string name="home_app_info_app_deleted_description">Šī lietotne tika atinstalēta ārpus Morphe. Pārlaiciet to, lai atjaunotu funkcionalitāti</string>
+    <string name="home_app_info_not_patched_description">Instalēta šīs lietotnes nepatched versija. Morphe joprojām glabā iepriekšējo patch ierakstu</string>
+    <string name="home_app_info_mount_replaced_description">Citi versija aizstāja montēto lietotni, tāpēc plāstums vairs nav spēkā. Atjaunošana atgriezīs laboto versiju</string>
+    <string name="home_app_info_mount_replaced_by_play_store_description">Google Play atjaunināja montēto lietotni, tāpēc lāpums vairs nav spēkā. Atjaudināšana reinstallē lāpoto versiju. Lai tā paliktu lāpota, izslēdziet automātisko atjaunināšanu šai lietotnei Google Play</string>
+    <string name="app_links_title">Atbalstītas tīmekļa saites</string>
+    <string name="app_links_description">Android 12+ versijās saites uz atbalstītiem domēniem noklūst jūsu pārlūka, ja vien tās nav apstiprinātas</string>
+    <string name="app_links_unverified_banner_title">Tīmekļa saites nav verificētas</string>
+    <string name="app_links_unverified_banner_description">Atbalstītās tīmekļa saites pašlaik atveras jūsu pārlūkā nevis šajā lietotnē</string>
+    <string name="app_links_enable_auto">Iespējot automātiski</string>
+    <string name="app_links_enable_auto_in_progress">Saites tiek iespējotas…</string>
+    <string name="app_links_open_settings">Atvērt saites iestatījumus</string>
+    <string name="app_links_repair_success">Lietotnes saites veiksmīgi iespējotas</string>
+    <string name="app_links_repair_failed">Neizdevās automātiski iespējot lietotnes saites</string>
+    <string name="app_links_all_verified">Visas atbalstītās saites ir konfigurētas atvēršanai šajā lietotnē</string>
+    <string name="app_links_fix">Labot saites</string>
+    <string name="configure">Konfigurēt</string>
+    <string name="patcher_rename_title">Tiek instalēts klons</string>
+    <string name="patcher_rename_description">Patlapiņi šo lietotni izveidoja ar savu pakaujumu nosaukumu, tāpēc tās instalēšana pievieno klonu blakus &lt;b&gt;%s&lt;/b&gt;, nevis atjaunina to</string>
+    <string name="patcher_rename_result_package">Tiks instalēts kā</string>
+    <string name="patcher_rename_replaces">Lietotne ar šo nosaukumu jau ir instalēta un tiks aizstāta</string>
+    <string name="home_app_info_apk_size">APK izmērs</string>
+    <string name="home_app_info_cpu_arch">CPU arhitektūra</string>
     <!-- Home Screen - Root Mode -->
+    <string name="root_install_apk_required">Sakne režīmam ir nepieciešams, lai oriģinālais APK būtu instalēts jūsu ierīcē pirms patchedēšanas</string>
+    <string name="root_pre_patch_installer_title">Izvēlieties atlapišanas režīmu</string>
+    <string name="root_pre_patch_installer_description">Jūsu ierīcei ir root piekļuve. Izvēlieties, vai šo lietotni jāatlapiņo root montēšanai vai standarta instalēšanai</string>
+    <string name="root_pre_patch_installer_mount_title">Root montēšanas režīms</string>
+    <string name="root_pre_patch_installer_mount_description">Atlapiņo root montēšanai, pēc tam montē APK virs atbilstošās oriģinālās lietotnes. GmsCore nav nepieciešams</string>
+    <string name="root_mount_module_unmount_warning">Ja KernelSU ir ieslēgta opcija \"Unmount modules by default\", atveriet KernelSU &gt; Superuser &gt; lietotne, ko piemontējāt &gt; Profile &gt; Custom un izslēdziet \"Unmount modules\". Pretējā gadījumā piemontētais patchedais APK var neiestāties, pat ja Morphe rāda, ka tas ir piemontēts</string>
+    <string name="root_pre_patch_installer_standard_title">Standarta instalēšanas režīms</string>
+    <string name="root_pre_patch_installer_standard_description">Atlapiņo kā parastu APK ar GmsCore atbalstu. Jūsu instalētāja iestatījums tiek izmantots pēc atlapiņošanas</string>
+    <string name="root_pre_patch_installer_hint">Tiek pajautāts, ja ir ieslēgts Iestatījumi &gt; Patcheris &gt; Instalēšana &gt; Instalētāja izvēles prompts. Pēc patchēšanas patchēšanas režīmu nevar mainīt</string>
     <!-- Patcher Screen -->
+    <string name="patcher_error_copied">Kļūda kopēta starpbaferī</string>
+    <string name="patcher_error_log">Kļūdu žurnāls</string>
+    <string name="patcher_error_technical">Tehniskie anīci</string>
+    <string name="patcher_error_dialog_diagnostics">Diagnostika</string>
     <!-- Titles of the cards the expert log shows in place of the raw start and success log lines -->
+    <string name="patcher_card_started">Patchēšana sākta</string>
+    <string name="patcher_card_succeeded">Patchēšana veiksmīga</string>
     <!-- Field labels, shown in a column beside their values. Keep them short, a long one is cut off rather than wrapped -->
+    <string name="patcher_field_app">Lietotne</string>
+    <string name="patcher_field_package">Pakete</string>
+    <string name="patcher_field_failed_patch">Neveiksmīgs patchs</string>
+    <string name="patcher_field_source">Avots</string>
+    <string name="patcher_field_split">Sadalīts APK</string>
+    <string name="patcher_field_manager">Vadītājs</string>
+    <string name="patcher_field_runtime">Izpildes vide</string>
     <!-- Native code libraries (.so files) packed inside the APK -->
+    <string name="patcher_field_libraries">Bibliotēkas</string>
+    <string name="patcher_field_android">Android</string>
+    <string name="patcher_field_device">Īrengums</string>
     <!-- Free and total RAM of the device, never its storage -->
+    <string name="patcher_field_memory">Atmiņa</string>
+    <string name="patcher_field_storage">Atmiņa</string>
     <!-- Size of the patched APK, once patching finished -->
+    <string name="patcher_field_output_size">Izvadēšanas izmērs</string>
     <!-- How long patching took -->
+    <string name="patcher_field_time">Laiks</string>
     <!-- Average and peak heap the patcher held while it ran -->
+    <string name="patcher_field_memory_average">Vidējā atmiņa</string>
+    <string name="patcher_field_memory_max">Maksimālā atmiņa</string>
     <!-- Fastest read or write rate reached while patching, in data per second -->
+    <string name="patcher_field_io_peak">Krātnes I/O piks</string>
+    <string name="patcher_field_value_unknown">nezināms</string>
     <!-- Value of "Libraries": the libraries this device cannot use were dropped from the patched APK -->
+    <string name="patcher_field_value_stripped">noņemts</string>
     <!-- Value of "Libraries": every library was left in the patched APK -->
+    <string name="patcher_field_value_kept">saglabāts</string>
+    <string name="patcher_tab_logs">Patcher žurnāli</string>
+    <string name="patcher_tab_game">Spēles</string>
+    <string name="patcher_logs_waiting">Gaidām žurnāla izputi…</string>
+    <string name="patcher_logs_lost">Žurnāla izputi nesaglābā pēc lietotnes restartēšanas</string>
+    <string name="patcher_long_step_warning">Šis solis var aizņemt काही laiku. Lūdzu, patience...</string>
+    <string name="patcher_installing_subtitle">Gandrīz gatavs rock\'n\'rollam! 🎸</string>
+    <string name="patcher_success_title">Viss gatavs! 🎉</string>
+    <string name="patcher_success_subtitle">Jūsu lietotne ir patched və instalēta!</string>
+    <string name="patcher_mounted_subtitle">Jūsu lietotne ir patched un montēta!</string>
+    <string name="patcher_complete_title">Atjaunināšana pabeigta! ✨</string>
+    <string name="patcher_failed_title">Ups! kaut kas nogāja greizi</string>
+    <string name="patcher_failed_dialog_title">Atjaunināšana neizdevās</string>
+    <string name="patcher_error_details">Kļūdas detaļas</string>
+    <string name="patcher_change_patches">Mainīt patchus</string>
+    <string name="patcher_unknown_error">Notika nezināma kļūda</string>
+    <string name="patcher_split_step_extracting">Ekstrahē šķelti APK</string>
+    <string name="patcher_split_step_merging">Apvieno %s</string>
+    <string name="patcher_split_step_writing">Raksta apvienoto APK</string>
+    <string name="patcher_split_step_finalizing">Nobeidz apvienotā APK izveidi</string>
+    <string name="patcher_conflict_title">Paketes konflikts</string>
+    <string name="patcher_conflict_subtitle">Jums nepieciešams atinstalēt esošo versiju</string>
+    <string name="patcher_conflict_hint">Patčotā lietotne izmanto citu sertifikātu nekā instalētā versija. Deinstalējot tiks dzēsti visi lietotnes dati</string>
+    <string name="patcher_installed_conflict_title">Nepieciešama deinstalācija</string>
+    <string name="patcher_installed_conflict_body">"Morphe paraksta patched lietotnes ar savu sertifikātu, kas atšķiras no oriģinālā. Android prasadzīmēst existing versiju, pirms patched lietotni var instalēt.
+
+Deinstalējot tiks neatgriezeniski dzēsti visi lietotnes dati"</string>
+    <string name="patcher_install_error_title">Instalācijas kļūda</string>
+    <string name="patcher_mount_error_title">Montēšanas kļūda</string>
+    <string name="patcher_install_error_subtitle">Mēģiniet atinstalēt un instalēt vēlreiz</string>
+    <string name="patcher_ready_to_mount_subtitle">Nospiediet zemāk esošo pogu, lai piemontētu</string>
+    <string name="patcher_patches_excluded_for_installer">Nav pieejams šai instalācijas metodei un izslēgts: %s</string>
+    <string name="patcher_back_to_game_hint">Kāpiniet %1$s, lai atgrieztos spēlē</string>
+    <string name="patcher_storage_permission_dialog_title">Nav piekļuves uzglābāšanas ceļam</string>
+    <string name="patcher_incompatible_patcher_title">Nepieciešams atjauninājums</string>
+    <string name="patcher_incompatible_patcher_description">Avotu &lt;b&gt;%1$s&lt;/b&gt; prasīts patcheris &lt;b&gt;%2$s&lt;/b&gt; vai jaunāks. Atjaunini Morphe, lai to izmantotu</string>
+    <string name="patcher_storage_permission_description_api30">Viena vai vairākas plākuma opcijas norāda uz ceļiem, kurus Morphe nevar nolasīt. Piešķiriet piekļuvi uzpārveidēšanai un nospiediet pogu, tad plākums sāksies automātiski</string>
+    <string name="patcher_storage_permission_description_legacy">Viena vai vairākas lappies iespējas norāda uz ceļiem, kuriem nav piekļuves. Atjauniniet ceļus lappies iespējās un mēģiniet vēlreiz</string>
+    <string name="patcher_storage_permission_grant">Piešķirt uzglābāšanas atļauju</string>
+    <string name="patcher_storage_permission_denied_warning">Uzglābāšanas atļauja została noraidīta. Piešķiriet atļauju izmantot šo ceļu vai pārceliet failus uz lietotnes privāto katalogu</string>
+    <string name="patcher_storage_permission_open_settings">Atvērt uzglābāšanas iestatījumus</string>
+    <string name="patcher_storage_badge_denied">Atļauja noraidīta</string>
+    <string name="patcher_storage_badge_missing">Neatrasts</string>
+    <string name="patcher_storage_badge_rejected">Neizmantojams</string>
+    <string name="batch_patch_option_paths_skipped">Lapašu opciju faili trūkstas un tie tiks izlaisti: %1$s</string>
+    <string name="patcher_missing_patches_title">Daži plāsturi ir pazuduši</string>
+    <string name="patcher_missing_patches_description">Šai lietotnei saglabātā atlase ietver lappisi, kurus neviena iespējotā avota vairs nepiedāvā. Turpinot, lietotne tiks patchedēta bez tām</string>
+    <string name="patcher_missing_patches_label">Vairs netiek piedāvāts</string>
+    <string name="patcher_option_paths_gone_title">Trūkst plāstuma opciju failu</string>
+    <string name="patcher_option_paths_gone_description">Viena vai vairākas plāstuma opcijas norāda uz failiem, kuri vairs nav pieejami. Noņemiet ceļus, lai plāstotu bez tiem, vai atlieciet failus un mēģiniet vēlreiz</string>
+    <string name="patcher_option_paths_rejected_title">Patchu opsiju failus nevar izmantot</string>
+    <string name="patcher_option_paths_rejected_description">Viena vai vairākas laksta opcijas norāda uz failiem, kuri trūkst vai kuriem nav satura, ko laksts pieprasa. Noņemiet ceļus uz lakstiem bez tiem vai labojiet failus saskaņā ar opcijas norādījumiem un mēģiniet vēlreiz</string>
+    <string name="patcher_option_paths_clear">Noņemt ceļus un turpināt</string>
+    <string name="patcher_storage_permission_hint">Padoms: Pārvietojiet failus uz /Android/data/app.morphe.manager/files/ - nav nepieciešamas papildu atļaujas</string>
     <!-- Patcher Screen - Patcher Steps -->
+    <string name="patcher_step_group_preparing">Sagatavošana</string>
+    <string name="patcher_step_load_patches">Ielādē patchi</string>
+    <string name="patcher_step_prepare_split_apk">Apvienojam sadalīto APK</string>
+    <string name="patcher_step_unpack">Nolasīt APK failu</string>
+    <string name="patcher_step_group_saving">Saglabāšana</string>
+    <string name="patcher_step_write_patched">Raksta patched APK failu</string>
+    <string name="patcher_step_sign_apk">Parakstām patched APK failu</string>
     <!-- Battery optimization pre-flight dialog -->
+    <string name="battery_optimization_dialog_title">Fona patched aizsardzība</string>
+    <string name="battery_optimization_dialog_description">Daðas ierīces var apturēt patcher, kad lietotne ir minimizēta. Atļaujiet Morphe darboties bez akumulatora ierobežojumiem, lai nodrošinātu uzticamu patching pabeigšanu</string>
+    <string name="battery_optimization_not_now">Sākotnēji nē</string>
     <!-- Patcher Screen - Patcher Worker -->
+    <string name="patcher_notification_title">Labojums notiek…</string>
+    <string name="patcher_notification_text">Knīciet, lai atgrieztos pie labojēja</string>
+    <string name="patcher_stop_title">Apturēt lapiņu uzstādīšanu?</string>
+    <string name="patcher_stop_discards">Līdz šim sasniegtais progress tiek atmest, un nekas netiek instalēts</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Turpināt patchedēšanu</string>
     <!-- Patcher Screen - Patcher Messages -->
+    <string name="patcher_message_1">Pārveidojam jūsu lietotni par kaut ko awesome… 🏆</string>
+    <string name="patcher_message_2">Mācām vecām lietotnēm jaunus trikus… 🎩</string>
+    <string name="patcher_message_3">Veicam jūsu lietotnei digitālu pielagošanu… 🔧</string>
+    <string name="patcher_message_4">Vāra digitālu maģiju… ☕</string>
+    <string name="patcher_message_5">Ieteicama kafijas pauze… ☕</string>
+    <string name="patcher_message_6">Paskatieties ārā, tur ir skaisti… 🌤️</string>
+    <string name="patcher_message_7">Koreģē 1 vai 0… 🤖</string>
+    <string name="patcher_message_8">Atšķiret digitālas spageti… 🍝</string>
     <!-- Morphe patches fix YouTube bugs that Google still has not fixed. -->
+    <string name="patcher_message_9">Labojam kļūdas nepielāgotajā lietotnē… 🪲</string>
+    <string name="patcher_message_10">Lielos patchiem ir vērts pagaidīt… ⏳</string>
+    <string name="patcher_message_11">Pulvejam pikseļus, līdz tie spīd… 💎</string>
+    <string name="patcher_message_12">Lūdzam palikt sēdus, līdz kaptains izslēgs zīmi \"Patching in progress\"… 💺✈️</string>
+    <string name="patcher_message_13">Gatavojam jūsu patched lietotni, karstu un svaigu… 🍳</string>
     <!-- "bytecode" can be translated from "the app code" -->
+    <string name="patcher_message_14">Pieklājīgi vienojamies ar baitkodu… 🤝</string>
     <!-- Space flight communications callout. -->
+    <string name="patcher_message_15">Visas sistēmas darbojas normāli… trajektorijas korekcija ir stabila… 🚀</string>
+    <string name="patcher_message_16">Izspiežam papildu jaudu, kā sulu no digitāla citrona… 🍋</string>
+    <string name="patcher_message_17">Mudinām lietotni pieņemt savu jauno, labāko versiju… 🌱</string>
     <!-- Quantum physics (box emoji is a reference to Schrödinger's cat). -->
+    <string name="patcher_message_18">Mainām lietotnes superpozīciju no nepatchētas uz patchētu… 📦⚛️</string>
     <!-- Throw away reference to a Saturday Night Live sketch. "fever" means sickness or the flu. "prescription" means medical treatment or can be translated from "cure" -->
+    <string name="patcher_message_19">Lietotnei ir drudzme, un vienīgā recepte ir vairāk patchu… 🩺🔔</string>
+    <string name="patcher_message_20">Noņemam murgus. Lūdzam, uzgaidiet… 🗑️</string>
     <!-- Expert patcher Screen -->
+    <string name="patching_app">Lāpī lūtetni</string>
+    <string name="memory_usage">Atmiņas izmantošana</string>
+    <string name="cpu_usage">CPU izmantošana</string>
+    <string name="storage_io_usage">Atmiņas I/O</string>
     <!-- Patcher Screen - Other hidden strings -->
+    <string name="applying_patches">Pieliek labojumus</string>
+    <string name="failed_to_execute_patch">Neizdevās pieliekt %s</string>
+    <string name="patched_app_save_failed_toast">Neizdevās saglabāt laboto lietotni</string>
+    <string name="plugin_activity_dialog_body">Lai turpinātu ar šo papildinājumu, nepieciešama lietotāja mijiedarbība</string>
+    <string name="patcher_process_killed_message">Sistēma aptura patcheru, pirms tas pabeidza darbu, parasti, lai atbrīvotu atmiņu. Aizveriet citas lietotnes un mēģiniet vēlreiz</string>
+    <string name="patcher_process_crashed_message">Lapiņotājs avārsējās, pirms noslēgza darbu. Ja tas atkārtojas, izslēdziet \"Izmantot iebūvēto VM\" iestatījumos un ziņojiet par problēmu, pievienojot žurnālu</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
+    <string name="patcher_out_of_memory_message">Patcheram izbeidzās atmiņa ar %1$s MB krāju. Šī lietotne ir pārāk liela izvēlētajiem patchiem. Mēģiniet veikt patchingu ar mazāku patchu avotu skaitu vai izvēlieties mazāk patchu</string>
+    <string name="install_app_success">Veiksmīgi instalēts</string>
+    <string name="install_app_fail">Lietotnes instalēšana neizdevās: %s</string>
+    <string name="install_ignore_signature">Installēt jebkurā gadījumā</string>
+    <string name="install_ignore_signature_description">Saglabā lietotnes datus, taču tas darbojas tikai tad, ja root modulis deaktivē Android paraksta pārbaudi</string>
+    <string name="uninstall_app_fail">Neizdevās atinstalēt lietotni: %s</string>
+    <string name="uninstall_app_unverified">Atstāti vietā: Morphe nevarēja apstiprināt, ka instalētā lietotne ir tā versija, kuru tā patchedis</string>
+    <string name="launch_app_unverified">Morphe nevarēja apstiprināt, ka instalētā lietotne ir tā versija, kuru tā patchedis</string>
+    <string name="uninstall_timeout">Atinstalēšanas laika limite beigta</string>
+    <string name="save_apk_success">APK saglabāts</string>
+    <string name="saved_app_export_failed">Pārslēguma aplikācijas eksportēšana neizdevās</string>
+    <string name="saved_app_removed_toast">Saglabātā patched aplikācija izdzēsta</string>
+    <string name="saved_app_launch_unavailable">Instalējiet lietotni pirms tās atvēršanas</string>
+    <string name="package_name">Paketes nosaukums</string>
+    <string name="failed_to_mount">Neizdevās pielāgot: %s</string>
+    <string name="failed_to_unmount">Neizdevās noņemt pielāgumu: %s</string>
     <!-- Patcher Screen - Mini-games -->
+    <string name="mini_game_score">Rezultāts %s</string>
+    <string name="mini_game_best">Labākais %s</string>
+    <string name="mini_game_new_record">Jauns rekords!</string>
+    <string name="mini_game_game_over">Spēle beigta</string>
+    <string name="mini_game_try_again">Mēģiniet vēlreiz</string>
+    <string name="mini_game_paused">Pauzēts</string>
+    <string name="mini_game_resume">Turpināt</string>
+    <string name="mini_game_restart">Sākt no sākuma</string>
+    <string name="mini_game_change">Izvēlēties citu spēli</string>
+    <string name="mini_game_2048_picker_subtitle">Slīdi flīzes, lai tās apvienotu</string>
+    <string name="mini_game_flappy_picker_subtitle">Kusties, lai lidotu caur caurulēm</string>
+    <string name="mini_game_flappy_tap_to_start">Pieskarieties, lai lidovētu</string>
+    <string name="mini_game_snake_picker_subtitle">Ēd ēdienu, nesadursies ar sevi</string>
+    <string name="mini_game_snake_swipe_to_start">Slaucies, lai sāktu</string>
+    <string name="mini_game_dino_picker_subtitle">Pieskaries, lai pālecitu kaktusiem</string>
+    <string name="mini_game_dino_tap_to_start">Pieskaries, lai skrastu</string>
+    <string name="mini_game_blocks_picker_subtitle">Novietojiet formas, iztīriet līnijas</string>
+    <string name="mini_game_blocks_tap_to_start">Kūpiniet, lai pagrieztu, slidējit, lai pārvietotu, slidējit uz leju, lai nometu</string>
+    <string name="mini_game_bricks_picker_subtitle">Atleciniet bumbu, iztīriet sienu</string>
+    <string name="mini_game_bricks_tap_to_start">Velciet, lai mērķētu, kūpiniet, lai palaistu</string>
+    <string name="mini_game_miner_picker_subtitle">Kūpiniet, lai atvērtu, turot, lai atzīmētu</string>
+    <string name="mini_game_pairs_picker_subtitle">Pagrieziet kartes, atrodiet pāri</string>
     <!-- Settings -->
+    <string name="appearance">Izskats</string>
+    <string name="system">Systēma</string>
     <!-- Settings - Appearance Tab - Background animation -->
+    <string name="settings_appearance_background">Fona animācija</string>
+    <string name="settings_appearance_background_description">Animācija, kas atskaņojas aiz lietotnes ekrāniem</string>
+    <string name="settings_appearance_background_circles">Apļi</string>
+    <string name="settings_appearance_background_rings">Ringi</string>
+    <string name="settings_appearance_background_mesh">Tīkls</string>
+    <string name="settings_appearance_background_space">Kosmoss</string>
+    <string name="settings_appearance_background_shapes">Figūras</string>
+    <string name="settings_appearance_background_snow">Sniegs</string>
+    <string name="settings_appearance_background_grid">Acīmērklis</string>
+    <string name="settings_appearance_background_particles">Partiklas</string>
+    <string name="settings_appearance_background_lava">Lavas lampa</string>
+    <string name="settings_appearance_background_halloween">Hallowīns</string>
+    <string name="settings_appearance_background_fireworks">Ugunsroki</string>
     <string name="settings_appearance_background_none">Nav neviena pakalpojuma</string>
+    <string name="settings_appearance_background_random">Izjaukt</string>
+    <string name="settings_appearance_background_random_interval_launch">Palaižot</string>
+    <string name="settings_appearance_background_random_interval_daily">Katru dienu</string>
+    <string name="settings_appearance_background_random_interval_3days">Reiz 3 dienās</string>
+    <string name="settings_appearance_parallax_effect">Paralakses efekts</string>
+    <string name="settings_appearance_parallax_effect_description">Gluda fona novēršana, nometot ierīci</string>
+    <string name="settings_appearance_seasonal_themes">Sezonālās tēmas</string>
+    <string name="settings_appearance_seasonal_themes_description">Svētku foni un sveicieni svētku laikā</string>
     <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
+    <string name="settings_appearance_seasonal_background_notice">Kamēr ir ieslēgtas sezonālās tēmas, %1$s fons būs aktīvs līdz %2$s</string>
     <!-- Settings - Appearance Tab - Theme -->
+    <string name="settings_appearance_display">Displejs</string>
+    <string name="settings_appearance_effects">Efekti</string>
+    <string name="settings_appearance_theme">Tēma</string>
+    <string name="settings_appearance_theme_mode">Tēmas režīms</string>
+    <string name="settings_appearance_system">Sistēma</string>
+    <string name="settings_appearance_light">Gala</string>
+    <string name="settings_appearance_dark">Tumša</string>
+    <string name="settings_appearance_dynamic">Material You</string>
+    <string name="settings_appearance_monochrome">Monohroma</string>
+    <string name="settings_appearance_color_style">Krāsu stils</string>
+    <string name="settings_appearance_accent_color">Akcentu krāsa</string>
+    <string name="settings_appearance_pure_black">Tīrs melns</string>
+    <string name="settings_appearance_pure_black_description">Izmanto patiesu melnu fonu</string>
+    <string name="settings_appearance_color_accents">Lietotnes un avota krāsas</string>
+    <string name="settings_appearance_color_accents_description">Izmanto katras lietotnes un avota krāsu akcenta krāsas vietā</string>
+    <string name="settings_appearance_outlines">Kontūras</string>
+    <string name="settings_appearance_outlines_description">Zīmē plānu malu ap kartēm, paneļiem un pogām</string>
+    <string name="settings_appearance_blur">Izplūme</string>
+    <string name="settings_appearance_blur_description">Izplūm saturs, kas rit zem galvenajām sadaļām, joslām un paneļiem</string>
     <!-- Settings - Appearance Tab - Language Selector -->
+    <string name="settings_appearance_app_language">Lietotnes valoda</string>
+    <string name="settings_appearance_app_language_current">Pašreizējā valoda</string>
+    <string name="settings_appearance_translate">Palīdz tulkot Morphe</string>
+    <string name="settings_appearance_translations_info_title">Dažām valodām tulkojumi var būt nepilnīgi vai trūkt</string>
     <!-- Settings - Appearance Tab - Interface Scale -->
+    <string name="settings_appearance_ui_scale">Saskarnes mērogs</string>
     <!-- Settings - Appearance Tab - Home Screen Section -->
+    <string name="settings_appearance_home_screen">Sākuma ekrāns</string>
+    <string name="settings_appearance_greeting_phrases">Sveiciens frāzes</string>
+    <string name="settings_appearance_greeting_phrases_subtitle">Rāda sveiciena ziņojumu</string>
+    <string name="settings_appearance_repatch_notice">Paziņojums par atkārtotu plāstumu uzstādīšanu</string>
+    <string name="settings_appearance_repatch_notice_description">Rāda baneru, ja patched lietotnes var patched tālāk</string>
+    <string name="settings_appearance_more_apps_card">Vairāk lietotnes karte</string>
+    <string name="settings_appearance_more_apps_card_description">Rāda karti zem lietotnēm, kas ved uz kopienas patched versijām</string>
+    <string name="settings_appearance_app_card_colors">Kartes krāsas</string>
+    <string name="settings_appearance_app_card_colors_default">Pēc noklusējuma</string>
+    <string name="settings_appearance_app_card_colors_default_description">Piešķiriet katrai lietotnei un avotam savu krāsu</string>
+    <string name="settings_appearance_app_card_colors_accent">Akcentkrāsa</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Lietotnes akcenta krāsu izmantot lietotnes un avota kartēm</string>
+    <string name="settings_appearance_app_card_colors_gradient">Gradients</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Lietotnes kartēm izmantot vienu pielāgotu gradientu, kas avota kartēm saplūst vienā krāsā</string>
+    <string name="settings_appearance_app_card_colors_solid">Vienmērīga</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Lietot vienu pielagotu krāsu lietotņu un avotu kartēm</string>
+    <string name="settings_appearance_app_card_colors_start">Sākuma krāsa</string>
+    <string name="settings_appearance_app_card_colors_middle">Vidusa krāsa</string>
+    <string name="settings_appearance_app_card_colors_end">Beigu krāsa</string>
+    <string name="settings_appearance_app_card_colors_solid_color">Vienmērīga krāsa</string>
+    <string name="settings_appearance_app_card_colors_bundle">Lieljutuma krāsa</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Šeit lietot katras lietotnes vai avota pašu krāsu, kas automātiski tiek noregulēta, lai tā būtu piemērota</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
+    <string name="settings_appearance_app_icon_selector_title">Lietotnes ikona</string>
+    <string name="settings_appearance_app_icon_selector_description">Kā Morphe izskatās jūsu sākumekrānā un lietotņu sarakstā</string>
+    <string name="settings_appearance_app_icon_default">Privārta</string>
+    <string name="settings_appearance_app_icon_light_2">Debesis</string>
+    <string name="settings_appearance_app_icon_light_3">Saulrietumi</string>
+    <string name="settings_appearance_app_icon_light_4">Lavandas</string>
+    <string name="settings_appearance_app_icon_light_5">Ledus</string>
+    <string name="settings_appearance_app_icon_light_6">Svapu</string>
+    <string name="settings_appearance_app_icon_light_7">Smilšu</string>
+    <string name="settings_appearance_app_icon_dark_1">Tēlkastēra</string>
+    <string name="settings_appearance_app_icon_dark_2">Tuklums</string>
+    <string name="settings_appearance_app_icon_dark_3">Plum</string>
+    <string name="settings_appearance_app_icon_dark_4">Pusnakts</string>
+    <string name="settings_appearance_app_icon_dark_5">Slūneksis</string>
+    <string name="settings_appearance_app_icon_accent_1">Aurora</string>
+    <string name="settings_appearance_app_icon_accent_2">Tinta</string>
+    <string name="settings_appearance_app_icon_accent_3">Papīrs</string>
+    <string name="settings_appearance_app_icon_accent_4">Pamulums</string>
+    <string name="settings_appearance_app_icon_background">Fons</string>
+    <string name="settings_appearance_app_icon_mark">Logo</string>
+    <string name="settings_appearance_app_icon_mark_color">Krāsa</string>
+    <string name="settings_appearance_app_icon_mark_white">Balts</string>
+    <string name="settings_appearance_app_icon_mark_black">Melna</string>
+    <string name="settings_appearance_app_icon_change_dialog_title">Mainīt lietotnes ikonu?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe restartē, lai pārslēgtos uz &lt;b&gt;%s&lt;/b&gt;</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="settings_appearance_app_icon_change_dialog_confirm">Mainīt ikonu</string>
     <!-- Settings - Advanced Tab - Updates Section -->
+    <string name="settings_advanced_updates_manager_prereleases">Pre-release atjauninājumi</string>
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
+    <string name="settings_advanced_updates_manager_prereleases_description">Agrīna piekļuve jaunām Morphe versijām</string>
+    <string name="settings_advanced_updates_prerelease_warning_title">Aktīvēt pre-release atjauninājumus?</string>
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
+    <string name="settings_advanced_updates_prerelease_warning_message">"Morphe pre-release versijas joprojām tiek izstrādātas un var būt nestabilas.
+
+Patchi netiek ietekmēti: aktivizējiet pre-release patchus katram avotam patchu avotu sarakstā"</string>
+    <string name="settings_advanced_updates_allow_metered">Atjauninājumi, izmantojot mobilos datus</string>
+    <string name="settings_advanced_updates_allow_metered_description">Lejupielādē Morphe un patch atjauninājumus, izmantojot mobilos datus</string>
+    <string name="settings_advanced_updates_background_notifications">Fona atjauninājuma paziņojumi</string>
+    <string name="settings_advanced_updates_background_notifications_description">Periodiski pārbaudīt atjauninājumus fonā un paziņot, kad tie ir pieejami</string>
+    <string name="settings_advanced_updates_background_notifications_description_fcm">Push paziņojumi par jauniem izlaidumiem, pat ja lietotne ir aizvērta</string>
+    <string name="settings_system_notifications_categories">Paziņojumu kategorijas</string>
+    <string name="settings_system_notifications_categories_description">Sistēmas iestatījumos izvēlieties, kuras atjauninājumu paziņojumus vēlaties saņemt</string>
+    <string name="settings_advanced_update_interval">Pārbaudes biežums</string>
+    <string name="settings_advanced_update_interval_hourly">Saiti</string>
+    <string name="settings_advanced_update_interval_daily">Katru dienu</string>
+    <string name="settings_advanced_update_interval_weekly">Kedēni</string>
+    <string name="settings_advanced_update_interval_monthly">Mēnesi</string>
+    <string name="settings_advanced_update_interval_battery_warning">Fona pārbaudes var nedarboties uzticamā veidā ierīcēs, kas ierobežo fona lietotnes, piemēram, Xiaomi, Huawei, Samsung un OnePlus</string>
+    <string name="settings_advanced_external_batch_patch">Atļaut ārējus triggerus</string>
+    <string name="settings_advanced_external_batch_patch_description">Ļauj automatizācijas lietotnēm uzsākt grupu patching</string>
+    <string name="external_batch_patch_title">Sākt grupas lappatēšanu?</string>
+    <string name="external_batch_patch_description">%s vēlas, lai Morphe patched un instalētu lietotnes</string>
+    <string name="external_batch_patch_trust_caller">Vienmēr atļaut šai lietotnei</string>
+    <string name="external_batch_patch_unknown_caller">Nezināma lietotne</string>
     <!-- Notification content -->
+    <string name="notification_bundle_update_title">Pieejami jauni labojumi</string>
+    <string name="notification_update_text">Versija %s ir gatava lejupielādei</string>
+    <string name="notification_bundle_update_text_unversioned">Knāb, lai atvērtu Morphe un veiktu atjauninājumu</string>
+    <string name="notification_permission_dialog_title">Atļaut paziņojumus</string>
+    <string name="notification_permission_dialog_description">Morphe ir nepieciešama paziņojumu atļauja, lai brīdinātu jūs, kad fonā ir pieejami atjauninājumi</string>
+    <string name="notification_post_patch_dialog_title">Vai vēlaties saņemt paziņojumu, kad atjauninājumi būs pieejami?</string>
+    <string name="notification_channel_manager_updates">Morphe atjauninājumi</string>
+    <string name="notification_channel_manager_updates_description">Paziņojumi par jaunām Morphe versijām</string>
+    <string name="notification_channel_patch_updates">Lāpīšanas atjauninājumi</string>
+    <string name="notification_channel_patch_updates_description">Paziņojumi par jauniem lāpīšanas izlaidumiem</string>
+    <string name="notification_channel_patcher_description">Rādā, kad Morphe backgroundā patched aplikāciju</string>
+    <string name="notification_channel_mounted_apps">Montētās lietotnes</string>
+    <string name="notification_channel_mounted_apps_description">Ja cita versija aizstāj montēto lietotni un tās lāpums vairs nav spēkā</string>
+    <string name="notification_mount_replaced_title">%1$s vairs nav lāpota</string>
+    <string name="notification_mount_replaced_text">v%1$s aizstājāja lāpoto v%2$s. Atveriet Morphe, lai to atjaunotu</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
+    <string name="settings_advanced_expert_mode">Eksperta režīms</string>
+    <string name="settings_advanced_expert_mode_description">Atbloķē paplašinātās patching iestatījumus un patch iespējas</string>
+    <string name="settings_advanced_expert_mode_dialog_title">Ienablekt ekspertu režīmu?</string>
+    <string name="settings_advanced_expert_mode_dialog_message">Ekspertu režīms nodrošina lielāku kontroli pār to, kā tiek lietoti labojumi, taču nepareiza iestatījumu konfigurācija ekspertu režīmā var izraisīt lietotnes nefunkcionēšanu</string>
+    <string name="settings_advanced_strip_unused_libs">Optimizēt ierīces arhitektūrai</string>
+    <string name="settings_advanced_strip_unused_libs_description">Noņem nelietotas히 native bibliotēkas un APK splitus</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
+    <string name="settings_advanced_github_pat_summary">Atbloķē pull request avotus un privātus repozitorijus</string>
+    <string name="settings_advanced_github_pat_description">Pull request avotiem, privātiem repozitorijiem un augstākam GitHub ātruma limitam</string>
+    <string name="settings_advanced_github_pat_configured">Tokens konfigurēts</string>
+    <string name="settings_advanced_github_pat_create">Izveidot marķītāju GitHub vietnē</string>
     <!-- "%s" is the GitHub scope name, keep it as is -->
+    <string name="settings_advanced_github_pat_create_description">Atver GitHub ar jau izvēlētu %s jomu</string>
+    <string name="settings_advanced_github_pat_checking">Pārbaude GitHub vietnē…</string>
     <!-- "%s" is the GitHub account name -->
+    <string name="settings_advanced_github_pat_account">Pierakstījies GitHub vietnē kā %s</string>
+    <string name="settings_advanced_github_pat_rejected">GitHub noraidīja šo marķītāju. Iespējams, tā derīguma termiņš ir beidzies vai tā ir atsaucta</string>
+    <string name="settings_advanced_github_pat_unreachable">Neizdevās saslēgties ar GitHub, lai pārbaudītu šo tokenu</string>
+    <string name="settings_advanced_github_pat_export_include_label">Iekļaut iestatījumu eksportā</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+    <string name="settings_advanced_github_pat_export_include_supporting">Pievieno šo PAT eksportētajiem Morphe iestatījumiem</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
+    <string name="settings_advanced_github_pat_export_warning">Nekopīojiet savu PAT. Ja iekļaujat to iestatījumu eksportā, glabājiet šo failu privāti, jo tas satur tokenu</string>
     <!-- Settings - Advanced Tab - Patch Options Section -->
+    <string name="settings_advanced_patch_options">Patlapa opsijas</string>
+    <string name="settings_advanced_patch_options_restart_message">Mainot patlapas opsijas, nepieciešams atkārtoti patchedēt lietotni, lai izmaiņas stātos spēkā</string>
+    <string name="settings_advanced_patch_options_expert_mode_notice">Eksperta režīmā patlapas opsijas būs pieejamas patchedēšanas procesa laikā</string>
+    <string name="settings_advanced_patch_options_loading">Ielādē patlapas opsijas…</string>
+    <string name="settings_advanced_patch_options_waiting_for_source">Nogaidiet, līdz patlapas avots ir atjaunināts</string>
+    <string name="settings_advanced_patch_options_load_error">Neizdevās ielādēt patlapas opsijas</string>
+    <string name="settings_advanced_patch_options_no_available">Šai patlapai nav pieejamu opciju</string>
     <!-- Settings - Advanced Tab - Patch Options Section: Custom Branding -->
+    <string name="settings_advanced_patch_options_custom_branding">Pielagots zīmols</string>
+    <string name="settings_advanced_patch_options_custom_branding_description">Maina lietotnes nosaukumu ekrānā</string>
+    <string name="settings_advanced_patch_options_custom_branding_app_name">Lietotnes nosaukums</string>
+    <string name="settings_advanced_patch_options_custom_branding_app_name_hint">Ievadiet pielāgotu nosaukumu</string>
+    <string name="settings_advanced_patch_options_path_gone">Šo mapi vairs nevar nolasīt. Izvēlieties to vēlreiz vai izdzīsim, pretējā gadījumā plāstums tiks apturēts un tiks prasīta informācija par to</string>
+    <string name="settings_advanced_patch_options_custom_branding_app_icon">Lietotnes ikona</string>
+    <string name="settings_advanced_patch_options_custom_branding_app_icon_description">Ikona, ar kuru lietotne tiek patched, tiek izmantota arī vietās, kur to vēlāk nevar mainīt, piemēram, Android Auto</string>
+    <string name="settings_advanced_patch_options_custom_branding_app_icon_needs_folder">Pielagotai lietotnes ikonai ir nepieciešama mapa ar ikonas attēliem</string>
+    <string name="settings_advanced_patch_options_custom_branding_custom_icon">Pielāgota ikona</string>
+    <string name="settings_advanced_patch_options_custom_branding_custom_icon_instruction">"Mapes ar attēliem, kurus izmantot kā pielāgotu ikonu.
+
+Mapē jābūt vienai vai vairākām no šādām mapēm, atkarībā no ierīces DPI:
+- mipmap-mdpi
+- mipmap-hdpi
+- mipmap-xhdpi
+- mipmap-xxhdpi
+- mipmap-xxxhdpi
+
+Kattrai no mapēm jābūt visiem šādiem failiem:
+morphe_adaptive_background_custom.png
+morphe_adaptive_foreground_custom.png
+
+Attēlu izmēriem jābūt šādiem:
+- mipmap-mdpi: 108x108 px
+- mipmap-hdpi: 162x162 px
+- mipmap-xhdpi: 216x216 px
+- mipmap-xxhdpi: 324x324 px
+- mipmap-xxxhdpi: 432x432 px
+
+Papildinājumā ceļā var būt mappa \"drawable\" ar monohromu ikonas failu:
+morphe_adaptive_monochrome_custom.xml
+
+Papildinājumā ceļā var būt paziņojuma ikona vienā no šādiem formātiem:
+- XML vektora drawable mapē \"drawable\":
+  morphe_notification_icon_custom.xml
+- PNG rastru attēli mapēs \"drawable-dpi\":
+  drawable-mdpi/morphe_notification_icon_custom.png (24x24 px)
+  drawable-hdpi/morphe_notification_icon_custom.png (36x36 px)
+  drawable-xhdpi/morphe_notification_icon_custom.png (48x48 px)
+  drawable-xxhdpi/morphe_notification_icon_custom.png (72x72 px)
+  drawable-xxxhdpi/morphe_notification_icon_custom.png (96x96 px)"</string>
     <!-- Settings - Advanced Tab - Patch Options Section: Custom Header -->
+    <string name="settings_advanced_patch_options_custom_header">Pielāgots galvene logotips</string>
+    <string name="settings_advanced_patch_options_custom_header_description">Maina galvenes logo</string>
+    <string name="settings_advanced_patch_options_custom_header_instruction">"Mapa ar attēliem, kurus izmantot kā pielāgotu galvene logotipu.
+
+Mapai jāsatur viena vai vairākas no šīm mapām, atkarībā no ierīces DPI:
+- drawable-hdpi
+- drawable-xhdpi
+- drawable-xxhdpi
+- drawable-xxxhdpi
+
+Katra no mapām jāsatur visi šie faili:
+morphe_header_custom_light.png
+morphe_header_custom_dark.png
+
+Attēla izmēri jābūt šādiem:
+- drawable-hdpi: 194x72 px
+- drawable-xhdpi: 258x96 px
+- drawable-xxhdpi: 387x144 px
+- drawable-xxxhdpi: 512x192 px"</string>
     <!-- Settings - Advanced Tab - Patch Options Section: Hide Shorts -->
+    <string name="settings_advanced_patch_options_hide_shorts_app_shortcut">Slēpt Shorts lietotnes īsguru</string>
+    <string name="settings_advanced_patch_options_hide_shorts_app_shortcut_description">Noņem Shorts no uznācēja ilgas nospiešanas izvēlnes</string>
+    <string name="settings_advanced_patch_options_hide_shorts_widget">Paslēpt Shorts vidžetu</string>
+    <string name="settings_advanced_patch_options_hide_shorts_widget_description">Noņem Shorts pogu no palaidēja vidžeta</string>
     <!-- Settings - System Tab - Installer Section -->
+    <string name="installer">Instalētājs</string>
+    <string name="installer_settings_title">Piecīrtais instalētājs</string>
+    <string name="settings_installation">Instalēšana</string>
+    <string name="installer_title">Izvēlieties instalatoru</string>
+    <string name="installer_internal_description">Izmanto Android pakauju instalatoru</string>
+    <string name="installer_play_store_description">Izmanto sistēmas instalatoru un Google Play Store iestatīja kā instalācijas avotu</string>
+    <string name="installer_root_play_store_description">Klusi instalē, izmantojot root, un Google Play Store iestatīja kā instalācijas avotu</string>
+    <string name="installer_auto_saved_name">Root montēšana</string>
+    <string name="installer_auto_saved_description">Montē lietotnes, kas tika patched root montēšanas režīmā. Standarta patched APK izmanto citu instalatoru</string>
+    <string name="installer_shizuku_description">Instalē klusi, izmantojot Shizuku vai Sui</string>
+    <string name="installer_shizuku_play_store_description">Klusi instalē caur Shizuku vai Sui un Google Play Store iestatīja kā instalācijas avotu</string>
+    <string name="installer_option_none">Nav rezervā</string>
+    <string name="installer_none_description">Rezervēts instalators nav konfigurēts</string>
+    <string name="installer_status_requires_root">Nepieciešama root piekļuve</string>
+    <string name="installer_status_not_supported">Šī darbība netiek atbalstīta</string>
+    <string name="installer_status_shizuku_not_installed">Lai izmantotu šo opciju, instalējiet Shizuku vai Sui</string>
+    <string name="installer_status_shizuku_not_running">Sakiet Shizuku vai Sui un mēģiniet vēlreiz</string>
+    <string name="installer_status_shizuku_permission">Piešķiriet atļauju Morphe Shizuku lietotnē</string>
+    <string name="installer_mount_warning_install">Jūsu galvenais instalators ir iestatīts uz root mount instalatoru. Šī saglabātā lietotne netika instalēta, izmantojot mount</string>
+    <string name="mount_version_mismatch_message">Oriģinālās lietotnes versija (%2$s) nesakrīt ar patched lietotnes versiju (%1$s). Veiciet mount atbilstošajai oriģinālajai versijai un pēc tam mēģiniet vēlreiz</string>
+    <string name="mount_stock_restore_failed_message">Android noraidīja saglabāto oriģinālo APK. Instalējiet atbilstošo stock versiju, pēc tam mēģiniet montēt vēlreiz</string>
+    <string name="installer_status_shizuku_unsupported">Instalētā Shizuku versija netiek atbalstīta</string>
+    <string name="installer_action_open_shizuku">Atvērt Shizuku</string>
+    <string name="installer_hint_generic">Instalēšana neizdevās. Mēģiniet vēlreiz vai pārslēdzieties uz citu instalatoru</string>
+    <string name="installer_hint_conflict">Citiem lietotnēm ar šo paketes nosaukumu jau ir instalēta. Pirms turpināšanas atinstalējiet to</string>
+    <string name="installer_confirm_notification_title">Apstipriniet instalāciju</string>
+    <string name="installer_confirm_notification_text">Kūpiniet, lai pabeigtu patched aplikācijas instalēšanu</string>
+    <string name="installer_external_launched">Atver %s…</string>
+    <string name="installer_external_timeout">%s neapstiprināja instalāciju. Pārbaudiet citu lietotni un mēģiniet vēlreiz</string>
+    <string name="installer_external_success">%s ziņoja par veiksmīgu instalāciju</string>
+    <string name="installer_unavailable_title">%s nav pieejams</string>
+    <string name="installer_unavailable_message">Jūsu izvēlētā instalatora (%s) pašlaik nav pieejams. Jūs varat novērst problēmu un mēģināt vēlreiz vai tā vietā izmantot standartinstalatoru</string>
+    <string name="installer_unavailable_shizuku_hint">Pārliecinieties, ka Shizuku darbojas un šai lietotnei ir piešķirta atļauja</string>
+    <string name="installer_choose_another">Izvēlēties citu instalatoru</string>
+    <string name="installer_play_store_warning_title">Instalēt kā Play Store?</string>
+    <string name="installer_play_store_warning_message">Pārveidotā lietotne tiks reģistrēta kā instalēta no Google Play Store. Tas var palīdzēt tādiem pakalpojumiem kā Android Auto atpazīt to kā Play Store lietotni, taču tas nav garantēts katrai lietotnei vai ierīcei. Uzvedība var varyt atkarībā no Android versijas, ROM, ierīces zīmola un lietotnes specifiskām pārbaudēm</string>
+    <string name="installer_play_store_warning_risk">Play Store var piedāvāt atjauninājumus patched lietotnei. Šā rastā atjauninājuma instalēšana pārrakstīs patched APK ar oriģinālo versiju un noīsinās patchiem. Ja tiek pieprasīts atjaunināt, nospieciet trīs punktu izvēlni lietotnes Play Store lapā un izvēlieties \"Izslēgt atjauninājumus\"</string>
+    <string name="installer_play_store_warning_continue">Es saprotu, turpināt</string>
+    <string name="installer_play_store_mode">Instalēt kā Play Store</string>
+    <string name="installer_play_store_mode_description">Atzīmē Google Play veikalu kā instalācijas avotu</string>
+    <string name="settings_nomount_only">Tikai NoMount</string>
+    <string name="settings_nomount_only_description">Montē lietotnes tikai ar NoMount un nekad neatgriežas pie bind mount, tāpēc tās paliek nemontētas bez tā</string>
+    <string name="settings_prompt_installer_on_install">Instalatora izvēles azaņa</string>
+    <string name="settings_prompt_installer_on_install_description">Katrai lietotnei jautā, kā instalēt: ar root tiesībām pirms patchēšanas, pretējā gadījumā pēc tās</string>
+    <string name="settings_auto_install_with_shizuku">Auto-instalācija pēc patchēšanas</string>
+    <string name="settings_auto_install_with_shizuku_description">Instalē vai montē patchēto APK tiklīdz patchēšana ir pabeigta</string>
+    <string name="settings_auto_uninstall_with_shizuku">Auto-deinstalēšana konflikta gadījumā</string>
+    <string name="settings_auto_uninstall_with_shizuku_description">Atinstalē esošo lietotni paraksta konflikta gadījumā. Tas var izdzēst lietotnes datus</string>
+    <string name="settings_ignore_install_target_rules">Ignorēt instalēšanas mērķa prasības</string>
+    <string name="settings_ignore_install_target_rules_description"> ļauj izslēgt lapiņas, kuras prasa instalācijas mērķis, un ieslēgt tās, kuras tas izslēdz. Pārveidotā lietotne var nedarboties</string>
+    <string name="settings_auto_uninstall_warning_title">Ienablekot auto-deinstalēšanu?</string>
+    <string name="settings_auto_uninstall_warning_message">Ja Android ziņo par paraksta konfliktu Shizuku auto-instalācijas laikā, Morphe deinstalēs esošo lietotni pirms patched APK instalēšanas</string>
+    <string name="settings_auto_uninstall_warning_risk">Tas var izdzēst lietotnes datus. Ja pēc deinstalēšanas patched APK neizdalīkas, iepriekšējā lietotne var būt jau izdzēsta</string>
+    <string name="installer_shizuku_status_action">Pārbaudīt Shizuku statusu</string>
+    <string name="installer_shizuku_status_title">Shizuku statuss</string>
+    <string name="installer_shizuku_status_ready">Gatavs</string>
+    <string name="installer_shizuku_status_issue">Nepieciešama uzmanība</string>
+    <string name="installer_shizuku_status_supported">Baltīts</string>
+    <string name="installer_shizuku_status_running">Darbojas</string>
+    <string name="installer_shizuku_status_permission">Atļauja</string>
+    <string name="installer_shizuku_status_mode">Režīms</string>
+    <string name="installer_shizuku_status_provider">Pieproviders</string>
+    <string name="installer_shizuku_status_granted">Piešķirta</string>
+    <string name="installer_shizuku_status_missing">Trūkst</string>
+    <string name="installer_shizuku_request_permission">Pieprasīt atļauju</string>
+    <string name="installer_shizuku_install_fail">Shizuku instalēšana neveiksmīga: %s</string>
+    <string name="installer_shizuku_install_fail_with_details">"Shizuku instalēšana neizdevās: %1$s
+
+Sīkāk: %2$s"</string>
+    <string name="installer_shizuku_error_permission">Trūkst Shizuku atļaujas. Piešķiriet atļauju lietotnei Morphe un mēģiniet vēlreiz</string>
+    <string name="installer_shizuku_error_timeout">Shizuku neatgrieza instalēšanas rezultātu. Pārliecinieties, ka tas joprojām darbojas, un mēģiniet vēlreiz</string>
+    <string name="installer_shizuku_error_downgrade">Android bloķēja šo darbību, jo tā novedētu pie instalētās lietotnes versijas pazemināšanas</string>
+    <string name="installer_shizuku_error_signature">Android bloķēja šo darbību, jo instalētajai lietotnei ir citādā paraksts</string>
+    <string name="installer_shizuku_error_invalid_apk">Android nevarēja izlasīt šo APK</string>
+    <string name="installer_shizuku_error_user_profile">Sistēma bloķēja šo instalāciju. Xiaomi un līdzīgās ierīcēs izstrādātāja opcijās ieslēdziet \"Instalēt caur USB\". Darba profilā instalācijas var būt ierobežotas politikas dēļ</string>
     <!-- Settings - System Tab - Performance Section -->
     <string name="settings_system_battery_optimization">Akumulatora optimizācija</string>
+    <string name="settings_system_battery_optimization_description">Turpina darbināt patcheru, kad lietotne ir samazināta</string>
+    <string name="settings_system_process_runtime">Patcher çalışma laiks</string>
+    <string name="settings_system_jvm_runtime_enable">Izmantot iebūvēto VM</string>
+    <string name="settings_system_jvm_runtime_description">Lapiņi Morphe pašā Java VM, kas var izmantot vairāk atmiņas. Izslēdziet, lai izmantotu Android izpildീകരണvīdi</string>
+    <string name="settings_system_jvm_runtime_unavailable">Nepieciešama ARM vai 64-bitu x86 ierīce</string>
+    <string name="settings_system_patcher_completion_sound">Pabeigšanas skaņa</string>
+    <string name="settings_system_patcher_completion_sound_description">Atskaņo specifisku toni veiksmīgam vai neveiksmīgam rezultātam, kad patchošana ir pabeigta</string>
     <!-- Settings - System Tab - Notifications Section -->
     <string name="settings_system_notifications">Paziņojumi</string>
+    <string name="settings_system_notifications_description">Kā Morphe tur jūs informēts</string>
+    <string name="settings_system_notifications_success_sound">Veiksmes skaņa</string>
+    <string name="settings_system_notifications_error_sound">Kļūdas skaņa</string>
+    <string name="settings_system_notifications_sound_default">Piecīrtākais</string>
+    <string name="settings_system_notifications_sound_picker_title">Izvēlieties skaņas avotu</string>
+    <string name="settings_system_notifications_sound_pick_ringtone">Sistēmas skaņas</string>
+    <string name="settings_system_notifications_sound_pick_file">Izvēlēties no failiem</string>
+    <string name="settings_system_notifications_sound_reset">Atiestatīt uz piecīrtāko</string>
+    <string name="settings_system_notifications_ringtone_picker_title">Izvēlieties toni</string>
     <!-- Settings - System Tab - Import and Export Section -->
+    <string name="settings_system_signing_key">Paraksta atslēga</string>
+    <string name="settings_system_signing_key_description">Izveido rezervkopiju vai atjauno atslēgu, ar kuru tiek parakstītas patched lietotnes</string>
+    <string name="settings_system_signing_key_dialog_description">Katra lietotne, ko Morphe lāpī, tiek parakstīta ar šo atslēgu. Saglabājiet kopiju: bez tās lāpītas lietotnes var atjaunināt tikai pēc to neatinstalēšanas</string>
+    <string name="settings_system_signing_key_missing">Morphe izveidos vienu kopā ar jūsu pirmo lāpīšanu</string>
+    <string name="settings_system_signing_key_created">Izveidots %s</string>
+    <string name="settings_system_signing_key_fingerprint">SHA-256 cipara paraksts</string>
+    <string name="settings_system_backup_appearance_description">Tēma, krāsas un valoda</string>
+    <string name="settings_system_backup_home_description">Grupas, slēptās lietotnes, kārtošana un pārslēg pārvērtēji</string>
+    <string name="settings_system_backup_patching">Lāpīšana un instalēšana</string>
+    <string name="settings_system_backup_patching_description">Instalators, lāpītājs un saglabātie APK</string>
+    <string name="settings_system_backup_updates_description">Pirmizlaides un atjauninājumu pārbaudes</string>
+    <string name="settings_system_backup_sources_description">Pielagoti avoti un GitHub tokens</string>
+    <string name="settings_system_backup_patch_selections_description">Izvēlētie lāpījumi katrai lietotnei</string>
+    <string name="settings_system_backup_signing_key_note">Parakstīšanas atslēga tiek dubēta atsevišķi</string>
+    <string name="settings_system_import_keystore_dialog_title">Ievadiet keystore autentifikācijas datus</string>
+    <string name="settings_system_import_keystore_dialog_description">Lai importētu keystore, jums būs jāievada tā autentifikācijas dati</string>
+    <string name="settings_system_import_keystore_dialog_alias_field">Lietotājvārds (Alias)</string>
+    <string name="settings_system_import_keystore_dialog_password_field">Parole</string>
+    <string name="settings_system_import_keystore_dialog_format_field">Atslēgu kopas formāts</string>
+    <string name="settings_system_import_keystore_wrong_credentials">Nepareizi keystore autentifikācijas dati</string>
+    <string name="settings_system_import_keystore_success">Atslēgu kopa importēta</string>
+    <string name="settings_system_import_keystore_failed">Neizdevās importēt atslēgu kopu</string>
+    <string name="settings_system_export_keystore_success">Atslēgu kopa eksportēta</string>
+    <string name="settings_system_export_keystore_failed">Neizdevās eksportēt atslēgu kopu</string>
+    <string name="settings_system_show_password_field">Rādīt paroli</string>
+    <string name="settings_system_hide_password_field">Paslēpt paroli</string>
+    <string name="settings_system_morphe_settings">Morphe iestatījumi</string>
+    <string name="settings_system_import_manager_settings_description">Veic Morphe iestatījumu kopijas izveidi un atjaunošanu</string>
+    <string name="settings_system_import_manager_settings_fail">Neizdevās importēt Morphe iestatījumus: %s</string>
+    <string name="settings_system_import_manager_settings_success">Morphe iestatījumi importēti</string>
+    <string name="settings_system_import_manager_settings_mode_title">Importēt Morphe iestatījumus</string>
+    <string name="settings_system_import_manager_settings_mode_description">Izvēlieties, kā jāpielūko importētajiem iestatījumiem un avotiem</string>
+    <string name="settings_system_import_selections_mode_title">Importēt atlases patchiem</string>
+    <string name="settings_system_import_selections_mode_description">Izvēlieties, kā jāpielūko importētajām atlasēm un patchu opcijām</string>
+    <string name="import_mode_replace_title">Aizstāt esošos</string>
+    <string name="import_mode_replace_description">Precīzi saskaņot ar rezerves kopiju. Preces, kuras trūkst rezerves kopijā, tiksdzēstas</string>
+    <string name="import_mode_merge_title">Apvienot ar esošajiem</string>
+    <string name="import_mode_merge_description">Pievienot trūkstošos elementus no rezervkopijas. Esošie elementi paliek nemainīti</string>
+    <string name="settings_system_export_manager_settings_fail">Neizdevās eksportēt Morphe iestatījumus: %s</string>
+    <string name="settings_system_export_manager_settings_success">Morphe iestatījumi eksportēti</string>
+    <string name="settings_system_export_debug_logs">Eksportēt atklaides žurnālus</string>
+    <string name="settings_system_export_debug_logs_description">Saglabā sistēmas žurnālus kļūmu novēršanai</string>
+    <string name="settings_system_export_debug_logs_export_read_failed">Neizdevās izlasīt žurnālus (iziešanas kods %s)</string>
+    <string name="settings_system_export_debug_logs_export_failed">Neizdevās eksportēt žurnālus</string>
+    <string name="settings_system_export_debug_logs_export_success">Žurnāli eksportēti</string>
     <!-- Settings - System Tab - Files & Storage Section -->
+    <string name="settings_system_apks_size">Kopējais izmērs: %s</string>
+    <string name="settings_system_apks_delete_all_confirm">Šī darbība neatgriezeniski izdzēs šeit redzamās saglabātās APK failes</string>
+    <string name="settings_system_apks_delete_selected_title">Izdzēst atlasītos APK?</string>
+    <string name="settings_system_apks_delete_selected_confirm">Šī darbība neatgriezeniski izdzēs atlasītos APK failus</string>
+    <string name="settings_system_apks_deleted_all">APK veiksmīgi izdzēsts</string>
+    <string name="settings_system_apks_delete_failed">Dažas APK failus neizdevās dzēst</string>
+    <string name="settings_system_apks_export_zip_success">Atlasītie APK eksportēti</string>
+    <string name="settings_system_apks_export_zip_failed">Neizdevās eksportēt izvēlētos APK</string>
     <!-- Settings - System Tab - Storage Management screen -->
+    <string name="settings_system_storage_management_title">Iz glabāšanas pārvaldība</string>
+    <string name="settings_system_storage_management_description">Rāda diska izmantošanu un dzēš kešētos failus</string>
     <!-- Shown under how much Morphe takes up. "%1$s" is the space still available on the device, already formatted with its unit. "Free" as in unused, not as in free of charge. -->
+    <string name="settings_system_storage_free">%1$s brīvas</string>
+    <string name="settings_system_storage_saved_apks">Saglabātie APK</string>
+    <string name="settings_system_storage_caches">Kešatraksti</string>
+    <string name="settings_system_storage_keystore_title">Parakstīšanas atslēgu glabātava</string>
+    <string name="settings_system_storage_app_data_title">Lietotņu dati</string>
+    <string name="settings_system_storage_patch_bundles_title">Rumpja pakauļi</string>
+    <string name="settings_system_storage_http_cache_title">Tīkla kešatmiņa</string>
+    <string name="settings_system_storage_http_cache_description">HTTP atbildes tiek kešētas, lai paātrinātu atjauninājumus</string>
+    <string name="settings_system_storage_installer_cache_title">Ārējā instalētāja kešatmiņa</string>
+    <string name="settings_system_storage_installer_cache_description">APK kopijas, kas nodotas trešo pušu instalatoriem</string>
+    <string name="settings_system_storage_patcher_workspace_title">Patcher darba vieta</string>
+    <string name="settings_system_storage_patcher_workspace_description">Patcher çalışma faili un atlikuši scratch dati</string>
+    <string name="settings_system_storage_temporary_title">Pagaidāmie faili</string>
+    <string name="settings_system_storage_temporary_description">Darba faili, kas izveidoti patchinga laikā</string>
+    <string name="settings_system_storage_clear_all">Notīrīt visus kešu</string>
+    <string name="settings_system_storage_clear_all_description">VienCērt atbrīvo visu atgūstamo keša vietu</string>
+    <string name="settings_system_storage_clear_all_confirm">Tas notīra kešētas tīkla atbildes, sagatavotas instalatora kopijas un pagaidāmos failus. Oriģinālie un patched APK tiek saglabāti</string>
+    <string name="settings_system_storage_cleared">Atbrīvota %s</string>
+    <string name="settings_system_storage_patch_running_warning">Šobrīd darbojas labojums, kas izmanto šos failus. To dzēšana tagad izraisīs kļūdu</string>
+    <string name="settings_system_storage_clear_anyway">Tikt izdzēst jebkurā gadījumā</string>
+    <string name="settings_system_storage_nothing_to_clear">Nav ko notīrīt</string>
+    <string name="settings_system_storage_open_app_info_title">Atvērt Android lietotnes iz glabāšanu</string>
+    <string name="settings_system_storage_open_app_info_description">Pārvaldīt vai notīrīt visus Morphe datus sistēmas iestatījumos</string>
+    <string name="settings_system_save_original_apks_title">Saglabāt oriģinālos APK</string>
+    <string name="settings_system_save_original_apks_description">Saglabājiet pirmpatched APK, lai to varētu atkārtoti izmantot patchošanai, neatselectingot failu vēlreiz</string>
+    <string name="settings_system_save_patched_apks_title">Saglabāt patched APK</string>
+    <string name="settings_system_save_patched_apks_description">Saglabāt patched APK kopiju vēlākai eksportēšanai vai pāreksponēšanai no vadītāja</string>
     <!-- Settings - System Tab - Storage Management - Patched APKs Management -->
+    <string name="settings_system_patched_apks_title">Pārveidoti APK</string>
+    <string name="settings_system_patched_apks_empty">Pārveidoti APK vēl nav saglabāti</string>
+    <string name="settings_system_patched_apks_delete_title">Dzēst pārveidoto APK?</string>
+    <string name="settings_system_patched_apks_deleted">Pārveidotais APK veiksmīgi dzēsts</string>
+    <string name="settings_system_patched_apks_delete_all_title">Dzēst visus patched APK?</string>
     <!-- Settings - System Tab - Storage Management - Original APKs Management -->
+    <string name="settings_system_original_apks_title">Oriģināli APK</string>
+    <string name="settings_system_original_apks_empty">Nav saglabāti oriģinālie APK</string>
+    <string name="settings_system_original_apks_deleted">Oriģinālais APK veiksmīgi izdzēsts</string>
+    <string name="settings_system_original_apks_delete_title">Dzēst oriģinālo APK?</string>
+    <string name="settings_system_original_apks_delete_notice">Jūs nevarēsiet veikt atkārtotu patchedēšanu, nenodrošinot jaunu APK</string>
+    <string name="settings_system_original_apks_delete_all_title">Dzēst visus oriģinālos APK?</string>
     <!-- Settings - System Tab - Storage Management - Patch Selection Management -->
-    <!-- Copy selection from another bundle -->
+    <string name="settings_system_patch_selections_title">Atlapi izvēles</string>
+    <string name="settings_system_patch_selections_description">Saglabātie patcha izvēles, kas tiek saglabātas pēc deinstalācijas</string>
+    <string name="settings_system_patch_selection_reset_all_confirm_title">Atiestatīt visas izvēles?</string>
+    <string name="settings_system_patch_selection_reset_selected_confirm_title">Atiestatīt izvēlētos paketes?</string>
+    <string name="settings_system_patch_selection_reset_source_confirm_title">Atiestatīt avota izvēli?</string>
+    <string name="settings_system_patch_selection_total_summary_format">%1$s pāri %2$s</string>
+    <string name="settings_system_patch_selection_source_format">Avots #%s</string>
+    <string name="settings_system_patch_selection_reset_all_warning">Tas neatgriezeniski izdzēs visas saglabātās patchu izvēles visiem pakotnes un avotiem</string>
+    <string name="settings_system_patch_selection_reset_source_warning">Tas neatgriezeniski izdzēs saglabātās patch izvēles &lt;b&gt;%1$s&lt;/b&gt; sadaļā &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <string name="settings_system_patch_selection_reset_selected_warning">Tas neatgriezeniski izdzēs visas saglabātās patch izvēles izvēlētajām pakotēm</string>
+    <string name="settings_system_export_source_data_fail">Avota datu eksportēšana neizdevās</string>
+    <string name="settings_system_export_source_data_success">Avota dati eksportēti veiksmīgi</string>
+    <string name="settings_system_import_source_data_fail">Avota datu importēšana neizdevās</string>
+    <string name="settings_system_import_source_data_success">Avota dati importēti veiksmīgi</string>
+    <string name="settings_system_selected_patches_section">Atlasītie plāstumi</string>
+    <string name="settings_system_no_patches_or_options">Nekādi labojumi vai opcijas netika saglabāti</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Atlasījumi</string>
+    <string name="selection_panel_copy_into">Kopēt %s</string>
+    <string name="selection_sets_title">Kopumi</string>
+    <string name="selection_set_name">Kopuma nosaukums</string>
+    <string name="selection_set_save">Saglabāt kā kopumu</string>
+    <string name="selection_set_replace">Aizstāt kopumu</string>
+    <string name="selection_set_saved">Saglabāts kā %s</string>
+    <string name="selection_set_applied">Pārslēgts uz %s</string>
+    <string name="selection_set_deleted">%s dzēsts</string>
+    <string name="selection_set_renamed">Pārvārts uz %s</string>
+    <string name="selection_set_rename_title">Pārvārts kopumu</string>
+    <string name="selection_set_delete_title">Dzēst kopumu?</string>
+    <string name="selection_set_delete_message">Šī darbība neatgriezeniski dzēš kopumu %s</string>
+    <string name="copy_selection_empty">Nav citu saglabātu izvēļu, no kurām kopēt</string>
+    <string name="copy_selection_available_format">Pieejams %1$s no %2$s</string>
     <!-- Settings - System Tab - Custom file picker -->
+    <string name="settings_system_custom_file_picker">Pielagots failu atlasekārtis</string>
+    <string name="settings_system_custom_file_picker_description">Izmanto Morphe iebūvēto failu izvēlnēju sistēmas izvēlnēju vietā</string>
     <!-- Settings - System Tab - APK download helper -->
+    <string name="settings_system_apk_download_helper">APK lejupielādes palīgs</string>
+    <string name="settings_system_apk_download_helper_trusted_count">Uzticamas: %1$d no %2$d</string>
+    <string name="settings_system_apk_download_helper_dialog_description">Palīglietotnes var lejupielādēt oriģinālos APK jūsu vietā. Lejupielādes instrukcijās tiek piedāvātas tikai tās, kurām šeit uzticaties</string>
+    <string name="settings_system_apk_download_helper_trust_title">Uztici šim palīgam?</string>
+    <string name="settings_system_apk_download_helper_warning">APK nāk no palīglietotnes, tāpēc uzticieties tikai zināmām lietotnēm. Morphe joprojām pārbauda katra faila pakaujumu, versiju un parakstu pirms patchedēšanas</string>
+    <string name="settings_system_apk_download_helper_installed_by">Instalējis %s</string>
+    <string name="settings_system_apk_download_helper_installed_by_unknown">Instalētājs nezināms</string>
+    <string name="settings_system_apk_download_helper_open_directly">Tūlīt pat atvērt palīgu</string>
+    <string name="settings_system_apk_download_helper_open_directly_description">Izlaika lejupielādes norādījumus un atver uzticamo palīgu</string>
     <!-- File Picker -->
+    <string name="file_picker_no_files">Šeit nav failu</string>
+    <string name="file_picker_read_error">Nevar izlasīt šo katalogu</string>
+    <string name="file_picker_internal_storage">Iekšējā atmiņa</string>
+    <string name="file_picker_sd_card">SD karte</string>
+    <string name="file_picker_root">Sakne (/)</string>
+    <string name="file_picker_storage_access_unavailable">Šai ierīcei nav ekrāna, lai piekļūtu visiem failiem. Atļaujiet to pār ADB ar: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
+    <string name="file_picker_storages">Atmiņas</string>
+    <string name="file_saver_downloads_failed">Neizdevās izveidot failu Lejupielādēšanas mapē</string>
+    <string name="file_saver_saving_to_downloads">Šai ierīcei nav saglabāšanas ekrāna, tāpēc fails tiek saglabāts Lejupielādēšanas mapē kā %1$s</string>
+    <string name="file_picker_sort_name_asc">Nosaukums (A–Z)</string>
+    <string name="file_picker_sort_name_desc">Nosaukums (Z–A)</string>
+    <string name="file_picker_sort_size_desc">Izmērs (vislielākie vispirms)</string>
+    <string name="file_picker_sort_size_asc">Izmērs (vismazākie vispirms)</string>
+    <string name="file_picker_sort_date_desc">Datums (jaunākie vispirms)</string>
+    <string name="file_picker_sort_date_asc">Datums (vecākie pirmie)</string>
+    <string name="file_picker_show_hidden_files">Rādīt slēptos failus</string>
     <!-- Settings - System Tab - About Section -->
+    <string name="settings_system_about">Par</string>
+    <string name="settings_system_manager_description">Atklātā pirmkoda projekts populāru Android lietotņu modernam un optimizētam patchingam, ko veicina kopienas atsauksmes un ieguldījumi</string>
+    <string name="credits">Krediti</string>
+    <string name="credits_description">Cilvēki aiz Morphe</string>
+    <string name="settings_about_section_project">Projekts</string>
+    <string name="settings_about_section_help">Palīdzība</string>
+    <string name="credits_current_development">Pašreizējā izstrāde</string>
+    <string name="credits_prior_development">Iepēkšējā izstrāde</string>
+    <string name="opensource_licenses">Atklātā pirmkoda licences</string>
+    <string name="opensource_licenses_description">Bibliotēkas, uz kurām Morphe ir uzbūvēta</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
+    <string name="easter_egg_pill_title">Izvēle</string>
+    <string name="easter_egg_pill_message">Kāpiniet zilo tableti, un reklāmas paliks tieši tur, kur tās ir. Kāpiniet sarkanu un uzziniet, cik dziļi sniedzas baitkods</string>
+    <string name="easter_egg_pill_red">Sarkanā tablete</string>
+    <string name="easter_egg_pill_blue">Zilā tablete</string>
+    <string name="easter_egg_pill_red_toast">Atbloķēts Matrice fons</string>
+    <string name="easter_egg_pill_blue_toast">Reklāmas uz tevi gaidīs</string>
+    <string name="easter_egg_pill_message_again">Tu jau esi Matricā. Sarkanā pildīle tevi atgriezīs lietū, zilā tevi pamodinās</string>
+    <string name="easter_egg_pill_red_toast_again">Atpakaļ lietū</string>
+    <string name="easter_egg_pill_blue_toast_again">Atvienots. Ceļš atpakaļ ir tur, kur tas vienmēr bija</string>
     <!-- Shared strings -->
+    <string name="select_file">Atlasiet failu</string>
+    <string name="select_files">Atlasiet failus</string>
     <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="select_folder">Atlasiet mapi</string>
+    <string name="patches">Patchi</string>
+    <string name="home">Sākums</string>
+    <string name="settings">Iestatījumi</string>
+    <string name="apps">Lietotnes</string>
     <!-- Sections the settings page lists, each opening a page of its own. A summary names what the section holds -->
+    <string name="settings_section_patcher">Patcheris</string>
+    <string name="settings_section_updates">Atjauninājumi</string>
+    <string name="settings_section_patching">Lapiņošana</string>
+    <string name="settings_section_appearance_summary">Kā izskatās Morphe</string>
+    <string name="settings_section_patch_options_summary">Ar ko vienkāršais režīms patched aplikācijas</string>
     <string name="settings_section_general">Vispārīgi</string>
+    <string name="settings_section_patcher_summary">Kā lietotnes tiek patchedētas šajā ierīcē</string>
+    <string name="settings_section_help_info">Palīdzība &amp; info</string>
+    <string name="settings_section_about_summary">Vairāk par Morphe un palīdzības saņemšanu</string>
+    <string name="settings_section_local_files">Faili</string>
+    <string name="settings_section_backup">Rezerves kopija</string>
+    <string name="settings_search">Meklēt iestatījumos</string>
+    <string name="yes">Jā</string>
+    <string name="no">Nē</string>
+    <string name="all">Visi</string>
+    <string name="filter">Filtrs</string>
+    <string name="group">Grupa</string>
+    <string name="reset">Atiestatīt</string>
+    <string name="reset_all">Atiestatīt visu</string>
+    <string name="apply">Pielietot</string>
+    <string name="confirm">Apstiprināt</string>
+    <string name="warning">Brīdinājums</string>
+    <string name="error_">Kļūda</string>
+    <string name="failed">Neizdevās</string>
+    <string name="canceled">Atcelts</string>
+    <string name="ready">Gatavs</string>
+    <string name="retry">Mēģināt vēlreiz</string>
+    <string name="refresh">Atjaunināt</string>
+    <string name="add">Pievienot</string>
+    <string name="close">Aizvērt</string>
+    <string name="back">Atpakaļ</string>
+    <string name="next">Tālāk</string>
+    <string name="done">Gatavs</string>
+    <string name="skip">Izlaist</string>
+    <string name="clear">Notīrīt</string>
+    <string name="paste">Ielīmēt</string>
+    <string name="delete">Dzēst</string>
+    <string name="delete_all">Dzēst visu</string>
     <string name="remove">Noņemt</string>
+    <string name="exclude">Izslēgt</string>
+    <string name="excluded">Izslēgts</string>
+    <string name="include">Iekļaut</string>
+    <string name="disable">Atslēgt</string>
+    <string name="enable">Iespējot</string>
+    <string name="trust">Uzticēties</string>
+    <string name="loading">Ielādē…</string>
+    <string name="creating">Veido...</string>
+    <string name="processing_apk">APK apstrāde...</string>
+    <string name="exporting_apks">APK eksportēšana...</string>
+    <string name="not_installed">Nav uzstādīta</string>
+    <string name="view">Skatīt</string>
     <string name="search">Meklēt</string>
+    <string name="search_no_results">Rezultāti netika atrasti</string>
+    <string name="sort">Sakārtot</string>
+    <string name="any_version">Jēkura</string>
     <string name="enabled">Iespējots</string>
     <string name="disabled">Atspējots</string>
+    <string name="state_selected">Atlasīts</string>
+    <string name="state_not_selected">Neatlasīts</string>
+    <string name="select_all">Atlasīt visus</string>
+    <string name="deselect_all">Noatlasīt visus</string>
+    <string name="reorder_list">Mainīt saraksta secību</string>
+    <string name="reorder_list_hint">Velciet, lai mainītu secību</string>
+    <string name="reorder_done">Secība saglabāta</string>
+    <string name="reset_order">Atiestatīt secību</string>
+    <string name="reset_order_done">Secība atiestatīta</string>
+    <string name="reset_order_confirm_title">Atiestatīt secību?</string>
+    <string name="reset_order_confirm_message">Saraksts atgriezīsies pie pielūguma secības, un ar roku novēršātā secība tiks zaudēta</string>
+    <string name="accessibility_select_app">Atlasīt lietotni</string>
+    <string name="accessibility_select_source">Atlasiet avotu</string>
+    <string name="accessibility_move_up">Kustīnāt uz augšu</string>
+    <string name="accessibility_move_down">Kustīnāt uz leju</string>
+    <string name="accessibility_app_moved_announcement">%1$s pārvietots pozīcijā %2$s no %3$s</string>
+    <string name="accessibility_scroll_to_top">Skrollēt līdz saraksta augšai</string>
+    <string name="rename">Pārvārdot</string>
+    <string name="more_options">Vairāk opciju</string>
+    <string name="import_">Importēt</string>
+    <string name="export">Eksportēt</string>
     <string name="copy">Kopēt</string>
+    <string name="copied_to_clipboard">Kopēts starpuklājumā</string>
+    <string name="download">Lejupielādēt</string>
+    <string name="less">Mazāk</string>
+    <string name="expand">Paplašināt</string>
+    <string name="expanded">Paplašināts</string>
+    <string name="collapse">Sasaustīt</string>
+    <string name="collapsed">Sasaustīts</string>
+    <string name="continue_">Turpināt</string>
+    <string name="version">Versija</string>
     <!-- Who made a patch source, as a field label -->
+    <string name="author">Autors</string>
     <!-- A file a patch source is added from, as a field label -->
+    <string name="file">Fails</string>
+    <string name="clone">Klonēt</string>
     <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
+    <string name="patch">Lāpīts</string>
+    <string name="patching">Labošana</string>
+    <string name="patched">Labots</string>
+    <string name="open">Atvērt</string>
+    <string name="mount">Pielāgot</string>
+    <string name="mounted">Pielāgots</string>
+    <string name="unmount">Atmontēt</string>
+    <string name="unmounted">Noņemts pielāgums</string>
+    <string name="remount">Pārēstīvēt</string>
+    <string name="restore">Atjaudināt</string>
+    <string name="share">Kopīgot</string>
+    <string name="install">Installēt</string>
+    <string name="installed">Uzstādīta</string>
+    <string name="reinstall">Pārinstalēt</string>
+    <string name="uninstall">Atinstalēt</string>
+    <string name="uninstalled">Atinstalēta</string>
+    <string name="save">Saglabāt</string>
+    <string name="saved">Saglabāts</string>
+    <string name="update">Atjaunināt</string>
+    <string name="allow">Atļaut</string>
+    <string name="hide">Slēpt</string>
+    <string name="hidden">Slēpts</string>
+    <string name="unhide">Atslēpt</string>
+    <string name="show_all">Rādīt visus</string>
+    <string name="ignore">Ignorēt</string>
+    <string name="stop_ignoring">Jaunākārtīgi neignorēt</string>
+    <string name="stop">Stopēt</string>
+    <string name="logs">Žurnāli</string>
+    <string name="sources">Avoti</string>
+    <string name="installing_ellipsis">Instalē...</string>
+    <string name="mounting_ellipsis">Montēšana…</string>
+    <string name="mount_stage_restoring_stock">Tiek atjaunināts oriģināls…</string>
+    <string name="mount_stage_copying">Kopēšana…</string>
+    <string name="unmounting_ellipsis">Atvienošana…</string>
+    <string name="importing_ellipsis">Importēšana…</string>
+    <string name="imported_successfully">Importēts veiksmīgi</string>
+    <string name="changelog">Skatīt izmaiņu sarakstus</string>
+    <string name="changelog_for_app">Izmaiņas %s</string>
+    <string name="changelog_general_changes">Vispārīgas izmaiņas</string>
+    <string name="whats_new">Kas ir jauns</string>
+    <string name="changelog_description">Kas ir jauns šajā versijā</string>
+    <string name="changelog_download_fail">Neizdevās lejupielādēt maiņu žurnālu: %s</string>
+    <string name="changelog_empty">Žurnāls nav pieejams</string>
+    <string name="changelog_earlier_releases">Iepriekšējās izlaides</string>
+    <string name="changelog_patched_with">Patchēts ar %s</string>
+    <string name="changelog_older_empty">Nav rādāmas vecākas versijas</string>
+    <string name="changelog_older_failed">Neizdevās ielādēt vecākas izlaides</string>
     <!-- Label of a footer button beside "Translate". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="changelog_release_page">Izlaides lapa</string>
+    <string name="content_translate">Tulkot</string>
     <!-- Label of a footer button beside other buttons, which reads "Translate" until pressed. Keep it as short as "Translate", a longer one moves the buttons onto two rows -->
+    <string name="content_show_original">Oriģināls</string>
+    <string name="content_translation_failed">Tulkošana neizdevās: %s</string>
+    <string name="changelog_section_new">Jauns</string>
+    <string name="changelog_section_fixes">Labojumi</string>
+    <string name="changelog_section_performance">Veiktspratums</string>
+    <string name="changelog_section_improvements">Uzlabojumi</string>
+    <string name="changelog_section_app_support">Lietotņu atbalsts</string>
+    <string name="changelog_section_other">Izmaiņas</string>
+    <string name="changelog_badge_latest">Jaunākais</string>
     <!-- Marks the version of a patch source downloaded to the manager, which patches with it rather than the one an installed app was patched with -->
+    <string name="changelog_badge_downloaded">Lejupielādēts</string>
+    <string name="changelog_badge_prerelease">Priekšizversija</string>
     <!-- "%s" is the number of changes in the section -->
+    <string name="changelog_show_all">Rādīt visu (%s)</string>
+    <string name="changelog_show_less">Rādīt mazāk</string>
+    <string name="no_network_toast">Interneta pieslēgums nav pieejams</string>
+    <string name="update_available">Pieejams atjauninājums</string>
+    <string name="ready_to_install_update">Sagatavots atjauninājuma instalēšanai</string>
+    <string name="update_completed">Atjauninājums uzstādīts</string>
+    <string name="install_update_manager_failed">Atjauninājuma uzstādīšana neizdevās</string>
+    <string name="installing_manager_update">Tiek uzstādīts atjauninājums…</string>
+    <string name="installing_manager_update_hint">Morphe tiks aizvērta, lai pabeigtu atjauninājumu</string>
+    <string name="downloading_manager_update">Tiek lejupielādāts atjauninājums…</string>
     <!-- Shown while downloading when the server does not report the total size. "%1$s" is the megabytes so far. -->
+    <string name="manager_update_progress_downloaded">Lejupielādēts %1$s MB</string>
     <!-- Shown under the download percentage. "%1$s" is the megabytes so far, "%2$s" the total. -->
+    <string name="manager_update_progress_size">%1$s / %2$s MB</string>
+    <string name="manager_update_not_ready">Šī versija joprojām tiek publicēta. Mēģiniet vēlreiz pēc dažām minūtēm</string>
+    <string name="update_download_missing">Lejupielādētais atjauninājums vairs nav pieejams. Lejupielādējiet to vēlreiz</string>
+    <string name="failed_to_check_updates">Neizdevās pārbaudīt atjauninājumus: %s</string>
+    <string name="failed_to_download_update">Neizdevās lejupielādāt atjauninājumu: %s</string>
+    <string name="download_confirmation_metered">"Šobrīd izmantojat taktēra savienojumu, un jūsu pakalpojumu sniedzējs var piemērot maksu par datu pārnesi.
+
+Vai vēlaties turpināt?"</string>
+    <string name="download_update_confirmation">Lejupielādēt atjauninājumu?</string>
     <!-- Onboarding coach marks -->
     <!-- %1$s = current step number, %2$s = total number of steps (e.g. "3 of 13") -->
+    <string name="onboarding_step_of">%1$s no %2$s</string>
+    <string name="onboarding_sources_desc">Pārvaldiet savus patchu avotus. Katrs avots nodrošina patchus, kurus var piemērot jūsu lietotnēm</string>
+    <string name="onboarding_other_apps_desc">Veiciet patchingu lietotnei, kuras nav sarakstā, no APK faila vai ierīcē instalētai lietotnei</string>
+    <string name="onboarding_add_source_desc">Pievienojiet patcha avotu no saites vai patchu pakaujums faila</string>
+    <string name="onboarding_signing_key_desc">Izveidojiet rezerves kopiju atslēgai, ar kuru tiek parakstītas jūsu patched lietotnes. Bez tās tās var būt iespējams atjaunināt tikai pēc tām neatinstalēšanas</string>
+    <string name="onboarding_swipe_title">Sviršanas žesti</string>
+    <string name="onboarding_swipe_desc">Sviriet pa karti uz labi, lai apskatītu pieejamos patchus. Sviriet uz kreisi, lai slēptu karti no sākuma ekrāna</string>
+    <string name="onboarding_settings_desc">Pielago Morphe: izskatu, papildinātās iespējas un sistēmas rīkus</string>
+    <string name="onboarding_sources_patches_desc">Kārtojiet, lai aplūkotu visus no šī avoda pieejamos 패čus</string>
+    <string name="onboarding_sources_version_desc">Kārtojiet versijai, lai aplūkotu pilnu izmaiņu sarakstu šim avodam</string>
+    <string name="onboarding_sources_apps_desc">Krājiet, lai redzētu lietotnes, kurām šis avots veic patchingu, un izvēlieties, kurām no tām tas piedāvā patchus</string>
+    <string name="onboarding_sources_prerelease_desc">Iespējojiet šo, lai saņemtu pirmizlaiduma 패ču versijas no šī avoda</string>
+    <string name="onboarding_appearance_tab_desc">Pielago lietotnes izskatu: tēmu, akcentu krāsu un fonu</string>
+    <string name="onboarding_expert_mode_desc">Iespējojiet Eksperta režīmu, lai atbloķētu 패ču izvēli, pielāgotas iespējas un citas papildinātās funkcijas</string>
     <!-- Translate "System" the same way as the System settings tab -->
+    <string name="onboarding_system_installer_desc">Izvēlieties, kā instalēt patched lietotnes: standarta, root mount vai Shizuku</string>
+    <string name="onboarding_system_file_picker_desc">Iespējojiet, lai izmantotu iebūvēto failu pārlūku vietā sistēmas izvēlētāja, izvēloties APK vai atslēgu glabātnes</string>
     <!-- Tour prompt dialog shown after first successful patch install -->
+    <string name="tour_prompt_title">Ātrs funkciju pārskats</string>
+    <string name="tour_prompt_desc">Vai vēlaties ātru Morphe galveno funkciju pārsavēru?</string>
     <!-- Label of a footer button beside "Skip". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="tour_prompt_confirm">Parādīt</string>
+    <string name="onboarding_restart_title">Funkciju pārskats</string>
+    <string name="onboarding_restart_desc">Vēdreizojums pa galvenajām funkcijām</string>
 </resources>

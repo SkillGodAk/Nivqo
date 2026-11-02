@@ -78,11 +78,11 @@ internal fun apkSignatureAccepted(sdkInt: Int, declared: Set<String>?, hashes: S
  * The patches of a source that appeared since a saved configuration was last written, and so are
  * selected by their own default rather than by what the user saved.
  *
- * [known] is what that configuration recorded for the source: its seen-patch snapshot, or the
- * saved selection itself where no snapshot exists yet. Null means the source was not part of the
- * configuration at all, which is a different thing entirely from a source whose patches are all
- * new: a source added after the app was configured contributes nothing until the user picks from
- * it, the same way the expert dialog leaves it alone.
+ * [known] is the seen-patch snapshot that configuration recorded for the source. Null means there
+ * is none, which is a different thing entirely from a source whose patches are all new: a source
+ * added after the app was configured contributes nothing until the user picks from it, the same way
+ * the expert dialog leaves it alone. A selection with no snapshot behind it, such as one restored
+ * from a backup, stands as saved too, or a patch the user turned off would read as new.
  */
 internal fun newlyAddedDefaults(
     patches: List<PatchInfo>,
@@ -433,7 +433,7 @@ class BatchPlanResolver(
 
         // A queue must not stop to ask about one app, so a path that leads nowhere is dropped
         // here and reported on the preflight screen instead of failing inside the patcher
-        val unreadablePaths = validateOptionPaths(savedOptions)
+        val unreadablePaths = validateOptionPaths(savedOptions, contributing, packageName)
         val options = savedOptions.withoutFailingPaths(unreadablePaths)
 
         return BatchPatchItem(
@@ -506,7 +506,7 @@ class BatchPlanResolver(
             val merged = mergeNewlyAdded(
                 bundles = bundles,
                 validated = validated,
-                known = { uid -> seenByBundle[uid] ?: saved[uid] },
+                known = seenByBundle::get,
                 installerType = installerType,
                 apkArchitecture = apkArchitecture
             )

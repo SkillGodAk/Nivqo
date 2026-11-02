@@ -5,42 +5,21 @@
 
 package app.morphe.manager.ui.screen.sources
 
-import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.listSaver
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
 import app.morphe.manager.domain.bundles.APIPatchBundle
@@ -49,8 +28,6 @@ import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.usesPrerel
 import app.morphe.manager.domain.bundles.RemotePatchBundle
 import app.morphe.manager.domain.repository.InstalledAppRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository
-import app.morphe.manager.domain.repository.PatchBundleRepository.LocalFileCheck
-import app.morphe.manager.domain.repository.PatchBundleRepository.RemoteSourceRejection
 import app.morphe.manager.domain.repository.PatchBundleRepository.RemoteUrlCheck
 import app.morphe.manager.domain.repository.SourceMuteRepository
 import app.morphe.manager.domain.repository.appsBrought
@@ -58,10 +35,7 @@ import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.patcher.patch.appIconColorOf
 import app.morphe.manager.ui.screen.home.*
 import app.morphe.manager.ui.screen.shared.*
-import app.morphe.manager.ui.viewmodel.HomeViewModel.PickedBundle
 import app.morphe.manager.util.*
-import com.composables.icons.fontawesome.FontAwesome
-import com.composables.icons.fontawesome.brands.*
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.coroutines.Dispatchers
@@ -73,475 +47,68 @@ import org.koin.compose.koinInject
 import java.util.Locale
 
 /**
- * Dialog for adding patch sources, several at once: links pasted in any form on the remote tab,
- * or any number of picked files on the local one. Each pending source says whether it will be
- * added, and only those that will are counted and submitted.
+ * Asks before a source takes a release that is not signed by the key it trusts.
  *
- * @param localFiles Files picked so far with what importing each would do, held by the caller
- * since the picker opens outside.
- * @param onCheckUrl Checks a link the way the add will, so a refusal shows before submitting.
+ * @param trustedKey Fingerprint of the key the source trusts.
+ * @param newKey Fingerprint of the key the release is signed with, or null if it is not signed.
  */
 @Composable
-fun DialogHostScope.AddSourceDialog(
-    onDismiss: () -> Unit,
-    onRemoteSubmit: (urls: List<String>, chooseApps: Boolean) -> Unit,
-    onLocalSubmit: (chooseApps: Boolean) -> Unit,
-    onLocalPick: () -> Unit,
-    onLocalRemove: (Uri) -> Unit,
-    localFiles: List<PickedBundle>,
-    onCheckUrl: (String) -> RemoteUrlCheck
+fun DialogHostScope.SigningKeyTrustDialog(
+    bundle: PatchBundleSource,
+    trustedKey: String?,
+    newKey: String?,
+    onTrust: () -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) } // 0 = Remote, 1 = Local
-    var chooseApps by rememberSaveable { mutableStateOf(false) }
-    val remote = rememberRemoteLinksState(onCheckUrl)
-
-    val readyCount = if (selectedTab == 0) {
-        remote.readyLinks.size
-    } else {
-        localFiles.count { it.check is LocalFileCheck.New || it.check is LocalFileCheck.Update }
-    }
-
     AppDialog(
         onDismissRequest = onDismiss,
-        title = stringResource(R.string.sources_dialog_add_source),
+        accentColor = rememberSourceHeaderColor(bundle),
+        title = stringResource(R.string.sources_signing_key_trust_title),
+        description = stringResource(
+            if (newKey != null) R.string.sources_signing_key_trust_message
+            else R.string.sources_signing_key_trust_message_unsigned
+        ),
         footer = {
             AppDialogButtonRow(
-                primaryText = if (readyCount > 1) {
-                    pluralStringResource(R.plurals.sources_dialog_add_count, readyCount, readyCount.toString())
-                } else {
-                    stringResource(R.string.add)
-                },
-                onPrimaryClick = {
-                    when (selectedTab) {
-                        0 -> onRemoteSubmit(remote.readyLinks, chooseApps)
-                        1 -> onLocalSubmit(chooseApps)
-                    }
-                },
-                primaryEnabled = readyCount > 0,
+                primaryText = stringResource(R.string.trust),
+                onPrimaryClick = onTrust,
+                isPrimaryDestructive = true,
                 secondaryText = stringResource(android.R.string.cancel),
                 onSecondaryClick = onDismiss
             )
         }
     ) {
-        SegmentedTabs(
-            options = listOf(
-                SegmentedTab(
-                    label = stringResource(R.string.sources_dialog_remote),
-                    icon = MaterialSymbols.Rounded.Language
-                ),
-                SegmentedTab(
-                    label = stringResource(R.string.sources_dialog_local),
-                    icon = MaterialSymbols.Rounded.Draft.autoMirrored
-                )
-            ),
-            selectedIndex = selectedTab,
-            onSelect = { selectedTab = it },
-            below = {
-                // What a source holds is only known once it has loaded, so this asks now and
-                // the list opens then
-                SelectionCheckRow(
-                    text = stringResource(R.string.sources_dialog_choose_apps_description),
-                    checked = chooseApps,
-                    onCheckedChange = { chooseApps = it }
-                )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceLarge),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ConfirmSubject(name = bundle.displayTitle) { modifier ->
+                BundleIcon(bundle = bundle, modifier = modifier)
             }
-        ) { tab ->
-            when (tab) {
-                0 -> RemoteTabContent(state = remote)
-                1 -> LocalTabContent(
-                    entries = localFiles,
-                    onPickFiles = onLocalPick,
-                    onRemove = onLocalRemove
-                )
-            }
-        }
-    }
-}
 
-/** Links in pasted text however they came: one per line, in a list, or inside prose or markdown. */
-private val LINK_PATTERN = Regex(
-    """(?:https?://)?(?:[\w-]+\.)+[a-z]{2,}(?::\d+)?(?:/[^\s,;<>()\[\]"'`]*)?""",
-    RegexOption.IGNORE_CASE
-)
-
-private fun extractLinks(text: String): List<String> =
-    LINK_PATTERN.findAll(text).map { it.value.trimEnd('.') }.toList()
-
-/** A link waiting in the remote tab, with what adding it would do. */
-private class RemoteLinkEntry(val link: String, val check: RemoteUrlCheck) {
-    /** Two links reading the same bundle are the same source, however each was written. */
-    val key = ((check as? RemoteUrlCheck.Accepted)?.endpoint ?: link).lowercase(Locale.US)
-}
-
-/**
- * Links of the remote tab: the ones taken into the list, and the ones still in the field, which
- * count as well. A paste of several links or the keyboard's Done moves the field into the list.
- *
- * Typing is never rewritten. A field reset under the keyboard races the keys still on their way,
- * and whichever lands in between is lost, so links typed one after another simply stay in the
- * field until Done.
- */
-@Stable
-private class RemoteLinksState(
-    private val check: (String) -> RemoteUrlCheck,
-    linksState: MutableState<List<String>>,
-    inputState: MutableState<String>
-) {
-    private var links by linksState
-    var input by inputState
-        private set
-
-    val entries by derivedStateOf { links.map { RemoteLinkEntry(it, check(it)) } }
-
-    /** Links in the field. Text that holds none is still checked, to say why it is not one. */
-    private val inputEntries by derivedStateOf {
-        if (input.isBlank()) emptyList()
-        else extractLinks(input).ifEmpty { listOf(input.trim()) }.map { RemoteLinkEntry(it, check(it)) }
-    }
-
-    /** What the field holds, checked: the first link it would leave out, or null while it is empty. */
-    val inputCheck by derivedStateOf {
-        inputEntries.firstOrNull { it.check is RemoteUrlCheck.Rejected }?.check
-            ?: inputEntries.firstOrNull()?.check
-    }
-
-    /** Links that will become sources, the ones in the field included. */
-    val readyLinks by derivedStateOf {
-        (entries + inputEntries)
-            .distinctBy { it.key }
-            .filter { it.check is RemoteUrlCheck.Accepted }
-            .map { it.link }
-    }
-
-    fun onInputChange(text: String) {
-        // Grown by more than a key at once is a paste, which leaves nothing in flight to race
-        val pastedLinks = extractLinks(text).takeIf { text.length - input.length > 1 && it.size > 1 }
-        input = if (pastedLinks != null && add(pastedLinks)) "" else text
-    }
-
-    fun clearInput() {
-        input = ""
-    }
-
-    fun commitInput() {
-        if (add(extractLinks(input))) input = ""
-    }
-
-    /** @return Whether [text] held any link. */
-    fun paste(text: String): Boolean = add(extractLinks(text))
-
-    fun remove(link: String) {
-        links = links - link
-    }
-
-    private fun add(newLinks: List<String>): Boolean {
-        if (newLinks.isEmpty()) return false
-        val taken = entries.mapTo(mutableSetOf()) { it.key }
-        links = links + newLinks.filter { taken.add(RemoteLinkEntry(it, check(it)).key) }
-        return true
-    }
-}
-
-@Composable
-private fun rememberRemoteLinksState(check: (String) -> RemoteUrlCheck): RemoteLinksState {
-    val links = rememberSaveable(
-        stateSaver = listSaver<List<String>, String>(save = { it }, restore = { it })
-    ) { mutableStateOf(emptyList()) }
-    val input = rememberSaveable { mutableStateOf("") }
-    return remember(check) { RemoteLinksState(check, links, input) }
-}
-
-private val RemoteSourceRejection.hintRes: Int
-    get() = when (this) {
-        // Says what a link has to be rather than only that it is not
-        RemoteSourceRejection.Invalid -> R.string.sources_dialog_url_invalid
-        else -> messageRes
-    }
-
-/** Hosts whose links name a repository, by the icon they show. Any other host serves a bundle file. */
-private val REPOSITORY_HOST_ICONS: Map<String, ImageVector> by lazy {
-    mapOf(
-        "github.com" to FontAwesome.Brands.Github,
-        "raw.githubusercontent.com" to FontAwesome.Brands.Github,
-        "gitlab.com" to FontAwesome.Brands.Gitlab
-    )
-}
-
-/** The link without its scheme, the way it reads in the address bar. */
-internal fun String.bareLink() = substringAfter("://").removePrefix("www.")
-
-private fun String.linkHost() = bareLink().substringBefore('/').lowercase(Locale.US)
-
-/** A repository as owner/repo, anything else as its bare link. */
-internal fun remoteLinkTitle(link: String): String {
-    val bare = link.bareLink()
-    val segments = bare.substringAfter('/', "").split('/').filter { it.isNotBlank() }
-    return if (link.linkHost() in REPOSITORY_HOST_ICONS && segments.size >= 2) "${segments[0]}/${segments[1]}" else bare
-}
-
-internal fun remoteLinkIcon(link: String): ImageVector = REPOSITORY_HOST_ICONS[link.linkHost()] ?: MaterialSymbols.Rounded.Link
-
-@Composable
-private fun RemoteTabContent(state: RemoteLinksState) {
-    val context = LocalContext.current
-    val messages = koinInject<UserMessages>()
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
-    val inputCheck = state.inputCheck
-    val noLinksMessage = stringResource(R.string.sources_dialog_paste_no_links)
-
-    Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)) {
-        AppDialogTextField(
-            value = state.input,
-            onValueChange = state::onInputChange,
-            label = { Text(stringResource(R.string.sources_dialog_remote_url)) },
-            placeholder = { Text("github.com/owner/repo") },
-            trailingIcon = {
-                if (state.input.isNotEmpty()) {
-                    IconButton(onClick = state::clearInput) {
-                        Icon(MaterialSymbols.Rounded.Close, contentDescription = stringResource(R.string.clear))
-                    }
-                } else {
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                val text = clipboard.getClipEntry()?.clipData
-                                    ?.takeIf { it.itemCount > 0 }
-                                    ?.getItemAt(0)?.coerceToText(context)?.toString()
-                                if (text == null || !state.paste(text)) {
-                                    messages.show(noLinksMessage)
-                                }
-                            }
-                        }
-                    ) {
-                        Icon(MaterialSymbols.Rounded.Content_paste, contentDescription = stringResource(R.string.paste))
-                    }
-                }
-            },
-            isError = inputCheck is RemoteUrlCheck.Rejected,
-            keyboardOptions = KeyboardOptions(
-                // A keyboard fixing "github" into "GitHub" or capitalizing a pasted link rewrites it
-                capitalization = KeyboardCapitalization.None,
-                autoCorrectEnabled = false,
-                keyboardType = KeyboardType.Uri,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(onDone = { state.commitInput() })
-        )
-
-        // Live validation feedback on the link being typed
-        AnimatedVisibility(visible = inputCheck != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
+            // The two are read against each other, so the tone carries which is which
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)
             ) {
-                val (icon, color, text) = when (inputCheck) {
-                    is RemoteUrlCheck.Rejected -> Triple(
-                        MaterialSymbols.Rounded.Error,
-                        MaterialTheme.colorScheme.error,
-                        stringResource(inputCheck.reason.hintRes)
-                    )
-                    is RemoteUrlCheck.Accepted -> Triple(
-                        MaterialSymbols.Rounded.Check_circle,
-                        SemanticTone.Success.accent,
-                        stringResource(R.string.sources_dialog_url_valid)
-                    )
-                    // Cleared while the row fades out
-                    null -> Triple(MaterialSymbols.Rounded.Info, Color.Transparent, "")
-                }
-                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(15.dp))
-                Text(text, style = MaterialTheme.typography.bodySmall, color = color)
-            }
-        }
-
-        // What a link can be, shown until the first one is in the list to point at
-        if (state.entries.isEmpty()) {
-            // A sentence rather than a name, so it leads the card as text instead of heading it
-            LabeledSection {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
-                    modifier = Modifier.padding(horizontal = Defaults.SpaceLarge)
-                ) {
-                    Icon(
-                        imageVector = MaterialSymbols.Rounded.Info,
-                        contentDescription = null,
-                        tint = dialogSecondaryTextColor(),
-                        modifier = Modifier.padding(top = 1.dp).size(14.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.sources_dialog_remote_url_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = dialogSecondaryTextColor()
+                trustedKey?.let {
+                    MonospaceValuePanel(
+                        value = it,
+                        label = stringResource(R.string.sources_signing_key_trusted),
+                        tone = SemanticTone.Success,
+                        textAlign = TextAlign.Center
                     )
                 }
-                UrlFormatRow(icon = FontAwesome.Brands.Github, text = "github.com/owner/repo")
-                UrlFormatRow(icon = FontAwesome.Brands.Gitlab, text = "gitlab.com/owner/repo")
-                UrlFormatRow(icon = MaterialSymbols.Rounded.Link, text = "example.com/patches-bundle.json")
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(CompactCardSpacing)) {
-                state.entries.forEach { entry ->
-                    val rejection = (entry.check as? RemoteUrlCheck.Rejected)?.reason
-                    PendingSourceRow(
-                        icon = remoteLinkIcon(entry.link),
-                        title = remoteLinkTitle(entry.link),
-                        detail = rejection?.let { stringResource(it.hintRes) } ?: entry.link.bareLink(),
-                        isError = rejection != null,
-                        onRemove = { state.remove(entry.link) }
+                newKey?.let {
+                    MonospaceValuePanel(
+                        value = it,
+                        label = stringResource(R.string.sources_signing_key_new),
+                        tone = SemanticTone.Error,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun UrlFormatRow(
-    icon: ImageVector,
-    text: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
-        modifier = Modifier.padding(horizontal = Defaults.SpaceLarge)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = dialogSecondaryTextColor(),
-            modifier = Modifier.size(14.dp)
-        )
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = dialogSecondaryTextColor(),
-            fontFamily = FontFamily.Monospace
-        )
-    }
-}
-
-@Composable
-private fun LocalTabContent(
-    entries: List<PickedBundle>,
-    onPickFiles: () -> Unit,
-    onRemove: (Uri) -> Unit
-) {
-    // Spaced as the remote tab is, so swiping between the two does not shift what they share. The
-    // remote tab's field keeps room above its outline for its label to rise into, so this page
-    // starts as far down for both to open at one line
-    Column(
-        verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
-        modifier = Modifier.padding(top = OutlinedFieldLabelRoom)
-    ) {
-        if (entries.isEmpty()) {
-            LocalFilesDropZone(onPickFiles = onPickFiles)
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(CompactCardSpacing)) {
-                entries.forEach { entry ->
-                    val check = entry.check
-                    PendingSourceRow(
-                        icon = if (check is LocalFileCheck.Update) MaterialSymbols.Rounded.Update else MaterialSymbols.Rounded.Draft.autoMirrored,
-                        title = entry.name,
-                        detail = when (check) {
-                            is LocalFileCheck.Update -> stringResource(R.string.sources_dialog_local_updates, check.title)
-                            LocalFileCheck.Duplicate -> stringResource(R.string.sources_management_already_exists)
-                            LocalFileCheck.NotBundle -> stringResource(R.string.sources_dialog_local_invalid_extension)
-                            // Where it is read from, while it is checked and once it is known to be new
-                            else -> entry.uri.toFilePath().takeIf { it.startsWith("/") }?.substringBeforeLast("/").orEmpty()
-                        },
-                        isError = check == LocalFileCheck.Duplicate || check == LocalFileCheck.NotBundle,
-                        onRemove = { onRemove(entry.uri) }
-                    )
-                }
-            }
-            AppDialogOutlinedButton(
-                text = stringResource(R.string.sources_dialog_local_add_more),
-                onClick = onPickFiles,
-                icon = MaterialSymbols.Rounded.Add,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-/** Room an [OutlinedTextField] with a label keeps above its outline, which Material does not expose. */
-private val OutlinedFieldLabelRoom = 8.dp
-
-/**
- * What the local tab starts out as: the empty state the file picker shows, framed in dashes, the
- * usual mark of a place files go, and opening the file picker on a tap.
- */
-@Composable
-private fun LocalFilesDropZone(onPickFiles: () -> Unit) {
-    val edgeColor = dialogSecondaryTextColor().copy(alpha = 0.5f)
-    // Filled and rounded as the remote tab's hint card is, so the two tabs open alike
-    val shape = RoundedCornerShape(Defaults.CornerLargeIncreased)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(cardFill())
-            // Drawn whatever the outline setting, since the dashes are what make it read as a zone
-            .drawBehind {
-                val stroke = dashedGuideStroke()
-                val inset = stroke.width / 2
-                drawRoundRect(
-                    color = edgeColor,
-                    topLeft = Offset(inset, inset),
-                    size = Size(size.width - stroke.width, size.height - stroke.width),
-                    cornerRadius = CornerRadius(Defaults.CornerLargeIncreased.toPx() - inset),
-                    style = stroke
-                )
-            }
-            .clickable(
-                interactionSource = null,
-                indication = shapedIndication(shape),
-                role = Role.Button,
-                onClick = onPickFiles
-            )
-    ) {
-        EmptyState(
-            message = stringResource(R.string.sources_dialog_local_files),
-            subtitle = stringResource(R.string.sources_dialog_local_file_tap_hint),
-            icon = MaterialSymbols.Rounded.Upload_file,
-            // About as tall as the remote tab's hint card, so switching tabs barely moves the dialog
-            contentPadding = PaddingValues(horizontal = Defaults.SpaceLarge, vertical = Defaults.SpaceMedium),
-            iconSize = 40.dp
-        )
-    }
-}
-
-/**
- * One source waiting to be added, as either tab lists it: what it is, and under it where it comes
- * from or why it will be left out.
- */
-@Composable
-private fun PendingSourceRow(
-    icon: ImageVector,
-    title: String,
-    detail: String,
-    isError: Boolean,
-    onRemove: () -> Unit
-) {
-    val colors = MaterialTheme.colorScheme
-    CompactListCard(onClick = null) {
-        if (isError) {
-            CompactCardIconTile(containerColor = colors.errorContainer, contentColor = colors.onErrorContainer) {
-                Icon(MaterialSymbols.Rounded.Error, contentDescription = null, modifier = Modifier.size(CompactCardGlyphSize))
-            }
-        } else {
-            CompactCardIconTile {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(CompactCardGlyphSize))
-            }
-        }
-        CardHeadingText(name = title, description = detail, modifier = Modifier.weight(1f))
-        IconButton(onClick = onRemove) {
-            Icon(
-                imageVector = MaterialSymbols.Rounded.Close,
-                contentDescription = stringResource(R.string.remove),
-                tint = dialogSecondaryTextColor()
-            )
         }
     }
 }
@@ -598,6 +165,65 @@ fun DialogHostScope.RenameBundleDialog(
                     }
                 )
             )
+        }
+    }
+}
+
+/**
+ * Dialog for changing the link a source downloads from, checked as it is typed the way adding a
+ * source checks it, see [PatchBundleRepository.changeRemoteLink].
+ */
+@Composable
+fun DialogHostScope.ChangeSourceLinkDialog(
+    initialValue: String,
+    onCheckUrl: (String) -> RemoteUrlCheck,
+    onDismissRequest: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var textValue by remember { mutableStateOf(initialValue) }
+    val check = remember(textValue) { textValue.trim().takeIf { it.isNotEmpty() }?.let(onCheckUrl) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val confirm = {
+        if (check is RemoteUrlCheck.Accepted) {
+            keyboardController?.hide()
+            onConfirm(textValue.trim())
+        }
+    }
+
+    AppDialog(
+        onDismissRequest = onDismissRequest,
+        title = stringResource(R.string.sources_dialog_remote_url),
+        description = stringResource(R.string.sources_dialog_change_url),
+        footer = {
+            AppDialogButtonRow(
+                primaryText = stringResource(android.R.string.ok),
+                onPrimaryClick = confirm,
+                primaryEnabled = check is RemoteUrlCheck.Accepted,
+                secondaryText = stringResource(android.R.string.cancel),
+                onSecondaryClick = {
+                    keyboardController?.hide()
+                    onDismissRequest()
+                }
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
+        ) {
+            AppDialogTextField(
+                value = textValue,
+                onValueChange = { textValue = it },
+                placeholder = { Text(REMOTE_URL_PLACEHOLDER) },
+                leadingIcon = {
+                    Icon(imageVector = MaterialSymbols.Rounded.Link, contentDescription = null)
+                },
+                singleLine = true,
+                isError = check is RemoteUrlCheck.Rejected,
+                keyboardOptions = RemoteUrlKeyboardOptions,
+                keyboardActions = KeyboardActions(onDone = { confirm() })
+            )
+            RemoteUrlCheckHint(check = check, showHint = false)
         }
     }
 }
@@ -1226,14 +852,21 @@ fun DialogHostScope.SourceAppsDialog(
                             packageInfo = null,
                             displayName = label,
                             subtitle = listOfNotNull(
-                                stringResource(R.string.sources_apps_new).takeIf { packageName in newApps },
                                 pluralStringResource(R.plurals.patch_count, patchCount, patchCount.toString()),
                                 // Left out, it would be gone from the home screen but for its install
                                 stringResource(R.string.sources_apps_stays_patched)
                                     .takeIf { !brought && packageName in patchedApps }
                             ).joinToString(" · "),
                             gradientColors = gradientColors
-                        )
+                        ) {
+                            // Shown until the list is closed once, so it has to catch the eye
+                            if (packageName in newApps) {
+                                StatusBadge(
+                                    text = stringResource(R.string.sources_apps_new),
+                                    tone = SemanticTone.Primary
+                                )
+                            }
+                        }
                     }
                 }
             }

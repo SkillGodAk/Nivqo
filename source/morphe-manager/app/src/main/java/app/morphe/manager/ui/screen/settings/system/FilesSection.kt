@@ -6,8 +6,6 @@
 package app.morphe.manager.ui.screen.settings.system
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -41,6 +39,7 @@ import app.morphe.manager.util.JSON_MIMETYPE
 import app.morphe.manager.util.TEXT_MIMETYPE
 import app.morphe.manager.util.isAndroidTv
 import app.morphe.manager.util.rememberAdaptiveFilePicker
+import app.morphe.manager.util.rememberDocumentSaver
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.rounded.*
 import java.text.DateFormat
@@ -64,10 +63,8 @@ fun FilesSection(
     onOpenSubpage: (SettingsSubpage) -> Unit,
     importExportViewModel: ImportExportViewModel = koinViewModel()
 ) {
-    val context = LocalContext.current
     val messages = koinInject<UserMessages>()
     val scope = rememberCoroutineScope()
-    val isTV = remember { context.isAndroidTv() }
     val wrongCredentialsText = stringResource(R.string.settings_system_import_keystore_wrong_credentials)
 
     val importKeystoreLauncher = rememberAdaptiveFilePicker(
@@ -97,13 +94,8 @@ fun FilesSection(
         }
     )
 
-    val exportKeystoreLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("*/*")
-    ) { uri -> uri?.let { importExportViewModel.exportKeystore(it) } }
-
-    val exportSettingsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument(JSON_MIMETYPE)
-    ) { uri -> uri?.let { importExportViewModel.exportManagerSettings(it) } }
+    val exportKeystore = rememberDocumentSaver("*/*", importExportViewModel::exportKeystore)
+    val exportSettings = rememberDocumentSaver(JSON_MIMETYPE, importExportViewModel::exportManagerSettings)
 
     DialogHost(visible = importExportViewModel.showCredentialsDialog) {
         KeystoreCredentialsDialog(
@@ -150,15 +142,9 @@ fun FilesSection(
                 importExportViewModel = importExportViewModel,
                 tour = tour,
                 onImportKeystore = { importKeystoreLauncher() },
-                onExportKeystore = {
-                    if (isTV) importExportViewModel.exportKeystoreToDownloads()
-                    else exportKeystoreLauncher.launch("Morphe.keystore")
-                },
+                onExportKeystore = { exportKeystore("Morphe.keystore") },
                 onImportSettings = { importSettingsLauncher() },
-                onExportSettings = {
-                    if (isTV) importExportViewModel.exportManagerSettingsToDownloads()
-                    else exportSettingsLauncher.launch("morphe_manager_settings.json")
-                }
+                onExportSettings = { exportSettings("morphe_manager_settings.json") }
             )
         }
     }

@@ -48,6 +48,10 @@
         <item quantity="one">%s източник</item>
         <item quantity="other">%s източници</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s комплект</item>
+        <item quantity="other">%s комплекта</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s пакет</item>
         <item quantity="other">%s пакети</item>

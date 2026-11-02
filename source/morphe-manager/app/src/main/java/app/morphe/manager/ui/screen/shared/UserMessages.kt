@@ -287,13 +287,12 @@ private fun MessageBubble(message: Message, messages: UserMessages) {
                 // One that stays up a while can be closed once read, a short one goes before a
                 // close button would be reached
                 if (message.long) {
-                    IconButton(onClick = { messages.dismiss(message) }) {
-                        Icon(
-                            MaterialSymbols.Rounded.Close,
-                            contentDescription = stringResource(R.string.close),
-                            tint = SnackbarDefaults.dismissActionContentColor
-                        )
-                    }
+                    TooltipIconButton(
+                        onClick = { messages.dismiss(message) },
+                        icon = MaterialSymbols.Rounded.Close,
+                        contentDescription = stringResource(R.string.close),
+                        tint = SnackbarDefaults.dismissActionContentColor
+                    )
                 }
             }
         }

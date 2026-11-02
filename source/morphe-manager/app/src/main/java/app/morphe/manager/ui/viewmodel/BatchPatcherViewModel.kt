@@ -33,6 +33,7 @@ import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.domain.repository.InstalledAppRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.repository.PatchSelectionRepository
+import app.morphe.manager.domain.repository.SelectionSetSummary
 import app.morphe.manager.domain.repository.SourceMuteRepository
 import app.morphe.manager.patcher.patch.*
 import app.morphe.manager.ui.model.ApkDownloadHelperHost
@@ -55,6 +56,7 @@ import app.morphe.manager.util.PatchSelectionUtils.withBundle
 import app.morphe.patcher.patch.ApkArchitecture
 import app.morphe.patcher.patch.AppTarget
 import app.morphe.patcher.patch.InstallerType
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
@@ -70,6 +72,8 @@ import java.io.File
  * applied, which keeps a canceled edit from touching the plan.
  */
 class BatchPatchEdit(
+    private val scope: CoroutineScope,
+    override val panel: SelectionPanelController,
     val itemId: String,
     /** Key this item saves its patches and options under, and the one a copy excludes itself by. */
     val configurationKey: String,
@@ -79,13 +83,14 @@ class BatchPatchEdit(
     val bundles: List<PatchBundleInfo.Scoped>,
     val savedSelection: PatchSelection,
     val newPatches: Map<Int, Set<String>>,
-    initialOptions: Options,
+    // Kept for restoring the saved selection, as switching to a set replaces the options
+    private val initialOptions: Options,
     private val installerType: InstallerType,
     private val apkArchitecture: ApkArchitecture,
     // Whether the queue reaches patches that declare other app versions, so bulk actions offer
     // the same set the plan was resolved from
     private val allowIncompatible: Boolean
-) {
+) : SelectionPanelHost {
     var selection by mutableStateOf(savedSelection)
         private set
 
@@ -162,7 +167,7 @@ class BatchPatchEdit(
      * patches declaring other app versions so they can be enabled by hand, and those belong to
      * the defaults only where the run itself reaches them.
      */
-    fun resetToDefault(bundleUid: Int) {
+    override fun resetToDefault(bundleUid: Int) {
         val bundle = bundles.firstOrNull { it.uid == bundleUid } ?: return
         replaceBundle(
             bundleUid,
@@ -170,10 +175,17 @@ class BatchPatchEdit(
                 .filter { it.defaultSelected(installerType, apkArchitecture) }
                 .mapTo(mutableSetOf()) { it.name }
         )
+        panel.defaultsApplied()
     }
 
-    fun restoreSaved(bundleUid: Int) {
-        replaceBundle(bundleUid, savedSelection[bundleUid] ?: return)
+    override val setsPackageName get() = packageName
+
+    override val hasSavedSelection get() = savedSelection.values.any { it.isNotEmpty() }
+
+    override fun restoreSaved() {
+        selection = savedSelection.applyItemAvailability()
+        options = initialOptions
+        panel.restored()
     }
 
     fun updateOption(bundleUid: Int, patchName: String, optionKey: String, value: Any?) {
@@ -185,12 +197,56 @@ class BatchPatchEdit(
     }
 
     /** Patch schema of [bundleUid], which a copied selection is filtered against. */
-    fun patchesOf(bundleUid: Int) = patchesByName[bundleUid].orEmpty()
+    private fun patchesOf(bundleUid: Int) = patchesByName[bundleUid].orEmpty()
 
-    /** Replaces the selection of [bundleUid] with one copied from another bundle. */
-    fun applyCopy(bundleUid: Int, copied: CopiedSelection) {
-        replaceBundle(bundleUid, copied.patches)
-        options = options.mergeBundleOptions(bundleUid, copied.options)
+    /** Excludes the selection this item saves under, which a clone keeps apart from its app. */
+    override fun loadCopyCandidates(targetBundleUid: Int) {
+        panel.loadCandidates(
+            scope = scope,
+            targetPackageName = configurationKey,
+            targetBundleUid = targetBundleUid,
+            targetPatchNames = patchesOf(targetBundleUid).keys
+        )
+    }
+
+    /**
+     * Changes reach the plan only when the user confirms the editor, and the database only after
+     * the run itself.
+     */
+    override fun applyCopy(candidate: CopySelectionCandidate) {
+        val targetBundleUid = panel.copyTargetUid ?: return
+
+        scope.launch {
+            val copied = panel.resolveCopy(
+                candidate = candidate,
+                targetPatches = patchesOf(targetBundleUid)
+            ) ?: return@launch
+
+            replaceBundle(targetBundleUid, copied.patches)
+            options = options.mergeBundleOptions(targetBundleUid, copied.options)
+            panel.copied(copied.patches.size)
+        }
+    }
+
+    override fun applySet(set: SelectionSetSummary) {
+        scope.launch {
+            val snapshot = panel.resolveSet(set, bundles)
+            selection = snapshot.patches.applyItemAvailability()
+            options = snapshot.options
+            panel.applied(set)
+        }
+    }
+
+    override fun saveSet(name: String) {
+        panel.saveSet(scope, packageName, name, selection, options)
+    }
+
+    override fun deleteSet(set: SelectionSetSummary) {
+        panel.deleteSet(scope, set)
+    }
+
+    override fun renameSet(set: SelectionSetSummary, name: String) {
+        panel.renameSet(scope, set, name)
     }
 
     private fun replaceBundle(bundleUid: Int, patches: Set<String>) {
@@ -224,8 +280,8 @@ class BatchPatcherViewModel(
     private val localApkSources: LocalApkSources,
     private val prefs: PreferencesManager,
     rootInstaller: RootInstaller,
-    /** Picker behind the copy-from-another-bundle action of the editor. */
-    val editCopy: CopySelectionController
+    /** Panel the editor docks under its list, with the sets kept for the app and the copies. */
+    val editPanel: SelectionPanelController
 ) : ViewModel(), ApkDownloadHelperHost {
     val state = coordinator.state
 
@@ -543,6 +599,8 @@ class BatchPatcherViewModel(
         }.filterValues { it.isNotEmpty() }
 
         val opened = BatchPatchEdit(
+            scope = viewModelScope,
+            panel = editPanel,
             itemId = item.id,
             configurationKey = item.configurationKey,
             packageName = item.packageName,
@@ -566,39 +624,9 @@ class BatchPatcherViewModel(
         edit = opened
     }
 
-    /** Opens the copy-from-another-bundle picker for [targetBundleUid] of the open editor. */
-    fun openEditCopyDialog(targetBundleUid: Int) {
-        val current = edit ?: return
-        editCopy.open(
-            scope = viewModelScope,
-            targetPackageName = current.configurationKey,
-            targetBundleUid = targetBundleUid,
-            targetPatchNames = current.patchesOf(targetBundleUid).keys
-        )
-    }
-
-    /**
-     * Applies a picked [candidate] to the open editor. Changes reach the plan only when the
-     * user confirms the editor, and the database only after the run itself.
-     */
-    fun applyEditCopy(candidate: CopySelectionCandidate) {
-        val current = edit ?: return
-        val targetBundleUid = editCopy.targetBundleUid ?: return
-
-        viewModelScope.launch {
-            val copied = editCopy.resolve(
-                candidate = candidate,
-                targetPatches = current.patchesOf(targetBundleUid)
-            ) ?: return@launch
-
-            current.applyCopy(targetBundleUid, copied)
-            editCopy.finish(copied.patches.size)
-        }
-    }
-
     fun cancelEdit() {
         edit = null
-        editCopy.close()
+        editPanel.close()
     }
 
     /** The source question simple mode answers before an APK is chosen for one queued app. */
@@ -636,7 +664,7 @@ class BatchPatcherViewModel(
         val current = edit ?: return
         coordinator.updateSelection(current.itemId, current.selection, current.options)
         edit = null
-        editCopy.close()
+        editPanel.close()
     }
 
     /**

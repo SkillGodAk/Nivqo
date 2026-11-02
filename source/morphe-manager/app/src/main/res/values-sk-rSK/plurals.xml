@@ -70,6 +70,12 @@
         <item quantity="many">%s zdrojov</item>
         <item quantity="other">%s zdrojov</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s sada</item>
+        <item quantity="few">%s sady</item>
+        <item quantity="many">%s sád</item>
+        <item quantity="other">%s sady</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s balík</item>
         <item quantity="few">%s balíky</item>

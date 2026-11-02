@@ -43,6 +43,15 @@ mount_stock_path() {
     return
   fi
 
+  if nomount_only; then
+    if [ -n "$nm_bin" ] && "$nm_bin" rule add "$target" "$stock_apk" 2>> "$log"; then
+      log_msg "Redirected stock APK over $target with NoMount"
+    else
+      log_msg "Failed to redirect stock APK over $target; bind mounts are off"
+    fi
+    return
+  fi
+
   umount -l "$target" 2>/dev/null || true
   if mount -o bind "$stock_apk" "$target" 2>> "$log"; then
     log_msg "Mounted stock APK over $target"
@@ -79,21 +88,30 @@ done < "$stock_paths"
 # service.sh redirects the installed APK with NoMount when its driver is loaded, and the APK on
 # disk is the stock one already, so a mount over it would only show up in the mount table. The
 # driver may load after this script, and service.sh then lifts the mount itself.
-nomount_ready() {
+find_nomount() {
   for nm in /data/adb/modules/nomount/bin/nm /data/adb/ksu/bin/nm /data/adb/ap/bin/nm; do
     [ -x "$nm" ] || continue
     protocol="$("$nm" version 2>/dev/null)" || continue
-    [ "${protocol%% *}" -ge 22 ] 2>/dev/null && return 0
+    if [ "${protocol%% *}" -ge 22 ] 2>/dev/null; then
+      nm_bin="$nm"
+      return 0
+    fi
   done
   return 1
 }
-redirect_installed=0
-nomount_ready && redirect_installed=1
+nm_bin=""
+find_nomount
+
+# Set in Morphe, where NoMount only never falls back to a bind mount. The hidden system copy is
+# then redirected for every UID instead, as PackageManager scans it from system_server.
+nomount_only() {
+  [ "$(cat "$module_dir/nomount-only" 2>/dev/null)" = 1 ]
+}
 
 while IFS= read -r path; do
   case "$path" in
     /data/app/*)
-      if [ "$redirect_installed" = 1 ]; then
+      if [ -n "$nm_bin" ] || nomount_only; then
         log_msg "Skipping stock mount over $path; NoMount redirects it"
         continue
       fi

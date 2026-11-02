@@ -37,6 +37,9 @@
     <plurals name="source_count">
         <item quantity="other">%s 개의 소스</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="other">%s 개의 세트</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="other">%s 개의 패키지</item>
     </plurals>

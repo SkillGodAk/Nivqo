@@ -10,15 +10,19 @@ import app.morphe.manager.ui.screen.shared.SelectionState
 import app.morphe.manager.ui.screen.shared.rememberSelectionState
 
 /**
- * What the sources page docks over its lower edge: the options the list is arranged by, or a
- * selection of sources and the reorder it leads to. Held by the screen, whose navigation gives way
- * to whichever is up. Only one ever is, as entering one leaves the others.
+ * What the sources page docks over its lower edge: the panel sources are added from, the options
+ * the list is arranged by, or a selection of sources and the reorder it leads to. Held by the
+ * screen, whose navigation gives way to whichever is up. Only one ever is, as entering one leaves
+ * the others.
  */
 @Stable
 class SourcesPageState internal constructor(
     /** The sources picked, by uid. */
     val selection: SelectionState<Int>
 ) {
+    var isAddingSource by mutableStateOf(false)
+        private set
+
     var isListOptionsOpen by mutableStateOf(false)
 
     var isSelecting by mutableStateOf(false)
@@ -29,16 +33,31 @@ class SourcesPageState internal constructor(
 
     /** True while a panel owns the page's lower edge, which the navigation then gives way to. */
     val isFooterBarVisible: Boolean
-        get() = isListOptionsOpen || isSelecting || isReordering
+        get() = isAddingSource || isListOptionsOpen || isSelecting || isReordering
+
+    /** Opens the panel sources are added from, which the options and a selection give way to. */
+    fun openAddSource() {
+        exitSelection()
+        isListOptionsOpen = false
+        isAddingSource = true
+    }
+
+    fun closeAddSource() {
+        isAddingSource = false
+    }
 
     /** Opens or closes the options the list is arranged by, which a selection gives way to. */
     fun toggleListOptions() {
-        if (!isListOptionsOpen) exitSelection()
+        if (!isListOptionsOpen) {
+            exitSelection()
+            isAddingSource = false
+        }
         isListOptionsOpen = !isListOptionsOpen
     }
 
     /** Starts a selection on the source [uid] was long-pressed on. */
     fun startSelection(uid: Int) {
+        isAddingSource = false
         isListOptionsOpen = false
         isSelecting = true
         selection.setAll(listOf(uid))

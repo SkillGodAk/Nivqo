@@ -10,10 +10,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +24,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -36,14 +34,10 @@ import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.ui.model.RenameWarning
 import app.morphe.manager.ui.screen.home.ManagerChangelogDialog
 import app.morphe.manager.ui.screen.shared.*
-import app.morphe.manager.util.PathValidationResult
-import app.morphe.manager.util.deviceStats
-import app.morphe.manager.util.htmlAnnotatedString
-import app.morphe.manager.util.openAllFilesAccessSettings
-import app.morphe.manager.util.requestIgnoreBatteryOptimizations
+import app.morphe.manager.util.*
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.rounded.*
-import com.composables.icons.materialsymbols.roundedfilled.*
+import com.composables.icons.materialsymbols.roundedfilled.Content_copy
 import org.koin.compose.koinInject
 
 /**
@@ -203,8 +197,9 @@ fun DialogHostScope.MissingPatchesDialog(
  *    immediately. If denied, a warning badge is shown and only Cancel is available.
  *
  * Storage access is not always what is missing: a folder the user picked earlier can simply be
- * gone, which [PathValidationResult.Reason] tells apart. Then there is no permission worth asking
- * for, and [onClearPaths] drops the saved paths instead, where [canClearPaths] allows it.
+ * gone, or no longer hold what the patch asks for, which [PathValidationResult.Reason] tells apart.
+ * Then there is no permission worth asking for, and [onClearPaths] drops the saved paths instead,
+ * where [canClearPaths] allows it.
  */
 @Composable
 fun DialogHostScope.UnusableOptionPathsDialog(
@@ -223,6 +218,7 @@ fun DialogHostScope.UnusableOptionPathsDialog(
     val storageAccessCanHelp = failures.any {
         it.reason == PathValidationResult.Reason.NotReadable
     }
+    val anyRejected = failures.any { it.reason == PathValidationResult.Reason.Rejected }
 
     // Only used on Android 10 and below where WRITE_EXTERNAL_STORAGE is a
     // standard runtime permission that can be requested inline
@@ -240,14 +236,15 @@ fun DialogHostScope.UnusableOptionPathsDialog(
     AppDialog(
         onDismissRequest = onDismiss,
         title = stringResource(
-            if (storageAccessCanHelp) {
-                R.string.patcher_storage_permission_dialog_title
-            } else {
-                R.string.patcher_option_paths_gone_title
+            when {
+                storageAccessCanHelp -> R.string.patcher_storage_permission_dialog_title
+                anyRejected -> R.string.patcher_option_paths_rejected_title
+                else -> R.string.patcher_option_paths_gone_title
             }
         ),
         description = stringResource(
             when {
+                !storageAccessCanHelp && anyRejected -> R.string.patcher_option_paths_rejected_description
                 !storageAccessCanHelp -> R.string.patcher_option_paths_gone_description
                 isApi30Plus -> R.string.patcher_storage_permission_description_api30
                 else -> R.string.patcher_storage_permission_description_legacy
@@ -320,57 +317,30 @@ fun DialogHostScope.UnusableOptionPathsDialog(
                 )
             }
 
-            // One card per failing path
+            // One row per failing path, marked by what is wrong with it
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall)
+                verticalArrangement = Arrangement.spacedBy(CompactCardSpacing)
             ) {
+                val colors = MaterialTheme.colorScheme
                 failures.forEach { failure ->
-                    Column(verticalArrangement = Arrangement.spacedBy(Defaults.SpaceExtraSmall)) {
-                        // Patch name label
-                        Text(
-                            text = failure.patchName,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = dialogSecondaryTextColor()
-                        )
-
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(Defaults.CornerMedium),
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                            tonalElevation = 1.dp,
-                            border = CardBorder.tinted(MaterialTheme.colorScheme.error)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = Defaults.SpaceLarge, vertical = Defaults.SpaceMedium),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(
-                                    text = failure.path,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                Spacer(Modifier.width(Defaults.SpaceSmall))
-
-                                StatusBadge(
-                                    text = stringResource(
-                                        when (failure.reason) {
-                                            PathValidationResult.Reason.NotReadable ->
-                                                R.string.patcher_storage_badge_denied
-                                            PathValidationResult.Reason.Missing ->
-                                                R.string.patcher_storage_badge_missing
-                                        }
-                                    ),
-                                    tone = SemanticTone.Error
-                                )
-                            }
+                    val (icon, reasonRes) = when (failure.reason) {
+                        PathValidationResult.Reason.NotReadable ->
+                            MaterialSymbols.Rounded.Lock to R.string.patcher_storage_badge_denied
+                        PathValidationResult.Reason.Missing ->
+                            MaterialSymbols.Rounded.Folder_off to R.string.patcher_storage_badge_missing
+                        PathValidationResult.Reason.Rejected ->
+                            MaterialSymbols.Rounded.Error to R.string.patcher_storage_badge_rejected
+                    }
+                    CompactListCard(onClick = null) {
+                        CompactCardIconTile(containerColor = colors.errorContainer, contentColor = colors.onErrorContainer) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = stringResource(reasonRes),
+                                modifier = Modifier.size(CompactCardGlyphSize)
+                            )
                         }
+                        CardHeadingText(name = failure.patchName, description = failure.path, modifier = Modifier.weight(1f))
                     }
                 }
             }

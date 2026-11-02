@@ -403,6 +403,43 @@ public class SettingsNavigationTest {
     }
 
     /**
+     * See-through bars shows right away, except on a kept tab bar, whose layout was built as the
+     * main screen started (#250): that flip brings up the restart row, and flipping it back takes
+     * the row away again, since the bar is back to the layout it was built with.
+     */
+    @Test public void seeThroughOnAKeptTabBarBringsUpTheRestartRowUntilItIsPutBack() {
+        app.morphe.extension.facebook.navigation.TabBarScrollAway.forgetBuilt();
+        try {
+            Settings.KEEP_TAB_BAR.save(true);
+            // The main screen started with the bar kept and not see-through.
+            assertTrue(app.morphe.extension.facebook.navigation.TabBarScrollAway.staysPut());
+            page.navigation.navigate("Appearance");
+            assertFalse(contains(SettingsNavigation.RESTART));
+
+            tap(Settings.TRANSLUCENT_BARS.key);
+            assertTrue(Settings.TRANSLUCENT_BARS.savedValue());
+            assertTrue(app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment
+                    .restartPending.contains(Settings.TRANSLUCENT_BARS.key));
+            layout(dialog.getView());
+            Preference restart = (Preference) list().getItemAtPosition(0);
+            assertEquals(SettingsNavigation.RESTART, restart.getKey());
+            assertEquals("Restart Facebook to apply this change", String.valueOf(restart.getTitle()));
+            assertNull("the see-through change went to a toast instead of the row", ShadowToast.getLatestToast());
+
+            tap(Settings.TRANSLUCENT_BARS.key);
+            assertFalse(Settings.TRANSLUCENT_BARS.savedValue());
+            assertFalse(app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment
+                    .restartPending.contains(Settings.TRANSLUCENT_BARS.key));
+            assertFalse(contains(SettingsNavigation.RESTART));
+        } finally {
+            app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment.restartPending.clear();
+            app.morphe.extension.facebook.navigation.TabBarScrollAway.forgetBuilt();
+            Settings.KEEP_TAB_BAR.resetToDefault();
+            Settings.TRANSLUCENT_BARS.resetToDefault();
+        }
+    }
+
+    /**
      * A row's icon pushes its text in, so every row of a card has an icon or none does, and the
      * card's text starts in one line. "Forget seen posts" and "Hide reaction counts" started theirs
      * 78 px in from the switches around them (device audit, 2026-10-15). A card is a run of rows of
@@ -1472,6 +1509,49 @@ public class SettingsNavigationTest {
         assertNull(page.findPreference(Settings.HIDE_FEED_REELS.key));
         assertNull(page.findPreference(Settings.HIDE_REELS_TAB.key));
         assertEquals(before, savedValues());
+    }
+
+    /**
+     * Morphe Manager leaves the AMOLED theme out unless it's picked, so a build without it says so
+     * under Colors and theme and on a search. A build with it, or with Material You, which recolours
+     * the same grays, has no such row (#275).
+     */
+    @Test public void aBuildWithoutTheAmoledThemeSaysHowToAddIt() {
+        String hint = "Not in this build, so dark mode stays Facebook's dark gray. Morphe Manager doesn't pick it by "
+                + "default. Turn on Expert mode in Manager, choose the " + L10n.isolate("AMOLED black theme")
+                + " patch and patch again.";
+        page.navigation.navigate("Appearance");
+        assertFalse(summaries().contains(hint));
+
+        controller.close();
+        PatchFamily.inBuildForTests.remove(PatchFamily.AMOLED_THEME);
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = SettingsL10nTest.show(controller.get());
+        page = page(dialog);
+        page.navigation.navigate("Appearance");
+        assertEquals(hint, summaryOf("AMOLED black theme"));
+        assertFalse("the hint can be tapped", list().getAdapter().isEnabled(titles().indexOf("AMOLED black theme")));
+        page.navigation.navigate("");
+        findSearch(dialog.getView()).setText("amoled");
+        ShadowLooper.idleMainLooper();
+        assertTrue(titles().contains("AMOLED black theme"));
+
+        controller.close();
+        PatchFamily.inBuildForTests.add(PatchFamily.MATERIAL_YOU_THEME);
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = SettingsL10nTest.show(controller.get());
+        page = page(dialog);
+        page.navigation.navigate("Appearance");
+        assertFalse(summaries().contains(hint));
+    }
+
+    /** The summary of every row the list shows now. */
+    private List<String> summaries() {
+        List<String> summaries = new ArrayList<>();
+        for (int position = 0; position < list().getCount(); position++) {
+            summaries.add(String.valueOf(((Preference) list().getItemAtPosition(position)).getSummary()));
+        }
+        return summaries;
     }
 
     private static final List<String> ADS_MAP = Arrays.asList("Where ads and tracking are blocked", "Ads in the feed",

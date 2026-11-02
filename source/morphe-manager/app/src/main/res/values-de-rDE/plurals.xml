@@ -48,6 +48,10 @@
         <item quantity="one">%s Quelle</item>
         <item quantity="other">%s Quellen</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s Set</item>
+        <item quantity="other">%s Sets</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s Paket</item>
         <item quantity="other">%s Pakete</item>

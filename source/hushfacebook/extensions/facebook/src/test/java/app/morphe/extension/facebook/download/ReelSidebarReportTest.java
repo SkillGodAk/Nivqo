@@ -49,6 +49,7 @@ public class ReelSidebarReportTest {
         PauseForTests.resume();
         Settings.DOWNLOAD_REELS.resetToDefault();
         Settings.SHOW_REEL_DOWNLOAD_BUTTON.resetToDefault();
+        Settings.REEL_CAST_BUTTON.resetToDefault();
     }
 
     private static String line() {
@@ -115,6 +116,40 @@ public class ReelSidebarReportTest {
     }
 
     /**
+     * Issues #316 and #298: some accounts get Facebook's older reel button layout, which never
+     * builds the sidebar the button goes in. The patch hands Facebook's answer for that layout to
+     * verticalUfi as each reel is drawn. Yes stays yes, and no turns into the newer layout only
+     * while the button would show, so a switched off, hidden, paused or not yet ready button leaves
+     * Facebook's own layout and buttons.
+     */
+    @Test
+    public void theOlderLayoutSwitchesToTheNewerOneOnlyForTheButton() {
+        assertTrue("Facebook's newer layout was turned down", ReelDownload.verticalUfi(true));
+        assertTrue("the older layout kept the reel from its Download button", ReelDownload.verticalUfi(false));
+
+        Settings.SHOW_REEL_DOWNLOAD_BUTTON.save(false);
+        assertFalse("a hidden button still switched the layout", ReelDownload.verticalUfi(false));
+        assertTrue("hiding the button turned down the newer layout", ReelDownload.verticalUfi(true));
+        Settings.SHOW_REEL_DOWNLOAD_BUTTON.save(true);
+
+        Settings.DOWNLOAD_REELS.save(false);
+        assertFalse("downloads off still switched the layout", ReelDownload.verticalUfi(false));
+        Settings.DOWNLOAD_REELS.save(true);
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("a paused start switched the layout", ReelDownload.verticalUfi(false));
+        PauseForTests.resume();
+
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertFalse(ReelDownload.verticalUfi(false)));
+        SettingsContextRule.withoutContext(() -> assertTrue(ReelDownload.verticalUfi(true)));
+
+        String line = line();
+        assertTrue(line, line.contains(ReelDownload.LAYOUT_NEWER + " 3"));
+        assertTrue(line, line.contains(ReelDownload.LAYOUT_SWITCHED + " 1"));
+        assertTrue(line, line.contains(ReelDownload.LAYOUT_OLDER + " 4"));
+    }
+
+    /**
      * The button Facebook draws gets a handler in every one of its factory's slots, and only the
      * tap slot saves: once per tap. The touch slot fires twice a press and a visibility slot on its
      * own, so a save from either would save the reel again or unasked.
@@ -148,12 +183,68 @@ public class ReelSidebarReportTest {
         assertEquals("two taps of the tap slot, and six other slots fired twice each", 2, saves.get());
     }
 
+    /**
+     * Issue #182: the Cast button goes in the same sidebar as Download, under its own switch. With
+     * only Cast on, the sidebar is built for it and the helper skips Download, the older layout
+     * switches for it too, and a pause keeps it out like the rest.
+     */
+    @Test
+    public void theCastButtonGetsTheSidebarOnItsOwn() {
+        Settings.SHOW_REEL_DOWNLOAD_BUTTON.save(false);
+        assertFalse("the Cast button started on", ReelDownload.castButton());
+        assertFalse(ReelDownload.showsButton());
+
+        Settings.REEL_CAST_BUTTON.save(true);
+        assertTrue("only Cast on built no sidebar for it", ReelDownload.showsButton());
+        assertFalse("a hidden Download button was built", ReelDownload.downloadButton());
+        assertTrue(ReelDownload.castButton());
+        assertTrue("the older layout kept the reel from its Cast button", ReelDownload.verticalUfi(false));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("a paused build showed the Cast button", ReelDownload.showsButton());
+        assertFalse(ReelDownload.castButton());
+        PauseForTests.resume();
+
+        String line = line();
+        assertTrue(line, line.contains(ReelDownload.SIDEBAR_WITH_CAST + " 1"));
+        assertTrue(line, line.contains(ReelDownload.SIDEBAR_HIDDEN + " 2"));
+        assertTrue(line, line.contains(ReelDownload.SIDEBAR_PAUSED + " 1"));
+        assertTrue(line, line.contains(ReelDownload.LAYOUT_SWITCHED + " 1"));
+    }
+
+    /** With both on, both buttons are built, and the Cast handler's slots never save the reel. */
+    @Test
+    public void aCastHandlerNeverSaves() throws Exception {
+        Settings.REEL_CAST_BUTTON.save(true);
+        assertTrue(ReelDownload.downloadButton());
+        assertTrue(ReelDownload.castButton());
+
+        AtomicInteger saves = new AtomicInteger();
+        MediaDownload.detailsForTests = details -> saves.incrementAndGet();
+        try {
+            FileNameTemplateTest.ReelSourceParams reel = new FileNameTemplateTest.ReelSourceParams(new VideoPlayerParams(
+                    "VideoId: 2233445566778899", new FileNameTemplateTest.ReelSource(
+                            "https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/clip_720p.mp4?oh=1&oe=2")));
+            for (int slot = 0; slot <= 6; slot++) {
+                new ReelDownload(reel, RuntimeEnvironment.getApplication(), "hd", "sd", "manifest",
+                        slot, slot == 1, null, true).invoke(null);
+            }
+        } finally {
+            MediaDownload.detailsForTests = null;
+            LogBufferManager.clearLogBuffer();
+        }
+        assertEquals("a Cast slot saved the reel", 0, saves.get());
+        assertEquals(0, MediaDownload.savesInFlight());
+    }
+
     /** The phrases are the whole of what a count says: no id, name or address of a reel. */
     @Test
     public void everyCountedPhraseIsFixedText() {
-        for (String phrase : new String[]{ReelDownload.SIDEBAR_WITH_BUTTON, ReelDownload.SIDEBAR_SWITCH_OFF,
+        for (String phrase : new String[]{ReelDownload.SIDEBAR_WITH_BUTTON, ReelDownload.SIDEBAR_WITH_CAST,
+                ReelDownload.SIDEBAR_SWITCH_OFF,
                 ReelDownload.SIDEBAR_HIDDEN, ReelDownload.SIDEBAR_PAUSED, ReelDownload.SIDEBAR_NOT_READY,
-                ReelDownload.OTHER_SIDEBAR}) {
+                ReelDownload.OTHER_SIDEBAR, ReelDownload.LAYOUT_NEWER, ReelDownload.LAYOUT_SWITCHED,
+                ReelDownload.LAYOUT_OLDER}) {
             assertTrue(phrase, phrase.matches("[A-Za-z ,]+"));
         }
         assertEquals(Collections.emptyList(), HookStatus.report());

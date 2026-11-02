@@ -168,6 +168,7 @@ fun GlassButton(
 /**
  * A [GlassButton] for an action rather than a tab, its emphasis set by [tone]. Shared by the
  * patcher's action bar and the landscape sidebars, so the buttons read the same wherever they sit.
+ * Its [modifier] sits outside the [IconTooltip] naming it, where the surrounding layout reads it.
  */
 @Composable
 fun ActionGlassButton(
@@ -197,32 +198,35 @@ fun ActionGlassButton(
         }
     }
 
-    GlassButton(
-        label = text.orEmpty(),
-        selected = false,
-        onClick = onClick,
-        modifier = modifier.semantics {
-            if (stateDescription != null) {
-                this.stateDescription = stateDescription
-            }
-            if (showProgress) {
-                liveRegion = LiveRegionMode.Polite
-            }
-        },
-        icon = icon,
-        enabled = enabled,
-        showProgress = showProgress,
-        contentDescription = accessibleLabel,
-        containerColor = colors.container.dim(enabled),
-        contentColor = colors.content.dim(enabled),
-        borderColor = colors.border.dim(enabled),
-        shape = shape,
-        height = height,
-        role = Role.Button,
-        hapticFeedback = true,
-        showLabel = showLabel,
-        interactionSource = interactionSource
-    )
+    // Named by a tooltip once its label is left out, and only then, so the two never repeat
+    IconTooltip(text = (text ?: contentDescription).takeIf { !showLabel }, modifier = modifier) {
+        GlassButton(
+            label = text.orEmpty(),
+            selected = false,
+            onClick = onClick,
+            modifier = Modifier.semantics {
+                if (stateDescription != null) {
+                    this.stateDescription = stateDescription
+                }
+                if (showProgress) {
+                    liveRegion = LiveRegionMode.Polite
+                }
+            },
+            icon = icon,
+            enabled = enabled,
+            showProgress = showProgress,
+            contentDescription = accessibleLabel,
+            containerColor = colors.container.dim(enabled),
+            contentColor = colors.content.dim(enabled),
+            borderColor = colors.border.dim(enabled),
+            shape = shape,
+            height = height,
+            role = Role.Button,
+            hapticFeedback = true,
+            showLabel = showLabel,
+            interactionSource = interactionSource
+        )
+    }
 }
 
 /** Halves the alpha of a resolved glass color while the button is disabled. */

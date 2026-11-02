@@ -19,16 +19,22 @@ const val MANAGER_REPO_URL = "https://github.com/SkillGodAk/Nivqo"
 const val MANAGER_RELEASES_URL = "$MANAGER_REPO_URL/releases"
 const val NIVQO_ISSUES_URL = "$MANAGER_REPO_URL/issues"
 const val SOURCE_REPO_URL = "https://github.com/MorpheApp/morphe-patches"
+
+/** Key the releases of [SOURCE_REPO_URL] are signed with, see PatchBundleSignature. */
+const val SOURCE_SIGNING_KEY = "g8Ys9leTu2yeixojeR35HrNkK6eOSLpA6nNIizRutqI="
 const val MORPHE_API_URL = "https://api.morphe.software"
 
 /** Sent on every request to [MORPHE_API_URL]. */
-val MORPHE_USER_AGENT = "Morphe-Manager/${BuildConfig.VERSION_CODE}"
+const val MORPHE_USER_AGENT ="Morphe-Manager/${BuildConfig.VERSION_CODE}"
 const val MORPHE_WEBSITE_URL = "https://morphe.software"
 const val COMMUNITY_PATCHES_URL = "https://morphe-patches.software"
 const val BLOCKED_SOURCES_URL = "$MORPHE_API_URL/v2/blocked-sources"
 
 /** Website page behind add-source links: ?github|gitlab=owner/repo(&name=...) */
 const val ADD_SOURCE_PATH = "/add-source"
+
+/** What a source link looks like, shown in a field waiting for one. */
+const val REMOTE_URL_PLACEHOLDER = "github.com/owner/repo"
 
 /** Raw GitHub URL for the stable manager release JSON (main branch) */
 const val MANAGER_RELEASE_JSON_URL = "https://raw.githubusercontent.com/SkillGodAk/Nivqo/refs/heads/main/app-release.json"

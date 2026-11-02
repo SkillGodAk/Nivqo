@@ -59,6 +59,11 @@
         <item quantity="few">%s izvori patcheva</item>
         <item quantity="other">%s izvora patcheva</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s set</item>
+        <item quantity="few">%s seta</item>
+        <item quantity="other">%s setova</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s paket</item>
         <item quantity="few">%s paketa</item>

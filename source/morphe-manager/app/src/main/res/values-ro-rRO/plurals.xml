@@ -59,6 +59,11 @@
         <item quantity="few">%s surse</item>
         <item quantity="other">%s de surse</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s set</item>
+        <item quantity="few">%s seturi</item>
+        <item quantity="other">%s seturi</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pachet</item>
         <item quantity="few">%s pachete</item>

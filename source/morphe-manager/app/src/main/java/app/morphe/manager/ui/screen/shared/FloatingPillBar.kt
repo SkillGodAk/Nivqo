@@ -296,7 +296,6 @@ private fun SelectionIndicator(span: IntRange?, modifier: Modifier = Modifier) {
  * other than neutral fills the slot, while a selected tab sits on the shared indicator instead.
  * Without its label the action explains itself through a tooltip.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RowScope.PillAction(
     item: FloatingPillItem,
@@ -363,21 +362,11 @@ private fun RowScope.PillAction(
         }
     }
 
-    // The weight must land on this Box so Row still sees it as the direct child; TooltipBox
-    // applies its own modifier to an inner wrapper, which Row can't see
-    Box(modifier = item.modifier.then(modifier).weight(weight)) {
-        if (showLabel) {
-            action()
-        } else {
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                tooltip = { PlainTooltip { Text(description) } },
-                state = rememberTooltipState()
-            ) {
-                action()
-            }
-        }
-    }
+    IconTooltip(
+        text = description.takeIf { !showLabel },
+        modifier = item.modifier.then(modifier).weight(weight),
+        content = action
+    )
 }
 
 /**

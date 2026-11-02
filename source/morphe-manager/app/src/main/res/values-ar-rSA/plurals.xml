@@ -92,6 +92,14 @@
         <item quantity="many">%s مصدر</item>
         <item quantity="other">%s مصدر</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="zero">%s مجموعة</item>
+        <item quantity="one">%s مجموعة</item>
+        <item quantity="two">%s مجموعتان</item>
+        <item quantity="few">%s مجموعات</item>
+        <item quantity="many">%s مجموعة</item>
+        <item quantity="other">%s مجموعة</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="zero">%s حزمة</item>
         <item quantity="one">%s حزمة</item>

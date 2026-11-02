@@ -55,10 +55,6 @@ data class PatchBundleEntity(
     @ColumnInfo(name = "display_name") val displayName: String? = null,
     @ColumnInfo(name = "version") val versionHash: String? = null,
     @ColumnInfo(name = "source") val source: Source,
-    // Unused, as every remote source updates on its own. Left for the next schema change to drop
-    // rather than rebuilding the table, which other tables cascade from, for it alone
-    // TODO: Drop the column in the next migration
-    @ColumnInfo(name = "auto_update") val autoUpdate: Boolean = true,
     @ColumnInfo(name = "enabled") val enabled: Boolean = true,
     @ColumnInfo(name = "sort_order") val sortOrder: Int,
     @ColumnInfo(name = "created_at") val createdAt: Long? = null,

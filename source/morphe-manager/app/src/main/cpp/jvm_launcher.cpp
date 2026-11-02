@@ -14,6 +14,7 @@
 #include <cstdarg>
 #include <cstdio>
 #include <future>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -61,10 +62,61 @@ std::vector<std::string> toStrings(JNIEnv *env, jobjectArray array) {
     return strings;
 }
 
+// The stack trace of throwable as printStackTrace writes it, empty if writing it threw as well
+std::string stackTrace(JNIEnv *env, jthrowable throwable) {
+    // Any of the calls below may throw, which has to be cleared before JNI is called again
+    const auto threw = [env] {
+        if (!env->ExceptionCheck()) return false;
+        env->ExceptionClear();
+        return true;
+    };
+
+    jclass stringWriterClass = env->FindClass("java/io/StringWriter");
+    if (threw()) return {};
+    jclass printWriterClass = env->FindClass("java/io/PrintWriter");
+    if (threw()) return {};
+    jmethodID newStringWriter = env->GetMethodID(stringWriterClass, "<init>", "()V");
+    if (threw()) return {};
+    jmethodID newPrintWriter = env->GetMethodID(printWriterClass, "<init>", "(Ljava/io/Writer;)V");
+    if (threw()) return {};
+    jmethodID printStackTrace = env->GetMethodID(env->GetObjectClass(throwable), "printStackTrace", "(Ljava/io/PrintWriter;)V");
+    if (threw()) return {};
+    jmethodID toString = env->GetMethodID(stringWriterClass, "toString", "()Ljava/lang/String;");
+    if (threw()) return {};
+
+    jobject stringWriter = env->NewObject(stringWriterClass, newStringWriter);
+    if (threw()) return {};
+    jobject printWriter = env->NewObject(printWriterClass, newPrintWriter, stringWriter);
+    if (threw()) return {};
+    env->CallVoidMethod(throwable, printStackTrace, printWriter);
+    if (threw()) return {};
+    // toString of a StringWriter returns a String, which JNI hands out as jobject
+    auto text = static_cast<jstring>(env->CallObjectMethod(stringWriter, toString)); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
+    if (threw()) return {};
+
+    const char *chars = env->GetStringUTFChars(text, nullptr);
+    std::string trace = chars;
+    env->ReleaseStringUTFChars(text, chars);
+    return trace;
+}
+
+// HotSpot only writes which thread an exception ended through logJvmOutput, and the trace itself to
+// System.err, which leads nowhere in an app. The trace is logged here instead, a line at a time, as
+// the log cuts a message off at a few kilobytes
 void describeException(JNIEnv *env) {
-    if (!env->ExceptionCheck()) return;
-    env->ExceptionDescribe();
+    jthrowable throwable = env->ExceptionOccurred();
+    if (throwable == nullptr) return;
     env->ExceptionClear();
+
+    const std::string trace = stackTrace(env, throwable);
+    if (trace.empty()) {
+        __android_log_print(ANDROID_LOG_ERROR, TAG, "The JVM threw an exception it could not describe");
+        return;
+    }
+    std::istringstream lines(trace);
+    for (std::string line; std::getline(lines, line);) {
+        __android_log_print(ANDROID_LOG_ERROR, TAG, "%s", line.c_str());
+    }
 }
 
 // Why the JVM did not start, next to the JNI_CreateJavaVM codes, which are all negative

@@ -40,6 +40,12 @@ sealed class PatchBundleInfo {
             patch.compatiblePackages.orEmpty().mapNotNull { it.packageName }
         }
 
+    /** Whether any of the bundle's patches marks an app version as experimental. */
+    fun hasExperimentalVersions(): Boolean =
+        patches.any { patch ->
+            patch.compatiblePackages?.any { !it.experimentalVersions.isNullOrEmpty() } == true
+        }
+
     /**
      * Information about a bundle and all the patches it contains.
      *

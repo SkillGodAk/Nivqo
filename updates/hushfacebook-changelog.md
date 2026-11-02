@@ -1,3 +1,8 @@
+# 0.20.0-nivqo.1 (2026-11-03)
+
+* **Facebook:** 繁體中文：正式 HushFacebook 0.20.0（109 個補丁），支援 Facebook 585.0.0.47.54。新增直播回放播放速度、Reels 影片日期、圓形限時動態縮圖、首頁返回保留位置、留言／搜尋介面控制。保留 Nivqo 介面繁中與 Messenger 按鈕路由，補丁說明全繁中。
+* **Facebook:** English: Formal HushFacebook 0.20.0, 109 patches for Facebook 585.0.0.47.54. Adds live replay speed, reel post dates, round stories, preserve Home position, and new comment/search controls. Preserves Nivqo Traditional Chinese UI and Messenger button routing.
+
 # 0.19.0-nivqo.1 (2026-10-28)
 
 * **Facebook:** 繁體中文：同步正式 HushFacebook 0.19.0（105 個補丁），適用 Facebook 584.0.0.51.56。新增自訂貼文操作按鈕、Reels 快轉與手勢、隱藏個人檔案便條、影片靜音、首頁標題文字與徽章顏色等功能；保留 Nivqo 繁中／英文／跟隨系統語言及 Messenger 按鈕行為。Manager 中文補丁說明 105／105。

@@ -10,6 +10,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
@@ -190,6 +191,13 @@ fun NotificationsOverlay(
     val stacked = active.size - 1
 
     LaunchedEffect(stacked) { if (stacked <= 0) fold.animateTo(StackFold.Folded, Animations.defaultTween()) }
+    // Room the strip makes for the chip, given up as the chip shrinks away rather than once it is
+    // gone, since a chip on its way out keeps its size until then. Read while measuring
+    val controlsRoom = animateFloatAsState(
+        targetValue = if (stacked > 0) 1f else 0f,
+        animationSpec = Animations.defaultTween(),
+        label = "alert_controls_room"
+    )
 
     val stackCards = remember { StackCards() }
     val cards = stackCards.update(alerts.all, activeKeys)
@@ -279,6 +287,8 @@ fun NotificationsOverlay(
         // How many cards are held over this one, which sets how far down the folded stack it sits
         var depth = 0f
         var foldedHeight = 0f
+        var foldedShare = 0f
+        var mostHeld = 0f
         var unfoldedHeight = 0f
         cards.forEachIndexed { index, card ->
             // Each card carries the gap under it, so the gap comes and goes with it
@@ -288,10 +298,15 @@ fun NotificationsOverlay(
             depths[index] = depth
             unfoldedTops[index] = unfoldedHeight
             foldedHeight += clear * held[index] * height
+            foldedShare += clear * held[index]
+            mostHeld = maxOf(mostHeld, held[index])
             unfoldedHeight += held[index] * height
             clear *= 1f - held[index]
             depth += held[index]
         }
+        // Cards leaving together would each hand their room to the next one, which is leaving too,
+        // and so hold the room until the last of them is nearly out. The room goes with them instead
+        if (foldedShare > mostHeld) foldedHeight *= mostHeld / foldedShare
 
         // Folded, the cards behind the top one peek out under it, each a step lower and narrower,
         // and those past the last step wait out of sight behind it
@@ -327,7 +342,8 @@ fun NotificationsOverlay(
         val controlsHeight = controls.maxOfOrNull { it.height } ?: 0
         val controlsBase = cardsHeight + (peekHeight - gap).coerceAtLeast(0)
         val controlsTop = (controlsBase - controlsHeight / 2 - gap).coerceAtLeast(0)
-        val height = controlsTop + controlsHeight + gap
+        val heldControls = (controlsHeight * controlsRoom.value).roundToInt()
+        val height = (controlsBase - heldControls / 2 - gap).coerceAtLeast(0) + heldControls + gap
 
         layout(constraints.maxWidth, height.coerceAtLeast(0)) {
             cardPlaceables.forEachIndexed { index, placeable ->
@@ -770,7 +786,9 @@ private fun StackCardSlot(card: StackCard, raised: Boolean, gutter: Dp, onSwiped
     LaunchedEffect(raised) {
         // One brought back while still on its way out returns from wherever it got to
         if (raised) launch { card.swipe.animateTo(SwipeAnchor.Rest, Animations.defaultTween()) }
-        card.presence.animateTo(if (raised) 1f else 0f, Animations.defaultTween())
+        // Eased out of its start as well as into its end, since the room the card takes moves the
+        // list under the strip along with it, and a start at full speed jolts the whole list
+        card.presence.animateTo(if (raised) 1f else 0f, Animations.defaultTween(easing = FastOutSlowInEasing))
         if (!raised) card.gone = true
     }
 

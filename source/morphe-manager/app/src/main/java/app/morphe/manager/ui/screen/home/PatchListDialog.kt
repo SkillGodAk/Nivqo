@@ -60,6 +60,7 @@ internal class PatchListSection(
  * @param accentColor Brand color of the app the list belongs to, when its source declares one.
  * @param notice Shown above the list, for what the user should know before reading it.
  * @param onExpertBadgeClick Marks the patches left out by default, and explains the mark.
+ * @param headerActions What the list's owner offers in the header, ahead of the filter.
  */
 @Composable
 internal fun DialogHostScope.PatchListDialog(
@@ -73,7 +74,8 @@ internal fun DialogHostScope.PatchListDialog(
     initialQuery: String = "",
     accentColor: Color? = null,
     notice: (@Composable () -> Unit)? = null,
-    onExpertBadgeClick: (() -> Unit)? = null
+    onExpertBadgeClick: (() -> Unit)? = null,
+    headerActions: @Composable RowScope.() -> Unit = {}
 ) {
     val search = rememberSearchFieldState()
     LaunchedEffect(Unit) {
@@ -152,6 +154,7 @@ internal fun DialogHostScope.PatchListDialog(
                     }
                 }
             ) {
+                headerActions()
                 // A source can patch dozens of apps, more than a row of chips could hold
                 if (hasSections) {
                     TitleAction(

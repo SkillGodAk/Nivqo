@@ -7,10 +7,13 @@ package app.morphe.manager.ui.screen.sources
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
 import app.morphe.manager.domain.bundles.PatchBundleSource
+import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.hasPrereleaseChannel
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.isDefault
+import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.usesPrerelease
 import app.morphe.manager.domain.bundles.RemotePatchBundle
 import app.morphe.manager.ui.screen.shared.*
 import com.composables.icons.materialsymbols.MaterialSymbols
@@ -22,12 +25,15 @@ import com.composables.icons.materialsymbols.rounded.*
  *
  * Each action reaches only the picked sources it applies to, so a selection mixing them still
  * offers it: a blocked source sits out updating and switching, and the default one deleting.
+ * A setting a source card offers only for some sources is offered here once any source has it.
  *
  * @param sources Every source, which the picked uids are looked up in.
  * @param listed The sources on screen, which "select all" picks.
  * @param blocked Uids of the sources the blocklist names.
+ * @param withExperimentalVersions Uids of the sources declaring experimental app versions.
+ * @param experimentalVersionsEnabled Uids of the sources with experimental app versions switched on.
  * @param onStartReorder Leaves the selection for the reorder, or null while the list's order is not
- *   the user's own to drag.
+ *   the user's own to drag. The page header carries the reorder from there.
  */
 @Composable
 internal fun SourcesSelectionBar(
@@ -35,12 +41,14 @@ internal fun SourcesSelectionBar(
     sources: List<PatchBundleSource>,
     listed: List<PatchBundleSource>,
     blocked: Set<Int>,
+    withExperimentalVersions: Set<Int>,
+    experimentalVersionsEnabled: Set<String>,
     onUpdate: (List<PatchBundleSource>) -> Unit,
     onToggleEnabled: (List<PatchBundleSource>) -> Unit,
+    onSetPrerelease: (List<PatchBundleSource>, Boolean) -> Unit,
+    onSetExperimentalVersions: (List<PatchBundleSource>, Boolean) -> Unit,
     onDelete: (List<PatchBundleSource>) -> Unit,
     onStartReorder: (() -> Unit)?,
-    onSaveOrder: () -> Unit,
-    onCancelReorder: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val selection = state.selection
@@ -54,13 +62,46 @@ internal fun SourcesSelectionBar(
     val updateLabel = stringResource(R.string.update)
     val disableLabel = stringResource(R.string.disable)
     val enableLabel = stringResource(R.string.enable)
-    val reorderListLabel = stringResource(R.string.reorder_list)
+    val prereleaseEnableLabel = stringResource(R.string.sources_management_prerelease_enable)
+    val prereleaseDisableLabel = stringResource(R.string.sources_management_prerelease_disable)
+    val experimentalEnableLabel = stringResource(R.string.sources_management_experimental_versions_enable)
+    val experimentalDisableLabel = stringResource(R.string.sources_management_experimental_versions_disable)
     val deleteLabel = stringResource(R.string.delete)
 
-    // Every action but deleting is done at once, which the selection then gives way to
+    // Every action but deleting and confirming pre-releases is done at once, which the
+    // selection then gives way to
     fun acting(action: () -> Unit): () -> Unit = {
         action()
         state.exitSelection()
+    }
+
+    // A setting of the picked sources it applies to, switched on for those it is off on and off
+    // for those it is on, so a mixed selection offers both and either reaches all of it in one tap
+    fun MutableList<SelectionAction>.addSettingSwitch(
+        applicable: List<PatchBundleSource>,
+        isOn: (PatchBundleSource) -> Boolean,
+        enableLabel: String,
+        disableLabel: String,
+        icon: ImageVector,
+        exitsOnEnable: Boolean = true,
+        onSet: (List<PatchBundleSource>, Boolean) -> Unit
+    ) {
+        val (on, off) = applicable.partition(isOn)
+        // Held while nothing picked takes the setting, so the panel keeps its rows
+        if (off.isNotEmpty() || on.isEmpty()) {
+            val enable = { onSet(off, true) }
+            add(
+                SelectionAction(
+                    icon = icon,
+                    label = enableLabel,
+                    onClick = if (exitsOnEnable) acting(enable) else enable,
+                    enabled = off.isNotEmpty()
+                )
+            )
+        }
+        if (on.isNotEmpty()) {
+            add(SelectionAction(icon, disableLabel, acting { onSet(on, false) }))
+        }
     }
 
     val actions = buildList {
@@ -89,8 +130,28 @@ internal fun SourcesSelectionBar(
                 )
             }
         )
-        if (onStartReorder != null) {
-            add(SelectionAction(MaterialSymbols.Rounded.Reorder, reorderListLabel, onStartReorder))
+        if (sources.any { it.hasPrereleaseChannel }) {
+            addSettingSwitch(
+                applicable = switchable.filter { it.hasPrereleaseChannel },
+                isOn = { it.usesPrerelease },
+                enableLabel = prereleaseEnableLabel,
+                disableLabel = prereleaseDisableLabel,
+                icon = MaterialSymbols.Rounded.Rocket_launch,
+                // Waits on the confirmation, which the selection gives way to instead
+                exitsOnEnable = false,
+                onSet = onSetPrerelease
+            )
+        }
+        if (sources.any { it.offersExperimentalVersions(withExperimentalVersions) }) {
+            addSettingSwitch(
+                applicable = selected.filter { it.offersExperimentalVersions(withExperimentalVersions) },
+                isOn = { it.uid.toString() in experimentalVersionsEnabled },
+                enableLabel = experimentalEnableLabel,
+                disableLabel = experimentalDisableLabel,
+                // The mark an experimental version carries wherever versions are listed
+                icon = MaterialSymbols.Rounded.Science,
+                onSet = onSetExperimentalVersions
+            )
         }
         add(
             SelectionAction(
@@ -106,22 +167,12 @@ internal fun SourcesSelectionBar(
     MultiSelectBar(
         selectedCount = selection.size,
         totalCount = listed.size,
-        visible = state.isSelecting || state.isReordering,
+        visible = state.isSelecting,
         onSelectAll = { selection.setAll(listed.map { it.uid }) },
         onDeselectAll = selection::clear,
         onCancel = state::exitSelection,
         actions = actions,
-        reorder = MultiSelectReorder(
-            isActive = state.isReordering,
-            onSave = {
-                onSaveOrder()
-                state.exitReorder()
-            },
-            onCancel = {
-                onCancelReorder()
-                state.exitReorder()
-            }
-        ),
+        onReorder = onStartReorder,
         modifier = modifier
     )
 }

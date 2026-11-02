@@ -1,8 +1,180 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">i-patch eyodwa %s</item>
+        <item quantity="other">ama-patch %s</item>
+    </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">ilayibrari %s</item>
+        <item quantity="other">imilayibhali engu-%s</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">inketho ye-patch eyodwa %s</item>
+        <item quantity="other">izinketho ze-patch %s</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">into eyodwa u%s</item>
+        <item quantity="other">izinto u%s</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Khetha ifayela elilodwa u%s</item>
+        <item quantity="other">Khetha amafayela u%s</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Yengeka umthombo owodwa u%s</item>
+        <item quantity="other">Faka imithombo engu %s</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Imithombo ye-patch yo-app olunye u%s</item>
+        <item quantity="other">Imithombo ye-patch yo-app u%s</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Umthombo owodwa %s ufihliwe kule app. Khetha i-app kuthabu ye-Apps bese uvula u-Patch sources ukuze ubuyise</item>
+        <item quantity="other">Imithombo eyi-%s ifihliwe kule app. Khetha i-app kuthabu ye-Apps bese uvula u-Patch sources ukuze uyibuyise</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">Umthombo owodwa u%s ufihliwe. Thinta ukuze ubonakale</item>
+        <item quantity="other">Imithombo u%s ifihliwe. Thinta ukuze ibonakale</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">i-patch eyodwa efanayo u%s</item>
+        <item quantity="other">ama-patch angu%s afanayo</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">umthombo oyedwa %s</item>
+        <item quantity="other">imithombo %s</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">isethi eyodwa (%s)</item>
+        <item quantity="other">izethi %s</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">i-package eyodwa %s</item>
+        <item quantity="other">ama-package %s</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Kusebenza i-patch eyodwa (%s)</item>
+        <item quantity="other">Kusebenza ama-patch angu-%s</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">ifayela le-APK elilodwa %s</item>
+        <item quantity="other">amafayela we-APK engu-%s</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Kufakwe i-app eyodwa %s</item>
+        <item quantity="other">Kufakwe ama-app %s</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Kufakwe uhlelo %s</item>
+        <item quantity="other">Kufakwe ohlelo %s</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Kufakiwe kabusha i-app eyodwa %s</item>
+        <item quantity="other">Kufakiwe kabusha ama-app %s</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Kususwe i-app eyodwa %s</item>
+        <item quantity="other">Kususwe ama-app %s</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Susa uhlelo lwe-app olu-%s?</item>
+        <item quantity="other">Susa izinhlelo ze-app ezi-%s?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">Uhlelo lwe-app olu-%s selulungele uku-patch-wa</item>
+        <item quantity="other">Izinhlelo ze-app ezi-%s sezilungile uku-patch-wa</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">i-app %s ilindele uku-patch-wa</item>
+        <item quantity="other">ii-app %s zilindele uku-patch-wa</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">isaziso %s esifihliwe, chofoza ukuze usibone</item>
+        <item quantity="other">izaziso %s ezifihliwe, chofoza ukuze uzibone</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">Uhlelo lwe-app olu-%s lunga-patch-wa futhi</item>
+        <item quantity="other">Izinhlelo ze-app ezi-%s zinga-patch-wa futhi</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Kushiywe uhlelo lwe-app olu-%s</item>
+        <item quantity="other">Kushiywe izinhlelo ze-app ezi-%s</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Kususwe i-%s patch endala ekhethweni esigcinwe</item>
+        <item quantity="other">Kususwe ama-patch engu-%s adala ekhethweni esigcinwe</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">u-%s source ufakwe</item>
+        <item quantity="other">izinkomba ezingu-%s ezifakwe</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">i-app eyodwa efihliwe %s</item>
+        <item quantity="other">izinhlelo ze-app ezi-%s ezifihliwe</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">i-app eyodwa ebonakalayo %s</item>
+        <item quantity="other">izinhlelo ze-app ezi-%s ezibonakalayo</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Ufuna ukukhombisa i-app eyodwa %s?</item>
+        <item quantity="other">Uveze ohlelo %s?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">i-app eyodwa efihliwe (%s)</item>
+        <item quantity="other">ama-app angu-%s afihliwe</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">i-app eyodwa %s</item>
+        <item quantity="other">ama-app %s</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">Kukhethiwe u-%s</item>
+        <item quantity="other">Kukhethiwe u-%s</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Kukopiwe i-patch eyodwa %s ebu-bundle obukhethiwe</item>
+        <item quantity="other">Kukopiwe ama-patch %s ebu-bundle obukhethiwe</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">i-core eyodwa u%s</item>
+        <item quantity="other">ama-core angu%s</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">isici esi %s</item>
+        <item quantity="other">izici ezingu %s</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">ukulungiswa okukodwa u%s</item>
+        <item quantity="other">ukulungiswa u%s</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">ukuthuthukiswa okukodwa oku %s</item>
+        <item quantity="other">ukuthuthukiswa okungu %s</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">ushintsho olulodwa u%s</item>
+        <item quantity="other">ushintsho u%s</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d entsha</item>
+        <item quantity="other">%1$s · %2$d ezintsha</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">ukukhipha okusha okukodwa u%s</item>
+        <item quantity="other">ukukhipha okusha u%s</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">ukuxhumana okukodwa oku %d kuvunyelwe</item>
+        <item quantity="other">izixhumano ezingu %d kuvunyelwe</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">ukuxhumana okukodwa oku %d okungaqinisekiswanga</item>
+        <item quantity="other">izixhumano ezingu %d ezingaqinisekiswanga</item>
+    </plurals>
 </resources>

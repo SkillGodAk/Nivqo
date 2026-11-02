@@ -133,6 +133,15 @@ class MergeNewlyAddedTest {
     }
 
     @Test
+    fun `a selection without a snapshot stands as it was saved`() {
+        // A restored backup carries no snapshot, so a default the user turned off cannot read as new
+        assertEquals(
+            mapOf(1 to setOf("Old")),
+            merge(listOf(source), mapOf(1 to setOf("Old")), known = emptyMap())
+        )
+    }
+
+    @Test
     fun `a source the run leaves out keeps the selection made from it`() {
         // What the expert dialog relies on to offer a hidden source back with its patches intact
         assertEquals(

@@ -7,8 +7,6 @@ package app.morphe.manager.ui.screen.settings.system
 
 import android.net.Uri
 import android.view.HapticFeedbackConstants
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -27,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
+import app.morphe.manager.domain.repository.SelectionSetSummary
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.ImportExportViewModel
 import app.morphe.manager.ui.viewmodel.SelectionApp
@@ -43,8 +42,10 @@ data class PatchSelectionData(
     val selections: Map<String, Map<Int, Int>>,
     val totalSelections: Int,
     val bundleNames: Map<Int, String>,
-    /** The apps of [selections] named and in order, null while their names are being resolved. */
-    val apps: List<SelectionApp>?
+    /** The apps of [selections] and of the sets named and in order, null while being resolved. */
+    val apps: List<SelectionApp>?,
+    /** Whether any app has a set kept for it, which keeps the page from reading as empty. */
+    val hasSets: Boolean
 )
 
 /** Multi-select state and its mutation callbacks. */
@@ -89,11 +90,13 @@ fun PatchSelectionsPage(
     val resetTarget = remember { mutableStateOf<ResetTarget?>(null) }
     val showPatchDetailsTarget = remember { mutableStateOf<PatchDetailsTarget?>(null) }
     val copyTarget = remember { mutableStateOf<CopyTarget?>(null) }
-    val copyCandidates = remember { mutableStateOf<List<CopySelectionCandidate>?>(null) }
+    val pendingSetDelete = remember { mutableStateOf<SelectionSetSummary?>(null) }
+    val pendingSetRename = remember { mutableStateOf<SelectionSetSummary?>(null) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
 
     val selections by settingsViewModel.selectionsSummary.collectAsStateWithLifecycle()
     val bundleNames by settingsViewModel.bundleNames.collectAsStateWithLifecycle()
+    val sets by settingsViewModel.selectionSets.collectAsStateWithLifecycle()
     val selectionApps by remember { settingsViewModel.selectionApps() }.collectAsStateWithLifecycle(initialValue = null)
 
     val totalSelections = remember(selections) {
@@ -119,7 +122,8 @@ fun PatchSelectionsPage(
             selections = selections,
             totalSelections = totalSelections,
             bundleNames = bundleNames,
-            apps = selectionApps
+            apps = selectionApps,
+            hasSets = sets.isNotEmpty()
         ),
         multiSelect = PatchSelectionMultiSelect(
             selectedPackages = selectedPackages,
@@ -137,14 +141,24 @@ fun PatchSelectionsPage(
         onShowPatchDetails = { showPatchDetailsTarget.value = it },
         onOpenCopyFromBundle = { target ->
             copyTarget.value = target
-            copyCandidates.value = null
-            scope.launch {
-                val loaded = settingsViewModel.loadCopySelectionCandidates(
-                    targetPackageName = target.packageName,
-                    targetBundleUid = target.bundleUid
+            settingsViewModel.openCopy(target)
+        },
+        onDeleteSet = { pendingSetDelete.value = it },
+        onRenameSet = { pendingSetRename.value = it },
+        // Written to the database at once here, unlike the expert-mode panel, which stages its
+        // changes until the user proceeds to patching
+        selectionPanel = copyTarget.value?.takeIf { settingsViewModel.selectionPanel.isOpen }?.let { target ->
+            {
+                val panel = settingsViewModel.selectionPanel
+                SelectionPanel(
+                    title = target.appDisplayName,
+                    sets = null,
+                    copyTargetName = bundleNames[target.bundleUid]
+                        ?: stringResource(R.string.settings_system_patch_selection_source_format, target.bundleUid),
+                    candidates = panel.candidates,
+                    onCopy = { candidate -> settingsViewModel.copySelectionFromBundle(target, candidate) },
+                    onClose = panel::close
                 )
-                // Discard the result if the picker was closed or retargeted while loading.
-                if (copyTarget.value == target) copyCandidates.value = loaded
             }
         },
         onImportUriPicked = { pendingImportUri = it },
@@ -155,41 +169,33 @@ fun PatchSelectionsPage(
 
     DialogHost(target = showPatchDetailsTarget.value) { target ->
         PatchDetailsDialog(
-            packageName = target.packageName,
-            bundleUid = target.bundleUid,
-            appDisplayName = target.appDisplayName,
-            bundleName = bundleNames[target.bundleUid],
+            target = target,
+            bundleNames = bundleNames,
             settingsViewModel = settingsViewModel,
             onDismiss = { showPatchDetailsTarget.value = null }
         )
     }
 
-    // Confirmed picks are written to the database immediately here, unlike the expert-mode
-    // path which stages changes until the user proceeds to patching.
-    DialogHost(target = copyTarget.value) { target ->
-        CopySelectionFromBundleDialog(
-            target = CopySelectionTarget(
-                packageName = target.packageName,
-                bundleUid = target.bundleUid,
-                bundleName = bundleNames[target.bundleUid]
-                    ?: stringResource(R.string.settings_system_patch_selection_source_format, target.bundleUid),
-                appDisplayName = target.appDisplayName
-            ),
-            candidates = copyCandidates.value,
-            onConfirm = { candidate ->
-                scope.launch {
-                    settingsViewModel.copySelectionFromBundle(
-                        target = target,
-                        candidate = candidate
-                    )
-                    copyTarget.value = null
-                    copyCandidates.value = null
-                }
+    DialogHost(target = pendingSetDelete.value) { set ->
+        DeleteSelectionSetDialog(
+            set = set,
+            onConfirm = {
+                settingsViewModel.deleteSet(set)
+                pendingSetDelete.value = null
             },
-            onDismiss = {
-                copyTarget.value = null
-                copyCandidates.value = null
-            }
+            onDismiss = { pendingSetDelete.value = null }
+        )
+    }
+
+    DialogHost(target = pendingSetRename.value) { set ->
+        RenameSelectionSetDialog(
+            set = set,
+            takenNames = sets.filter { it.packageName == set.packageName }.mapTo(mutableSetOf()) { it.name },
+            onConfirm = { name ->
+                settingsViewModel.renameSet(set, name)
+                pendingSetRename.value = null
+            },
+            onDismiss = { pendingSetRename.value = null }
         )
     }
 
@@ -278,6 +284,9 @@ private fun PatchSelectionsContent(
     onSetResetTarget: (ResetTarget) -> Unit,
     onShowPatchDetails: (PatchDetailsTarget) -> Unit,
     onOpenCopyFromBundle: (CopyTarget) -> Unit,
+    onDeleteSet: (SelectionSetSummary) -> Unit,
+    onRenameSet: (SelectionSetSummary) -> Unit,
+    selectionPanel: (@Composable () -> Unit)?,
     onImportUriPicked: (Uri) -> Unit,
     onExitSelection: () -> Unit,
     onSelectAll: () -> Unit,
@@ -292,11 +301,7 @@ private fun PatchSelectionsContent(
         onResult = { uri -> uri?.let(onImportUriPicked) }
     )
 
-    val exportAllSelectionsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument(JSON_MIMETYPE)
-    ) { uri ->
-        uri?.let { importExportViewModel.exportAllSelections(it) }
-    }
+    val exportAllSelections = rememberDocumentSaver(JSON_MIMETYPE, importExportViewModel::exportAllSelections)
 
     // Nothing to narrow down with a single entry
     val isSearchable = selections.size >= 2
@@ -331,6 +336,8 @@ private fun PatchSelectionsContent(
         scrollState = listState,
         bottomBar = {
             when {
+                selectionPanel != null -> selectionPanel()
+
                 multiSelect.isSelectionMode -> DockedPanel(visible = true, onBack = onExitSelection) {
                     SelectionActionBar(
                         selectedCount = multiSelect.selectedPackages.size,
@@ -358,12 +365,8 @@ private fun PatchSelectionsContent(
                 ) {
                     ImportExportFooter(
                         onImport = { openImportAllSelectionsPicker() },
-                        onExport = if (selections.isNotEmpty()) {
-                            {
-                                exportAllSelectionsLauncher.launch(
-                                    importExportViewModel.getAllSelectionsExportFileName()
-                                )
-                            }
+                        onExport = if (selections.isNotEmpty() || data.hasSets) {
+                            { exportAllSelections(importExportViewModel.getAllSelectionsExportFileName()) }
                         } else null
                     )
                 }
@@ -371,7 +374,7 @@ private fun PatchSelectionsContent(
         }
     ) { insets ->
         val apps = data.apps
-        if (selections.isEmpty()) {
+        if (selections.isEmpty() && !data.hasSets) {
             EmptyState(
                 message = stringResource(R.string.settings_system_no_patches_or_options),
                 modifier = Modifier.padding(
@@ -397,6 +400,8 @@ private fun PatchSelectionsContent(
                 onSetResetTarget = onSetResetTarget,
                 onShowPatchDetails = onShowPatchDetails,
                 onOpenCopyFromBundle = onOpenCopyFromBundle,
+                onDeleteSet = onDeleteSet,
+                onRenameSet = onRenameSet,
                 onImport = openImportAllSelectionsPicker
             )
         }
@@ -414,7 +419,7 @@ private fun PatchSelectionsContent(
 
 /**
  * The apps with selections, each a block: its header, then a row for every source it has a
- * selection from while it is folded out.
+ * selection from and for every set kept for it while it is folded out.
  */
 @Composable
 private fun SelectionList(
@@ -428,6 +433,8 @@ private fun SelectionList(
     onSetResetTarget: (ResetTarget) -> Unit,
     onShowPatchDetails: (PatchDetailsTarget) -> Unit,
     onOpenCopyFromBundle: (CopyTarget) -> Unit,
+    onDeleteSet: (SelectionSetSummary) -> Unit,
+    onRenameSet: (SelectionSetSummary) -> Unit,
     onImport: () -> Unit
 ) {
     val expandedPackages = remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -466,13 +473,14 @@ private fun SelectionList(
             }
         }
 
-        // Each app a block: its header, then a row for every source it has a selection from
+        // Each app a block: its header, then a row for every source it has a selection from and
+        // for every set kept for it
         shownApps.forEach { app ->
             val packageName = app.packageName
             val bundleMap = app.bundles
             // Folded in selection mode, so a tap on the header always selects the app
             val expanded = packageName in expandedPackages.value && !multiSelect.isSelectionMode
-            val rows = if (expanded) bundleMap.size + 1 else 1
+            val rows = if (expanded) bundleMap.size + app.sets.size + 1 else 1
 
             item(key = packageName) {
                 PackageSelectionHeader(
@@ -480,6 +488,7 @@ private fun SelectionList(
                     displayName = app.displayName,
                     appDataSource = app.dataSource,
                     bundleMap = bundleMap,
+                    setCount = app.sets.size,
                     multiSelect = multiSelect,
                     expanded = expanded,
                     onToggleExpanded = { toggleExpanded(packageName) },
@@ -499,7 +508,7 @@ private fun SelectionList(
                             importExportViewModel = importExportViewModel,
                             onReset = { onSetResetTarget(ResetTarget(packageName, bundleUid)) },
                             onShowDetails = {
-                                onShowPatchDetails(PatchDetailsTarget(packageName, bundleUid, app.displayName))
+                                onShowPatchDetails(PatchDetailsTarget.Source(packageName, app.displayName, bundleUid))
                             },
                             onCopyFromBundle = {
                                 onOpenCopyFromBundle(CopyTarget(packageName, bundleUid, app.displayName))
@@ -510,23 +519,64 @@ private fun SelectionList(
                         )
                     }
                 }
+                app.sets.forEachIndexed { index, set ->
+                    item(key = "$packageName:set:${set.uid}") {
+                        SelectionSetItem(
+                            packageName = packageName,
+                            set = set,
+                            onShowDetails = { onShowPatchDetails(PatchDetailsTarget.Set(app.displayName, set)) },
+                            onDelete = { onDeleteSet(set) },
+                            onRename = { onRenameSet(set) },
+                            segment = ListSegment.of(bundleMap.size + index + 1, rows),
+                            modifier = Modifier.animatedListItem(this)
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 /**
+ * Row of an app's block for a set kept for it: its name and how many patches it selects, which
+ * opens them, and what can be done with it. A set is switched to from the expert-mode panel, so
+ * here it can only be renamed or deleted.
+ */
+@Composable
+private fun SelectionSetItem(
+    packageName: String,
+    set: SelectionSetSummary,
+    onShowDetails: () -> Unit,
+    onDelete: () -> Unit,
+    onRename: () -> Unit,
+    segment: ListSegment,
+    modifier: Modifier = Modifier
+) {
+    SelectionSegment(packageName = packageName, segment = segment, onClick = onShowDetails, modifier = modifier) {
+        InfoRow(
+            icon = MaterialSymbols.Rounded.Bookmark,
+            label = set.name,
+            value = pluralStringResource(R.plurals.patch_count, set.patchCount, set.patchCount.toString()),
+            trailing = { RowActionsMenu(selectionSetActions(onRename = onRename, onDelete = onDelete)) },
+            contentPadding = SegmentRowPadding
+        )
+    }
+}
+
+/**
  * One row of an app's block, edged in the app's color the way the home screen wears it, so the
- * app reads as itself here too.
+ * app reads as itself here too. [onClick] makes the whole of it the row's tap.
  */
 @Composable
 private fun SelectionSegment(
     packageName: String,
     segment: ListSegment,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     SectionCard(
+        onClick = onClick,
         accentColor = rememberAppColor(packageName),
         shape = segment.shape,
         modifier = modifier.endsBlock(segment.endsBlock),
@@ -544,6 +594,7 @@ private fun PackageSelectionHeader(
     displayName: String,
     appDataSource: AppDataSource,
     bundleMap: Map<Int, Int>,
+    setCount: Int,
     multiSelect: PatchSelectionMultiSelect,
     expanded: Boolean,
     onToggleExpanded: () -> Unit,
@@ -614,14 +665,19 @@ private fun PackageSelectionHeader(
                         horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceSmall),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        StatusBadge(
-                            text = pluralStringResource(
-                                R.plurals.patch_count,
-                                totalPatches,
-                                totalPatches.toString()
-                            ),
-                            tone = SemanticTone.Primary
-                        )
+                        // An app with only sets kept for it has no selection to count
+                        if (bundleMap.isNotEmpty()) {
+                            StatusBadge(
+                                text = pluralStringResource(
+                                    R.plurals.patch_count,
+                                    totalPatches,
+                                    totalPatches.toString()
+                                ),
+                                tone = SemanticTone.Primary,
+                                // Marked as the source rows below mark their patches
+                                icon = MaterialSymbols.Rounded.Extension
+                            )
+                        }
 
                         if (bundleMap.size > 1) {
                             StatusBadge(
@@ -631,6 +687,18 @@ private fun PackageSelectionHeader(
                                     bundleMap.size.toString()
                                 ),
                                 tone = SemanticTone.Neutral
+                            )
+                        }
+
+                        if (setCount > 0) {
+                            StatusBadge(
+                                text = pluralStringResource(
+                                    R.plurals.selection_set_count,
+                                    setCount,
+                                    setCount.toString()
+                                ),
+                                tone = SemanticTone.Neutral,
+                                icon = MaterialSymbols.Rounded.Bookmark
                             )
                         }
                     }
@@ -648,7 +716,7 @@ private fun PackageSelectionHeader(
 
 /**
  * Row of an app's block for one source it has a selection from: how many patches the selection
- * holds, which opens them, and what can be done with it.
+ * holds, which opens them, and what can be done with it, behind its menu as a set's is.
  */
 @Composable
 private fun BundleSelectionItem(
@@ -670,69 +738,50 @@ private fun BundleSelectionItem(
         ?: stringResource(R.string.settings_system_patch_selection_source_format, bundleUid)
     val patchCountText = pluralStringResource(R.plurals.patch_count, patchCount, patchCount.toString())
 
-    // Export launcher
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument(JSON_MIMETYPE)
-    ) { uri ->
-        uri?.let {
-            importExportViewModel.exportPackageBundleData(packageName, bundleUid, bundleName, it)
-        }
+    val export = rememberDocumentSaver(JSON_MIMETYPE) { uri ->
+        importExportViewModel.exportPackageBundleData(packageName, bundleUid, bundleName, uri)
     }
 
-    SelectionSegment(packageName = packageName, segment = segment, modifier = modifier) {
-        Column(
-            modifier = Modifier.padding(Defaults.SpaceLarge),
-            verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium)
-        ) {
-            InfoPanel {
-                InfoRow(
-                    icon = MaterialSymbols.Rounded.Extension,
-                    label = displayName,
-                    value = patchCountText,
-                    onClick = onShowDetails
-                )
-            }
-
-            ActionPillRow {
-                val copyLabel = stringResource(R.string.copy)
-                ActionPillButton(
-                    onClick = onCopyFromBundle,
-                    icon = MaterialSymbols.Rounded.Content_copy,
-                    contentDescription = copyLabel,
-                    tooltip = copyLabel
-                )
-
-                val importLabel = stringResource(R.string.import_)
-                ActionPillButton(
-                    onClick = onImport,
-                    icon = MaterialSymbols.Rounded.Download,
-                    contentDescription = importLabel,
-                    tooltip = importLabel
-                )
-
-                val exportLabel = stringResource(R.string.export)
-                ActionPillButton(
-                    onClick = {
-                        val fileName = importExportViewModel.getPackageBundleDataExportFileName(
-                            packageName, bundleUid, bundleName
+    SelectionSegment(packageName = packageName, segment = segment, onClick = onShowDetails, modifier = modifier) {
+        InfoRow(
+            icon = MaterialSymbols.Rounded.Extension,
+            label = displayName,
+            value = patchCountText,
+            contentPadding = SegmentRowPadding,
+            trailing = {
+                RowActionsMenu(
+                    listOf(
+                        SelectionAction(
+                            icon = MaterialSymbols.Rounded.Content_copy,
+                            label = stringResource(R.string.copy),
+                            onClick = onCopyFromBundle
+                        ),
+                        SelectionAction(
+                            icon = MaterialSymbols.Rounded.Download,
+                            label = stringResource(R.string.import_),
+                            onClick = onImport
+                        ),
+                        SelectionAction(
+                            icon = MaterialSymbols.Rounded.Upload,
+                            label = stringResource(R.string.export),
+                            onClick = {
+                                export(
+                                    importExportViewModel.getPackageBundleDataExportFileName(
+                                        packageName, bundleUid, bundleName
+                                    )
+                                )
+                            }
+                        ),
+                        SelectionAction(
+                            icon = MaterialSymbols.Rounded.History,
+                            label = stringResource(R.string.reset),
+                            onClick = onReset,
+                            tone = ActionTone.Destructive
                         )
-                        exportLauncher.launch(fileName)
-                    },
-                    icon = MaterialSymbols.Rounded.Upload,
-                    contentDescription = exportLabel,
-                    tooltip = exportLabel
-                )
-
-                val resetLabel = stringResource(R.string.reset)
-                ActionPillButton(
-                    onClick = onReset,
-                    icon = MaterialSymbols.Rounded.History,
-                    contentDescription = resetLabel,
-                    tooltip = resetLabel,
-                    destructive = true
+                    )
                 )
             }
-        }
+        )
     }
 }
 
@@ -830,61 +879,80 @@ private fun DialogHostScope.ConfirmResetPackageBundleDialog(
     )
 }
 
-/** The patch selections and options saved for one package and source, over the selections page. */
+/**
+ * The patches and options saved for one app, over the selections page: what a source's selection
+ * holds, or a set's, source by source.
+ */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun DialogHostScope.PatchDetailsDialog(
-    packageName: String,
-    bundleUid: Int,
-    appDisplayName: String,
-    bundleName: String?,
+    target: PatchDetailsTarget,
+    bundleNames: Map<Int, String>,
     settingsViewModel: SettingsViewModel,
     onDismiss: () -> Unit
 ) {
-    var details by remember { mutableStateOf<SettingsViewModel.PatchDetails?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    var details by remember { mutableStateOf<Map<Int, SettingsViewModel.PatchDetails>?>(null) }
 
-    // Load patch selections and options
-    LaunchedEffect(packageName, bundleUid) {
-        isLoading = true
-        details = settingsViewModel.loadPatchDetails(packageName, bundleUid)
-        isLoading = false
-    }
-
-    val patchList = details?.patchList.orEmpty()
-    // Options outlive their patch being deselected, so those are listed too, dimmed as not in effect
-    val entries = remember(details) {
-        details?.let { loaded ->
-            val selected = loaded.patchList.toSet()
-            patchEntries(
-                keys = (loaded.patchList + loaded.optionsMap.keys).distinct(),
-                options = loaded.optionsMap,
-                displayName = loaded.displayNames::get,
-                dimmed = { it !in selected }
+    LaunchedEffect(target) {
+        details = null
+        details = when (target) {
+            is PatchDetailsTarget.Source -> mapOf(
+                target.bundleUid to settingsViewModel.loadPatchDetails(target.packageName, target.bundleUid)
             )
-        }.orEmpty()
+            is PatchDetailsTarget.Set -> settingsViewModel.loadSetDetails(target.set)
+        }
     }
-    val subtitle = bundleName ?: stringResource(R.string.settings_system_patch_selection_source_format, bundleUid)
+
+    val sourceFormat = stringResource(R.string.settings_system_patch_selection_source_format)
+    fun sourceName(bundleUid: Int) = bundleNames[bundleUid] ?: sourceFormat.format(bundleUid)
+    // A source's own selection is headed as such, a set's by the source each part comes from
+    val selectedTitle = stringResource(R.string.settings_system_selected_patches_section)
+    val sections = remember(details, bundleNames) {
+        details.orEmpty().map { (bundleUid, loaded) ->
+            // Options outlive their patch being deselected, so those are listed too, dimmed as not in effect
+            val selected = loaded.patchList.toSet()
+            DetailsSection(
+                title = if (target is PatchDetailsTarget.Set) sourceName(bundleUid) else selectedTitle,
+                count = loaded.patchList.size,
+                entries = patchEntries(
+                    keys = (loaded.patchList + loaded.optionsMap.keys).distinct(),
+                    options = loaded.optionsMap,
+                    displayName = loaded.displayNames::get,
+                    dimmed = { it !in selected }
+                )
+            )
+        }.filter { it.entries.isNotEmpty() }
+    }
+    val subtitle = when (target) {
+        is PatchDetailsTarget.Source -> sourceName(target.bundleUid)
+        is PatchDetailsTarget.Set -> target.set.name
+    }
     val copyToClipboard = rememberCopyToClipboard()
 
     DetailsDialog(
         onDismissRequest = onDismiss,
-        icon = { modifier -> AppIcon(packageName = packageName, contentDescription = null, modifier = modifier) },
-        title = appDisplayName,
+        icon = { modifier ->
+            AppIcon(packageName = target.packageName, contentDescription = null, modifier = modifier)
+        },
+        title = target.appDisplayName,
         subtitle = subtitle,
-        accentColor = rememberAppColor(packageName),
+        accentColor = rememberAppColor(target.packageName),
         actions = listOf(
             DialogAction(
                 text = stringResource(R.string.copy),
                 icon = MaterialSymbols.Rounded.Content_copy,
-                enabled = entries.isNotEmpty(),
+                enabled = sections.isNotEmpty(),
                 onClick = {
-                    copyToClipboard(patchListText(title = appDisplayName, lists = listOf(subtitle to entries)))
+                    val lists = when (target) {
+                        is PatchDetailsTarget.Source -> sections.map { subtitle to it.entries }
+                        is PatchDetailsTarget.Set -> sections.map { it.title to it.entries }
+                    }
+                    copyToClipboard(patchListText(title = target.appDisplayName, lists = lists))
                 }
             )
         )
     ) {
-        if (isLoading) {
+        if (details == null) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -893,37 +961,66 @@ private fun DialogHostScope.PatchDetailsDialog(
             ) {
                 LoadingIndicator()
             }
+        } else if (sections.isEmpty()) {
+            Notice(
+                text = stringResource(R.string.settings_system_no_patches_or_options),
+                tone = SemanticTone.Neutral,
+                isCentered = true
+            )
         } else {
-            if (entries.isNotEmpty()) {
+            sections.forEach { section ->
                 LabeledSection(
-                    title = stringResource(R.string.settings_system_selected_patches_section),
-                    count = patchList.size,
+                    title = section.title,
+                    count = section.count,
                     icon = MaterialSymbols.Rounded.Checklist
                 ) {
-                    PatchEntryList(entries)
+                    PatchEntryList(section.entries)
                 }
-            }
-
-            // Empty state
-            if (entries.isEmpty()) {
-                Notice(
-                    text = stringResource(R.string.settings_system_no_patches_or_options),
-                    tone = SemanticTone.Neutral,
-                    isCentered = true
-                )
             }
         }
     }
 }
 
+/** One source's part of a [PatchDetailsDialog]. */
+private class DetailsSection(val title: String, val count: Int, val entries: List<PatchEntry>)
+
+/** Room an icon button keeps between its touch target and the icon it draws. */
+private val IconButtonIconInset = (48.dp - Defaults.IconSize) / 2
+
+/** How far the header's chevron sits in from its end, centered in the slot of its selection mark. */
+private val HeaderMarkInset = (SelectionMarkSize - Defaults.IconSize) / 2
+
+/**
+ * Room inside an [InfoRow] standing as a row of an app's block on its own, rather than in a panel,
+ * the header's room, so its icon and text line up with the header above. Its end is set so the icon
+ * of its menu button, inside the room the button keeps around it, sits under the header's chevron.
+ */
+private val SegmentRowPadding = PaddingValues(
+    start = Defaults.SpaceLarge,
+    top = Defaults.SpaceLarge,
+    end = Defaults.SpaceLarge + HeaderMarkInset - IconButtonIconInset,
+    bottom = Defaults.SpaceLarge
+)
+
+
 /** The selections of one app from one source, which a reset waits on a confirmation for. */
 private data class ResetTarget(val packageName: String, val bundleUid: Int)
 
-private data class PatchDetailsTarget(
-    val packageName: String,
-    val bundleUid: Int,
+/** What a [PatchDetailsDialog] lists: the selection saved from one source, or a set. */
+private sealed interface PatchDetailsTarget {
+    val packageName: String
     val appDisplayName: String
-)
+
+    data class Source(
+        override val packageName: String,
+        override val appDisplayName: String,
+        val bundleUid: Int
+    ) : PatchDetailsTarget
+
+    data class Set(override val appDisplayName: String, val set: SelectionSetSummary) : PatchDetailsTarget {
+        override val packageName get() = set.packageName
+    }
+}
 
 /** Destination (package + bundle) for a copy-from-another-bundle operation. */
 data class CopyTarget(

@@ -70,6 +70,12 @@
         <item quantity="many">%s źródeł</item>
         <item quantity="other">%s źródeł</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s zestaw</item>
+        <item quantity="few">%s zestawy</item>
+        <item quantity="many">%s zestawów</item>
+        <item quantity="other">%s zestawów</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pakiet</item>
         <item quantity="few">%s pakiety</item>

@@ -48,6 +48,10 @@
         <item quantity="one">%s lähde</item>
         <item quantity="other">%s lähdettä</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s sarja</item>
+        <item quantity="other">%s sarjaa</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s paketti</item>
         <item quantity="other">%s pakettia</item>

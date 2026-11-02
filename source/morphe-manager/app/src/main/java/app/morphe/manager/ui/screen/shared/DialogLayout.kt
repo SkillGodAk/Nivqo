@@ -67,7 +67,11 @@ internal fun DialogLayout(
                 // Blurs the content as the header does, the footer's buttons included
                 CompositionLocalProvider(LocalBackdropHaze provides haze) {
                     when {
-                        bottomBar != null -> Box(modifier = Modifier.dialogBarColumn(split)) {
+                        // Held to the bottom edge, as a page's panels are, see PageScaffold
+                        bottomBar != null -> Box(
+                            modifier = Modifier.dialogBarColumn(split),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
                             bottomBar()
                         }
 

@@ -6,16 +6,21 @@
 package app.morphe.manager.util
 
 import android.app.UiModeManager
+import android.content.ActivityNotFoundException
 import android.content.ContentResolver
+import android.content.ContentValues
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +33,8 @@ import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
 import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.domain.manager.PreferencesManager
+import app.morphe.manager.patcher.patch.PatchBundleInfo
+import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.ui.screen.shared.DialogHost
 import app.morphe.manager.ui.screen.shared.FilePicker
 import app.morphe.manager.ui.screen.shared.UserMessages
@@ -187,29 +194,93 @@ fun rememberFolderPickerWithPermission(
     }
 
     val (permissionContract, permissionName) = remember { fs.permissionContract() }
+    val messages: UserMessages = koinInject()
+
+    val openPicker = {
+        if (useCustomPicker || isTV) showPickerState.value = true
+        else folderPickerLauncher.launch(null)
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = permissionContract
     ) { granted ->
-        if (granted) {
-            if (useCustomPicker || isTV) showPickerState.value = true
-            else folderPickerLauncher.launch(null)
-        }
+        if (granted) openPicker()
     }
 
     return remember(isTV, useCustomPicker) {
         {
             when {
-                useCustomPicker || isTV -> {
-                    if (fs.hasStoragePermission()) showPickerState.value = true
-                    else permissionLauncher.launch(permissionName)
-                }
-                fs.hasStoragePermission() -> folderPickerLauncher.launch(null)
-                else -> permissionLauncher.launch(permissionName)
+                fs.hasStoragePermission() -> openPicker()
+                // No system picker to fall back on, as the patcher reads the folder by path and needs the access
+                !permissionLauncher.tryLaunch(permissionName) -> messages.showStorageAccessUnavailable(context)
             }
         }
     }
 }
+
+/** Launches with [input], false when no activity on the device handles the request. */
+internal fun <I> ActivityResultLauncher<I>.tryLaunch(input: I): Boolean = try {
+    launch(input)
+    true
+} catch (_: ActivityNotFoundException) {
+    false
+}
+
+/** Tells the user how to allow all-files access where the system has no screen for it, as on some TV builds. */
+private fun UserMessages.showStorageAccessUnavailable(context: Context) =
+    show(R.string.file_picker_storage_access_unavailable, context.packageName, long = true)
+
+/**
+ * Asks where a new [mimeType] file goes, offering it under the name it is called with, and hands
+ * [onTarget] the place picked. Where the system has no screen to ask on, as on TV, the file is
+ * made in Downloads under that name instead, and the user is told what it is called there.
+ */
+@Composable
+fun rememberDocumentSaver(mimeType: String, onTarget: (Uri) -> Unit): (String) -> Unit {
+    val context = LocalContext.current
+    val isTV = remember { context.isAndroidTv() }
+    val messages: UserMessages = koinInject()
+    val currentOnTarget by rememberUpdatedState(onTarget)
+    val contract = remember(mimeType) { ActivityResultContracts.CreateDocument(mimeType) }
+    val launcher = rememberLauncherForActivityResult(contract) { uri -> uri?.let(currentOnTarget) }
+
+    return remember(isTV, launcher, mimeType) {
+        { name ->
+            if (isTV || !launcher.tryLaunch(name)) {
+                val target = context.newDownloadsFile(name, mimeType)
+                if (target == null) {
+                    messages.show(R.string.file_saver_downloads_failed)
+                } else {
+                    // MediaStore can rename the file, as it does to keep names unique
+                    val savedName = target.displayName(context.contentResolver) ?: name
+                    messages.show(R.string.file_saver_saving_to_downloads, savedName, long = true)
+                    currentOnTarget(target)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A new file in the public Downloads folder, named [name] or a free variant of it. MediaStore
+ * needs no storage access from Android 10, older versions write the folder directly.
+ */
+private fun Context.newDownloadsFile(name: String, mimeType: String): Uri? = runCatching {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val values = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, name)
+            // A wildcard only says what the save screen lists, MediaStore wants a real type
+            put(MediaStore.Downloads.MIME_TYPE, mimeType.takeUnless { '*' in it } ?: BIN_MIMETYPE)
+            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+        }
+        contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+    } else {
+        @Suppress("DEPRECATION")
+        val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        dir.mkdirs()
+        Uri.fromFile(File(dir, name))
+    }
+}.onFailure { Log.e(tag, "Could not create $name in Downloads", it) }.getOrNull()
 
 /**
  * A path-valued patch option that cannot be used for the run.
@@ -225,15 +296,32 @@ data class PathValidationResult(
         Missing,
 
         /** The app cannot read the path, either because of its own access or the storage it is on. */
-        NotReadable
+        NotReadable,
+
+        /** The patch does not take what is there, such as a folder without the files it asks for. */
+        Rejected
     }
 }
 
-/** Every option value that is an absolute path the app cannot use, empty when all of them can be. */
-fun validateOptionPaths(options: Map<Int, Map<String, Map<String, Any?>>>): List<PathValidationResult> {
+/**
+ * Every option value that is an absolute path the app cannot use, empty when all of them can be.
+ * A path the app can read is still put to the check its option declares in [bundles], as only
+ * the patch knows what the path has to hold.
+ */
+fun validateOptionPaths(
+    options: Map<Int, Map<String, Map<String, Any?>>>,
+    bundles: Collection<PatchBundleInfo>,
+    packageName: String
+): List<PathValidationResult> {
+    // Patches for different apps can share a name, such as Change header for YouTube and Music,
+    // and each declares its own check
+    val patchesByBundle = bundles.associate { bundle ->
+        bundle.uid to bundle.patches.filter { it.compatibleWith(packageName) }.associateBy(PatchInfo::name)
+    }
     val failures = mutableListOf<PathValidationResult>()
-    for ((_, patchOptions) in options) {
+    for ((bundleUid, patchOptions) in options) {
         for ((patchName, keyValues) in patchOptions) {
+            val declared = patchesByBundle[bundleUid]?.get(patchName)?.options.orEmpty()
             for ((optionKey, value) in keyValues) {
                 // Only validate String values that look like absolute paths.
                 val raw = value as? String ?: continue
@@ -241,7 +329,9 @@ fun validateOptionPaths(options: Map<Int, Map<String, Map<String, Any?>>>): List
 
                 val file = File(raw)
                 val reason = when {
-                    file.canRead() -> null
+                    file.canRead() -> PathValidationResult.Reason.Rejected.takeIf {
+                        declared.firstOrNull { it.key == optionKey }?.accepts(raw) == false
+                    }
                     file.exists() -> PathValidationResult.Reason.NotReadable
                     // A deleted folder and one hidden by missing storage access both read as
                     // absent, so the folder it sits in is what tells the two apart
@@ -400,16 +490,20 @@ private fun rememberAdaptivePicker(
         )
     }
 
+    val messages: UserMessages = koinInject()
+    val systemLauncher = if (multiple) multipleLauncher else singleLauncher
+    val systemPickerType = if (mimeTypes.size == 1) mimeTypes[0] else "*/*"
+
     return remember(isTV, useCustomPicker, multiple) {
         {
             when {
-                useCustomPicker || isTV -> {
-                    if (fs.hasStoragePermission()) showPickerState.value = true
-                    else permissionLauncher.launch(permissionName)
-                }
-                else -> {
-                    val type = if (mimeTypes.size == 1) mimeTypes[0] else "*/*"
-                    if (multiple) multipleLauncher.launch(type) else singleLauncher.launch(type)
+                !useCustomPicker && !isTV -> systemLauncher.launch(systemPickerType)
+                fs.hasStoragePermission() -> showPickerState.value = true
+                permissionLauncher.tryLaunch(permissionName) -> Unit
+                // Without a screen to allow all-files access on, a file manager can still hand the file over
+                !systemLauncher.tryLaunch(systemPickerType) -> {
+                    messages.showStorageAccessUnavailable(context)
+                    onResult(emptyList())
                 }
             }
         }

@@ -138,8 +138,16 @@ class InstallerManager(
     fun getPrimaryToken(): Token = parseToken(prefs.installerPrimary.getBlocking())
 
     /**
+     * Whether the installer prompt is answered before patching, which a rooted device does by
+     * choosing between a mount and a standard install. Anywhere else it comes after patching.
+     */
+    suspend fun promptsBeforePatching(): Boolean =
+        prefs.promptInstallerOnInstall.get() && rootInstaller.isDeviceRooted()
+
+    /**
      * Whether an install started right after patching reaches the user on its own, either
-     * silently or through a confirmation the installer knows how to put in front of them.
+     * silently or through a confirmation the installer knows how to put in front of them. A
+     * standard install chosen before patching goes through the default installer.
      *
      * @param mount Whether the build is mounted rather than installed, which root does without
      *   any installer.
@@ -147,7 +155,8 @@ class InstallerManager(
     suspend fun autoInstallAllowed(targetPackageName: String, mount: Boolean): Boolean {
         if (!prefs.autoInstallAfterPatching.get()) return false
         if (mount) return true
-        if (prefs.promptInstallerOnInstall.get()) return false
+        // A prompt still to come after patching needs the user there to answer it
+        if (prefs.promptInstallerOnInstall.get() && !promptsBeforePatching()) return false
 
         return when (val token = parseToken(prefs.installerPrimary.get())) {
             // Both go through a system session, which only updates an app silently in some cases

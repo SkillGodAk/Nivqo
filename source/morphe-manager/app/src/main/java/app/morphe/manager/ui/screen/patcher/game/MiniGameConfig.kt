@@ -495,15 +495,13 @@ internal fun GameScoreRow(
         ActionPillButton(
             onClick = onRestart,
             icon = MaterialSymbols.Rounded.Refresh,
-            contentDescription = restart,
-            tooltip = restart
+            contentDescription = restart
         )
         val changeGame = stringResource(R.string.mini_game_change)
         ActionPillButton(
             onClick = onChangeGame,
             icon = MaterialSymbols.Rounded.Sports_esports,
-            contentDescription = changeGame,
-            tooltip = changeGame
+            contentDescription = changeGame
         )
     }
 }

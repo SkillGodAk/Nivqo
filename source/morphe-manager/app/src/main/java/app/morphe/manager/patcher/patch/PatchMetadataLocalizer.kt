@@ -28,6 +28,43 @@ object PatchMetadataLocalizer {
     )
 
     private val zh = mapOf(
+        // Nivqo localized patch descriptions for November 2026 formal Hush cores
+        "Local profile counts" to Zh(
+            "自訂個人檔案數字",
+            "在自己手機的個人檔案上顯示自訂好友、粉絲與追蹤人數，不會更動 Facebook 伺服器上的真實資料。"
+        ),
+        "Round stories tray" to Zh(
+            "圓形限時動態列",
+            "將首頁限時動態縮圖改成圓形排列，可自訂縮圖大小。"
+        ),
+        "Search date range" to Zh(
+            "搜尋日期範圍",
+            "搜尋貼文時可選擇開始與結束月份，縮小貼文日期範圍。"
+        ),
+        "See who shared" to Zh(
+            "查看誰分享了貼文",
+            "在貼文選單新增查看分享者的選項，開啟 Facebook 原本的分享人員清單。"
+        ),
+        "Android Auto messages" to Zh(
+            "Android Auto 訊息支援",
+            "讓 Android Auto 朗讀 Messenger 訊息，並透過語音輸入回覆。"
+        ),
+        "GmsCore support" to Zh(
+            "GmsCore 通知支援",
+            "讓使用 microG-RE 的手機透過 GmsCore 收到 Messenger 推播；一般 Google Play 服務手機請勿勾選。"
+        ),
+        "Hide the Instants button" to Zh(
+            "隱藏 Instants 按鈕",
+            "隱藏聊天列表及聊天標題附近的 Instants 加號按鈕。"
+        ),
+        "Put gallery picks in the chat" to Zh(
+            "相簿選取項目直接進入聊天",
+            "使用系統相簿挑選照片或影片後，直接加入原本聊天的輸入欄，不跳到額外的傳送頁面。"
+        ),
+        "Save voice messages you play" to Zh(
+            "儲存播放過的語音訊息",
+            "播放語音訊息時，同步儲存音訊檔至手機的 Recordings/Messenger 資料夾。"
+        ),
         // Nivqo translations for the formal October 28 upstream sync (Manager 2.2 / FB 0.19 / MSG 0.27)
         "Badge and logo colors" to Zh(
             "徽章與標誌顏色",

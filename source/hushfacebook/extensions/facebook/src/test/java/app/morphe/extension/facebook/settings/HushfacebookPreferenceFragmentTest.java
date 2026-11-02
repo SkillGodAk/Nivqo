@@ -1209,13 +1209,21 @@ public class HushfacebookPreferenceFragmentTest {
             controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
             List<Preference> rows = new ArrayList<>();
             collect(page.getPreferenceScreen(), rows);
-            // Right under the status card and the section jump: the heading, the switch, then the list.
+            // Right under the status card and the section jump: the heading, the opening pause and
+            // its length, Take breaks and its two lists, the switch, then the list.
             assertEquals("Jump to a section", String.valueOf(page.getPreferenceScreen().getPreference(1).getTitle()));
             assertEquals("Opening Facebook", String.valueOf(page.getPreferenceScreen().getPreference(2).getTitle()));
-            assertEquals(Settings.OPEN_ON_CHOSEN_TAB.key, rows.get(2).getKey());
-            assertEquals("Open on a chosen tab", String.valueOf(rows.get(2).getTitle()));
-            assertTrue(rows.get(3) instanceof ValueRows.StartTabRow);
-            ValueRows.StartTabRow start = (ValueRows.StartTabRow) rows.get(3);
+            assertEquals(Settings.OPENING_PAUSE.key, rows.get(2).getKey());
+            assertTrue(rows.get(3) instanceof ValueRows.PauseLengthRow);
+            assertFalse("the length works with the pause off", rows.get(3).isEnabled());
+            assertEquals(Settings.TAKE_BREAKS.key, rows.get(4).getKey());
+            assertEquals(Settings.BREAK_AFTER.key, rows.get(5).getKey());
+            assertEquals(Settings.BREAK_LENGTH.key, rows.get(6).getKey());
+            assertFalse("the break lists work with Take breaks off", rows.get(5).isEnabled() || rows.get(6).isEnabled());
+            assertEquals(Settings.OPEN_ON_CHOSEN_TAB.key, rows.get(7).getKey());
+            assertEquals("Open on a chosen tab", String.valueOf(rows.get(7).getTitle()));
+            assertTrue(rows.get(8) instanceof ValueRows.StartTabRow);
+            ValueRows.StartTabRow start = (ValueRows.StartTabRow) rows.get(8);
             assertEquals(Settings.START_TAB.key, start.getKey());
             assertEquals("Tab to open on", String.valueOf(start.getTitle()));
 
@@ -1274,9 +1282,9 @@ public class HushfacebookPreferenceFragmentTest {
             controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
             List<Preference> rows = new ArrayList<>();
             collect(page.getPreferenceScreen(), rows);
-            assertTrue(rows.get(3) instanceof ValueRows.StartTabRow);
-            assertTrue(rows.get(4) instanceof ValueRows.FeedsSubtabRow);
-            ValueRows.FeedsSubtabRow subtab = (ValueRows.FeedsSubtabRow) rows.get(4);
+            assertTrue(rows.get(8) instanceof ValueRows.StartTabRow);
+            assertTrue(rows.get(9) instanceof ValueRows.FeedsSubtabRow);
+            ValueRows.FeedsSubtabRow subtab = (ValueRows.FeedsSubtabRow) rows.get(9);
             assertEquals(Settings.FEEDS_SUBTAB.key, subtab.getKey());
             assertEquals("Feeds opens on", String.valueOf(subtab.getTitle()));
 
@@ -1414,7 +1422,7 @@ public class HushfacebookPreferenceFragmentTest {
 
             List<String> entries = new ArrayList<>();
             for (CharSequence entry : order.getEntries()) entries.add(String.valueOf(entry));
-            assertEquals(Arrays.asList("Facebook's choice", "Most relevant", "Newest", "All comments"), entries);
+            assertEquals(Arrays.asList("Facebook's choice", "Most relevant", "Newest", "All comments", "Oldest"), entries);
             List<String> values = new ArrayList<>();
             for (CharSequence value : order.getEntryValues()) values.add(String.valueOf(value));
             List<String> names = new ArrayList<>();
@@ -1951,6 +1959,54 @@ public class HushfacebookPreferenceFragmentTest {
             assertTrue(String.valueOf(noLimit.getSummary()).endsWith("to use this."));
         } finally {
             Settings.RETURN_REFRESH_NO_LIMIT.resetToDefault();
+        }
+    }
+
+    /** #247: Back leaves Home where it is follows No time limit and works with Keep feed position on return off. */
+    @Test
+    public void backLeavesHomeWhereItIsStandsOnItsOwn() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.RETURN_REFRESH);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            int noLimitAt = indexOfKey(rows, Settings.RETURN_REFRESH_NO_LIMIT.key);
+            SwitchPreference back = (SwitchPreference) rows.get(noLimitAt + 1);
+            assertEquals(Settings.BACK_KEEPS_HOME.key, back.getKey());
+            assertEquals("Back leaves Home where it is", String.valueOf(back.getTitle()));
+            assertEquals("Pressing Back on a scrolled Home no longer jumps to the top and reloads the feed. "
+                    + "Press Back again within two seconds to do that.", String.valueOf(back.getSummary()));
+            assertFalse(Settings.BLOCK_RETURN_REFRESH.savedValue());
+            assertTrue("Back leaves Home where it is is greyed out with Keep feed position on return off", back.isEnabled());
+            assertFalse("it starts on", back.isChecked());
+
+            back.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(Settings.BACK_KEEPS_HOME.savedValue());
+            assertFalse("turning it on turned Keep feed position on return on", Settings.BLOCK_RETURN_REFRESH.savedValue());
+        } finally {
+            Settings.BACK_KEEPS_HOME.resetToDefault();
+        }
+    }
+
+    /** #238: Speed on finished live videos follows Slower speeds and starts on. */
+    @Test
+    public void speedOnFinishedLiveVideosFollowsSlowerSpeeds() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.KEEP_REEL_SPEED);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(controller);
+            int slowerAt = indexOfKey(rows, Settings.SLOWER_REEL_SPEEDS.key);
+            SwitchPreference replays = (SwitchPreference) rows.get(slowerAt + 1);
+            assertEquals(Settings.SPEED_ON_REPLAYS.key, replays.getKey());
+            assertEquals("Speed on finished live videos", String.valueOf(replays.getTitle()));
+            assertEquals("A live video that has ended gets Playback speed in its gear menu, like other videos. "
+                    + "Videos that are still live, and ads, keep Facebook's menu.", String.valueOf(replays.getSummary()));
+            assertTrue("it starts on", replays.isChecked());
+            assertTrue(replays.isEnabled());
+
+            replays.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(Settings.SPEED_ON_REPLAYS.savedValue());
+        } finally {
+            Settings.SPEED_ON_REPLAYS.resetToDefault();
         }
     }
 

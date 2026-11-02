@@ -5,16 +5,52 @@
         <item quantity="other">%s پینەکان</item>
     </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s کتێبخانە</item>
+        <item quantity="other">%s کتێبخانەکان</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s هەڵبژاردەی پینە</item>
         <item quantity="other">%s هەڵبژاردەکانی پینە</item>
     </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s بابەت</item>
+        <item quantity="other">%s بابەت</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%s فایل هەڵبژێرە</item>
+        <item quantity="other">%s فایل هەڵبژێرە</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">زیادکردنی %s سەرچاوە</item>
+        <item quantity="other">زیادکردنی %s سەرچاوە</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">سەرچاوەکانی پین بۆ %s ئەپ</item>
+        <item quantity="other">سەرچاوەکانی پین بۆ %s ئەپ</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">سورسەکانی %s بۆ ئەم ئەپە شاردراونەتەوە. ئەپەکە لە بەشی Apps هەڵبژێرە و Patch sources بکەرەوە بۆ ئەوەی بیگەڕێنیتەوە</item>
+        <item quantity="other">سورسەکانی %s بۆ ئەم ئەپە شاردراونەتەوە. ئەپەکە لە بەشی Apps هەڵبژێرە و Patch sources بکەرەوە بۆ ئەوەی بیگەڕێنیتەوە</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">سەرچاوەی %s شاردراوەتەوە. کلیک بکە بۆ پیشاندانی</item>
+        <item quantity="other">%s سەرچاوە شاراوەن. کلیک بکە بۆ پیشاندان</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s پینی گونجاو</item>
+        <item quantity="other">%s پینی گونجاو</item>
+    </plurals>
     <plurals name="source_count">
         <item quantity="one">%s سەرچاوە</item>
         <item quantity="other">%s سەرچاوەکان</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s دان هەڵبژێردراوە</item>
+        <item quantity="other">%s کۆمەڵ</item>
     </plurals>
     <plurals name="package_count">
         <item quantity="one">%s پاکەت</item>
@@ -32,6 +68,42 @@
         <item quantity="one">بەرنامەی %s دامەزراو</item>
         <item quantity="other">بەرنامە %s دامەزێنراوەکان</item>
     </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">ماونتکرانی %s ئەپ</item>
+        <item quantity="other">ماونتکرانی %s ئەپ</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">بەرنامەی %s دووبارە دامەزراوە</item>
+        <item quantity="other">%s بەرنامەیان دووبارە دامەزراوە</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">بەرنامەی %s لابرراوە</item>
+        <item quantity="other">%s بەرنامەیان لابرراوە</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">سڕینەوەی بەرنامەی %s؟</item>
+        <item quantity="other">سڕینەوەی %s بەرنامە؟</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s بەرنامە ئامادەیە بۆ پاتچ کردن</item>
+        <item quantity="other">%s بەرنامە ئامادەن بۆ پاتچ کردن</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s ئەپ لە ڕیزبەندی چاککردنەکاندایە</item>
+        <item quantity="other">%s ئەپ لە ڕیزبەندی چاککردنەکاندایە</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s ئاگادارکردنەوەی شاراوە، کلیک بکە بۆ پیشاندانی</item>
+        <item quantity="other">%s ئاگادارکردنەوەی شاردراوە، کلیک بکە بۆ پیشاندانیان</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s ئەپ دەکرێت دووبارە پاتچ بکرێتەوە</item>
+        <item quantity="other">%s ئەپ دەکرێت دووبارە پاتچ بکرێنەوە</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s بەرنامە پشتگوێ خرا</item>
+        <item quantity="other">%s ئەپ بەجێهێژرا</item>
+    </plurals>
     <plurals name="home_app_info_repatch_cleaned_invalid_data">
         <item quantity="one">سڕینەوەی %s پینەی بەسەرچوو لە هەڵبژاردنی پاشەکەوتکراوەوە</item>
         <item quantity="other">سڕینەوەی %s پینەکانی بەسەرچوو لە هەڵبژاردنی پاشەکەوتکراوەوە</item>
@@ -39,6 +111,18 @@
     <plurals name="sources_management_subtitle">
         <item quantity="one">%s سەرچاوە دابەزێندرا</item>
         <item quantity="other">%s سەرچاوەکان دابەزێندران</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s ئەپ شاردراوەتەوە</item>
+        <item quantity="other">%s ئەپ شاردراوەتەوە</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s ئەپ نیشان دراوە</item>
+        <item quantity="other">%s ئەپ نیشان دراوە</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">نیشاندانی %s ئەپەکە؟</item>
+        <item quantity="other">نیشاندانی %s ئەپەکان؟</item>
     </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s ئەپ شاراوە</item>
@@ -48,9 +132,45 @@
         <item quantity="one">%s بەرنامە</item>
         <item quantity="other">%s بەرنامەکان</item>
     </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s هەڵبژێردراوە</item>
+        <item quantity="other">%s هەڵبژێردراوە</item>
+    </plurals>
     <plurals name="expert_mode_copy_from_bundle_done">
         <item quantity="one">پینە %s لە باندڵی هەڵبژێردراوەوە کۆپی کراوە</item>
         <item quantity="other">پینەکان %s لە باندڵی هەڵبژێردراوەوە کۆپی کراون</item>
     </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s کڕۆکێک</item>
+        <item quantity="other">%s کڕۆکەکان</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s تایبەتمەندی</item>
+        <item quantity="other">%s تایبەتمەندی</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s چاککردن</item>
+        <item quantity="other">%s چاککردن</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s باشترکردن</item>
+        <item quantity="other">%s باشترکردن</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s گۆڕانکاری</item>
+        <item quantity="other">%s گۆڕانکاری</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d نوێ</item>
+        <item quantity="other">%1$s · %2$d نوێ</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s بڵاوکراوەی نوێ</item>
+        <item quantity="other">%s بڵاوکراوەی نوێ</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d لینکێکی پشتڕاستنەکراو</item>
+        <item quantity="other">%d لینکی پشتڕاستنەکراو</item>
+    </plurals>
 </resources>

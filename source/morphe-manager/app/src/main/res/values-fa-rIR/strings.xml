@@ -8,17 +8,17 @@
     <string name="home_unpatched_badge">پچ‌نشده</string>
     <string name="home_no_patches_available">هیچ پچی در دسترس نیست</string>
     <string name="home_app_hide_title">این برنامه پنهان شود؟ </string>
-    <string name="home_more_apps_title">برنامه‌های بیشتر</string>
-    <string name="home_more_apps_hide_title">این کارت پنهان شود؟</string>
-    <string name="home_more_apps_hide_message">هر زمان که بخواهید می‌توانید آن را از مسیر تنظیمات &gt; ظاهر &gt; صفحه اصلی بازگردانید</string>
+    <string name="home_more_apps_title">More apps</string>
+    <string name="home_more_apps_hide_title">Hide this card?</string>
+    <string name="home_more_apps_hide_message">You can bring it back anytime in Settings &gt; Appearance &gt; Home screen</string>
     <string name="home_app_hide_message">این برنامه از صفحهٔ اصلی پنهان خواهد شد. بعداً می‌توانید آن را با دکمهٔ انتهای فهرست، از بخش برنامه‌های پنهان بازیابی کنید.</string>
     <string name="home_app_will_be_hidden">این برنامه پنهان خواهد شد</string>
-    <string name="home_app_hidden_named">%s پنهان</string>
-    <string name="home_app_shown_named">%s نمایش داده شد</string>
+    <string name="home_app_hidden_named">%s hidden</string>
+    <string name="home_app_shown_named">%s shown</string>
     <string name="home_app_no_hidden">هیچ برنامهٔ پنهانی وجود ندارد</string>
     <string name="home_app_hidden_apps_title">برنامه‌های پنهان</string>
     <string name="home_app_hidden_apps_hint">برای آشکارسازی ضربه بزنید</string>
-    <string name="home_apps_unhide_message">اپلیکیشن‌های پنهان‌شده به صفحه اصلی باز می‌گردند</string>
+    <string name="home_apps_unhide_message">Unhidden apps return to the home screen</string>
     <string name="home_app_patch_sources_description">منابعی که تیک نخورده بمانند هنگام پچ کردن این برنامه‌ها ارائه نمی‌شوند و پچ‌های آن‌ها هرگز خودبه‌خود به انتخاب اضافه نمی‌شوند. هر منبع برای سایر برنامه‌ها فعال می‌ماند.</string>
     <string name="home_app_patch_sources_mixed">ارائه‌شده برای %1$s از %2$s</string>
     <string name="home_app_patch_sources_covers">دارای پچ برای %1$s از %2$s</string>
@@ -98,8 +98,10 @@
     <string name="home_category_name">نام دسته</string>
     <string name="home_category_move_to">انتقال به دسته</string>
     <string name="home_category_move_selected_title">انتقال برنامه‌های انتخاب‌شده</string>
-    <string name="home_category_delete_confirm_title">حذف دسته</string>
-    <string name="home_category_delete_confirm_message">دسته‌بندی &lt;b&gt;%1$s&lt;/b&gt; حذف شود؟ برنامه‌های داخل آن به &lt;b&gt;%2$s&lt;/b&gt; بازمی‌گردند</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">حذف %s؟</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">برنامه‌های آن به &lt;b&gt;%s&lt;/b&gt; باز می‌گردند</string>
     <string name="home_category_actions_unavailable">عملیات برای این دسته در دسترس نیست</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">می‌خواهید کدام برنامه را پچ کنید؟</string>
@@ -196,10 +198,14 @@
     <string name="sources_management_prerelease_toggle_description">دسترسی زودهنگام به نسخه‌های آزمایشی جدید پچ را فراهم می‌کند</string>
     <string name="sources_prerelease_warning_title">پچ‌های پیش‌انتشار فعال شوند؟</string>
     <string name="sources_prerelease_warning_message">نسخه‌های پیش‌انتشار هنوز در حال توسعه‌اند. ممکن است پچ‌ها شکست بخورند یا برنامه را خراب کنند و ویژگی‌ها بدون هشدار تغییر کنند</string>
-    <string name="expert_mode_prerelease_notice">این منبع از پچ‌های پیش‌انتشار استفاده می‌کند. ممکن است پچ‌کردن شکست بخورد یا رفتاری غیرمنتظره داشته باشد</string>
-    <string name="expert_mode_experimental_version_notice">این منبع برای این نسخه از برنامه فقط دارای پشتیبانی آزمایشی است. وصله‌های آن ممکن است ناپایدار یا ناقص باشند</string>
+    <string name="expert_mode_unstable_notice">پچ‌های پیش‌انتشار یا آزمایشی ممکن است ناپایدار باشند</string>
     <string name="sources_management_experimental_versions_toggle">نسخه‌های آزمایشی برنامه</string>
     <string name="sources_management_experimental_versions_toggle_description">هدف‌های آزمایشی برنامه را نشان می‌دهد و پچ می‌کند</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">فعال‌سازی پچ‌های پیش‌انتشار</string>
+    <string name="sources_management_prerelease_disable">غیرفعال‌سازی پچ‌های پیش‌انتشار</string>
+    <string name="sources_management_experimental_versions_enable">فعال‌سازی نسخه‌های آزمایشی برنامه</string>
+    <string name="sources_management_experimental_versions_disable">غیرفعال‌سازی نسخه‌های آزمایشی برنامه</string>
     <string name="sources_management_already_exists">این منبع قبلاً اضافه شده است</string>
     <string name="sources_management_invalid_url">نشانی اینترنتی منبع نامعتبر است. لطفاً آدرس را بررسی و دوباره تلاش کنید</string>
     <string name="sources_management_blocked">این منبع پچ مسدود شده و نمی‌توان آن را اضافه کرد</string>
@@ -207,16 +213,21 @@
     <string name="sources_management_metadata_unavailable">فراداده در دسترس نیست</string>
     <string name="sources_management_metadata_unavailable_hint">فایل فرادادهٔ راه دور در دسترس نیست. پچ‌کردن با بستهٔ نصب‌شده همچنان کار می‌کند، اما به‌روزرسانی خودکار برای این منبع غیرفعال است</string>
     <string name="sources_management_metadata_unavailable_hint_missing">بستهٔ پچ قابل دانلود نیست. ممکن است نشانی منبع نادرست باشد یا فایل وجود نداشته باشد</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">بستهٔ پچ قابل دانلود نیست. ممکن است نشانی منبع نادرست باشد یا فایل وجود نداشته باشد. برای تغییر آن ضربه بزنید</string>
     <string name="sources_management_outdated_manager_badge">به‌روزرسانی Morphe</string>
     <string name="sources_management_outdated_manager_hint">این منبع برای پچر %1$s ساخته شده است، اما Morphe %2$s شامل پچر %3$s است. برای استفاده از آن، Morphe را به‌روز کنید</string>
     <string name="sources_management_held_back_badge">از کار افتاد</string>
     <string name="sources_management_held_back_hint">این منبع هنگام بارگذاری باعث از کار افتادن Morphe شد، بنابراین نادیده گرفته می‌شود. برای تلاش دوباره، آن را به‌روزرسانی یا مجدداً وارد کنید</string>
+    <string name="sources_management_signed_by">امضا شده توسط</string>
+    <string name="sources_management_signing_key_changed_badge">کلید تغییر کرده است</string>
+    <string name="sources_management_signing_key_changed_hint">آخرین نسخه توسط کلیدی که این منبع قبلاً استفاده می‌کرد امضا نشده است، بنابراین نصب نشد. برای بررسی آن ضربه بزنید</string>
     <string name="sources_management_source_enabled">منبع فعال شد</string>
     <string name="sources_management_source_disabled">منبع غیرفعال شد</string>
     <string name="sources_management_source_updating">در حال به‌روزرسانی منبع</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">نام نمایشی</string>
     <string name="sources_dialog_rename">تغییر نام منبع پچ</string>
+    <string name="sources_dialog_change_url">تغییر محل دانلود منبع پچ</string>
     <string name="sources_dialog_duplicate_name_error">یک منبع پچ با این نام قبلا وجود دارد</string>
     <string name="sources_dialog_missing_error">نتوانستم منبع این پچ را به روزرسانی کنم</string>
     <string name="sources_dialog_add_source">افزودن منبع پچ</string>
@@ -227,9 +238,6 @@
     <string name="sources_dialog_paste_no_links">هیچ پیوندی در کلیپ‌بورد یافت نشد</string>
     <string name="sources_dialog_local">محلی</string>
     <string name="sources_dialog_local_files">انتخاب فایل‌های منبع پچ</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">افزودن فایل‌های بیشتر</string>
-    <string name="sources_dialog_local_file_tap_hint">برای مرور حافظه، ضربه بزنید</string>
     <string name="sources_dialog_local_invalid_extension">فایل باید پسوند .mpp داشته باشد</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">به‌روزرسانی %s</string>
@@ -237,6 +245,7 @@
     <string name="sources_dialog_url_invalid">نشانی اینترنتی باید به یک مخزن GitHub/GitLab یا فایل .json اشاره کند</string>
     <string name="sources_dialog_preinstalled">پیش نصب شده</string>
     <string name="sources_dialog_community">پچ‌های جامعه</string>
+    <string name="sources_dialog_choose_apps">انتخاب اپلیکیشن‌ها</string>
     <string name="sources_dialog_choose_apps_description">انتخاب کنید کدام‌یک از برنامه‌هایش پس از بارگذاری منبع نگه داشته شوند</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">منابع پچ شخص ثالث</string>
@@ -246,18 +255,25 @@
     <string name="sources_download_fail">دانلود منابع شکست خورد: %s</string>
     <string name="sources_download_fail_named">به‌روزرسانی «%s» ممکن نشد. اتصال اینترنت را بررسی و دوباره تلاش کنید</string>
     <string name="sources_download_endpoint_not_found">«%s»: فرادادهٔ پچ پیدا نشد</string>
+    <string name="sources_signing_key_changed_named">\'%s\' به‌روزرسانی نشد زیرا آخرین نسخه آن توسط کلیدی که قبلاً استفاده می‌کرد امضا نشده است</string>
+    <string name="sources_signing_key_changed_local">این فایل با کلیدی که این منبع قبلاً استفاده می‌کرد، امضا نشده است. برای اعتماد به آن، منبع را حذف کرده و فایل را دوباره اضافه کنید</string>
+    <string name="sources_signing_key_trust_title">به کلید جدید اعتماد کنید؟</string>
+    <string name="sources_signing_key_trust_message">آخرین نسخه با کلید متفاوتی امضا شده است. یا توسعه‌دهنده کلید خود را جایگزین کرده است، یا شخص دیگری این نسخه را منتشر کرده است. تنها در صورتی به آن اعتماد کنید که توسعه‌دهنده کلید جدیدی را اعلام کرده باشد</string>
+    <string name="sources_signing_key_trust_message_unsigned">آخرین نسخه امضا نشده است. یا توسعه‌دهنده امضای نسخه‌ها را متوقف کرده است، یا شخص دیگری این نسخه را منتشر کرده است. تنها در صورتی به آن اعتماد کنید که توسعه‌دهنده آن را اعلام کرده باشد</string>
+    <string name="sources_signing_key_trusted">کلید مورد اعتماد</string>
+    <string name="sources_signing_key_new">کلید جدید</string>
     <string name="sources_patch_expert_badge">حرفه‌ای</string>
     <string name="sources_patch_expert_badge_tooltip">برای افزودن دستی این پچ، حالت حرفه‌ای را در تنظیمات فعال کنید</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">نیاز به کمک برای پیدا کردن یک APK اصلی و بدون پچ دارید؟</string>
+    <string name="home_apk_availability_title">برای پیدا کردن APK نیاز به کمک دارید؟</string>
     <string name="home_apk_availability_dialog_simple">برای پچ &lt;b&gt;%s&lt;/b&gt;، به نسخه APK بدون پچ نیاز دارید:</string>
     <string name="home_apk_availability_dialog_expert">برای پچ کردن &lt;b&gt;%s&lt;/b&gt;;، به یک APK بدون پچ از نسخه ها نیاز دارید:</string>
     <string name="home_apk_availability_recommended_label">توصیه شده </string>
     <string name="home_apk_availability_unpatched_label">پچ نشده</string>
     <string name="home_apk_availability_incompatible_label">ناسازگار</string>
     <string name="home_apk_availability_installed_version">نصب شده روی این دستگاه: %s</string>
-    <string name="home_apk_availability_yes">بله، کمکم کن یک APK پیدا کنم</string>
-    <string name="home_apk_availability_no">نه، من قبلا یک APK دارم</string>
+    <string name="home_apk_availability_find">بله، کمکم کن پیداش کنم</string>
+    <string name="home_apk_availability_have">نه، من قبلاً آن را دارم</string>
     <string name="home_apk_helper_download">استفاده از برنامهٔ کمکی</string>
     <string name="home_apk_helper_untrusted">یک برنامه کمکی نصب شده است اما هنوز قابل اعتماد نیست، بنابراین اینجا پیشنهاد نمی‌شود</string>
     <string name="home_apk_helper_untrusted_action">بررسی کمک‌ها</string>
@@ -273,8 +289,8 @@
     <string name="home_apk_helper_wrong_package">برنامهٔ کمکی برنامه‌ای متفاوت از برنامهٔ در حال پچ را برگرداند</string>
     <string name="home_apk_helper_installed_unavailable">Morphe نتوانست از برنامهٔ نصب‌شده استفاده کند</string>
     <string name="home_apk_helper_installed_incompatible">نسخهٔ نصب‌شده قابل پچ نیست</string>
-    <string name="home_apk_use_saved">استفاده از APK ذخیره‌شده</string>
-    <string name="home_apk_use_installed">استفاده از APK نصب‌شده</string>
+    <string name="home_apk_use_saved_copy">استفاده از نسخه ذخیره‌شده</string>
+    <string name="home_apk_use_installed_app">استفاده از برنامهٔ نصب‌شده</string>
     <string name="home_apk_use_saved_unsupported">پچ‌ها از این نسخهٔ ذخیره‌شده پشتیبانی نمی‌کنند. پچ‌کردن آن از شما تأیید می‌خواهد؛ یا APK دیگری انتخاب کنید</string>
     <string name="home_apk_use_installed_unverified">امضای برنامهٔ نصب‌شده تأیید نشد؛ بنابراین ممکن است از قبل پچ شده باشد</string>
     <string name="home_unverified">تأییدنشده</string>
@@ -310,14 +326,19 @@
     <string name="home_download_instructions_copy_link">کپی پیوند</string>
     <string name="home_download_instructions_link_copied">پیوند کپی شد</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">انتخاب APK دانلود شده</string>
-    <string name="home_file_picker_prompt_description">فایل APK &lt;b&gt;%s&lt;/b&gt; را که همین حالا دانلود کرده‌اید انتخاب کنید</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">APK %s را انتخاب کنید</string>
+    <string name="home_file_picker_prompt_where">مرورگرها معمولاً آن را در پوشه Download ذخیره می‌کنند</string>
     <string name="home_file_picker_prompt_open_apk">فایل APK را باز کنید</string>
     <string name="home_recommended_version">نسخه پیشنهادی</string>
     <string name="home_selected_version">نسخه منتخب</string>
     <string name="home_select_apk_title">انتخاب APK</string>
-    <string name="home_select_any_apk_description">یک فایل APK از هر برنامه‌ای انتخاب کنید، یا برنامه‌ای را که از قبل روی این دستگاه نصب است انتخاب کنید</string>
+    <string name="home_select_apk_description">"پچ‌های جهانی با هر برنامه‌ای کار می‌کنند
+
+انتخاب کنید که APK آن از کجا گرفته شود"</string>
     <string name="home_use_installed_app">استفاده از برنامهٔ نصب‌شده</string>
+    <string name="home_use_installed_app_description">یک برنامه که از قبل روی این دستگاه است را انتخاب کنید</string>
+    <string name="home_open_apk_file_description">یک فایل APK، APKM، APKS یا XAPK را از حافظه انتخاب کنید</string>
     <string name="home_installed_app_picker_title">برنامه‌های نصب‌شده</string>
     <string name="home_installed_app_picker_empty">برنامه‌ای پیدا نشد</string>
     <string name="home_installed_app_picker_filter_user">فقط برنامه‌های کاربر</string>
@@ -330,19 +351,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">جستجوی پچ ها</string>
     <string name="expert_mode_disable_all">غیرفعال کردن همه</string>
-    <string name="expert_mode_disable_all_done">همهٔ پچ‌ها غیرفعال شدند</string>
     <string name="expert_mode_enable_all">فعال کردن همه</string>
-    <string name="expert_mode_enable_all_done">همهٔ پچ‌ها فعال شدند</string>
     <string name="expert_mode_enable_all_universal_pending">برای پچ‌های همگانی دوباره ضربه بزنید</string>
     <string name="expert_mode_universal_all_warning_title">همهٔ پچ‌های همگانی فعال شوند؟</string>
     <string name="expert_mode_universal_all_warning_message">پچ‌های همگانی در کنار یکدیگر آزمایش نشده‌اند. فعال‌کردن همهٔ آن‌ها به‌صورت هم‌زمان ممکن است باعث تداخل، شکست پچ‌کردن یا از کار افتادن برنامه شود</string>
-    <string name="expert_mode_reset_to_default">فعال‌کردن پچ‌های پیشنهادی</string>
+    <string name="expert_mode_recommended">پچ‌های پیشنهادی</string>
     <string name="expert_mode_reset_to_default_done">پچ‌های پیشنهادی اعمال شدند</string>
-    <string name="expert_mode_restore_saved">بازیابی انتخاب ذخیره‌شده</string>
+    <string name="expert_mode_selected_count">%1$s از %2$s انتخاب شده است</string>
+    <string name="expert_mode_saved_selection">انتخاب ذخیره شده</string>
     <string name="expert_mode_restore_saved_done">انتخاب ذخیره‌شده بازیابی شد</string>
-    <string name="expert_mode_copy_from_bundle">کپی انتخاب از بستهٔ دیگر</string>
     <string name="expert_mode_copy_from_bundle_no_patches">پچ منطبقی در این بسته وجود ندارد</string>
     <string name="expert_mode_no_results">هیچ پچی یافت نشد</string>
+    <string name="expert_mode_selected_only">فقط پچ‌های انتخاب‌شده</string>
     <string name="expert_mode_selected_only_on">فقط پچ‌های انتخاب‌شده نمایش داده می‌شوند</string>
     <string name="expert_mode_selected_only_off">همهٔ پچ‌ها نمایش داده می‌شوند</string>
     <string name="expert_mode_universal_patches">پچ‌های جهانی</string>
@@ -351,9 +371,7 @@
     <string name="expert_mode_patch_required_by_installer">برای هدف نصب انتخاب‌شده لازم است</string>
     <string name="expert_mode_patch_unavailable_for_installer">برای هدف نصب انتخاب‌شده در دسترس نیست</string>
     <string name="expert_mode_multiple_sources_warning_title">چند منبع پچ انتخاب شده‌اند</string>
-    <string name="expert_mode_multiple_sources_warning_message">"شما پچ‌هایی را از چند منبع پچ انتخاب کرده‌اید. این ممکن است باعث مشکلات سازگاری یا رفتار غیرمنتظره شود.
-
-آیا مطمئن هستید که می‌خواهید ادامه دهید؟"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">پچ‌های منابع مختلف برای کار با یکدیگر ساخته نشده‌اند و ممکن است باعث تداخل شوند یا برنامه را خراب کنند</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">تأییدنشده APK</string>
     <string name="home_invalid_signature_message">فایل APK که برای &lt;b&gt;%s&lt;/b&gt; انتخاب کرده‌اید، با گواهی امضای موردانتظار مطابقت ندارد. ممکن است این فایل APK نسخهٔ اصلی نباشد.</string>
@@ -367,7 +385,9 @@
     <string name="home_dialog_unsupported_version_experimental_label">آزمایشی</string>
     <string name="home_dialog_unsupported_version_experimental_description">این نسخه از پشتیبانی آزمایشی برخوردار است و ممکن است ناپایدار یا ناقص باشد</string>
     <string name="morphe_experimental_app_version_dialog_title">می‌خواهید آزمایش کنید؟ 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">این نسخه از &lt;b&gt;%s&lt;/b&gt; دارای پشتیبانی آزمایشی اولیه است&lt;br/&gt;&lt;br/&gt;🔧 از آنجایی که پچ‌ها برای این نسخه در حال بهینه‌سازی هستند، احتمال بروز عملکردهای غیرمعمول یا باگ‌های ناشناخته در برنامه وجود دارد.</string>
+    <string name="morphe_experimental_app_version_dialog_message">"این نسخه از &lt;b&gt;%s&lt;/b&gt; دارای پشتیبانی آزمایشی اولیه است
+
+🔧 از آنجایی که پچ‌ها برای این نسخه از برنامه در حال بهینه‌سازی هستند، احتمال بروز عملکردهای غیرمعمول یا باگ‌های ناشناخته در برنامه وجود دارد"</string>
     <string name="home_dialog_unsupported_version_dialog_title">نسخه پشتیبانی نشده</string>
     <string name="home_dialog_unsupported_version_dialog_description">این APK نسخه پیشنهادی برنامه نیست. ادامه ممکن است باعث شود برنامه به درستی کار نکند</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -504,7 +524,8 @@
     <string name="shortcut_check_updates_long">بررسی به‌روزرسانی پچ‌ها</string>
     <string name="shortcut_patch_app">پچ‌کردن %s</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">آیا مطمئنید می‌خواهید این برنامه را حذف کنید؟</string>
+    <string name="home_app_info_uninstall_title">این برنامه حذف شود؟</string>
+    <string name="home_app_info_uninstall_removes_data">برنامه و داده‌های آن از این دستگاه پاک می‌شوند</string>
     <string name="batch_uninstall_confirm_body">برنامه‌های انتخاب‌شده برای همیشه از دستگاه شما حذف می‌شوند</string>
     <string name="home_app_info_remove_app_warning">این موارد برای همیشه حذف می‌شوند:</string>
     <string name="home_app_info_delete_item_database">رکورد پایگاه داده</string>
@@ -643,12 +664,15 @@
     <string name="patcher_storage_permission_open_settings">باز کردن تنظیمات ذخیره‌سازی</string>
     <string name="patcher_storage_badge_denied">مجوز رد شد</string>
     <string name="patcher_storage_badge_missing">پیدا نشد</string>
+    <string name="patcher_storage_badge_rejected">غیرقابل استفاده</string>
     <string name="batch_patch_option_paths_skipped">فایل‌های گزینهٔ پچ وجود ندارند و نادیده گرفته می‌شوند: %1$s</string>
     <string name="patcher_missing_patches_title">برخی از پچ‌ها حذف شده‌اند</string>
     <string name="patcher_missing_patches_description">انتخاب ذخیره‌شده برای این برنامه شامل پچ‌هایی است که دیگر هیچ منبع فعالی ارائه نمی‌دهد. در صورت ادامه، برنامه بدون آن‌ها پچ می‌شود</string>
     <string name="patcher_missing_patches_label">دیگر پیشنهاد نمی‌شود</string>
     <string name="patcher_option_paths_gone_title">فایل‌های گزینهٔ پچ وجود ندارند</string>
     <string name="patcher_option_paths_gone_description">یک یا چند گزینهٔ پچ به فایل‌هایی اشاره می‌کنند که دیگر وجود ندارند. برای پچ کردن بدون آن‌ها، مسیرها را حذف کنید، یا فایل‌ها را به جای خود برگردانید و دوباره تلاش کنید</string>
+    <string name="patcher_option_paths_rejected_title">فایل‌های گزینهٔ پچ نمی‌توانند مورد استفاده قرار گیرند</string>
+    <string name="patcher_option_paths_rejected_description">یک یا چند گزینهٔ پچ به فایل‌هایی اشاره می‌کنند که وجود ندارند یا آنچه را که پچ درخواست می‌کند ندارند. برای پچ کردن بدون آن‌ها مسیرها را حذف کنید، یا فایل‌ها را مطابق دستورالعمل‌های گزینه اصلاح کرده و دوباره تلاش کنید</string>
     <string name="patcher_option_paths_clear">حذف مسیرها و ادامه</string>
     <string name="patcher_storage_permission_hint">نکته: فایل‌ها را به /Android/data/app.morphe.manager/files/ منتقل کنید؛ مجوز اضافی لازم نیست</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -666,8 +690,10 @@
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">پچ‌کردن در حال انجام است…</string>
     <string name="patcher_notification_text">برای بازگشت به پچر ضربه بزنید</string>
-    <string name="patcher_stop_confirm_title">پچر متوقف شود؟</string>
-    <string name="patcher_stop_confirm_description">آیا مطمئنید می‌خواهید فرایند پچ‌کردن را متوقف کنید؟</string>
+    <string name="patcher_stop_title">توقف پچ‌کردن؟</string>
+    <string name="patcher_stop_discards">پیشرفت تا این لحظه نادیده گرفته شده و چیزی نصب نمی‌شود</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">ادامه پچ‌کردن</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">در حال تبدیل برنامه‌تان به چیزی فوق‌العاده… 🏆</string>
     <string name="patcher_message_2">در حال یاد دادن ترفندهای جدید به برنامه‌های قدیمی… 🎩</string>
@@ -811,19 +837,19 @@
     <string name="settings_appearance_more_apps_card_description">یک کارت را زیر برنامه‌ها نمایش می‌دهد که به وصله‌های جامعه منجر می‌شود</string>
     <string name="settings_appearance_app_card_colors">رنگ کارت برنامه‌ها</string>
     <string name="settings_appearance_app_card_colors_default">پیش‌فرض</string>
-    <string name="settings_appearance_app_card_colors_default_description">به هر برنامه رنگ بستهٔ خودش را می‌دهد</string>
+    <string name="settings_appearance_app_card_colors_default_description">برای هر برنامه و منبع، رنگ مخصوص به خود را تعیین کنید</string>
     <string name="settings_appearance_app_card_colors_accent">تأکیدی</string>
-    <string name="settings_appearance_app_card_colors_accent_description">از رنگ تأکیدی برنامه برای کارت‌های برنامه در صفحهٔ اصلی استفاده می‌کند</string>
+    <string name="settings_appearance_app_card_colors_accent_description">از رنگ تأکیدی برنامه برای کارت‌های برنامه و منبع استفاده کنید</string>
     <string name="settings_appearance_app_card_colors_gradient">گرادیان</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">از یک گرادیان سفارشی برای کارت‌های برنامه در صفحهٔ اصلی استفاده می‌کند</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">از یک گرادینت سفارشی برای کارت‌های برنامه و یک رنگ ترکیبی برای کارت‌های منبع استفاده کنید</string>
     <string name="settings_appearance_app_card_colors_solid">یک‌دست</string>
-    <string name="settings_appearance_app_card_colors_solid_description">از یک رنگ سفارشی برای کارت‌های برنامه در صفحهٔ اصلی استفاده می‌کند</string>
+    <string name="settings_appearance_app_card_colors_solid_description">از یک رنگ سفارشی برای کارت‌های برنامه و منبع استفاده کنید</string>
     <string name="settings_appearance_app_card_colors_start">رنگ آغازین</string>
     <string name="settings_appearance_app_card_colors_middle">رنگ میانی</string>
     <string name="settings_appearance_app_card_colors_end">رنگ پایانی</string>
     <string name="settings_appearance_app_card_colors_solid_color">رنگ یک‌دست</string>
     <string name="settings_appearance_app_card_colors_bundle">رنگ بستهٔ برنامه</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">رنگ ویژهٔ هر برنامه را اینجا استفاده می‌کند و برای هماهنگی، به‌طور خودکار سایه می‌دهد</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">رنگ ویژهٔ هر برنامه یا منبع را اینجا استفاده می‌کند و برای هماهنگی، به‌طور خودکار سایه می‌دهد</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">آیکون برنامه</string>
     <string name="settings_appearance_app_icon_selector_description">ظاهر Morphe در صفحه‌ی اصلی و کشوی برنامه‌ها</string>
@@ -849,7 +875,8 @@
     <string name="settings_appearance_app_icon_mark_white">سفید</string>
     <string name="settings_appearance_app_icon_mark_black">سیاه</string>
     <string name="settings_appearance_app_icon_change_dialog_title">آیکون برنامه تغییر کند؟</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">به &lt;b&gt;%s&lt;/b&gt; تغییر کند و دوباره راه‌اندازی شود؟</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe برای تغییر به &lt;b&gt;%s&lt;/b&gt; ری‌استارت می‌شود</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">تغییر آیکون</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1036,6 +1063,8 @@ morphe_header_custom_dark.png
     <string name="installer_play_store_warning_continue">متوجه شدم، ادامه بده</string>
     <string name="installer_play_store_mode">نصب به‌عنوان Play Store</string>
     <string name="installer_play_store_mode_description">علامت‌گذاری Google Play Store به عنوان منبع نصب</string>
+    <string name="settings_nomount_only">فقط NoMount</string>
+    <string name="settings_nomount_only_description">برنامه‌ها را فقط با NoMount مونت می‌کند و هرگز به bind mount باز نمی‌گردد، بنابراین بدون آن بدون مونت باقی می‌مانند</string>
     <string name="settings_prompt_installer_on_install">درخواست انتخاب نصب‌کننده</string>
     <string name="settings_prompt_installer_on_install_description">پرسش درباره نحوه نصب هر برنامه: با روت قبل از پچ‌گذاری، در غیر این صورت بعد از آن</string>
     <string name="settings_auto_install_with_shizuku">نصب خودکار پس از پچ‌کردن</string>
@@ -1205,12 +1234,22 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_success">داده‌های منبع وارد شدند</string>
     <string name="settings_system_selected_patches_section">پچ‌های انتخاب‌شده</string>
     <string name="settings_system_no_patches_or_options">هیچ پچ یا گزینه‌ای ذخیره نشده است</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">کپی انتخاب از…</string>
-    <string name="copy_selection_confirm_with_count">کپی %s</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">انتخاب‌ها</string>
+    <string name="selection_panel_copy_into">کپی در %s</string>
+    <string name="selection_sets_title">مجموعه‌ها</string>
+    <string name="selection_set_name">نام مجموعه</string>
+    <string name="selection_set_save">ذخیره به عنوان مجموعه</string>
+    <string name="selection_set_replace">جایگزینی مجموعه</string>
+    <string name="selection_set_saved">به عنوان %s ذخیره شد</string>
+    <string name="selection_set_applied">تغییر به %s</string>
+    <string name="selection_set_deleted">%s حذف شد</string>
+    <string name="selection_set_renamed">نام به %s تغییر یافت</string>
+    <string name="selection_set_rename_title">تغییر نام مجموعه</string>
+    <string name="selection_set_delete_title">حذف مجموعه؟</string>
+    <string name="selection_set_delete_message">این کار مجموعه %s را برای همیشه حذف می‌کند</string>
     <string name="copy_selection_empty">انتخاب ذخیره‌شدهٔ دیگری برای کپی وجود ندارد</string>
     <string name="copy_selection_available_format">%1$s از %2$s در دسترس است</string>
-    <string name="copy_selection_same_source">همان منبع</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">انتخابگر فایل سفارشی</string>
     <string name="settings_system_custom_file_picker_description">استفاده از انتخابگر فایل داخلی Morphe به جای انتخابگر سیستم</string>
@@ -1219,7 +1258,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_apk_download_helper_trusted_count">مورد اعتماد: %1$d از %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">برنامه‌های کمکی می‌توانند APKهای اصلی را برای شما دانلود کنند. فقط آن‌هایی که در اینجا به آن‌ها اعتماد دارید در دستورالعمل‌های دانلود ارائه می‌شوند</string>
     <string name="settings_system_apk_download_helper_trust_title">به این کمکی اعتماد دارید؟</string>
-    <string name="settings_system_apk_download_helper_trust">اعتماد</string>
     <string name="settings_system_apk_download_helper_warning">APK از برنامهٔ کمکی دریافت می‌شود، پس فقط به برنامه‌هایی اعتماد کنید که می‌شناسید. Morphe همچنان بسته، نسخه و امضای هر فایل را پیش از پچ کردن بررسی می‌کند</string>
     <string name="settings_system_apk_download_helper_installed_by">نصب‌شده توسط %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">نصب‌کننده ناشناس</string>
@@ -1231,7 +1269,12 @@ morphe_header_custom_dark.png
     <string name="file_picker_internal_storage">حافظهٔ داخلی</string>
     <string name="file_picker_sd_card">کارت SD</string>
     <string name="file_picker_root">ریشه (/) </string>
+    <string name="file_picker_storage_access_unavailable">این دستگاه صفحه‌ای برای اجازه دسترسی به همه فایل‌ها ندارد. دسترسی را از طریق ADB با دستور زیر فعال کنید:
+
+adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">حافظه‌ها</string>
+    <string name="file_saver_downloads_failed">امکان ایجاد فایل در پوشه Downloads وجود نداشت</string>
+    <string name="file_saver_saving_to_downloads">این دستگاه صفحه‌ی ذخیره‌سازی ندارد، بنابراین فایل با نام %1$s در پوشه Downloads ذخیره می‌شود</string>
     <string name="file_picker_sort_name_asc">نام (A–Z)</string>
     <string name="file_picker_sort_name_desc">نام (Z–A)</string>
     <string name="file_picker_sort_size_desc">اندازه (بزرگ‌ترین ابتدا)</string>
@@ -1314,6 +1357,7 @@ morphe_header_custom_dark.png
     <string name="include">گنجاندن</string>
     <string name="disable">غیرفعال‌کردن</string>
     <string name="enable">فعال‌کردن</string>
+    <string name="trust">اعتماد</string>
     <string name="loading">در حال بارگذاری…</string>
     <string name="creating">در حال ساخت…</string>
     <string name="processing_apk">در حال پردازش APK…</string>
@@ -1335,6 +1379,8 @@ morphe_header_custom_dark.png
     <string name="reorder_done">ترتیب ذخیره شد</string>
     <string name="reset_order">بازنشانی ترتیب</string>
     <string name="reset_order_done">ترتیب بازنشانی شد</string>
+    <string name="reset_order_confirm_title">بازنشانی ترتیب؟</string>
+    <string name="reset_order_confirm_message">لیست به ترتیب پیش‌فرض خود باز می‌گردد و ترتیبی که به صورت دستی تغییر یافته است، از بین می‌رود</string>
     <string name="accessibility_select_app">انتخاب برنامه</string>
     <string name="accessibility_select_source">انتخاب منبع</string>
     <string name="accessibility_move_up">حرکت به بالا</string>
@@ -1342,6 +1388,7 @@ morphe_header_custom_dark.png
     <string name="accessibility_app_moved_announcement">%1$s به جایگاه %2$s از %3$s منتقل شد</string>
     <string name="accessibility_scroll_to_top">پیمایش به بالای فهرست</string>
     <string name="rename">تغییر نام</string>
+    <string name="more_options">گزینه‌های بیشتر</string>
     <string name="import_">واردکردن</string>
     <string name="export">خروجی‌گرفتن</string>
     <string name="copy">کپی</string>
@@ -1386,6 +1433,7 @@ morphe_header_custom_dark.png
     <string name="show_all">نمایش همه</string>
     <string name="ignore">نادیده‌گرفتن</string>
     <string name="stop_ignoring">نادیده گرفتن را متوقف کن</string>
+    <string name="stop">توقف</string>
     <string name="logs">گزارش‌ها</string>
     <string name="sources">منابع</string>
     <string name="installing_ellipsis">در حال نصب…</string>
@@ -1479,7 +1527,7 @@ morphe_header_custom_dark.png
     <string name="sources_apps_leave_out">کنار بگذار</string>
     <string name="sources_apps_leave_out_done">کنار گذاشته شد</string>
     <string name="sources_apps_bring_back">بازگردان</string>
-    <string name="sources_dialog_choose_apps">انتخاب برنامه‌ها</string>
+
     <string name="hex_color">رنگ شش ضلعی </string>
     <string name="patcher_memory_adjustment_title">حافظه کافی نیست</string>
     <string name="patcher_memory_adjustment_description">سیستم هنگام اجرای پچر با محدودیت حافظهٔ %1$d مگابایت، آن را متوقف کرد. کاهش محدودیت به %2$d مگابایت هدف کوچک‌تری برای سیستم ایجاد می‌کند و ممکن است اجرا را به پایان برساند</string>

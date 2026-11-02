@@ -19,6 +19,7 @@ import android.os.Process
 import android.os.RemoteException
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.work.ForegroundInfo
 import app.morphe.manager.BuildConfig
 import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.domain.manager.PreferencesManager
@@ -143,7 +144,7 @@ class PatcherProcesses(
 
     /**
      * Patches on [vm] with the request written to [requestFile], which takes [bundles], reporting
-     * the run to [logger] and [listener].
+     * the run to [logger] and [listener]. Its process holds [foreground] while the run lasts.
      *
      * @throws JvmUnavailableException If the JVM could not be started, before anything was patched.
      * @throws PatcherKilledException If the process ended in the middle of the run.
@@ -154,9 +155,10 @@ class PatcherProcesses(
         requestFile: File,
         bundles: List<String>,
         vm: PatcherVm,
+        foreground: ForegroundInfo,
         logger: Logger,
         listener: PatchingListener
-    ) = take(bundles, vm).use { it.run(requestFile, logger, listener) }
+    ) = take(bundles, vm).use { it.run(requestFile, foreground, logger, listener) }
 
     /**
      * A process for a run on [vm] that patches with [bundles]: the one started ahead while it is
@@ -238,6 +240,8 @@ class PatcherProcesses(
         "-Djava.class.path=${installed.hostJar}",
         // The JVM falls back to /tmp, which an app cannot write to
         "-Djava.io.tmpdir=${fs.tempDir}",
+        // Patches that ship a JNI library load it from an unnamed module
+        "--enable-native-access=ALL-UNNAMED",
         // Leaves the signals ART relies on to ART, such as the one that dumps its threads
         "-Xrs",
         // Nothing reads the performance counters, which would otherwise be kept in a file of their own
@@ -248,11 +252,15 @@ class PatcherProcesses(
 
     /**
      * The options that tune the JVM to the process, and last those of a debug build, so a flag
-     * given again there wins.
+     * given again there wins. A 64-bit process runs JDK 25 and a 32-bit one JDK 17, see
+     * embeddedJvms of the app.
      */
     private suspend fun jvmTuning() = (if (Process.is64Bit()) listOf(
         // C1 only. A run is too short for C2 to pay off, and its compiles take cores the run needs
-        "-XX:TieredStopAtLevel=1"
+        "-XX:TieredStopAtLevel=1",
+        // 8 byte object headers instead of 12. A run keeps millions of small objects alive, and
+        // smaller ones leave the heap and the collector less to do
+        "-XX:+UseCompactObjectHeaders"
     ) else listOf(
         // The simplest collector, with no threads of its own, on a port that runs few others. A
         // 32-bit JVM is the client VM, which only has C1 to begin with
@@ -311,8 +319,9 @@ class PatcherProcesses(
             writer.flush()
         }
 
-        suspend fun run(requestFile: File, logger: Logger, listener: PatchingListener) {
+        suspend fun run(requestFile: File, foreground: ForegroundInfo, logger: Logger, listener: PatchingListener) {
             logDescription(logger)
+            holdForeground(foreground)
             try {
                 send(HostCommand.Run(requestFile.path))
             } catch (_: IOException) {
@@ -334,6 +343,20 @@ class PatcherProcesses(
             val failure = finished.failure ?: return
             throw if (failure.outOfMemory) HeapExhaustedException(started.heapLimitMb, failure.stackTrace)
             else PatcherFailureException(failure.stackTrace)
+        }
+
+        /**
+         * Has the process hold [foreground], the notification the app already shows for the run.
+         * Bound by the app alone, it would count as idle on systems that end such a process once
+         * the app leaves the screen, as MIUI and HyperOS do.
+         */
+        private fun holdForeground(foreground: ForegroundInfo) {
+            try {
+                app.startForegroundService(PatcherService.foregroundIntent(app, foreground))
+            } catch (e: IllegalStateException) {
+                // Refused to a run started from the background, which goes on bound alone
+                Log.w(tag, "Could not hold the patcher process in the foreground", e)
+            }
         }
 
         /**

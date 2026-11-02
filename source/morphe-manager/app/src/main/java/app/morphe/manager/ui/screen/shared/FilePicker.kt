@@ -323,6 +323,8 @@ fun DialogHostScope.FilePicker(
         },
         header = {
             val accent = MaterialTheme.colorScheme.primary
+            // With a single storage its list holds nothing the trail does not already lead to
+            val showStorages = roots.size > 1
             ListDialogHeader(
                 icon = { modifier ->
                     ListDialogHeaderIcon(
@@ -345,10 +347,8 @@ fun DialogHostScope.FilePicker(
                 searchLabel = stringResource(R.string.search),
                 searchEnabled = currentDir != null,
                 accentColor = accent,
-                content = {
-                    // With a single storage its list holds nothing the trail does not already lead to
-                    val showStorages = roots.size > 1
-                    if (showStorages || breadcrumbs.isNotEmpty()) {
+                content = if (showStorages || breadcrumbs.isNotEmpty()) {
+                    {
                         FolderTrail(
                             breadcrumbs = breadcrumbs,
                             showStorages = showStorages,
@@ -356,7 +356,7 @@ fun DialogHostScope.FilePicker(
                             modifier = Modifier.padding(top = Defaults.SpaceMedium)
                         )
                     }
-                }
+                } else null
             ) {
                 Box {
                     TitleAction(

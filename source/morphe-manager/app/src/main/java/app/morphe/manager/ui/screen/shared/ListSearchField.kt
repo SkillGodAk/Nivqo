@@ -12,7 +12,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -109,16 +108,13 @@ fun ListSearchField(
                         innerTextField()
                     }
                     if (value.isNotEmpty()) {
-                        IconButton(
+                        TooltipIconButton(
                             onClick = { onValueChange("") },
-                            modifier = Modifier.size(HeaderControlDefaults.Size)
-                        ) {
-                            Icon(
-                                imageVector = MaterialSymbols.Rounded.Close,
-                                contentDescription = stringResource(R.string.clear),
-                                tint = iconColor
-                            )
-                        }
+                            icon = MaterialSymbols.Rounded.Close,
+                            contentDescription = stringResource(R.string.clear),
+                            modifier = Modifier.size(HeaderControlDefaults.Size),
+                            tint = iconColor
+                        )
                     } else {
                         // Leaves the text the same room from the end as the icon leaves it from the start
                         Spacer(Modifier.width(Defaults.SpaceSmall))

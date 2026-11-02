@@ -1,3 +1,8 @@
+# 0.28.0-nivqo.1 (2026-11-03)
+
+* **Messenger:** 繁體中文：正式 HushMessenger 0.28.0（71 個補丁、63 個控制項），適用 Messenger 585.0.0.53.94 七個相容的 ARM64／ARMv7 建置。新增儲存播放過的語音訊息、相簿直接加入聊天、指定聯絡人的安靜來電、Material You 顏色自訂、可選 GmsCore。Nivqo 補丁包使用獨立簽章，Manager 中文補丁說明 71／71。
+* **Messenger:** English: Formal HushMessenger 0.28.0 (71 patches and 63 controls) targeting seven supported Messenger 585.0.0.53.94 arm64/armv7 builds. Save played voice messages, direct gallery picks, selective quiet calls, theme colors and optional GmsCore; signed with Nivqo's independent bundle key.
+
 # 0.27.0-nivqo.1 (2026-10-28)
 
 * **Messenger:** 繁體中文：同步正式 HushMessenger 0.27.0（66 個補丁、59 個控制項），適用 Messenger 584.1.0.61.98 的相容原版 APK。新增安靜來電、手動標記已讀、系統相簿選取、方形頭像、限制裝置資料分享等功能，並整合上游繁體中文介面；Manager 中文補丁說明 66／66。使用舊版本 APK 的使用者須重新取得相容原版並修補。

@@ -7,6 +7,7 @@ package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -85,6 +86,9 @@ fun ValueText(
  *
  * A row with [onClick] opens what its value sums up and says so with a chevron, dropped along with
  * the click while it is not [enabled]. [trailing] is for a row whose action is a control of its own.
+ *
+ * @param contentPadding Room inside the row, a panel's by default. A row standing on its own takes
+ *   the room of what it stands among instead.
  */
 @Composable
 fun InfoRow(
@@ -94,6 +98,7 @@ fun InfoRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
+    contentPadding: PaddingValues = InfoRowPadding,
     trailing: (@Composable () -> Unit)? = null
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -107,7 +112,7 @@ fun InfoRow(
                 } else Modifier
             )
             .then(if (enabled) Modifier else Modifier.alpha(Defaults.DISABLED_ALPHA))
-            .padding(horizontal = Defaults.SpaceMedium, vertical = Defaults.SpaceSmall),
+            .padding(contentPadding),
         horizontalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -133,3 +138,6 @@ fun InfoRow(
         }
     }
 }
+
+/** Room inside an [InfoRow] in an [InfoPanel]. */
+private val InfoRowPadding = PaddingValues(horizontal = Defaults.SpaceMedium, vertical = Defaults.SpaceSmall)

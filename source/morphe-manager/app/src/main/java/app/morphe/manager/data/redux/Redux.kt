@@ -13,6 +13,7 @@ package app.morphe.manager.data.redux
 import android.util.Log
 import app.morphe.manager.util.tag
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -60,6 +61,16 @@ class Store<S>(private val coroutineScope: CoroutineScope, initialState: S) : Ac
     }
 
     /**
+     * Applies [action] as [dispatch] does, returning once the state it leads to is in place, or
+     * once it has failed. For a caller whose next step reads what the action changes.
+     */
+    suspend fun dispatchAndAwait(action: Action<S>) {
+        val applied = CompletableDeferred<Unit>()
+        dispatch(AwaitedAction(action, applied))
+        applied.await()
+    }
+
+    /**
      * Drains the queue sequentially, applying each action to the current state.
      * Exits when the queue stays empty for 200 ms.
      */
@@ -78,17 +89,27 @@ class Store<S>(private val coroutineScope: CoroutineScope, initialState: S) : Ac
             }
 
             Log.d(tag, "Running $action")
-            _state.value = try {
-                with(action) { this@Store.execute(_state.value) }
+            try {
+                _state.value = with(action) { this@Store.execute(_state.value) }
             } catch (c: CancellationException) {
                 // Cancellation means the store's scope is gone - stop the runner without the lock
                 isRunningActions = false
                 throw c
             } catch (e: Exception) {
                 action.catch(e)
-                continue
+            } finally {
+                // Only once the state is set, so the caller waiting on it reads the new one
+                (action as? AwaitedAction<S>)?.applied?.complete(Unit)
             }
         }
+    }
+
+    /** [action] with the signal [dispatchAndAwait] waits on. */
+    private class AwaitedAction<S>(
+        private val action: Action<S>,
+        val applied: CompletableDeferred<Unit>
+    ) : Action<S> by action {
+        override fun toString() = action.toString()
     }
 }
 

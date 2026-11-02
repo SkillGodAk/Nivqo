@@ -477,7 +477,7 @@ public final class FeedFilter {
                         + (suggestedPatched && DISCOVER_UNIT_TYPE.equals(type)
                                 ? " stories=" + unconnectedStories(feedUnit) : "")
                         + (suggestedPatched && groupReaders != null
-                                ? " group=" + GroupPosts.read(feedUnit, groupReaders) : "")
+                                ? " group=" + GroupPosts.describe(feedUnit, groupReaders) : "")
                         + (aiPatched ? " genai=" + flagValue(GenAiLabel.FLAG, feedUnit, aiAccessor)
                                 + " ailabel=" + flagValue(GenAiLabel.SELF_LABEL, feedUnit, aiLabelAccessor) : "")
                         + (ENGAGEMENT_PROMO.equals(categoryName) ? " qp=" + promotionId(feedUnit) : "")
@@ -488,15 +488,20 @@ public final class FeedFilter {
             if (!Utils.settingsReady()) return false;
 
             String reason = null;
+            // What a hidden edge counts under on the settings tally. Each group of rules below sets
+            // it while nothing has hidden the edge yet, so it ends on the group that did.
+            HiddenTally.Kind kind = HiddenTally.Kind.ADS;
             if (sponsoredPatched && hiddenCategory(category)) {
                 reason = categoryName;
             } else if (sponsoredPatched && Settings.HIDE_SPONSORED_POSTS.get()
                     && MULTI_ADS_TYPE.equals(typeName(feedUnit))) {
                 reason = MULTI_ADS_TYPE;
             }
+            if (reason == null) kind = HiddenTally.Kind.REELS;
             if (reason == null && reelsPatched && Settings.HIDE_FEED_REELS.get()) {
                 reason = isReelsCategory(categoryName) ? categoryName : showcaseReason(feedUnit, showcaseAccessor);
             }
+            if (reason == null) kind = HiddenTally.Kind.SUGGESTED;
             if (reason == null && suggestedPatched) {
                 if (Settings.HIDE_SUGGESTED_POSTS.get()) reason = suggestedUnitName(feedUnit);
                 if (reason == null && ENGAGEMENT_PROMO.equals(categoryName)) {
@@ -519,17 +524,21 @@ public final class FeedFilter {
                         || Settings.HIDE_FEED_FRIEND_REQUESTS.get() || Settings.HIDE_FRIENDS_LOCATIONS.get())) {
                     String type = typeName(feedUnit);
                     reason = suggestedTypeReason(type);
+                    if (cardType(reason)) kind = HiddenTally.Kind.CARDS;
                     if (reason == null && storiesYouMightLike && DISCOVER_UNIT_TYPE.equals(type)) {
                         reason = unconnectedStoriesReason(feedUnit);
                     }
                 }
+                if (reason == null) kind = HiddenTally.Kind.GROUPS;
                 if (reason == null && groupReaders != null && Settings.HIDE_GROUP_POSTS_NOT_JOINED.get()) {
                     reason = groupReason(feedUnit, groupReaders);
                 }
             }
+            if (reason == null) kind = HiddenTally.Kind.STORIES;
             if (reason == null && trayPatched && Settings.HIDE_STORIES_BETWEEN_POSTS.get()) {
                 reason = storiesRowReason(typeName(feedUnit));
             }
+            if (reason == null) kind = HiddenTally.Kind.AI;
             boolean metaAi = aiPatched && Settings.HIDE_META_AI_FEED_UNITS.get();
             if (reason == null && metaAi) {
                 String type = typeName(feedUnit);
@@ -546,6 +555,7 @@ public final class FeedFilter {
             if (reason == null && aiLabelled) {
                 reason = flagReason(GenAiLabel.SELF_LABEL, AI_LABEL_ROUTE, feedUnit, aiLabelAccessor);
             }
+            if (reason == null) kind = HiddenTally.Kind.YOUR_FILTERS;
             if (reason == null && wordsPatched && Settings.HIDE_POSTS_WITH_WORDS.get()) {
                 reason = wordsReason(feedUnit, messageAccessor, attachedAccessor, PostSources.ATTACHMENTS,
                         PostText.ACTION_LINKS);
@@ -565,11 +575,27 @@ public final class FeedFilter {
             if (reason == null && wordsPatched && Settings.HIDE_REPOSTS.get()) {
                 reason = repostReason(feedUnit, attachedAccessor);
             }
+            // Last of the filters: a type picked by name, which also writes the type down for its list.
+            if (reason == null && wordsPatched) reason = FeedTypeNames.reason(typeName(feedUnit));
             // The seen rule goes last so a post another rule would hide is counted under that rule.
-            if (reason == null) reason = SeenPosts.hideReason(feedUnit);
+            if (reason == null) {
+                kind = HiddenTally.Kind.SEEN;
+                reason = SeenPosts.hideReason(feedUnit);
+            }
+            // The first post after a link lands Home on it is that post (#306): the person asked
+            // for it, so whatever rule would hide it stands aside. Ads are hidden still, and a link
+            // never lands on one, so an ad judged first doesn't spend the link's one post.
+            if (!adReason(reason) && LinkedPost.isPost(feedUnit) && LinkedPost.takeFirst()) {
+                if (reason == null) return false;
+                FeedFilterCounters.sawKind(FEED_ROUTE, LinkedPost.KEPT_KIND);
+                final String setAside = reason;
+                Logger.printDebug(() -> "Feed filter: kept the post a link opened (" + setAside + ")");
+                return false;
+            }
             if (reason == null) return false;
 
             FeedFilterCounters.removed(FEED_ROUTE, 1, reason);
+            HiddenTally.hid(kind);
             // A page this empties can leave Home's scroll fetcher at the end of its list with no
             // reason to ask again, so TailFetch asks for it from now on.
             TailFetch.hidEdge();
@@ -673,6 +699,15 @@ public final class FeedFilter {
             if (memory.equals(type)) return Settings.HIDE_FEED_MEMORIES.get() ? memory : null;
         }
         return null;
+    }
+
+    /** Whether a reason from {@link #suggestedTypeReason} is a card of your own, not a suggestion. */
+    static boolean cardType(@Nullable String reason) {
+        if (FRIEND_REQUESTS_TYPE.equals(reason) || FRIENDS_LOCATIONS_TYPE.equals(reason)) return true;
+        for (String memory : MEMORIES_TYPES) {
+            if (memory.equals(reason)) return true;
+        }
+        return false;
     }
 
     /**
@@ -822,8 +857,9 @@ public final class FeedFilter {
     /**
      * Hide posts from groups you're not in: the group type and the join state, such as
      * {@code Group:CAN_JOIN}, when the post was posted in a group Facebook would show a Join button
-     * for, otherwise null. Nothing is read while the switch is off, and a post that can't be read
-     * stays. Each post it reads is counted on its route by what the read found.
+     * for, or wraps one a friend commented on or shared ({@code Group:wrapped CAN_JOIN}), otherwise
+     * null. Nothing is read while the switch is off, and a post that can't be read stays. Each post
+     * it reads is counted on its route by what the read found.
      */
     static String groupReason(Object feedUnit, GroupPosts.Readers readers) {
         String kind = GroupPosts.read(feedUnit, readers);
@@ -955,6 +991,11 @@ public final class FeedFilter {
         if (SPONSORED.equals(name)) return Settings.HIDE_SPONSORED_POSTS.get();
         if (PROMOTION.equals(name)) return Settings.HIDE_PROMOTED_POSTS.get();
         return false;
+    }
+
+    /** Whether [reason] is one of the sponsored rule's: an ad, a promoted post or a carousel of ads. */
+    static boolean adReason(@Nullable String reason) {
+        return SPONSORED.equals(reason) || PROMOTION.equals(reason) || MULTI_ADS_TYPE.equals(reason);
     }
 
     /** Whether a story category is one Facebook files the feed's rows of reels under. */

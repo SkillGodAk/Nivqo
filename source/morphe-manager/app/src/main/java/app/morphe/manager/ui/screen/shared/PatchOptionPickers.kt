@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,16 +46,13 @@ fun PickerButtonRow(
         )
 
         if (selectedPath.isNotBlank()) {
-            IconButton(
+            TooltipIconButton(
                 onClick = onClear,
+                icon = MaterialSymbols.Rounded.Close,
+                contentDescription = stringResource(R.string.clear),
                 modifier = Modifier.size(40.dp),
-            ) {
-                Icon(
-                    imageVector = MaterialSymbols.Rounded.Close,
-                    contentDescription = stringResource(R.string.clear),
-                    tint = dialogTextColor().copy(alpha = 0.7f),
-                )
-            }
+                tint = dialogTextColor().copy(alpha = 0.7f),
+            )
         }
     }
 }

@@ -38,6 +38,7 @@ import app.morphe.manager.ui.viewmodel.InstallViewModel
 import app.morphe.manager.ui.viewmodel.PatcherViewModel
 import app.morphe.manager.util.APK_MIMETYPE
 import app.morphe.manager.util.EventEffect
+import app.morphe.manager.util.rememberDocumentSaver
 import app.morphe.manager.util.shareApks
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -188,7 +189,9 @@ private fun PatcherScreenContent(
                     outputFile = outputFile,
                     originalPackageName = patcherViewModel.packageName,
                     onPersistApp = patcherViewModel::persistPatchedApp,
-                    autoUninstallOnConflict = automatic
+                    autoUninstallOnConflict = automatic,
+                    // Started on its own only once the prompt was answered before patching
+                    askInstaller = !automatic
                 )
             }
         }
@@ -235,11 +238,7 @@ private fun PatcherScreenContent(
 
     KeepScreenOn(patcherViewModel.isPatching)
 
-    val exportApkLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(APK_MIMETYPE)
-    ) { uri ->
-        uri?.let { patcherViewModel.export(it) }
-    }
+    val exportApk = rememberDocumentSaver(APK_MIMETYPE, patcherViewModel::export)
 
     // Post-patch prompts follow a successful install
     val installState = installViewModel.installState
@@ -347,10 +346,11 @@ private fun PatcherScreenContent(
     // Cancel patching confirmation dialog
     DialogHost(visible = showCancelDialog) {
         ConfirmDialog(
-            title = stringResource(R.string.patcher_stop_confirm_title),
-            message = stringResource(R.string.patcher_stop_confirm_description),
-            primaryText = stringResource(R.string.yes),
-            secondaryText = stringResource(R.string.no),
+            title = stringResource(R.string.patcher_stop_title),
+            message = stringResource(R.string.patcher_stop_discards),
+            primaryText = stringResource(R.string.stop),
+            // Cancel would read as cancelling the patching itself
+            secondaryText = stringResource(R.string.patcher_keep_patching),
             onConfirm = {
                 showCancelDialog = false
                 patcherViewModel.cancelPatching()
@@ -555,7 +555,7 @@ private fun PatcherScreenContent(
                         onHomeClick = onBackClick,
                         onSaveClick = {
                             if (!isSaving) {
-                                exportApkLauncher.launch(patcherViewModel.exportFileName)
+                                exportApk(patcherViewModel.exportFileName)
                             }
                         },
                         onShareClick = {

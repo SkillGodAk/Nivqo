@@ -74,6 +74,18 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  *   from that field by the iget-object just before the call. The hook goes right after that call.
  *   On the newer bar the Create spec is named "trep-composer-button", so the same [BAR_BUTTON_HOOK]
  *   covers it.
+ * - Hide the search button (#321), read from 585 arm64, 2026-10-30. The classic bar's method holding
+ *   the kept "WordmarkNavigationBar#addSearchGlyphView" (A0F, the same one as the Messenger button
+ *   on 585) adds the button right after the string: an iget-object of a bar field (A0J), then
+ *   addView(View) of that view. The hook goes right after that call. The newer bar's search button
+ *   isn't made from a spec: its config method (A0E) makes a glyph of the same class as the spec
+ *   buttons' (LX/02Gs;, also the classic bar's search glyph) and keeps it in the bar's one field of
+ *   that class (A08), the only write to it. The hook goes right after that iput-object, before the
+ *   glyph is added to the bar. That class also draws Marketplace's and other screens' top bars, which
+ *   the first 0.20.0 walk caught losing their search too (2026-11-01), so the hook also gets the bar's
+ *   one String field (A0B), the name of its screen, written before the config method runs. The classic
+ *   bar holds Home's newer bar and names it "NewsFeedFragment" in both calls, a literal that doesn't
+ *   change with the language.
  *
  * A missing anchor refuses the whole Tab bar at the bottom patch, like every other anchor in it.
  */
@@ -85,9 +97,13 @@ internal const val HIDE_FACEBOOK_LOGO_HOOK = "$TOP_BAR_BUTTONS->facebookLogo(Lan
 internal const val BAR_BUTTON_HOOK = "$TOP_BAR_BUTTONS->barButton(Landroid/view/View;Ljava/lang/String;)V"
 internal const val BAR_BUTTON_COUNT_HOOK = "$TOP_BAR_BUTTONS->barButtonCount(Landroid/view/View;I)I"
 internal const val HIDE_CREATE_BUTTON_HOOK = "$TOP_BAR_BUTTONS->createButton(Landroid/view/View;)V"
+internal const val HIDE_SEARCH_BUTTON_HOOK = "$TOP_BAR_BUTTONS->searchButton(Landroid/view/View;)V"
+internal const val BAR_SEARCH_BUTTON_HOOK = "$TOP_BAR_BUTTONS->barSearchButton(Landroid/view/View;Ljava/lang/String;)V"
+internal const val HOME_BAR_SCREEN = "NewsFeedFragment"
 
 internal const val SETUP_MESSENGER_GLYPH_VIEW = "WordmarkNavigationBar#setupMessengerGlyphView"
 internal const val SETUP_CREATE_GLYPH_VIEW = "WordmarkNavigationBar#setupCreateGlyphView"
+internal const val ADD_SEARCH_GLYPH_VIEW = "WordmarkNavigationBar#addSearchGlyphView"
 internal const val BADGABLE_GLYPH_VIEW = "badgableGlyphView"
 internal const val NAVIGATION_BAR = "Lcom/facebook/navigation/navbar/NavigationBar;"
 private const val FRAME_LAYOUT_INIT = "Landroid/widget/FrameLayout;-><init>(Landroid/content/Context;)V"
@@ -147,15 +163,15 @@ internal fun messengerButtonSite(builder: Method): MessengerButtonSite {
     return MessengerButtonSite(buttonType, add, (code[add - 1] as OneRegisterInstruction).registerA)
 }
 
-/** Where the bar adds the Create button: the bar's field holding it, the addView call's index and the register holding the button. */
-internal class CreateButtonSite(val field: FieldReference, val addView: Int, val register: Int)
+/** Where the bar adds a button: the bar's field holding it, the addView call's index and the register holding the button. */
+internal class AddedButtonSite(val field: FieldReference, val addView: Int, val register: Int)
 
 /**
  * Where [builder] (the bar's method holding setupCreateGlyphView) adds the Create button. After the
  * string it puts objects in fields of the bar; the one of those fields whose iget-object comes right
  * before an addView(View) of the view it loaded is the button. Refuses unless that finds exactly one.
  */
-internal fun createButtonSite(builder: Method): CreateButtonSite {
+internal fun createButtonSite(builder: Method): AddedButtonSite {
     val where = "${builder.definingClass}->${builder.name}"
     val code = builder.implementation?.instructions?.toList() ?: refuse("$where has no body")
     val marks = code.indices.filter { (code[it].reference() as? StringReference)?.string == SETUP_CREATE_GLYPH_VIEW }
@@ -172,7 +188,116 @@ internal fun createButtonSite(builder: Method): CreateButtonSite {
             (code[index] as FiveRegisterInstruction).let { it.registerCount == 2 && it.registerD == (load as OneRegisterInstruction).registerA }
     }
     val add = adds.singleOrNull() ?: refuse("expected one addView of a bar field kept after \"$SETUP_CREATE_GLYPH_VIEW\" in $where, found ${adds.size}")
-    return CreateButtonSite(code[add - 1].reference() as FieldReference, add, (code[add - 1] as OneRegisterInstruction).registerA)
+    return AddedButtonSite(code[add - 1].reference() as FieldReference, add, (code[add - 1] as OneRegisterInstruction).registerA)
+}
+
+/**
+ * Where [builder] (the bar's method holding addSearchGlyphView) adds the search button: the first
+ * call after the string's trace call is an addView(View) of the view the iget-object right before
+ * it loaded from a field of the bar. Refuses unless the string is there once and that call follows.
+ */
+internal fun searchButtonSite(builder: Method): AddedButtonSite {
+    val where = "${builder.definingClass}->${builder.name}"
+    val code = builder.implementation?.instructions?.toList() ?: refuse("$where has no body")
+    val marks = code.indices.filter { (code[it].reference() as? StringReference)?.string == ADD_SEARCH_GLYPH_VIEW }
+    val mark = marks.singleOrNull() ?: refuse("expected one \"$ADD_SEARCH_GLYPH_VIEW\" in $where, found ${marks.size}")
+    // The string goes to the trace call, so the add is the call after that one.
+    val calls = (mark + 1 until code.size).filter { code[it].reference() is MethodReference }
+    val add = calls.getOrNull(1)
+    val load = add?.let { code[it - 1] }
+    val field = load?.reference() as? FieldReference
+    if (add == null || load == null || field == null || code[add].opcode != Opcode.INVOKE_VIRTUAL || code[add].signature() != ADD_VIEW ||
+        load.opcode != Opcode.IGET_OBJECT || field.definingClass != builder.definingClass ||
+        (code[add] as FiveRegisterInstruction).let { it.registerCount != 2 || it.registerD != (load as OneRegisterInstruction).registerA }
+    ) {
+        refuse("expected the bar to add a field of its own with addView right after \"$ADD_SEARCH_GLYPH_VIEW\" in $where")
+    }
+    return AddedButtonSite(field, add, (load as OneRegisterInstruction).registerA)
+}
+
+/**
+ * Where the newer bar keeps its search glyph: the method, the iput-object's index, the register
+ * holding the glyph and the bar's field naming its screen.
+ */
+internal class SearchGlyphSite(val method: Method, val kept: Int, val register: Int, val screenField: FieldReference)
+
+/**
+ * The newer bar's search glyph: the one write to [bar]'s one instance field of [glyphType] (the
+ * class [specButtonSite] found for the spec buttons), an iput-object of a glyph made right before
+ * it with just a Context. Refuses unless the field and the write are each found once, and unless
+ * the bar has one String field to read its screen from.
+ */
+internal fun searchGlyphSite(bar: ClassDef, glyphType: String): SearchGlyphSite {
+    val fields = bar.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == glyphType }
+    val field = fields.singleOrNull() ?: refuse("expected one $glyphType field in ${bar.type}, found ${fields.size}")
+    val writes = bar.methods.flatMap { method ->
+        val code = method.implementation?.instructions?.toList() ?: return@flatMap emptyList()
+        code.indices.filter { index ->
+            val written = code[index].reference() as? FieldReference
+            code[index].opcode == Opcode.IPUT_OBJECT && written != null && written.definingClass == bar.type &&
+                written.name == field.name && written.type == glyphType
+        }.map { Triple(method, code, it) }
+    }
+    val (method, code, kept) = writes.singleOrNull()
+        ?: refuse("expected one write to ${bar.type}->${field.name} in ${bar.type}, found ${writes.size}")
+    val glyph = (code[kept] as TwoRegisterInstruction).registerA
+    val init = code.getOrNull(kept - 1)?.reference() as? MethodReference
+    val made = kept >= 2 && code[kept - 2].opcode == Opcode.NEW_INSTANCE &&
+        (code[kept - 2].reference() as TypeReference).type == glyphType &&
+        (code[kept - 2] as OneRegisterInstruction).registerA == glyph &&
+        code[kept - 1].opcode == Opcode.INVOKE_DIRECT && init != null && init.name == "<init>" &&
+        init.parameterTypes.map(CharSequence::toString) == listOf(CONTEXT) &&
+        (code[kept - 1] as FiveRegisterInstruction).registerC == glyph
+    if (!made) refuse("the write to ${bar.type}->${field.name} in ${method.name} doesn't follow a glyph made with just a Context")
+    val names = bar.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == STRING }
+    val screen = names.singleOrNull() ?: refuse("expected one String field in ${bar.type} to name its screen, found ${names.size}")
+    return SearchGlyphSite(method, kept, glyph, screen)
+}
+
+/**
+ * How many of [wordmark]'s calls name the newer bar inside it [HOME_BAR_SCREEN]. Refuses unless
+ * there's at least one, each passes that literal, and the method it calls writes the bar's screen
+ * field before it runs the method holding the search glyph. Without all of that the extension
+ * couldn't tell Home's bar from Marketplace's.
+ */
+internal fun homeBarScreenCalls(wordmark: ClassDef, bar: ClassDef, search: SearchGlyphSite): Int {
+    val calls = wordmark.methods.flatMap { method ->
+        val code = method.implementation?.instructions?.toList() ?: return@flatMap emptyList()
+        code.indices.filter { index ->
+            val called = code[index].reference() as? MethodReference
+            called != null && called.definingClass == NAVIGATION_BAR && called.parameterTypes.size == 4 &&
+                called.parameterTypes.first().toString() == "Landroid/app/Activity;" && called.parameterTypes.last().toString() == STRING
+        }.map { Triple(method, code, it) }
+    }
+    if (calls.isEmpty()) refuse("${wordmark.type} no longer hands $NAVIGATION_BAR a screen name")
+    calls.forEach { (method, code, index) ->
+        val where = "${wordmark.type}->${method.name}"
+        val call = code[index] as? FiveRegisterInstruction ?: refuse("expected a plain call to the newer bar in $where")
+        val named = (maxOf(0, index - 4) until index).any { before ->
+            code[before].opcode in setOf(Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO) &&
+                (code[before] as OneRegisterInstruction).registerA == call.registerG &&
+                (code[before].reference() as StringReference).string == HOME_BAR_SCREEN
+        }
+        if (!named) refuse("expected \"$HOME_BAR_SCREEN\" right before the call to the newer bar in $where")
+        val entryRef = code[index].reference() as MethodReference
+        val entry = bar.methods.singleOrNull {
+            it.name == entryRef.name && it.parameterTypes.map(CharSequence::toString) == entryRef.parameterTypes.map(CharSequence::toString)
+        } ?: refuse("${bar.type} has no ${entryRef.name} for $where to call")
+        val entryCode = entry.implementation?.instructions?.toList() ?: refuse("${bar.type}->${entry.name} has no code")
+        val written = entryCode.indexOfFirst { insn ->
+            val field = insn.reference() as? FieldReference
+            insn.opcode == Opcode.IPUT_OBJECT && field != null && field.definingClass == bar.type && field.name == search.screenField.name
+        }
+        val built = entryCode.indexOfFirst { insn ->
+            val target = insn.reference() as? MethodReference
+            target != null && target.definingClass == bar.type && target.name == search.method.name &&
+                target.parameterTypes.map(CharSequence::toString) == search.method.parameterTypes.map(CharSequence::toString)
+        }
+        if (written < 0 || built < 0 || written > built) {
+            refuse("${bar.type}->${entry.name} doesn't name the bar before it builds (write at $written, build at $built)")
+        }
+    }
+    return calls.size
 }
 
 /** The register of an instance method's int parameter at [at], counted from the parameters. */
@@ -325,8 +450,29 @@ internal fun MutableMethod.hideMessengerButtonAfter(site: MessengerButtonSite) {
 }
 
 /** Puts the Create button's hook after the addView call. */
-internal fun MutableMethod.hideCreateButtonAfter(site: CreateButtonSite) {
+internal fun MutableMethod.hideCreateButtonAfter(site: AddedButtonSite) {
     addInstructions(site.addView + 1, "invoke-static/range { v${site.register} .. v${site.register} }, $HIDE_CREATE_BUTTON_HOOK")
+}
+
+/** Puts the search button's hook after the classic bar's addView call. */
+internal fun MutableMethod.hideSearchButtonAfter(site: AddedButtonSite) {
+    addInstructions(site.addView + 1, "invoke-static/range { v${site.register} .. v${site.register} }, $HIDE_SEARCH_BUTTON_HOOK")
+}
+
+/** Puts the search button's hook after the newer bar keeps its search glyph, with the name of the bar's screen. */
+internal fun MutableMethod.hideSearchGlyphAfter(site: SearchGlyphSite) {
+    val at = site.kept + 1
+    val screen = findFreeRegister(at, site.register)
+    if (maxOf(site.register, screen, implementation!!.registerCount - 1) > 15) {
+        refuse("the glyph (v${site.register}), the free v$screen or the bar is past v15 in ${site.method.definingClass}->${site.method.name}")
+    }
+    addInstructions(
+        at,
+        """
+            iget-object v$screen, p0, ${site.screenField.smali()}
+            invoke-static { v${site.register}, v$screen }, $BAR_SEARCH_BUTTON_HOOK
+        """,
+    )
 }
 
 /** Sends the count through the extension first thing, so a hidden count reaches Facebook as 0. */
@@ -370,6 +516,10 @@ internal fun BytecodePatchContext.hideTopBarButtons() {
         val createBuilder = createBuilders.singleOrNull()
             ?: refuse("expected one method of $WORDMARK_NAVIGATION_BAR holding \"$SETUP_CREATE_GLYPH_VIEW\", found ${createBuilders.size}")
         createButtonSite(createBuilder)
+        val searchBuilders = buildersHolding(bar, ADD_SEARCH_GLYPH_VIEW)
+        val searchBuilder = searchBuilders.singleOrNull()
+            ?: refuse("expected one method of $WORDMARK_NAVIGATION_BAR holding \"$ADD_SEARCH_GLYPH_VIEW\", found ${searchBuilders.size}")
+        searchButtonSite(searchBuilder)
 
         bar.findMutableMethodOf(glyphBuilder).hideMessengerButtonAfter(button)
         counts.forEach { count ->
@@ -383,6 +533,8 @@ internal fun BytecodePatchContext.hideTopBarButtons() {
             this.name == method.name && parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
         val createMethod = bar.methods.single { it.isLike(createBuilder) }
         createMethod.hideCreateButtonAfter(createButtonSite(createMethod))
+        val searchMethod = bar.methods.single { it.isLike(searchBuilder) }
+        searchMethod.hideSearchButtonAfter(searchButtonSite(searchMethod))
         val logoMethod = bar.methods.single { it.isLike(logoBuilder) }
         val site = logoDressSite(logoMethod)
         logoMethod.hideLogoAfter(site.stockLoad, site.logo)
@@ -394,8 +546,14 @@ internal fun BytecodePatchContext.hideTopBarButtons() {
         val glyph = mutableClassDefByOrNull(spec.glyphType)
             ?: refuse("this Facebook has no ${spec.glyphType}, the newer bar's button glyph")
         val counts = glyphCountMethods(glyph, glyph.interfaces.mapNotNull { classDefByOrNull(it) })
+        val wordmark = classDefByOrNull(WORDMARK_NAVIGATION_BAR)
+            ?: refuse("this Facebook has no $WORDMARK_NAVIGATION_BAR, the home feed's top bar")
+        homeBarScreenCalls(wordmark, bar, searchGlyphSite(bar, spec.glyphType))
 
         bar.findMutableMethodOf(spec.method).markSpecButtonAfter(spec)
+        // Found again: the search glyph's method may be the spec method, which now holds more instructions.
+        val search = searchGlyphSite(bar, spec.glyphType)
+        bar.findMutableMethodOf(search.method).hideSearchGlyphAfter(search)
         counts.forEach { count ->
             glyph.methods.single {
                 it.name == count.name && it.parameterTypes.map(CharSequence::toString) == count.parameters

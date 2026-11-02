@@ -89,6 +89,24 @@ fun Color.readableOn(fill: Color, surface: Color, minRatio: Float = 3f): Color {
 }
 
 /**
+ * This color as drawn over [background], raised until it stands [minRatio] out of it: first toward its
+ * own opaque self, then toward [ink], so a dark accent on black keeps its hue for as long as it can.
+ * A color that already stands out is returned as given, transparency and all.
+ */
+fun Color.raisedOn(background: Color, ink: Color, minRatio: Float): Color {
+    if (compositeOpaqueOver(background).contrastAgainst(background) >= minRatio) return this
+    val opaque = Color(red, green, blue)
+    val toOpaque = (1..RAISE_STEPS).asSequence()
+        .map { compositeOpaqueOver(background, alpha + (1f - alpha) * it / RAISE_STEPS) }
+    val toInk = (1..RAISE_STEPS).asSequence()
+        .map { ink.compositeOpaqueOver(opaque, it.toFloat() / RAISE_STEPS) }
+    return (toOpaque + toInk).firstOrNull { it.contrastAgainst(background) >= minRatio } ?: ink
+}
+
+/** Steps [raisedOn] takes along each leg, fine enough that the result lands close to its ratio. */
+private const val RAISE_STEPS = 20
+
+/**
  * Lighten a color by mixing with white
  */
 fun Color.lighten(factor: Float): Color {

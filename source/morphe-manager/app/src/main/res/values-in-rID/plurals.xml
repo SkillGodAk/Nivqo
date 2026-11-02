@@ -37,6 +37,9 @@
     <plurals name="source_count">
         <item quantity="other">%s sumber</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="other">%s set</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="other">%s paket</item>
     </plurals>

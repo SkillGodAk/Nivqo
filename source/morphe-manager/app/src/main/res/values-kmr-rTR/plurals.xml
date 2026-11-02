@@ -48,6 +48,10 @@
         <item quantity="one">%s çavkanî</item>
         <item quantity="other">%s çavkanîyên</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s set</item>
+        <item quantity="other">%s set</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pakêt</item>
         <item quantity="other">%s pakêtan</item>

@@ -464,6 +464,7 @@ fun SettingsItem(
     icon: ImageVector? = null,
     leadingContent: @Composable (() -> Unit)? = null,
     subtitle: String? = null,
+    enabled: Boolean = true,
     showBorder: Boolean = false,
     statusContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = { ForwardChevronIcon() }
@@ -471,6 +472,7 @@ fun SettingsItem(
     SearchableSetting(listOf(title, subtitle)) {
         SettingsItemCard(
             onClick = onClick,
+            enabled = enabled,
             showBorder = showBorder,
             modifier = modifier
         ) {

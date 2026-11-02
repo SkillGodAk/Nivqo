@@ -178,3 +178,87 @@ val MIGRATION_17_18 = object : Migration(17, 18) {
         )
     }
 }
+
+val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // auto_update has gone unused since every remote source updates on its own. The table is
+        // rebuilt without it, as DROP COLUMN needs SQLite 3.35. Foreign keys are only switched on
+        // once the database opens, so dropping the old table leaves the rows that refer to it alone
+        db.execSQL(
+            """
+            CREATE TABLE patch_bundles_new (
+                uid INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                display_name TEXT,
+                version TEXT,
+                source TEXT NOT NULL,
+                enabled INTEGER NOT NULL,
+                sort_order INTEGER NOT NULL,
+                created_at INTEGER,
+                updated_at INTEGER,
+                PRIMARY KEY(uid)
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            INSERT INTO patch_bundles_new
+                (uid, name, display_name, version, source, enabled, sort_order, created_at, updated_at)
+            SELECT uid, name, display_name, version, source, enabled, sort_order, created_at, updated_at
+            FROM patch_bundles
+            """.trimIndent()
+        )
+        db.execSQL("DROP TABLE patch_bundles")
+        db.execSQL("ALTER TABLE patch_bundles_new RENAME TO patch_bundles")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS selection_sets (
+                uid INTEGER NOT NULL,
+                package_name TEXT NOT NULL,
+                name TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY(uid)
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_selection_sets_package_name_name " +
+                    "ON selection_sets (package_name, name)"
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS selection_set_patches (
+                selection_set INTEGER NOT NULL,
+                patch_bundle INTEGER NOT NULL,
+                patch_name TEXT NOT NULL,
+                PRIMARY KEY(selection_set, patch_bundle, patch_name),
+                FOREIGN KEY(selection_set) REFERENCES selection_sets(uid) ON DELETE CASCADE,
+                FOREIGN KEY(patch_bundle) REFERENCES patch_bundles(uid) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_selection_set_patches_patch_bundle " +
+                    "ON selection_set_patches (patch_bundle)"
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS selection_set_options (
+                selection_set INTEGER NOT NULL,
+                patch_bundle INTEGER NOT NULL,
+                patch_name TEXT NOT NULL,
+                `key` TEXT NOT NULL,
+                value TEXT NOT NULL,
+                PRIMARY KEY(selection_set, patch_bundle, patch_name, `key`),
+                FOREIGN KEY(selection_set) REFERENCES selection_sets(uid) ON DELETE CASCADE,
+                FOREIGN KEY(patch_bundle) REFERENCES patch_bundles(uid) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_selection_set_options_patch_bundle " +
+                    "ON selection_set_options (patch_bundle)"
+        )
+    }
+}

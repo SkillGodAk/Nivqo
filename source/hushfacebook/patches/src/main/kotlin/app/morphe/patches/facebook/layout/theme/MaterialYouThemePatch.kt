@@ -55,7 +55,9 @@ private const val MIG = "$MATERIAL_YOU->mig(ILjava/lang/Object;)I"
  * A colour resource read as a drawable. Litho resolves a token's theme attribute to its resource and
  * asks for the drawable this way, so the feed's composer row draws SURFACE_BACKGROUND's #252728 from
  * the resource table (issue #37). AMOLED has no stand-in for it: route two already wrote black there.
- * ComposerRowColourFixtureTest holds the composer row's way to this call on each declared build.
+ * ComposerRowColourFixtureTest holds the composer row's way to this call on each declared build. 585
+ * asks the token's colour instead (`LX/02It;->A00` down to FDSColors' `LX/02Jm;->A0B`) and makes the
+ * ColorDrawable itself, so route one themes the row there and the test holds that way.
  */
 internal const val CONTEXT_GET_DRAWABLE = "Landroid/content/Context;->getDrawable(I)Landroid/graphics/drawable/Drawable;"
 
@@ -249,12 +251,20 @@ private const val NIGHT_COLORS = "res/values-night/colors.xml"
 private const val NIGHT_V31_COLORS = "res/values-night-v31/colors.xml"
 private const val NIGHT_VALUES = "res/values-night"
 
-/** The night style items' colour state lists for Android 12 and newer, one file per [NightShade]. */
-private const val NIGHT_V31_STATE_LISTS = "res/color-night-v31"
-
-/** Read, never written: light mode's colours and styles stay as Facebook has them. */
+/**
+ * Facebook's own entries stay as they are, since light mode reads them. The only thing added is the
+ * palette the night style items point at, under names light mode never asks for: a theme made at night
+ * keeps those references when the phone leaves night, and Android throws on one that then finds no
+ * value (issue #323), so these names can't have a night qualifier.
+ */
 private const val DEFAULT_COLORS = "res/values/colors.xml"
 private const val DEFAULT_VALUES = "res/values"
+
+/** The palette's system colours for Android 12 and newer, with no night qualifier for the same reason. */
+private const val V31_COLORS = "res/values-v31/colors.xml"
+
+/** The night style items' colour state lists for Android 12 and newer, one file per [NightShade]. */
+private const val V31_STATE_LISTS = "res/color-v31"
 
 private const val EMPTY_RESOURCES = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<resources>\n</resources>\n"
 
@@ -272,6 +282,15 @@ internal fun nightValuedColours(res: File): Set<String> =
         .map { File(it, "colors.xml") }.filter { it.isFile }
         .flatMapTo(sortedSetOf()) { readOnly(it).colourValues().keys }
 
+/**
+ * The patch's own colours in [res], a decoded resource folder, with a night value and no default one.
+ * A theme made at night that names one makes Android throw once the phone leaves night (issue #323).
+ */
+internal fun ownNightOnlyColours(res: File): Set<String> {
+    val defaults = File(res, "values/colors.xml").takeIf { it.isFile }?.let { readOnly(it).colourValues().keys }.orEmpty()
+    return nightValuedColours(res).filterTo(sortedSetOf()) { it.startsWith("hushfacebook_") && it !in defaults }
+}
+
 /** Each colour in a decoded colours file, by name, with its value as written. */
 internal fun Document.colourValues(): Map<String, String> {
     val colors = getElementsByTagName("color")
@@ -287,12 +306,14 @@ private val materialYouResourcePatch = resourcePatch {
     finalize {
         // Patcher 2.0 decodes only the files a patch asks for: an undecoded file does not exist yet, so
         // the state list check below needs its folder decoded too.
-        decode("res/values*/colors.xml", "res/values*/style*.xml", NIGHT_V31_STATE_LISTS)
+        decode("res/values*/colors.xml", "res/values*/style*.xml", V31_STATE_LISTS)
         check(get(NIGHT_COLORS, false).exists()) { "Facebook has no night colours, so text would keep its grey" }
-        val dynamic = get(NIGHT_V31_COLORS, false)
-        if (!dynamic.exists()) {
-            dynamic.parentFile.mkdirs()
-            dynamic.writeText(EMPTY_RESOURCES)
+        for (path in listOf(NIGHT_V31_COLORS, V31_COLORS)) {
+            val dynamic = get(path, false)
+            if (!dynamic.exists()) {
+                dynamic.parentFile.mkdirs()
+                dynamic.writeText(EMPTY_RESOURCES)
+            }
         }
         val nightColourNames = nightValuedColours(get("res", false))
         val changed = document(NIGHT_COLORS).use { night ->
@@ -315,10 +336,10 @@ private val materialYouResourcePatch = resourcePatch {
             val nightStyles = "$NIGHT_VALUES/${file.name}"
             get(nightStyles, false).let { if (!it.exists()) it.writeText(EMPTY_RESOURCES) }
             restyled += document(nightStyles).use { night ->
-                document(NIGHT_COLORS).use { nightColours ->
-                    document(NIGHT_V31_COLORS).use { nightV31Colours ->
-                        writeNightStyles(family, colours, nightColourNames, tokenAttributeNames, night, nightColours,
-                            nightV31Colours, stateLists, plain)
+                document(DEFAULT_COLORS).use { paletteColours ->
+                    document(V31_COLORS).use { paletteV31Colours ->
+                        writeNightStyles(family, colours, nightColourNames, tokenAttributeNames, night, paletteColours,
+                            paletteV31Colours, stateLists, plain)
                     }
                 }
             }
@@ -327,11 +348,13 @@ private val materialYouResourcePatch = resourcePatch {
             "No FDS dark style item takes a palette colour, so views Facebook inflates from its layouts would keep its blue"
         }
         for ((name, stateList) in stateLists) {
-            val file = get("$NIGHT_V31_STATE_LISTS/$name.xml", false)
+            val file = get("$V31_STATE_LISTS/$name.xml", false)
             check(!file.exists()) { "Facebook already has a colour state list named $name" }
             file.parentFile.mkdirs()
             file.writeText(stateList)
         }
+        val nightOnly = ownNightOnlyColours(get("res", false))
+        check(nightOnly.isEmpty()) { "These colours have only a night value, so leaving night would crash Facebook: $nightOnly" }
     }
 }
 
@@ -484,19 +507,19 @@ val materialYouThemePatch = bytecodePatch(
  * token, which route one already themes. The string came out #333334, a grey light mode draws too,
  * so route four's parser leaves it. The fallbacks that route one doesn't reach are in
  * LinkBoxFallbacks.kt. Facebook renumbers MobileConfig ids between builds: 582 had it at
- * `0x103074c000203a8`, and 583's ten readers, with the same shapes, load it as the id below.
+ * `0x103074c000203a8`, 583 at `0x1030747000203a7` and 584 at `0x1030741000203a6` (584's
+ * `LX/5BP;->A00` and renders read it through `MobileConfigUnsafeContext.A0H`, the String reader,
+ * which 583 had as `A0C`). 585 has it at the id below on both ABIs, read 2026-10-30 by nine methods
+ * that each parse its string: eight renders (arm64 `LX/08d5;->render`, `LX/0Iqd;->render`,
+ * `LX/0N8x;->A17` and five more) and the attachment footer's `LX/05X5;->A0B(FbUserSession, LX/01PR, Z)I`.
  */
-internal const val LINK_BOX_COLOUR_CONFIG = 0x1030747000203a7L
+internal const val LINK_BOX_COLOUR_CONFIG = 0x1030736000203aaL
 
 /**
- * The same config on 584, renumbered to `0x1030741000203a6` (`LX/5BP;->A00` and the renders read it
- * through `MobileConfigUnsafeContext.A0H`, the String reader, which 583 had as `A0C`). Each declared
- * build lists the id its readers load.
+ * Every id the declared builds give the link box's colour config. Only declared builds' ids belong
+ * here: a newer build can hand a dropped build's id to another config.
  */
-internal const val LINK_BOX_COLOUR_CONFIG_584 = 0x1030741000203a6L
-
-/** Every id the declared builds give the link box's colour config. */
-internal val LINK_BOX_COLOUR_CONFIGS: Set<Long> = setOf(LINK_BOX_COLOUR_CONFIG, LINK_BOX_COLOUR_CONFIG_584)
+internal val LINK_BOX_COLOUR_CONFIGS: Set<Long> = setOf(LINK_BOX_COLOUR_CONFIG)
 
 /** Where the parse of [LINK_BOX_COLOUR_CONFIG]'s string goes instead of route four's parser. */
 internal const val PARSE_LINK_BOX = "$MATERIAL_YOU->parseLinkBox(Ljava/lang/String;)I"
@@ -598,6 +621,17 @@ internal fun isLoggingBloksColourPair(method: Method): Boolean {
 }
 
 /**
+ * Whether a colour pair reader's whole body, NOPs aside, is `return` of its last parameter, the
+ * fallback: a model with no colour of its own, which picks nothing and parses nothing.
+ */
+internal fun answersFallbackOnly(method: Method): Boolean {
+    val implementation = method.implementation ?: return false
+    val code = implementation.instructions.filter { it.opcode != Opcode.NOP }
+    return code.size == 1 && code.single().opcode == Opcode.RETURN &&
+        (code.single() as OneRegisterInstruction).registerA == implementation.registerCount - 1
+}
+
+/**
  * Bloks' colour pairs (issue #37). A Bloks screen gets each colour from the server as a light and a
  * dark hex string, and the screen's model answers one through an interface method (582
  * `LX/fra;->BAJ`, in the models `LX/1Vp` and `LX/4TS`). Each model asks Bloks' theme whether it's
@@ -607,7 +641,11 @@ internal fun isLoggingBloksColourPair(method: Method): Boolean {
  * register. Runs after route four, so the call is already Material You's stand-in, AMOLED's included.
  * The model that logs a pair it can't parse ([isLoggingBloksColourPair]) names the interface, and the
  * interface names the other models. One that parses more than once or never is refused, and so is
- * one that doesn't ask the theme. Answers how many it changed.
+ * one that doesn't ask the theme, unless it only answers its fallback ([answersFallbackOnly]).
+ * Answers how many it changed.
+ *
+ * 585, read 2026-10-30: the interface is arm64 `LX/062H;->CPv(LX/0i13;III)I`, the logging model
+ * `LX/01JW`, the sparse one `LX/05CD`, and two more (`LX/07Dt`, `LX/07Du`) only `return p4`.
  */
 internal fun BytecodePatchContext.hookBloksColourPairs(): Int {
     val parser = standIn(MATERIAL_YOU, PARSE_COLOR)
@@ -630,6 +668,8 @@ internal fun BytecodePatchContext.hookBloksColourPairs(): Int {
         if (classDef.methods.none { it.hasColourPairShape() && it.implementation != null }) return@classDefForEachReferencing
         val model = mutableClassDefBy(classDef.type)
         val method = model.methods.singleOrNull { it.sameAs(anchor) && it.implementation != null } ?: return@classDefForEachReferencing
+        // Why: 585 adds models with no colours of their own, whose reader only answers the fallback.
+        if (answersFallbackOnly(method)) return@classDefForEachReferencing
         check(method.implementation!!.instructions.any { it.asksDark(theme) }) {
             "${method.definingClass}->${method.name} picks a Bloks colour without asking $theme whether it's dark"
         }

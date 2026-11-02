@@ -48,6 +48,10 @@
         <item quantity="one">%s mənbə</item>
         <item quantity="other">%s mənbə</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s təyinetmə</item>
+        <item quantity="other">%s təyinetmə</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s paket</item>
         <item quantity="other">%s paket</item>

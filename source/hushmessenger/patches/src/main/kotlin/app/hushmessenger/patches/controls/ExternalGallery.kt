@@ -54,9 +54,9 @@ internal var galleryRoute: GalleryRoute? = null
 private fun galleryChanged(detail: String): Nothing =
     throw PatchException("Messenger controls: the chat gallery button moved ($detail)")
 
-private fun Instruction.galleryMethod() = (this as? ReferenceInstruction)?.reference as? MethodReference
-private fun Instruction.galleryField() = (this as? ReferenceInstruction)?.reference as? FieldReference
-private fun Instruction.galleryType() = ((this as? ReferenceInstruction)?.reference as? TypeReference)?.type
+internal fun Instruction.galleryMethod() = (this as? ReferenceInstruction)?.reference as? MethodReference
+internal fun Instruction.galleryField() = (this as? ReferenceInstruction)?.reference as? FieldReference
+internal fun Instruction.galleryType() = ((this as? ReferenceInstruction)?.reference as? TypeReference)?.type
 private fun Method.galleryStrings() = implementation?.instructions
     ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }?.toSet().orEmpty()
 private fun String.galleryPackage() = substringBeforeLast('/', "")
@@ -70,7 +70,7 @@ private fun Instruction.galleryArguments(): List<Int> = when (this) {
 }
 
 /** Whether this writes [register], whole or as half of a wide pair. */
-private fun Instruction.galleryWrites(register: Int): Boolean {
+internal fun Instruction.galleryWrites(register: Int): Boolean {
     if (!opcode.setsRegister()) return false
     val written = (this as? OneRegisterInstruction)?.registerA ?: return false
     return written == register || (opcode.setsWideRegister() && written + 1 == register)
@@ -95,8 +95,8 @@ private fun Instruction.galleryReads(): Set<Int> {
     return read.flatMap { if (wide) listOf(it, it + 1) else listOf(it) }.toSet()
 }
 
-private val GALLERY_ENDS = setOf(Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT, Opcode.THROW)
-private val GALLERY_GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+internal val GALLERY_ENDS = setOf(Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT, Opcode.THROW)
+internal val GALLERY_GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
 
 /** What can run right after instruction [i]: none after a return or throw, null after a switch, which isn't followed. */
 private fun List<Instruction>.galleryNext(i: Int): List<Int>? {
@@ -143,6 +143,7 @@ private fun ClassDef.galleryImplements(iface: String, byType: Map<String, ClassD
  * The one class whose objects run [start] as [launcher] declares it, or none. Messenger 583's launcher was abstract, with
  * one final subclass that ran this start and another that brought its own, and the hook calls the start virtually, so it
  * only handed its bundle to the first kind. 584's two subclasses both inherit the start, so the launcher itself is the class.
+ * 585 is back to 583's shape.
  */
 private fun List<ClassDef>.galleryTarget(launcher: ClassDef, start: Method, byType: Map<String, ClassDef>): ClassDef? {
     val signature = start.parameterTypes.map { it.toString() }
@@ -197,7 +198,8 @@ internal fun Method.isGalleryHandler(): Boolean {
  *     ...
  *     invoke-static {..., vEvent, vProvider}, <editor>(..., EditGalleryItemEvent, <Provider>)V
  *
- * Code between the two may branch, as the plugin's does on a cached value, but only the read leads in.
+ * Code between the two may branch, as the plugin's does on a cached value, but only the read leads in. 585 reads the
+ * field into another register and `move-object`s it into the call's range, so up to four plain moves are followed.
  *
  * and in the editor, on its last parameter:
  *
@@ -209,13 +211,20 @@ internal fun Method.isGalleryHandler(): Boolean {
 private fun Method.galleryProvider(iface: String, start: Method, byType: Map<String, ClassDef>): FieldReference? {
     val code = implementation!!.instructions.toList()
     val edits = code.indices.filter { at ->
-        code[at].opcode == Opcode.INVOKE_STATIC && code[at].galleryMethod()?.parameterTypes?.any { it.toString() == EDIT_GALLERY_ITEM } == true
+        code[at].opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) &&
+            code[at].galleryMethod()?.parameterTypes?.any { it.toString() == EDIT_GALLERY_ITEM } == true
     }
     val e = edits.singleOrNull() ?: return null
     val edit = code[e].galleryMethod()!!
     val providerType = edit.parameterTypes.lastOrNull()?.toString() ?: return null
     val provider = code[e].galleryArguments().lastOrNull() ?: return null
-    val load = (e - 1 downTo 0).firstOrNull { code[it].galleryWrites(provider) } ?: return null
+    var load = (e - 1 downTo 0).firstOrNull { code[it].galleryWrites(provider) } ?: return null
+    // 585 reads the field into another register and moves it into the call's range, so plain moves are followed.
+    repeat(4) {
+        val move = code[load].takeIf { it.opcode in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16) }
+            as? TwoRegisterInstruction ?: return@repeat
+        load = (load - 1 downTo 0).firstOrNull { code[it].galleryWrites(move.registerB) } ?: return null
+    }
     val field = code[load].takeIf { it.opcode == Opcode.IGET_OBJECT }?.galleryField() ?: return null
     if (field.definingClass != definingClass || field.type != providerType) return null
     val inside = load + 1..e
@@ -254,7 +263,7 @@ private fun Method.startsFromProvider(providerType: String, start: String): Bool
 }
 
 /** The p-number of this method's one parameter of [type], or null when it has none or several. */
-private fun Method.onlyParameter(type: String): Int? {
+internal fun Method.onlyParameter(type: String): Int? {
     val types = parameterTypes.map { it.toString() }
     if (types.count { it == type } != 1) return null
     return types.take(types.indexOf(type)).sumOf { if (it == "J" || it == "D") 2 else 1 } +
@@ -271,7 +280,7 @@ private fun Method.onlyParameter(type: String): Int? {
  *     ...
  *     iget-object vIntent, pEvent, <event>->A02:Landroid/content/Intent;
  */
-private fun Method.galleryItemsIntent(byType: Map<String, ClassDef>): FieldReference? {
+internal fun Method.galleryItemsIntent(byType: Map<String, ClassDef>): FieldReference? {
     if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != "V" || onlyParameter(THREAD_KEY_TYPE) == null) return null
     val code = implementation?.instructions?.toList() ?: return null
     val event = parameterRegister(onlyParameter(ACTIVITY_RESULT_EVENT) ?: return null)

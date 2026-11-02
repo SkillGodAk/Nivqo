@@ -48,6 +48,10 @@
         <item quantity="one">%s source</item>
         <item quantity="other">%s fontes</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s conjunto</item>
+        <item quantity="other">%s conjuntos</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s package</item>
         <item quantity="other">%s pacotes</item>

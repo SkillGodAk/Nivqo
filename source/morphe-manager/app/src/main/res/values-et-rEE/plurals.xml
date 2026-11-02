@@ -1,8 +1,180 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s plaaster</item>
+        <item quantity="other">%s plaastrit</item>
+    </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s raamatukogu</item>
+        <item quantity="other">%s raamatukogu</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s plaastri valik</item>
+        <item quantity="other">%s plaastri valikut</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s üksus</item>
+        <item quantity="other">%s üksust</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Vali %s fail</item>
+        <item quantity="other">Vali %s faili</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Lisa %s allikas</item>
+        <item quantity="other">Lisa %s allikat,</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Plaastriallikad %s rakenduse jaoks</item>
+        <item quantity="other">Plaastriallikad %s rakenduse jaoks</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Selle rakenduse jaoks on peidetud %s allikas. Valige rakendus rakenduste vaheleast ja avage \"Patch sources\", et see tagasi tuua</item>
+        <item quantity="other">Selle rakenduse jaoks on peidetud %s allikat. Valige rakendus rakenduste vaheleast ja avage \"Patch sources\", et need tagasi tuua</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s allikas on peidetud. Puudutage, et näidata</item>
+        <item quantity="other">%s allikat on peidetud. Puudutage, et näidata</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s ühteskoku sobiv plaaster</item>
+        <item quantity="other">%s ühteskoku sobivat plaastrit</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s allikas</item>
+        <item quantity="other">%s allikat</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s komplekt</item>
+        <item quantity="other">%s komplekti</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s pakett</item>
+        <item quantity="other">%s paketti</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Täidetud %s lapp</item>
+        <item quantity="other">Täidetud %s lappi</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK-fail</item>
+        <item quantity="other">%s APK-faili</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Paigaldatud %s rakendus</item>
+        <item quantity="other">Paigaldatud %s rakendust</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Ühendatud %s rakendus</item>
+        <item quantity="other">Ühendatud %s rakendust</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Uuesti paigaldatud %s rakendus</item>
+        <item quantity="other">Uuesti paigaldatud %s rakendust</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Eemaldatud %s rakendus</item>
+        <item quantity="other">Eemaldatud %s rakendust</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Eemaldada %s rakendus?</item>
+        <item quantity="other">Eemaldada %s rakendust?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s rakendus on parandamiseks valmis</item>
+        <item quantity="other">%s rakendust on parandamiseks valmis</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s rakendus on patchingi järjekorras</item>
+        <item quantity="other">%s rakendust on patchingi järjekorras</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s peidetud teavitus, puudutage, et see näidata</item>
+        <item quantity="other">%s peidetud teavitust, puudutage, et need näidata</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s rakendust on võimalik uuesti parandada</item>
+        <item quantity="other">%s rakendust on võimalik uuesti parandada</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Skippitud %s rakendus</item>
+        <item quantity="other">Skippitud %s rakendust</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Eemaldatud %s aegunud lapp salvestatud valikust</item>
+        <item quantity="other">Eemaldatud %s aegunud lappi salvestatud valikust</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s allikas installitud</item>
+        <item quantity="other">%s allikast installitud</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s rakendus peidetud</item>
+        <item quantity="other">%s rakendust peidetud</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s rakendus nähtav</item>
+        <item quantity="other">%s rakendust nähtav</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Näidata %s rakendust?</item>
+        <item quantity="other">Näidata %s rakendust?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s peidetud rakendus</item>
+        <item quantity="other">%s peidetud rakendust</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s rakendus</item>
+        <item quantity="other">%s rakendust</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s valitud</item>
+        <item quantity="other">%s valitud</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Kopeeritud %s paik valitud paketist</item>
+        <item quantity="other">Kopeeritud %s paika valitud paketist</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s tuum</item>
+        <item quantity="other">%s tuuma</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s funktsioon</item>
+        <item quantity="other">%s funktsiooni</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s parandus</item>
+        <item quantity="other">%s parandust</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimeering</item>
+        <item quantity="other">%s optimeeringit</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s muudatus</item>
+        <item quantity="other">%s muudatust</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d uus</item>
+        <item quantity="other">%1$s · %2$d uut</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s uus väljalase</item>
+        <item quantity="other">%s uut väljalaset</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d link on aktiveeritud</item>
+        <item quantity="other">%d linki on aktiveeritud</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d kinnitamata link</item>
+        <item quantity="other">%d kinnitamata linki</item>
+    </plurals>
 </resources>

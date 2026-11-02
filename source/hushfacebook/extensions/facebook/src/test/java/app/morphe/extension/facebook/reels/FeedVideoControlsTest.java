@@ -39,8 +39,10 @@ import java.util.List;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.PauseForTests;
 import app.morphe.extension.shared.settings.HushfacebookPause;
+import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30, qualifiers = "w1080dp-h2400dp-mdpi")
@@ -110,6 +112,8 @@ public class FeedVideoControlsTest {
         Settings.INLINE_FEED_VIDEO_CONTROLS.resetToDefault();
         Settings.FEED_VIDEO_CAST_BUTTON.resetToDefault();
         Settings.TAP_TO_PLAY.resetToDefault();
+        BaseSettings.DEBUG.resetToDefault();
+        LogBufferManager.clearLogBuffer();
         PauseForTests.resume();
         HookStatus.clear();
         if (window != null) window.pause().stop().destroy();
@@ -161,9 +165,11 @@ public class FeedVideoControlsTest {
         assertNotNull(cast());
         assertEquals("Cast this video", cast().getContentDescription());
         assertTrue(cast().getParent() == button().getParent());
-        // 1080 px wide surface at mdpi: a 48 px button 8 px in from each side, same row.
-        assertEquals(8, at(button()).leftMargin);
-        assertEquals(1080 - 8 - 48, at(cast()).leftMargin);
+        // 1080 px wide surface at mdpi: a 40 px button 4 px in from each side, same row (#301).
+        assertEquals(4, at(button()).leftMargin);
+        assertEquals(1080 - 4 - 40, at(cast()).leftMargin);
+        assertEquals(40, at(cast()).width);
+        assertEquals(40, at(button()).height);
         assertEquals(at(button()).topMargin, at(cast()).topMargin);
         cast().performClick();
         assertEquals(java.util.Arrays.asList("video"), casts);
@@ -231,7 +237,7 @@ public class FeedVideoControlsTest {
 
     @Test public void aSurfaceTooNarrowForTwoButtonsGetsNeitherButOneFits() {
         player.view.removeAllViews();
-        place(player.view, new SurfaceView(activity), 0, 0, 100, 600);
+        place(player.view, new SurfaceView(activity), 0, 0, 90, 600);
         layout();
         castOn();
         FeedVideoControls.changed(player);
@@ -241,7 +247,7 @@ public class FeedVideoControlsTest {
         Settings.INLINE_FEED_VIDEO_CONTROLS.save(false);
         drain();
         assertNotNull(cast());
-        assertEquals(100 - 8 - 48, at(cast()).leftMargin);
+        assertEquals(90 - 4 - 40, at(cast()).leftMargin);
     }
 
     @Test public void buttonStartsPausesAndResumesWithoutChangingNativeTaps() {
@@ -399,11 +405,63 @@ public class FeedVideoControlsTest {
         assertNull(button());
     }
 
-    @Test public void absentAndAmbiguousSurfacesGetNoButton() {
+    @Test public void aHeldPlayerWithNoSurfaceYetGetsItsButtonOnTheContainer() {
+        // Tap to play holds a feed video before it draws, so its surface may not exist yet (#239).
         player.view.removeAllViews();
         FeedVideoControls.changed(player);
         drain();
+        assertNotNull(button());
+        assertEquals(4, at(button()).leftMargin);
+        button().performClick();
+        assertEquals(java.util.Arrays.asList(true), commands);
+        player.view.setAlpha(0f);
+        FeedVideoControls.changed(player);
+        drain();
+        assertNull("a container that shows nothing", button());
+    }
+
+    @Test public void aContainerHoldingAnotherPlayerGetsNoButtonOfItsOwn() {
+        player.view.removeAllViews();
+        Player inner = new Player();
+        inner.view = new FrameLayout(activity);
+        place(player.view, inner.view, 0, 0, 1080, 600);
+        layout();
+        attach(inner);
+        FeedVideoControls.changed(player);
+        drain();
         assertNull(button());
+    }
+
+    @Test public void debugLoggingNamesWhyAVideoHasNoButtonOncePerReason() {
+        player.origin = "fb_shorts_tab::fb_shorts_viewer";
+        FeedVideoControls.changed(player);
+        drain();
+        BaseSettings.DEBUG.save(true);
+        LogBufferManager.clearLogBuffer();
+        for (int pass = 0; pass < 3; pass++) {
+            FeedVideoControls.changed(player);
+            drain();
+        }
+        String log = LogBufferManager.buildExportText();
+        assertEquals("a video already without one is named once Debug logging is on", 1,
+                occurrences(log, "Inline feed button: none, origin fb_shorts_tab::fb_shorts_viewer"));
+        player.origin = "newsfeed::feed_story";
+        player.params.ordinary = false;
+        FeedVideoControls.changed(player);
+        drain();
+        log = LogBufferManager.buildExportText();
+        assertEquals(log, 1, occurrences(log, "Inline feed button: none, no video id, or a live video, ad, audio or GIF"));
+        assertEquals(log, 1, occurrences(log, "Inline feed button: none, origin"));
+    }
+
+    private static int occurrences(String text, String part) {
+        int count = 0;
+        for (int at = text.indexOf(part); at >= 0; at = text.indexOf(part, at + part.length())) count++;
+        return count;
+    }
+
+    @Test public void ambiguousSurfacesGetNoButton() {
+        player.view.removeAllViews();
         place(player.view, new TextureView(activity), 0, 0, 500, 500);
         place(player.view, new SurfaceView(activity), 500, 0, 500, 500);
         layout();
@@ -464,5 +522,33 @@ public class FeedVideoControlsTest {
         row.removeView(player.view);
         drain();
         assertNull(button());
+    }
+
+    @Test public void aRowRecycledDuringALayoutPassTakesTheButtonsOffAfterThePass() {
+        castOn();
+        View play = button();
+        View cast = cast();
+        assertNotNull(play);
+        assertNotNull(cast);
+        ViewGroup content = activity.findViewById(android.R.id.content);
+        assertEquals(3, content.getChildCount());
+        // Like the feed list recycling a video row in its own onLayout, while the content frame lays out its children.
+        Runnable[] recycle = { () -> row.removeView(player.view) };
+        View lister = new View(activity) {
+            @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+                Runnable now = recycle[0];
+                recycle[0] = null;
+                if (now != null) now.run();
+            }
+        };
+        place(root, lister, 0, 0, 10, 10);
+        layout();
+        assertTrue(recycle[0] == null);
+        assertNull(button());
+        assertNull(cast());
+        drain();
+        assertTrue(play.getParent() == null);
+        assertTrue(cast.getParent() == null);
+        assertEquals(1, content.getChildCount());
     }
 }

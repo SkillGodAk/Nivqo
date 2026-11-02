@@ -300,6 +300,11 @@ data class Option<T>(
         recommendedSize = extractRecommendedSize(option),
         sliderBounds = extractSliderBounds(option),
     )
+
+    /** Whether the patch takes [value], by the check it declares. One that throws turns it down too. */
+    @Suppress("UNCHECKED_CAST")
+    fun accepts(value: Any?): Boolean =
+        runCatching { validator(coerceOptionValue(type, value) as T?) }.getOrDefault(false)
 }
 
 private fun extractExplicitKind(option: PatchOption<*>): ExplicitOptionKind? = when (option) {

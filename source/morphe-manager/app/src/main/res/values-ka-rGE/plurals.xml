@@ -48,6 +48,10 @@
         <item quantity="one">%s წყარო</item>
         <item quantity="other">%s წყარო</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s ნაკრები</item>
+        <item quantity="other">%s ნაკრები</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s პაკეტი</item>
         <item quantity="other">%s პაკეტი</item>

@@ -259,6 +259,13 @@ object Animations {
         fadeIn(tween(duration)) togetherWith fadeOut(tween(duration))
     }
 
+    // Fade through for content swapped for something unrelated in the same place: the old content
+    // is gone before the new one fades in, so the two never show through each other
+    fun fadeThrough(duration: Int = Defaults.ANIMATION_DURATION): AnimatedContentTransitionScope<*>.() -> ContentTransform = {
+        val exitDuration = duration * 2 / 5
+        fadeIn(tween(duration - exitDuration, delayMillis = exitDuration)) togetherWith fadeOut(tween(exitDuration))
+    }
+
     // Functional helpers
     fun fadeOut(duration: Int): ExitTransition = fadeOut(tween(duration))
 }

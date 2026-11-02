@@ -70,6 +70,8 @@ fun HomeScreen(
     onboardingState: OnboardingState? = null,
     patchTriggerPackage: String? = null,
     onPatchTriggerHandled: () -> Unit = {},
+    appInfoTriggerPackage: String? = null,
+    onAppInfoTriggerHandled: () -> Unit = {},
     installViewModel: InstallViewModel = koinViewModel()
 ) {
     val context = LocalContext.current
@@ -180,11 +182,6 @@ fun HomeScreen(
         onResult = homeViewModel.patchFlow::handleApkSelection
     )
 
-    val openBundlePicker = rememberAdaptiveMultiFilePicker(
-        mimeTypes = MPP_FILE_MIME_TYPES,
-        onResult = homeViewModel::pickBundles
-    )
-
     val installAppsPermissionLauncher = rememberLauncherForActivityResult(
         contract = RequestInstallAppsContract
     ) { homeViewModel.showAndroid11Dialog = false }
@@ -254,6 +251,14 @@ fun HomeScreen(
         }
     }
 
+    // Handle app info trigger (e.g. from mount replaced notification)
+    LaunchedEffect(appInfoTriggerPackage) {
+        appInfoTriggerPackage?.let { packageName ->
+            homeViewModel.patchFlow.openInstalledAppInfo(packageName)
+            onAppInfoTriggerHandled()
+        }
+    }
+
     // Check for manager update
     val hasManagerUpdate = !homeViewModel.updatedManagerVersion.isNullOrEmpty()
 
@@ -291,10 +296,7 @@ fun HomeScreen(
     HomeDialogs(
         homeViewModel = homeViewModel,
         storagePickerLauncher = { openApkPicker() },
-        openBundlePicker = { openBundlePicker() },
         patchesItem = patchesSheetItem,
-        // The new source's apps come up on the list, so that is where adding one ends
-        onSourceAdded = { openPage(MainPage.APPS) },
         settingsNavigation = settingsNavigation
     )
 
@@ -331,7 +333,6 @@ fun HomeScreen(
     val alerts = rememberHomeAlerts(notifications)
     // Each page's header, which the alerts hang under on whichever page is on screen
     val pageHeaderHeights = remember { mutableStateMapOf<MainPage, Dp>() }
-    val alertsTopTarget = pageHeaderHeights[MainPage.entries[pagerState.currentPage]]
     // How far down the alerts reach under the header, which the lists keep clear of. Read only
     // where a list is laid out, so the cards easing in and out do not recompose the screen
     val alertsHeight = remember { mutableStateOf(0.dp) }
@@ -339,10 +340,12 @@ fun HomeScreen(
     MainPagerScaffold(
         pagerState = pagerState,
         // By whatever the page on screen docks over its lower edge
-        navigationCovered = when (MainPage.entries[pagerState.currentPage]) {
-            MainPage.APPS -> sectionState.isFooterBarVisible
-            MainPage.SOURCES -> sourcesPageState.isFooterBarVisible
-            MainPage.SETTINGS -> false
+        navigationCovered = {
+            when (MainPage.entries[pagerState.currentPage]) {
+                MainPage.APPS -> sectionState.isFooterBarVisible
+                MainPage.SOURCES -> sourcesPageState.isFooterBarVisible
+                MainPage.SETTINGS -> false
+            }
         },
         // The tour moves between the pages itself, and a swipe would leave its spotlight behind
         swipeEnabled = onboardingState == null,
@@ -350,6 +353,7 @@ fun HomeScreen(
         settingsDescription = if (useExpertMode) "$settingsLabel, $expertModeLabel" else null,
         onItemPositioned = onboardingState?.let { tour -> { page, bounds -> tour.navigationBounds[page] = bounds } },
         overlay = {
+            val alertsTopTarget = pageHeaderHeights[MainPage.entries[pagerState.currentPage]]
             // Held back until the header is measured, so on a cold start the alerts open right
             // under it rather than drop down to it from the top of the screen
             if (alertsTopTarget != null) {
@@ -374,7 +378,9 @@ fun HomeScreen(
                 state = sourcesPageState,
                 onboardingState = onboardingState,
                 alertsHeight = { alertsHeight.value },
-                onHeaderHeightChange = { pageHeaderHeights[MainPage.SOURCES] = it }
+                onHeaderHeightChange = { pageHeaderHeights[MainPage.SOURCES] = it },
+                // The new source's apps come up on the list, so that is where adding one ends
+                onSourceAdded = { openPage(MainPage.APPS) }
             )
 
             MainPage.SETTINGS -> SettingsPage(

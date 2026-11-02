@@ -130,6 +130,8 @@ class Session(
 
     override fun close() {
         tempDir.deleteRecursively()
+        // A patch that loads a native library from the workspace marks its directory read-only for Android 15+ W^X
+        fileWorkspace.walkTopDown().forEach { it.setWritable(true) }
         fileWorkspace.deleteRecursively()
         patcher.close()
     }

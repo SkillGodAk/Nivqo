@@ -38,8 +38,8 @@ internal class HomeAppsSectionState(
 ) {
     // Selection
     var isMultiSelectMode by mutableStateOf(false)
-    /** Group the current selection belongs to, so a grouped view cannot select across groups. */
-    var selectedGroupKey by mutableStateOf<String?>(null)
+    /** Group the latest card was picked in, which decides the selection's group when an app sits in several. */
+    var pickedGroupKey by mutableStateOf<String?>(null)
 
     // Reorder
     var isReorderMode by mutableStateOf(false)
@@ -101,7 +101,7 @@ internal class HomeAppsSectionState(
     fun exitMultiSelect() {
         isMultiSelectMode = false
         selectedPackages.clear()
-        selectedGroupKey = null
+        pickedGroupKey = null
     }
 
     /** Leaves reorder mode and drops the scope it was entered with. [order] restores the list. */
@@ -112,7 +112,7 @@ internal class HomeAppsSectionState(
         scopedSourceOrder = null
         reorderGroupFollowers = null
         selectedPackages.clear()
-        selectedGroupKey = null
+        pickedGroupKey = null
         if (order != null) localOrder = order
     }
 
@@ -122,12 +122,10 @@ internal class HomeAppsSectionState(
         isCategoryReorderMode = false
     }
 
-    /** Toggles a card in a grouped view, keeping the selection inside a single group. */
+    /** Toggles a card in a grouped view, remembering the group it was picked in. */
     fun toggleInGroup(packageName: String, groupKey: String) {
-        if (selectedGroupKey != null && selectedGroupKey != groupKey) selectedPackages.clear()
-        selectedGroupKey = groupKey
+        pickedGroupKey = groupKey
         selectedPackages.toggle(packageName)
-        if (selectedPackages.isEmpty) selectedGroupKey = null
     }
 }
 

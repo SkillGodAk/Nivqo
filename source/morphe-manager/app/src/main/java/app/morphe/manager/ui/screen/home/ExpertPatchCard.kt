@@ -33,97 +33,50 @@ import com.composables.icons.materialsymbols.rounded.*
 import org.koin.compose.koinInject
 
 /**
- * Bundle controls: pill row with per-bundle bulk actions.
+ * Buttons turning every patch in view on and off, for the source the selection panel is headed
+ * with. Each stays where it is and does the same thing, out of reach while there is nothing for it.
  *
- * A null [onCopyFromBundle] drops that pill, for the callers where a selection has nowhere
- * to be copied from.
+ * Turning all on is staged as a run sets it up: the regular patches first, the universal ones on
+ * the next tap and after a warning, as enabling every one of them is a common cause of conflicts.
+ *
+ * @param canEnableMore Whether a patch in view is off and free to be turned on.
+ * @param canDisable Whether a patch in view is on and free to be turned off.
+ * @param holdsUniversalPatches Whether turning all on leaves the universal patches for the next tap.
+ * @param warnOnUniversalAll Whether this tap would turn the universal patches on.
  */
 @Composable
-internal fun BundlePatchControls(
-    enabledCount: Int,
-    totalCount: Int,
+internal fun BulkSelectActions(
+    canEnableMore: Boolean,
+    canDisable: Boolean,
     holdsUniversalPatches: Boolean,
+    warnOnUniversalAll: Boolean,
     onSelectAll: () -> Unit,
-    onDeselectAll: () -> Unit,
-    onResetToDefault: () -> Unit,
-    onRestoreSaved: () -> Unit,
-    onCopyFromBundle: (() -> Unit)?,
-    hasSavedSelection: Boolean,
-    modifier: Modifier = Modifier,
-    /** True when this "Enable all" tap would also enable the universal patches. */
-    warnOnUniversalAll: Boolean = false
+    onDeselectAll: () -> Unit
 ) {
-    val selectAllLabel = stringResource(R.string.expert_mode_enable_all)
-    val defaultLabel = stringResource(R.string.expert_mode_reset_to_default)
-    val restoreLabel = stringResource(R.string.expert_mode_restore_saved)
-    val deselectAllLabel = stringResource(R.string.expert_mode_disable_all)
-
-    // The second "Enable all" tap applies every universal patch at once, which is a common
-    // cause of conflicts and failed patching. Confirmation makes that risk explicit.
+    val messages = koinInject<UserMessages>()
+    val pendingUniversal = stringResource(R.string.expert_mode_enable_all_universal_pending)
     var showUniversalAllWarning by remember { mutableStateOf(false) }
 
-    // Universal patches stay off until a second tap, so the first one must not claim otherwise
-    val enabledDone = if (holdsUniversalPatches) {
-        stringResource(R.string.expert_mode_enable_all_universal_pending)
-    } else {
-        stringResource(R.string.expert_mode_enable_all_done)
-    }
-    val disabledDone = stringResource(R.string.expert_mode_disable_all_done)
-    val resetDone = stringResource(R.string.expert_mode_reset_to_default_done)
-    val restoredDone = stringResource(R.string.expert_mode_restore_saved_done)
-
-    // Played by hand rather than on tap, since the tap may only open the warning below
-    val selectAllConfirmation = rememberPillConfirmationState()
     val selectAll = {
         onSelectAll()
-        selectAllConfirmation.show(enabledDone)
+        // Nothing on screen may change with this tap, so it says what the next one does
+        if (holdsUniversalPatches) messages.show(pendingUniversal)
     }
 
-    ActionPillRow(modifier = modifier) {
-        ActionPillButton(
-            onClick = {
-                if (warnOnUniversalAll) showUniversalAllWarning = true else selectAll()
-            },
-            icon = MaterialSymbols.Rounded.Done_all,
-            contentDescription = selectAllLabel,
-            tooltip = selectAllLabel,
-            confirmationState = selectAllConfirmation,
-            enabled = enabledCount < totalCount
-        )
-        ActionPillButton(
-            onClick = onResetToDefault,
-            icon = MaterialSymbols.Rounded.Recommend,
-            contentDescription = defaultLabel,
-            tooltip = defaultLabel,
-            confirmation = resetDone
-        )
-        ActionPillButton(
-            onClick = onRestoreSaved,
-            icon = MaterialSymbols.Rounded.History,
-            contentDescription = restoreLabel,
-            tooltip = restoreLabel,
-            confirmation = restoredDone,
-            enabled = hasSavedSelection
-        )
-        if (onCopyFromBundle != null) {
-            val copyLabel = stringResource(R.string.expert_mode_copy_from_bundle)
-            ActionPillButton(
-                onClick = onCopyFromBundle,
-                icon = MaterialSymbols.Rounded.Content_copy,
-                contentDescription = copyLabel,
-                tooltip = copyLabel
-            )
-        }
-        ActionPillButton(
-            onClick = onDeselectAll,
-            icon = MaterialSymbols.Rounded.Clear_all,
-            contentDescription = deselectAllLabel,
-            tooltip = deselectAllLabel,
-            confirmation = disabledDone,
-            enabled = enabledCount > 0,
-            destructive = true
-        )
-    }
+    TitleAction(
+        icon = MaterialSymbols.Rounded.Remove_done,
+        contentDescription = stringResource(R.string.expert_mode_disable_all),
+        onClick = onDeselectAll,
+        style = TitleActionStyle.Neutral,
+        enabled = canDisable
+    )
+    TitleAction(
+        icon = MaterialSymbols.Rounded.Done_all,
+        contentDescription = stringResource(R.string.expert_mode_enable_all),
+        onClick = { if (warnOnUniversalAll) showUniversalAllWarning = true else selectAll() },
+        style = TitleActionStyle.Neutral,
+        enabled = canEnableMore
+    )
 
     DialogHost(visible = showUniversalAllWarning) {
         ConfirmDialog(
@@ -276,43 +229,46 @@ internal fun PatchCard(
 
                 // Options button (only enabled if patch is enabled)
                 if (hasOptions) {
-                    FilledTonalIconButton(
-                        onClick = {
-                            // Prevent click propagation to card
-                            onConfigureOptions()
-                        },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .semantics {
-                                contentDescription = optionsDesc
+                    // The card already names the patch, so the tooltip only says what the button opens
+                    IconTooltip(text = settings) {
+                        FilledTonalIconButton(
+                            onClick = {
+                                // Prevent click propagation to card
+                                onConfigureOptions()
                             },
-                        enabled = isEnabled,
-                        colors = tonalIconColors(
-                            // Changed options take the app's color where the list has one, as its
-                            // other controls do, while missing ones stay in the error palette
-                            container = when {
-                                showMissingRequired -> colors.errorContainer.copy(alpha = 0.8f)
-                                showCustomOptions -> customizedAccent?.copy(alpha = AccentAlpha.LEAD)
-                                    ?: colors.primaryContainer.copy(alpha = 0.7f)
-                                else -> colors.secondaryContainer.copy(alpha = 0.6f)
-                            },
-                            content = when {
-                                showMissingRequired -> colors.error
-                                showCustomOptions -> if (customizedAccent != null) {
-                                    colors.onBackground
-                                } else {
-                                    colors.onPrimaryContainer
-                                }
-                                else -> colors.onSecondaryContainer
-                            },
-                            disabledContent = colors.onSurfaceVariant.copy(alpha = 0.3f)
-                        )
-                    ) {
-                        Icon(
-                            imageVector = MaterialSymbols.Rounded.Settings,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
+                            modifier = Modifier
+                                .size(36.dp)
+                                .semantics {
+                                    contentDescription = optionsDesc
+                                },
+                            enabled = isEnabled,
+                            colors = tonalIconColors(
+                                // Changed options take the app's color where the list has one, as its
+                                // other controls do, while missing ones stay in the error palette
+                                container = when {
+                                    showMissingRequired -> colors.errorContainer.copy(alpha = 0.8f)
+                                    showCustomOptions -> customizedAccent?.copy(alpha = AccentAlpha.LEAD)
+                                        ?: colors.primaryContainer.copy(alpha = 0.7f)
+                                    else -> colors.secondaryContainer.copy(alpha = 0.6f)
+                                },
+                                content = when {
+                                    showMissingRequired -> colors.error
+                                    showCustomOptions -> if (customizedAccent != null) {
+                                        colors.onBackground
+                                    } else {
+                                        colors.onPrimaryContainer
+                                    }
+                                    else -> colors.onSecondaryContainer
+                                },
+                                disabledContent = colors.onSurfaceVariant.copy(alpha = 0.3f)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = MaterialSymbols.Rounded.Settings,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }

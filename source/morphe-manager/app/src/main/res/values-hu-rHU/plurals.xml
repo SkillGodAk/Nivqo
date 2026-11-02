@@ -48,6 +48,10 @@
         <item quantity="one">%s forrás</item>
         <item quantity="other">%s forrás</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s szett</item>
+        <item quantity="other">%s szett</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s csomag</item>
         <item quantity="other">%s csomag</item>

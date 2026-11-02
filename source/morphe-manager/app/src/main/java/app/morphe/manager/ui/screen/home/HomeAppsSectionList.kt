@@ -166,14 +166,12 @@ internal fun LazyListScope.groupedAppCards(
         }
 
         if (!group.collapsed) {
+            val groupKey = group.selectionKey()
             items(
                 items = group.items,
                 key = { item -> "category_${group.id ?: "uncategorized"}_${item.id}" },
                 contentType = { APP_CARD_CONTENT_TYPE }
             ) { item ->
-                val groupKey = group.selectionKey()
-                val isSelected = selectedPackages.contains(item.id) &&
-                        (state.selectedGroupKey == null || state.selectedGroupKey == groupKey)
                 DynamicAppCard(
                     item = item,
                     onAppClick = {
@@ -187,7 +185,7 @@ internal fun LazyListScope.groupedAppCards(
                     onShowPatches = { appActions.onShowPatches(item) },
                     showGestureHint = item.id == firstFilteredPackage && showGestureHint,
                     onGestureHintShown = appActions.onGestureHintShown,
-                    isSelected = isSelected,
+                    isSelected = selectedPackages.contains(item.id),
                     isMultiSelectMode = state.isMultiSelectMode,
                     onLongPress = {
                         // Skip so the category bar doesn't overlap with app multi-select

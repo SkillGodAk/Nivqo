@@ -45,6 +45,7 @@ enum class TitleActionStyle {
 /**
  * Icon action rendered in the title row of a header or a [DockedPanel]. Uniforms the
  * button styles used across headers so callers only pick an icon and a semantic style.
+ * Never labeled, it shows [contentDescription] in an [IconTooltip] instead.
  *
  * @param active Whether a [TitleActionStyle.Toggle] is engaged, which is while what it opens is open.
  * @param marked Marks the icon with a dot for something the action leaves in place, such as a
@@ -81,75 +82,66 @@ fun TitleAction(
         TitleActionStyle.Toggle -> HeaderControlDefaults.container(active = engaged)
     }
 
-    val interactionSource = remember { MutableInteractionSource() }
-
     if (containerColor == null) {
-        IconButton(
+        TooltipIconButton(
             onClick = onClick,
-            // No circle to round, so the flat variant sinks under a press instead
-            modifier = sizedModifier.pressScale(
-                interactionSource = interactionSource,
-                enabled = enabled,
-                label = "title_action_press_scale"
-            ),
-            enabled = enabled,
-            interactionSource = interactionSource
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                modifier = Modifier.size(Defaults.IconSize),
-                tint = dialogTextColor().copy(alpha = if (enabled) 1f else Defaults.DISABLED_ALPHA)
-            )
-        }
-    } else {
-        val contentTarget = when (style) {
-            TitleActionStyle.Destructive -> destructiveColor()
-            else -> HeaderControlDefaults.content(containerColor, active = engaged || style == TitleActionStyle.Accent)
-        }
-        // A toggle engaging or letting go blends into its next look rather than snapping, its edge
-        // fading in and out of the color it takes while engaged
-        val edgeColor = HeaderControlDefaults.activeBorder(active = true) ?: Color.Transparent
-        val container by animateColorAsState(containerColor, tween(Defaults.ANIMATION_DURATION), label = "title_action_container")
-        val contentColor by animateColorAsState(contentTarget, tween(Defaults.ANIMATION_DURATION), label = "title_action_content")
-        val edge by animateColorAsState(
-            targetValue = if (engaged) edgeColor else edgeColor.copy(alpha = 0f),
-            animationSpec = tween(Defaults.ANIMATION_DURATION),
-            label = "title_action_edge"
-        )
-        val shape = rememberPressShape(interactionSource, IconButtonDefaults.filledShape, enabled)
-        val border = if (edge.alpha > 0f) CardBorder.of(edge) else null
-
-        // Outlined rather than tonal only for the edge, which it draws on the circle itself rather
-        // than around the touch target the button reserves past it
-        OutlinedIconButton(
-            onClick = onClick,
+            icon = icon,
+            contentDescription = contentDescription,
             modifier = sizedModifier,
             enabled = enabled,
-            interactionSource = interactionSource,
-            shape = shape,
-            border = border,
-            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                containerColor = container,
-                contentColor = contentColor,
-                // Scaled rather than set, so a tint that is already see-through fades further
-                disabledContainerColor = container.copy(alpha = container.alpha * Defaults.DISABLED_ALPHA),
-                disabledContentColor = dialogTextColor().copy(alpha = Defaults.DISABLED_ALPHA)
+            tint = dialogTextColor()
+        )
+    } else {
+        val interactionSource = remember { MutableInteractionSource() }
+        IconTooltip(text = contentDescription) {
+            val contentTarget = when (style) {
+                TitleActionStyle.Destructive -> destructiveColor()
+                else -> HeaderControlDefaults.content(containerColor, active = engaged || style == TitleActionStyle.Accent)
+            }
+            // A toggle engaging or letting go blends into its next look rather than snapping, its edge
+            // fading in and out of the color it takes while engaged
+            val edgeColor = HeaderControlDefaults.activeBorder(active = true) ?: Color.Transparent
+            val container by animateColorAsState(containerColor, tween(Defaults.ANIMATION_DURATION), label = "title_action_container")
+            val contentColor by animateColorAsState(contentTarget, tween(Defaults.ANIMATION_DURATION), label = "title_action_content")
+            val edge by animateColorAsState(
+                targetValue = if (engaged) edgeColor else edgeColor.copy(alpha = 0f),
+                animationSpec = tween(Defaults.ANIMATION_DURATION),
+                label = "title_action_edge"
             )
-        ) {
-            val markColor = LocalAccent.current ?: MaterialTheme.colorScheme.primary
-            MarkedIcon(
-                mark = MaterialSymbols.RoundedFilled.Circle.takeIf { marked },
-                markColor = markColor,
-                iconSize = Defaults.IconSize,
-                markSize = TitleActionMarkSize,
-                markContentColor = markColor
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = contentDescription,
-                    modifier = Modifier.fillMaxSize()
+            val shape = rememberPressShape(interactionSource, IconButtonDefaults.filledShape, enabled)
+            val border = if (edge.alpha > 0f) CardBorder.of(edge) else null
+
+            // Outlined rather than tonal only for the edge, which it draws on the circle itself rather
+            // than around the touch target the button reserves past it
+            OutlinedIconButton(
+                onClick = onClick,
+                modifier = sizedModifier,
+                enabled = enabled,
+                interactionSource = interactionSource,
+                shape = shape,
+                border = border,
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = container,
+                    contentColor = contentColor,
+                    // Scaled rather than set, so a tint that is already see-through fades further
+                    disabledContainerColor = container.copy(alpha = container.alpha * Defaults.DISABLED_ALPHA),
+                    disabledContentColor = dialogTextColor().copy(alpha = Defaults.DISABLED_ALPHA)
                 )
+            ) {
+                val markColor = LocalAccent.current ?: MaterialTheme.colorScheme.primary
+                MarkedIcon(
+                    mark = MaterialSymbols.RoundedFilled.Circle.takeIf { marked },
+                    markColor = markColor,
+                    iconSize = Defaults.IconSize,
+                    markSize = TitleActionMarkSize,
+                    markContentColor = markColor
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = contentDescription,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
     }

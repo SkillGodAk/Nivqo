@@ -39,6 +39,8 @@ import java.util.Locale
 /**
  * Dialog that shows available patches for a specific app, one block per source they come from.
  * Shown when the user swipes right on a home app card.
+ *
+ * @param onOpenApp Opens the app on the device, null when it is not installed or has no launcher.
  */
 @Composable
 fun DialogHostScope.AppPatchesDialog(
@@ -46,7 +48,8 @@ fun DialogHostScope.AppPatchesDialog(
     patchesByBundle: Map<Int, List<PatchInfo>>,
     bundleNames: Map<Int, String>,
     onDismiss: () -> Unit,
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    onOpenApp: (() -> Unit)? = null
 ) {
     val sourcesByUid = rememberSourcesByUid()
     val sourceAccents = patchesByBundle.keys.associateWith { uid ->
@@ -117,7 +120,17 @@ fun DialogHostScope.AppPatchesDialog(
         isLoading = isLoading,
         saveStateKey = "app_patches_${item.id}",
         onDismiss = onDismiss,
-        accentColor = brandColor
+        accentColor = brandColor,
+        headerActions = {
+            if (onOpenApp != null) {
+                TitleAction(
+                    icon = MaterialSymbols.Rounded.Open_in_new.autoMirrored,
+                    contentDescription = stringResource(R.string.open),
+                    onClick = onOpenApp,
+                    style = TitleActionStyle.Neutral
+                )
+            }
+        }
     )
 }
 

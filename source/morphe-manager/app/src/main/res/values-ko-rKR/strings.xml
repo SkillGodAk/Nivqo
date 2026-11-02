@@ -8,7 +8,7 @@
     <string name="home_unpatched_badge">패치되지 않음</string>
     <string name="home_no_patches_available">사용 가능한 패치 없음</string>
     <string name="home_app_hide_title">이 앱을 숨기시겠습니까?</string>
-    <string name="home_more_apps_title"> 앱 더보기</string>
+    <string name="home_more_apps_title">앱 더보기</string>
     <string name="home_more_apps_hide_title">이 카드를 숨기시겠습니까?</string>
     <string name="home_more_apps_hide_message">\'설정 &gt; 디자인 &gt; 홈 화면\'에서 언제든지 다시 표시할 수 있습니다</string>
     <string name="home_app_hide_message">이 앱은 홈 화면에서 숨겨집니다. 목록 하단에 있는 버튼을 사용하여 숨겨진 앱 목록에서 나중에 복원할 수 있습니다</string>
@@ -98,8 +98,10 @@
     <string name="home_category_name">카테고리 이름</string>
     <string name="home_category_move_to">카테고리로 이동</string>
     <string name="home_category_move_selected_title">선택된 앱 이동</string>
-    <string name="home_category_delete_confirm_title">카테고리 삭제</string>
-    <string name="home_category_delete_confirm_message">&lt;b&gt;%1$s&lt;/b&gt; 카테고리를 삭제하시겠습니까? 해당 카테고리의 앱은 &lt;b&gt;%2$s&lt;/b&gt;로 돌아갑니다</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">\'%s\'를 삭제하시겠습니까?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">앱이 &lt;b&gt;%s&lt;/b&gt;로 돌아갑니다</string>
     <string name="home_category_actions_unavailable">이 카테고리에 사용할 수 있는 작업이 없습니다</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">어떤 앱을 패치하시겠습니까?</string>
@@ -196,10 +198,14 @@
     <string name="sources_management_prerelease_toggle_description">새 실험 패치 버전을 미리 받아보세요</string>
     <string name="sources_prerelease_warning_title">Pre-release 패치 활성화</string>
     <string name="sources_prerelease_warning_message">Pre-release 빌드는 아직 개발 중입니다. 패치가 실패하거나 앱이 손상될 수 있으며, 기능은 예고 없이 변경될 수 있습니다</string>
-    <string name="expert_mode_prerelease_notice">이 소스는 Pre-release 패치를 사용하고 있습니다. 패치가 실패하거나 예상치 못한 방식으로 작동할 수 있습니다</string>
-    <string name="expert_mode_experimental_version_notice">이 소스는 이 앱 버전에 대해 실험적인 지원만 제공합니다. 패치가 불안정하거나 불완전할 수 있습니다</string>
+    <string name="expert_mode_unstable_notice">Pre-release 또는 실험적 패치는 불안정할 수 있습니다</string>
     <string name="sources_management_experimental_versions_toggle">실험 앱 버전</string>
     <string name="sources_management_experimental_versions_toggle_description">실험 앱 대상을 표시하고 패치합니다</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Pre-release 패치 활성화</string>
+    <string name="sources_management_prerelease_disable">Pre-release 패치 비활성화</string>
+    <string name="sources_management_experimental_versions_enable">실험 앱 버전 활성화</string>
+    <string name="sources_management_experimental_versions_disable">실험 앱 버전 비활성화</string>
     <string name="sources_management_already_exists">이 소스는 이미 추가되어 있습니다</string>
     <string name="sources_management_invalid_url">잘못된 소스 URL입니다. 주소를 확인하고 다시 시도하세요</string>
     <string name="sources_management_blocked">이 패치 소스는 차단되어 추가할 수 없습니다</string>
@@ -207,16 +213,21 @@
     <string name="sources_management_metadata_unavailable">메타데이터 없음</string>
     <string name="sources_management_metadata_unavailable_hint">원격 메타데이터 파일을 사용할 수 없습니다. 설치된 번들로 패치는 계속 가능하지만, 이 소스에 대한 자동 업데이트는 비활성화됩니다</string>
     <string name="sources_management_metadata_unavailable_hint_missing">패치 번들을 다운로드할 수 없습니다. 소스 URL이 올바르지 않거나 파일이 존재하지 않을 수 있습니다</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">패치 번들을 다운로드할 수 없습니다. 소스 URL이 잘못되었거나 파일이 존재하지 않을 수 있습니다. 변경하려면 탭하세요</string>
     <string name="sources_management_outdated_manager_badge">Nivqo 업데이트</string>
     <string name="sources_management_outdated_manager_hint">이 소스는 패처 %1$s용으로 빌드되었지만, Morphe %2$s에는 패처 %3$s가 포함되어 있습니다. 이를 사용하려면 Morphe를 업데이트하세요</string>
     <string name="sources_management_held_back_badge">충돌 발생</string>
     <string name="sources_management_held_back_hint">이 소스를 불러오는 동안 Morphe가 충돌하여 현재 건너뛰고 있습니다. 다시 시도하려면 소스를 업데이트하거나 다시 가져오세요</string>
+    <string name="sources_management_signed_by">서명자</string>
+    <string name="sources_management_signing_key_changed_badge">키 변경됨</string>
+    <string name="sources_management_signing_key_changed_hint">이 소스에서 이전에 사용하던 키로 서명되지 않아 최신 릴리스가 설치되지 않았습니다. 검토하려면 탭하세요</string>
     <string name="sources_management_source_enabled">소스가 활성화됨</string>
     <string name="sources_management_source_disabled">소스가 비활성화됨</string>
     <string name="sources_management_source_updating">소스를 업데이트하는 중</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">표시 이름</string>
     <string name="sources_dialog_rename">패치 소스 이름 변경</string>
+    <string name="sources_dialog_change_url">패치 소스 다운로드 경로 변경</string>
     <string name="sources_dialog_duplicate_name_error">이 이름의 패치 소스가 이미 존재합니다</string>
     <string name="sources_dialog_missing_error">이 패치 소스를 업데이트할 수 없습니다</string>
     <string name="sources_dialog_add_source">패치 소스 추가</string>
@@ -227,9 +238,6 @@
     <string name="sources_dialog_paste_no_links">클립보드에서 링크를 찾을 수 없습니다</string>
     <string name="sources_dialog_local">로컬</string>
     <string name="sources_dialog_local_files">패치 소스 파일 선택</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">파일 더 추가</string>
-    <string name="sources_dialog_local_file_tap_hint">저장소를 탐색하려면 탭하세요</string>
     <string name="sources_dialog_local_invalid_extension">파일은 .mpp 확장자를 가져야 합니다</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">%s 업데이트</string>
@@ -237,6 +245,7 @@
     <string name="sources_dialog_url_invalid">URL은 GitHub/GitLab 리포지토리 또는 .json 파일을 가리켜야 합니다</string>
     <string name="sources_dialog_preinstalled">미리 설치됨</string>
     <string name="sources_dialog_community">커뮤니티 패치</string>
+    <string name="sources_dialog_choose_apps">앱 선택</string>
     <string name="sources_dialog_choose_apps_description">소스를 불러온 후 유지할 앱을 선택하세요</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">서드파티 패치 소스</string>
@@ -246,18 +255,25 @@
     <string name="sources_download_fail">소스를 다운로드할 수 없습니다: %s</string>
     <string name="sources_download_fail_named">\'%s\'를 업데이트할 수 없습니다. 인터넷 연결 상태를 확인하고 다시 시도하세요</string>
     <string name="sources_download_endpoint_not_found">\'%s\': 패치 메타데이터를 찾을 수 없습니다</string>
+    <string name="sources_signing_key_changed_named">\'%s\' 앱은 최신 릴리스가 이전에 사용하던 키로 서명되지 않아 업데이트되지 않았습니다</string>
+    <string name="sources_signing_key_changed_local">이 파일은 이 소스에서 이전에 사용하던 키로 서명되지 않았습니다. 이 파일을 신뢰하려면 해당 소스를 삭제한 다음 파일을 다시 추가하세요</string>
+    <string name="sources_signing_key_trust_title">새 키를 신뢰하시겠습니까?</string>
+    <string name="sources_signing_key_trust_message">최신 릴리스가 다른 키로 서명되었습니다. 개발자가 키를 교체했거나 다른 사람이 이 릴리스를 게시했을 수 있습니다. 개발자가 새 키를 공지한 경우에만 신뢰하세요</string>
+    <string name="sources_signing_key_trust_message_unsigned">최신 릴리스에 서명되지 않았습니다. 개발자가 릴리스 서명을 중단했거나 다른 사람이 이 릴리스를 게시했을 수 있습니다. 개발자가 공지한 경우에만 신뢰하세요</string>
+    <string name="sources_signing_key_trusted">신뢰할 수 있는 키</string>
+    <string name="sources_signing_key_new">새 키</string>
     <string name="sources_patch_expert_badge">전문가</string>
     <string name="sources_patch_expert_badge_tooltip">설정에서 전문가 모드를 활성화하여 이 패치를 수동으로 포함할 수 있습니다</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">원본 APK를 찾는데 도움이 필요하시나요?</string>
+    <string name="home_apk_availability_title">APK를 찾는 데 도움이 필요하세요?</string>
     <string name="home_apk_availability_dialog_simple">&lt;b&gt;%s&lt;/b&gt;를 패치하려면 패치되지 않은 APK가 필요합니다:</string>
     <string name="home_apk_availability_dialog_expert">&lt;b&gt;%s&lt;/b&gt;를 패치하려면 패치되지 않은 APK가 필요합니다:</string>
     <string name="home_apk_availability_recommended_label">권장 버전</string>
     <string name="home_apk_availability_unpatched_label">패치되지 않음</string>
     <string name="home_apk_availability_incompatible_label">호환되지 않음</string>
     <string name="home_apk_availability_installed_version">이 기기에 설치된 버전: %s</string>
-    <string name="home_apk_availability_yes">네, APK를 찾는데 도움을 주세요</string>
-    <string name="home_apk_availability_no">아니요, 이미 APK를 가지고 있습니다</string>
+    <string name="home_apk_availability_find">네, 찾는 데 도움을 주세요</string>
+    <string name="home_apk_availability_have">아니요, 이미 가지고 있습니다</string>
     <string name="home_apk_helper_download">Helper 앱 사용</string>
     <string name="home_apk_helper_untrusted">Helper 앱이 설치되어 있지만 아직 신뢰할 수 있는 앱으로 설정되지 않아 여기에 표시되지 않습니다.</string>
     <string name="home_apk_helper_untrusted_action">Helper 검토</string>
@@ -273,8 +289,8 @@
     <string name="home_apk_helper_wrong_package">Helper 앱이 패치하려는 앱과 다른 앱을 반환하였습니다</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo가 설치된 앱을 사용할 수 없습니다</string>
     <string name="home_apk_helper_installed_incompatible">설치된 버전은 패치할 수 없습니다</string>
-    <string name="home_apk_use_saved">저장된 APK 사용</string>
-    <string name="home_apk_use_installed">설치된 APK 사용</string>
+    <string name="home_apk_use_saved_copy">저장된 복사본 사용</string>
+    <string name="home_apk_use_installed_app">설치된 앱 사용</string>
     <string name="home_apk_use_saved_unsupported">현재 저장된 APK에는 이 패치를 적용할 수 없습니다. 계속 진행하려면 확인을 거치거나 다른 APK를 선택하세요</string>
     <string name="home_apk_use_installed_unverified">설치된 앱의 서명을 검증할 수 없으므로 이미 패치된 앱일 수 있습니다</string>
     <string name="home_unverified">검증되지 않음</string>
@@ -310,14 +326,19 @@
     <string name="home_download_instructions_copy_link">링크 복사</string>
     <string name="home_download_instructions_link_copied">링크 복사됨</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">다운로드된 APK 선택</string>
-    <string name="home_file_picker_prompt_description">방금 다운로드한 &lt;b&gt;%s&lt;/b&gt; APK 파일을 선택하세요</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">%s APK 선택</string>
+    <string name="home_file_picker_prompt_where">브라우저는 일반적으로 다운로드 폴더에 저장합니다</string>
     <string name="home_file_picker_prompt_open_apk">APK 파일 열기</string>
     <string name="home_recommended_version">권장 버전</string>
     <string name="home_selected_version">선택된 버전</string>
     <string name="home_select_apk_title">APK 선택</string>
-    <string name="home_select_any_apk_description">APK 파일을 선택하거나, 이 기기에 이미 설치된 앱을 선택하세요</string>
+    <string name="home_select_apk_description">"유니버설 패치는 모든 앱에서 작동합니다
+
+APK를 가져올 위치를 선택하세요"</string>
     <string name="home_use_installed_app">설치된 앱 사용</string>
+    <string name="home_use_installed_app_description">이 기기에 이미 설치된 앱을 선택하세요</string>
+    <string name="home_open_apk_file_description">저장소에서 APK, APKM, APKS 또는 XAPK 파일을 선택하세요</string>
     <string name="home_installed_app_picker_title">설치된 앱</string>
     <string name="home_installed_app_picker_empty">앱을 찾을 수 없습니다</string>
     <string name="home_installed_app_picker_filter_user">사용자 앱만</string>
@@ -330,19 +351,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">패치 검색</string>
     <string name="expert_mode_disable_all">모두 비활성화</string>
-    <string name="expert_mode_disable_all_done">모든 패치 비활성화됨</string>
     <string name="expert_mode_enable_all">모두 활성화</string>
-    <string name="expert_mode_enable_all_done">모든 패치 활성화됨</string>
     <string name="expert_mode_enable_all_universal_pending">유니버설 패치를 위해 다시 탭하세요</string>
     <string name="expert_mode_universal_all_warning_title">모든 유니버설 패치 활성화</string>
     <string name="expert_mode_universal_all_warning_message">유니버설 패치는 함께 테스트되지 않았습니다. 모든 패치를 한 번에 활성화하면 패치 충돌, 패치 실패 또는 앱 충돌이 발생할 수 있습니다</string>
-    <string name="expert_mode_reset_to_default">패치 기본값으로 초기화</string>
+    <string name="expert_mode_recommended">추천 패치</string>
     <string name="expert_mode_reset_to_default_done">권장 패치 적용됨</string>
-    <string name="expert_mode_restore_saved">저장된 선택 목록으로 복원</string>
+    <string name="expert_mode_selected_count">%2$s 개 중 %1$s 개 선택됨</string>
+    <string name="expert_mode_saved_selection">저장된 선택 목록</string>
     <string name="expert_mode_restore_saved_done">저장된 선택 목록 복원됨</string>
-    <string name="expert_mode_copy_from_bundle">다른 번들에서 선택 목록 복사</string>
     <string name="expert_mode_copy_from_bundle_no_patches">이 번들에는 일치하는 패치가 없습니다</string>
     <string name="expert_mode_no_results">패치를 찾을 수 없습니다</string>
+    <string name="expert_mode_selected_only">선택된 패치만</string>
     <string name="expert_mode_selected_only_on">선택된 패치만 표시</string>
     <string name="expert_mode_selected_only_off">모든 패치 표시</string>
     <string name="expert_mode_universal_patches">유니버설 패치</string>
@@ -351,9 +371,7 @@
     <string name="expert_mode_patch_required_by_installer">선택한 설치 대상에 필요합니다</string>
     <string name="expert_mode_patch_unavailable_for_installer">선택한 설치 대상에 사용할 수 없습니다</string>
     <string name="expert_mode_multiple_sources_warning_title">여러 패치 소스가 선택됨</string>
-    <string name="expert_mode_multiple_sources_warning_message">"여러 패치 소스에서 패치를 선택하였습니다. 호환성 문제나 예상되지 않은 동작이 발생할 수 있습니다.
-
-그래도 계속하시겠습니까?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">다른 소스의 패치는 함께 작동하도록 만들어지지 않았으며 충돌하거나 앱을 손상시킬 수 있습니다</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">미검증된 APK</string>
     <string name="home_invalid_signature_message">선택된 &lt;b&gt;%s&lt;/b&gt;에 대한 APK는 예상된 서명 인증서와 일치하지 않습니다. 수정되었거나 신뢰할 수 없는 출처에서 가져온 파일일 수 있습니다</string>
@@ -367,7 +385,9 @@
     <string name="home_dialog_unsupported_version_experimental_label">실험 버전</string>
     <string name="home_dialog_unsupported_version_experimental_description">이 버전은 실험적 지원이 포함되어 있으며, 불안정하거나 완전하지 않을 수 있습니다</string>
     <string name="morphe_experimental_app_version_dialog_title">실험해 보시겠습니까? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">이 &lt;b&gt;%s&lt;/b&gt; 버전은 초기 실험적 지원이 제공됩니다&lt;br/&gt;&lt;br/&gt;🔧 이 앱 버전에 맞게 패치가 개선되는 과정이므로, 예상되지 않은 동작이나 확인되지 않은 버그가 발생할 수 있습니다</string>
+    <string name="morphe_experimental_app_version_dialog_message">"이 &lt;b&gt;%s&lt;/b&gt; 버전은 초기 실험적 지원이 제공됩니다.
+
+🔧 이 앱 버전에 맞게 패치가 개선되는 과정이므로, 예상되지 않은 동작이나 확인되지 않은 버그가 발생할 수 있습니다"</string>
     <string name="home_dialog_unsupported_version_dialog_title">지원되지 않는 버전</string>
     <string name="home_dialog_unsupported_version_dialog_description">이 APK는 권장 앱 버전이 아닙니다. 계속 진행하면 앱이 제대로 작동하지 않을 수 있습니다</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -504,7 +524,8 @@
     <string name="shortcut_check_updates_long">패치 업데이트 확인</string>
     <string name="shortcut_patch_app">%s 패치</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">이 앱을 정말 제거하시겠습니까?</string>
+    <string name="home_app_info_uninstall_title">이 앱을 제거하시겠습니까?</string>
+    <string name="home_app_info_uninstall_removes_data">앱과 해당 데이터가 이 기기에서 제거됩니다</string>
     <string name="batch_uninstall_confirm_body">선택된 앱을 기기에서 영구적으로 제거합니다</string>
     <string name="home_app_info_remove_app_warning">다음 항목들을 영구적으로 삭제합니다:</string>
     <string name="home_app_info_delete_item_database">데이터베이스 엔트리</string>
@@ -535,7 +556,7 @@
     <string name="home_app_info_app_deleted_description">이 앱은 Morphe 외부에서 제거되었습니다. 기능을 복원하려면 다시 패치하세요</string>
     <string name="home_app_info_not_patched_description">이 앱의 패치되지 않은 버전이 설치되어 있습니다. Morphe는 여전히 이전 패치 기록을 보유하고 있습니다</string>
     <string name="home_app_info_mount_replaced_description">다른 버전이 마운트된 앱을 교체하여 패치가 더 이상 적용되지 않습니다. 복원하면 패치된 버전을 다시 적용할 수 있습니다</string>
-    <string name="home_app_info_mount_replaced_by_play_store_description">Google Play에서 마운트된 앱을 업데이트하여 패치가 더 이상 적용되지 않습니다. 복원을 누르면 패치된 버전을 다시 적용할 수 있습니다. 패치 상태를 유지하려면 Google Play에서 해당 앱의 자동 업데이트를 비활성화하세요</string>
+    <string name="home_app_info_mount_replaced_by_play_store_description">Google Play에서 마운트된 앱을 업데이트하여 패치가 더 이상 적용되지 않습니다. 복원을 탭하면 패치된 버전을 다시 적용할 수 있습니다. 패치 상태를 유지하려면 Google Play에서 해당 앱의 자동 업데이트를 비활성화하세요</string>
     <string name="app_links_title">지원되는 웹 링크</string>
     <string name="app_links_description">Android 12 이상에서는 승인된 경우를 제외하고 지원되는 도메인 링크가 기본적으로 브라우저에서 열립니다</string>
     <string name="app_links_unverified_banner_title">웹 링크가 확인되지 않음</string>
@@ -643,12 +664,15 @@
     <string name="patcher_storage_permission_open_settings">저장소 설정 열기</string>
     <string name="patcher_storage_badge_denied">권한이 거부되었습니다</string>
     <string name="patcher_storage_badge_missing">찾을 수 없습니다</string>
+    <string name="patcher_storage_badge_rejected">사용 불가</string>
     <string name="batch_patch_option_paths_skipped">패치 옵션 파일이 누락되어 건너뜁니다: %1$s</string>
     <string name="patcher_missing_patches_title">일부 패치가 사라졌습니다</string>
     <string name="patcher_missing_patches_description">이 앱에 저장된 선택 항목은 더 이상 활성화된 소스에서 제공하지 않는 패치를 나타냅니다. 계속 진행하면 해당 패치 없이 앱을 패치합니다</string>
     <string name="patcher_missing_patches_label">더 이상 제공되지 않음</string>
     <string name="patcher_option_paths_gone_title">패치 옵션 파일이 누락되어 있음</string>
     <string name="patcher_option_paths_gone_description">하나 이상의 패치 옵션이 더 이상 존재하지 않는 파일을 가리키고 있습니다. 해당 파일 없이 패치하려면 경로를 제거하거나, 파일을 원래 위치에 다시 넣은 후 다시 시도하세요</string>
+    <string name="patcher_option_paths_rejected_title">패치 옵션 파일을 사용할 수 없음</string>
+    <string name="patcher_option_paths_rejected_description">하나 이상의 패치 옵션이 패치 대상 파일을 찾을 수 없거나, 해당 파일에 패치가 요구하는 내용이 없습니다. 해당 파일이 없는 경로를 패치 목록에서 제거하거나, 옵션 설명에 따라 파일을 수정한 후 다시 시도하세요</string>
     <string name="patcher_option_paths_clear">경로를 제거하고 계속 진행</string>
     <string name="patcher_storage_permission_hint">힌트: 파일을 \'/Android/data/app.morphe.manager/files/\' 로 옮기세요. 추가 권한이 필요 없습니다</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -666,8 +690,10 @@
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">패치를 진행하는 중…</string>
     <string name="patcher_notification_text">패처로 돌아가려면 여기를 탭하세요</string>
-    <string name="patcher_stop_confirm_title">패처 중지</string>
-    <string name="patcher_stop_confirm_description">패치 프로세스를 중지하시겠습니까?</string>
+    <string name="patcher_stop_title">패치를 중지하시겠습니까?</string>
+    <string name="patcher_stop_discards">지금까지의 진행 상황은 폐기되고 아무것도 설치되지 않습니다</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">패치 계속</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">앱을 멋지게 변환 중… 🏆</string>
     <string name="patcher_message_2">오래된 앱에 새 기능 가르치는 중… 🎩</string>
@@ -807,23 +833,23 @@
     <string name="settings_appearance_greeting_phrases_subtitle">인사말을 표시합니다</string>
     <string name="settings_appearance_repatch_notice">다시 패치 알림</string>
     <string name="settings_appearance_repatch_notice_description">패치된 앱을 다시 패치할 수 있을 경우 배너를 표시합니다</string>
-    <string name="settings_appearance_more_apps_card">더 많은 앱 카드</string>
-    <string name="settings_appearance_more_apps_card_description">커뮤니티 패치로 연결되는 카드를 앱 아래에 표시합니다</string>
-    <string name="settings_appearance_app_card_colors">앱 카드 색상</string>
+    <string name="settings_appearance_more_apps_card">앱 카드 더보기</string>
+    <string name="settings_appearance_more_apps_card_description">앱 목록 아래에 커뮤니티 패치로 연결되는 카드를 표시합니다</string>
+    <string name="settings_appearance_app_card_colors">카드 색상</string>
     <string name="settings_appearance_app_card_colors_default">기본값</string>
-    <string name="settings_appearance_app_card_colors_default_description">각 앱에 해당 앱 번들의 고유 색상을 적용합니다</string>
+    <string name="settings_appearance_app_card_colors_default_description">각 앱과 소스에 고유한 색상을 지정하세요</string>
     <string name="settings_appearance_app_card_colors_accent">강조</string>
-    <string name="settings_appearance_app_card_colors_accent_description">홈 앱 카드에 앱 강조 색상을 사용합니다</string>
+    <string name="settings_appearance_app_card_colors_accent_description">앱 및 소스 카드에 앱 강조 색상을 사용합니다</string>
     <string name="settings_appearance_app_card_colors_gradient">그라데이션</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">홈 앱 카드에 하나의 사용자 정의 그라데이션을 사용합니다</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">앱 카드에는 하나의 사용자 정의 그라데이션을 사용하고, 소스 카드에는 하나의 색상으로 혼합하여 사용합니다</string>
     <string name="settings_appearance_app_card_colors_solid">단색</string>
-    <string name="settings_appearance_app_card_colors_solid_description">홈 앱 카드에 하나의 사용자 정의 색상을 사용합니다</string>
+    <string name="settings_appearance_app_card_colors_solid_description">앱 및 소스 카드에 하나의 사용자 정의 색상을 사용합니다</string>
     <string name="settings_appearance_app_card_colors_start">시작 색상</string>
     <string name="settings_appearance_app_card_colors_middle">중간 색상</string>
     <string name="settings_appearance_app_card_colors_end">최종 색상</string>
     <string name="settings_appearance_app_card_colors_solid_color">단색</string>
     <string name="settings_appearance_app_card_colors_bundle">앱 번들 색상</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">각 앱의 고유 색상을 사용하고, 화면에 맞게 자동으로 명암을 조정합니다</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">각 앱 또는 소스 고유의 색상을 사용하고, 자동으로 음영을 처리하여 조정합니다</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">앱 아이콘</string>
     <string name="settings_appearance_app_icon_selector_description">홈 화면과 앱 서랍에서 Morphe의 모양</string>
@@ -849,7 +875,8 @@
     <string name="settings_appearance_app_icon_mark_white">하얀</string>
     <string name="settings_appearance_app_icon_mark_black">검정</string>
     <string name="settings_appearance_app_icon_change_dialog_title">앱 아이콘을 변경할까요?</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">&lt;b&gt;%s&lt;/b&gt;으로 변경하고 다시 시작하시겠습니까?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe가 다시 시작되어 &lt;b&gt;%s&lt;/b&gt;로 전환됩니다</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">앱 아이콘 변경</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1036,6 +1063,8 @@ morphe_header_custom_dark.png
     <string name="installer_play_store_warning_continue">알겠습니다. 계속하겠습니다</string>
     <string name="installer_play_store_mode">Play 스토어로 설치</string>
     <string name="installer_play_store_mode_description">Google Play 스토어를 설치 출처로 지정합니다</string>
+    <string name="settings_nomount_only">NoMount 전용</string>
+    <string name="settings_nomount_only_description">NoMount를 통해서만 앱을 마운트하며, 바인드 마운트 방식으로는 절대 대체하지 않습니다. 따라서 NoMount가 없으면 해당 앱은 마운트되지 않은 상태로 유지됩니다</string>
     <string name="settings_prompt_installer_on_install">설치 프로그램 선택 프롬프트</string>
     <string name="settings_prompt_installer_on_install_description">모든 앱의 설치 방법을 묻습니다: 패치 전에 루트 권한이 있어야 하고, 그렇지 않으면 패치 후에 설치합니다</string>
     <string name="settings_auto_install_with_shizuku">패치 후 자동 설치</string>
@@ -1205,12 +1234,22 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_success">소스 데이터를 성공적으로 가져왔습니다</string>
     <string name="settings_system_selected_patches_section">선택된 패치</string>
     <string name="settings_system_no_patches_or_options">저장된 패치 또는 옵션이 없습니다</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">선택 목록 복사…</string>
-    <string name="copy_selection_confirm_with_count">%s 개 복사</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">선택 항목</string>
+    <string name="selection_panel_copy_into">\'%s\'에 복사</string>
+    <string name="selection_sets_title">세트</string>
+    <string name="selection_set_name">세트 이름</string>
+    <string name="selection_set_save">세트로 저장</string>
+    <string name="selection_set_replace">세트 교체</string>
+    <string name="selection_set_saved">\'%s\'로 저장됨</string>
+    <string name="selection_set_applied">\'%s\'로 전환됨</string>
+    <string name="selection_set_deleted">%s 개 삭제됨</string>
+    <string name="selection_set_renamed">\'%s\'로 이름 변경됨</string>
+    <string name="selection_set_rename_title">세트 이름 변경</string>
+    <string name="selection_set_delete_title">세트를 삭제하시겠습니까?</string>
+    <string name="selection_set_delete_message">세트 \'%s\'를 영구적으로 삭제합니다</string>
     <string name="copy_selection_empty">복사할 다른 저장된 선택 목록이 없습니다</string>
     <string name="copy_selection_available_format">%2$s 개 중 %1$s 개 사용 가능</string>
-    <string name="copy_selection_same_source">동일한 소스</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">사용자 정의 파일 선택기</string>
     <string name="settings_system_custom_file_picker_description">시스템 파일 선택기 대신 Morphe에 내장된 파일 선택기를 사용합니다</string>
@@ -1219,7 +1258,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_apk_download_helper_trusted_count">신뢰함: %2$d 개 중 %1$d 개</string>
     <string name="settings_system_apk_download_helper_dialog_description">Helper 앱은 원본 APK를 대신 다운로드할 수 있습니다. 다운로드 안내에는 여기에서 신뢰하는 앱만 제공됩니다</string>
     <string name="settings_system_apk_download_helper_trust_title">이 Helper를 신뢰하시겠습니까?</string>
-    <string name="settings_system_apk_download_helper_trust">신뢰</string>
     <string name="settings_system_apk_download_helper_warning">APK는 Helper 앱에서 제공되므로, 신뢰할 수 있는 앱만 사용하세요. Morphe는 패치하기 전에 모든 파일의 패키지, 버전 및 서명을 확인합니다</string>
     <string name="settings_system_apk_download_helper_installed_by">%s에 의해 설치됨</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">설치 프로그램 알 수 없음</string>
@@ -1231,7 +1269,10 @@ morphe_header_custom_dark.png
     <string name="file_picker_internal_storage">내부 저장소</string>
     <string name="file_picker_sd_card">SD 카드</string>
     <string name="file_picker_root">루트 (/)</string>
+    <string name="file_picker_storage_access_unavailable">이 기기에는 모든 파일에 대한 액세스를 허용할 화면이 없습니다. ADB를 통해 다음 명령어로 허용하세요: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">저장소</string>
+    <string name="file_saver_downloads_failed">다운로드 폴더에 파일을 생성할 수 없습니다</string>
+    <string name="file_saver_saving_to_downloads">이 기기에는 저장 화면이 없으므로 파일이 다운로드 폴더에 \'%1$s\'로 저장됩니다</string>
     <string name="file_picker_sort_name_asc">이름 (오름차순)</string>
     <string name="file_picker_sort_name_desc">이름 (내림차순)</string>
     <string name="file_picker_sort_size_desc">크기 (큰 순)</string>
@@ -1314,6 +1355,7 @@ morphe_header_custom_dark.png
     <string name="include">포함</string>
     <string name="disable">비활성화</string>
     <string name="enable">활성화</string>
+    <string name="trust">신뢰</string>
     <string name="loading">불러오는 중…</string>
     <string name="creating">생성하는 중…</string>
     <string name="processing_apk">APK를 처리하는 중…</string>
@@ -1335,6 +1377,8 @@ morphe_header_custom_dark.png
     <string name="reorder_done">순서를 저장하였습니다</string>
     <string name="reset_order">순서 초기화</string>
     <string name="reset_order_done">순서를 초기화하였습니다</string>
+    <string name="reset_order_confirm_title">순서를 초기화하시겠습니까?</string>
+    <string name="reset_order_confirm_message">목록이 기본 순서로 돌아가며, 직접 드래그하여 변경한 순서는 삭제됩니다</string>
     <string name="accessibility_select_app">앱 선택</string>
     <string name="accessibility_select_source">소스 선택하기</string>
     <string name="accessibility_move_up">위로 이동</string>
@@ -1342,6 +1386,7 @@ morphe_header_custom_dark.png
     <string name="accessibility_app_moved_announcement">\'%1$s\'가 %3$s 개 중 %2$s 번째 위치로 이동하였습니다</string>
     <string name="accessibility_scroll_to_top">목록 맨 위로 스크롤</string>
     <string name="rename">이름 변경</string>
+    <string name="more_options">옵션 더보기</string>
     <string name="import_">가져오기</string>
     <string name="export">내보내기</string>
     <string name="copy">복사</string>
@@ -1386,6 +1431,7 @@ morphe_header_custom_dark.png
     <string name="show_all">모두 표시</string>
     <string name="ignore">무시</string>
     <string name="stop_ignoring">무시 중지</string>
+    <string name="stop">중지</string>
     <string name="logs">로그</string>
     <string name="sources">소스</string>
     <string name="installing_ellipsis">설치하는 중…</string>
@@ -1472,14 +1518,43 @@ morphe_header_custom_dark.png
     <string name="onboarding_restart_title">기능 투어</string>
     <string name="onboarding_restart_desc">주요 기능 둘러보기</string>
 
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <!-- Preserved Nivqo localization -->
+    <string name="home_category_delete_confirm_title">카테고리 삭제</string>
+    <string name="home_category_delete_confirm_message">&lt;b&gt;%1$s&lt;/b&gt; 카테고리를 삭제하시겠습니까? 해당 카테고리의 앱은 &lt;b&gt;%2$s&lt;/b&gt;로 돌아갑니다</string>
+    <string name="expert_mode_prerelease_notice">이 소스는 Pre-release 패치를 사용하고 있습니다. 패치가 실패하거나 예상치 못한 방식으로 작동할 수 있습니다</string>
+    <string name="expert_mode_experimental_version_notice">이 소스는 이 앱 버전에 대해 실험적인 지원만 제공합니다. 패치가 불안정하거나 불완전할 수 있습니다</string>
+    <string name="sources_dialog_local_add_more">파일 더 추가</string>
+    <string name="sources_dialog_local_file_tap_hint">저장소를 탐색하려면 탭하세요</string>
+    <string name="home_apk_availability_dialog_title">원본 APK를 찾는데 도움이 필요하시나요?</string>
+    <string name="home_apk_availability_yes">네, APK를 찾는데 도움을 주세요</string>
+    <string name="home_apk_availability_no">아니요, 이미 APK를 가지고 있습니다</string>
+    <string name="home_apk_use_saved">저장된 APK 사용</string>
+    <string name="home_apk_use_installed">설치된 APK 사용</string>
+    <string name="home_file_picker_prompt_title">다운로드된 APK 선택</string>
+    <string name="home_file_picker_prompt_description">방금 다운로드한 &lt;b&gt;%s&lt;/b&gt; APK 파일을 선택하세요</string>
+    <string name="home_select_any_apk_description">APK 파일을 선택하거나, 이 기기에 이미 설치된 앱을 선택하세요</string>
+    <string name="expert_mode_disable_all_done">모든 패치 비활성화됨</string>
+    <string name="expert_mode_enable_all_done">모든 패치 활성화됨</string>
+    <string name="expert_mode_reset_to_default">패치 기본값으로 초기화</string>
+    <string name="expert_mode_restore_saved">저장된 선택 목록으로 복원</string>
+    <string name="expert_mode_copy_from_bundle">다른 번들에서 선택 목록 복사</string>
+    <string name="expert_mode_multiple_sources_warning_message">"여러 패치 소스에서 패치를 선택하였습니다. 호환성 문제나 예상되지 않은 동작이 발생할 수 있습니다.
+
+그래도 계속하시겠습니까?"</string>
+    <string name="home_app_info_uninstall_app_confirmation">이 앱을 정말 제거하시겠습니까?</string>
+    <string name="patcher_stop_confirm_title">패처 중지</string>
+    <string name="patcher_stop_confirm_description">패치 프로세스를 중지하시겠습니까?</string>
+    <string name="settings_appearance_app_icon_change_dialog_message">&lt;b&gt;%s&lt;/b&gt;으로 변경하고 다시 시작하시겠습니까?</string>
+    <string name="copy_selection_title">선택 목록 복사…</string>
+    <string name="copy_selection_confirm_with_count">%s 개 복사</string>
+    <string name="copy_selection_same_source">동일한 소스</string>
+    <string name="settings_system_apk_download_helper_trust">신뢰</string>
     <string name="home_app_list_options_title">정렬 및 필터</string>
     <string name="home_app_list_options_state_description">%1$s 기준으로 정렬, %2$s 기준으로 필터링됨</string>
     <string name="sources_sort_title">패치 소스 정렬</string>
     <string name="sources_apps_leave_out">제외하기</string>
     <string name="sources_apps_leave_out_done">제외됨</string>
     <string name="sources_apps_bring_back">다시 가져오기</string>
-    <string name="sources_dialog_choose_apps">앱 선택</string>
     <string name="hex_color">헥스 색상 코드</string>
     <string name="patcher_memory_adjustment_title">메모리가 부족합니다</string>
     <string name="patcher_memory_adjustment_description">패처가 %1$d MB 메모리 제한으로 실행되는 동안 시스템에 의해 중지되었습니다. 제한을 %2$d MB로 낮추면 패처가 사용하는 메모리가 줄어들어 작업이 완료될 수 있습니다</string>

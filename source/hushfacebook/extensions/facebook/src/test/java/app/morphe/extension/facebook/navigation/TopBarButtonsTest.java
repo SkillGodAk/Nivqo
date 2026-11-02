@@ -32,7 +32,7 @@ import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
 
 /**
- * The top bar's Messenger button, count and logo hides (#181) and Create button hide (#257): each
+ * The top bar's Messenger button, count and logo hides (#181) and Create (#257) and search (#321) button hides: each
  * switch starts off, does its one job when on, and leaves Facebook's own buttons, count and logo
  * alone when off, paused or before the settings are ready.
  */
@@ -48,6 +48,7 @@ public class TopBarButtonsTest {
         Settings.HIDE_MESSENGER_COUNT.resetToDefault();
         Settings.HIDE_FACEBOOK_LOGO.resetToDefault();
         Settings.HIDE_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_SEARCH_BUTTON.resetToDefault();
         HookStatus.clear();
     }
 
@@ -268,5 +269,77 @@ public class TopBarButtonsTest {
         PauseForTests.resume();
         TopBarButtons.createButton(null);
         TopBarButtons.barButton(null, TopBarButtons.CREATE_SPEC);
+    }
+
+    @Test
+    public void theSearchSwitchStartsOffWaitsForARestartAndBelongsToTheTabBarFamily() {
+        assertFalse(Settings.HIDE_SEARCH_BUTTON.defaultValue);
+        assertTrue("the button is built as the screen starts", Settings.HIDE_SEARCH_BUTTON.rebootApp);
+        assertTrue(PatchFamily.BOTTOM_TAB_BAR.switches.contains(Settings.HIDE_SEARCH_BUTTON));
+    }
+
+    @Test
+    public void searchOnHidesTheSearchButtonAndNothingElse() {
+        Settings.HIDE_SEARCH_BUTTON.save(true);
+        View search = button();
+        TopBarButtons.searchButton(search);
+        assertEquals("the button leaves the bar's layout", View.GONE, search.getVisibility());
+        View create = button();
+        TopBarButtons.createButton(create);
+        View messenger = button();
+        TopBarButtons.messengerButton(messenger);
+        TopBarButtons.barButton(messenger, TopBarButtons.MESSENGER_SPEC);
+        assertEquals("the Create button is a separate switch", View.VISIBLE, create.getVisibility());
+        assertEquals("the Messenger button is a separate switch", View.VISIBLE, messenger.getVisibility());
+        assertTrue(reported(TopBarButtons.SEARCH_HIDDEN));
+        assertFalse(reported(TopBarButtons.CREATE_HIDDEN));
+    }
+
+    @Test
+    public void searchOffPausedOrMissingLeavesFacebooksOwn() {
+        View search = button();
+        TopBarButtons.searchButton(search);
+        assertEquals(View.VISIBLE, search.getVisibility());
+
+        Settings.HIDE_SEARCH_BUTTON.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        TopBarButtons.searchButton(search);
+        assertEquals("paused, Facebook's own button", View.VISIBLE, search.getVisibility());
+        assertFalse(reported(TopBarButtons.SEARCH_HIDDEN));
+        PauseForTests.resume();
+        TopBarButtons.searchButton(null);
+    }
+
+    @Test
+    public void theNewerBarHidesSearchOnHomeOnly() {
+        Settings.HIDE_SEARCH_BUTTON.save(true);
+        View home = button();
+        TopBarButtons.barSearchButton(home, TopBarButtons.HOME_BAR_SCREEN);
+        assertEquals("Home's button goes", View.GONE, home.getVisibility());
+        assertTrue(reported(TopBarButtons.SEARCH_HIDDEN));
+    }
+
+    @Test
+    public void anotherScreensSearchStaysWithTheSwitchOn() {
+        Settings.HIDE_SEARCH_BUTTON.save(true);
+        View marketplace = button();
+        TopBarButtons.barSearchButton(marketplace, "MarketplaceHomeFragmentV2");
+        assertEquals("Marketplace keeps its search", View.VISIBLE, marketplace.getVisibility());
+        View unnamed = button();
+        TopBarButtons.barSearchButton(unnamed, null);
+        assertEquals("a bar with no name isn't Home's", View.VISIBLE, unnamed.getVisibility());
+        assertFalse(reported(TopBarButtons.SEARCH_HIDDEN));
+        TopBarButtons.barSearchButton(null, TopBarButtons.HOME_BAR_SCREEN);
+    }
+
+    @Test
+    public void aKeptSearchButtonStillTakesTheLongPressOnAnyScreen() {
+        Settings.HIDE_SEARCH_BUTTON.save(true);
+        Settings.SEARCH_WITH_PICTURE.save(true);
+        View marketplace = button();
+        TopBarButtons.barSearchButton(marketplace, "MarketplaceHomeFragmentV2");
+        assertEquals(View.VISIBLE, marketplace.getVisibility());
+        assertTrue("Lens stays on the button that's kept", marketplace.isLongClickable());
+        Settings.SEARCH_WITH_PICTURE.resetToDefault();
     }
 }

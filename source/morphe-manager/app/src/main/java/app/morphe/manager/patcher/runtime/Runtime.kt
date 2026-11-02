@@ -13,6 +13,7 @@ package app.morphe.manager.patcher.runtime
 import android.content.Context
 import android.content.res.Resources
 import android.os.Build
+import androidx.work.ForegroundInfo
 import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.patcher.DeviceConfig
@@ -35,13 +36,16 @@ import kotlin.time.measureTime
  * Patches in a process of its own on [vm], see [PatcherProcesses]. Everything around a run is the
  * same for each VM: the request it is given, what its reports turn into on screen, and the merged
  * APK it leaves behind.
+ *
+ * @param foreground The notification of the run, which its process holds as well.
  */
 class Runtime(
     private val context: Context,
     private val fs: Filesystem,
     private val patchBundlesRepo: PatchBundleRepository,
     private val processes: PatcherProcesses,
-    private val vm: PatcherVm
+    private val vm: PatcherVm,
+    private val foreground: suspend () -> ForegroundInfo
 ) {
     /**
      * Patches [inputFile] into [outputFile].
@@ -106,7 +110,7 @@ class Runtime(
             }
         }
         try {
-            processes.run(requestFile, request.bundles.map { it.patchesFile }, vm, logger, listener)
+            processes.run(requestFile, request.bundles.map { it.patchesFile }, vm, foreground(), logger, listener)
         } finally {
             requestFile.delete()
         }

@@ -98,8 +98,10 @@
     <string name="home_category_name">Kategorijos pavadinimas</string>
     <string name="home_category_move_to">Perkelti į kategoriją</string>
     <string name="home_category_move_selected_title">Perkelti pasirinktas programas</string>
-    <string name="home_category_delete_confirm_title">Ištrinti kategoriją</string>
-    <string name="home_category_delete_confirm_message">Ištrinti kategoriją &lt;b&gt;%1$s&lt;/b&gt;? Jos programos bus perkeltos atgal į &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">Ištrinti %s?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Programėlės grįžta į &lt;b&gt;%s&lt;/b&gt;</string>
     <string name="home_category_actions_unavailable">Veiksmai šiai kategorijai neprieinami</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Kokią programėlę norėtumėte pataisyti?</string>
@@ -196,10 +198,14 @@
     <string name="sources_management_prerelease_toggle_description">Gaukite ankstyvą prieigą prie naujų eksperimentinių pataisos versijų</string>
     <string name="sources_prerelease_warning_title">Įjungti išankstines pataisas?</string>
     <string name="sources_prerelease_warning_message">Išankstiniai leidimai vis dar kuriami. Pataisos gali nepavykti arba sugadinti programą, o funkcijos gali keistis be įspėjimo</string>
-    <string name="expert_mode_prerelease_notice">Šis šaltinis naudoja išankstines pataisas. Pataisymas gali nepavykti arba elgtis netikėtai</string>
-    <string name="expert_mode_experimental_version_notice">Šis šaltinis šiai programėlės versijai turi tik eksperimentinį palaikymą. Jo pataisai gali būti nestabilios arba nepilnos</string>
+    <string name="expert_mode_unstable_notice">Išankstinio išleidimo arba eksperimentiniai pataikymai gali būti nestabilūs</string>
     <string name="sources_management_experimental_versions_toggle">Eksperimentinės programos versijos</string>
     <string name="sources_management_experimental_versions_toggle_description">Rodo ir pataiso eksperimentines programų versijas</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Įjungti bandomosios versijos pataisymus</string>
+    <string name="sources_management_prerelease_disable">Išjungti bandomosios versijos pataisymus</string>
+    <string name="sources_management_experimental_versions_enable">Įjungti eksperimentines programos versijas</string>
+    <string name="sources_management_experimental_versions_disable">Išjungti eksperimentines programos versijas</string>
     <string name="sources_management_already_exists">Šis šaltinis jau pridėtas</string>
     <string name="sources_management_invalid_url">Neteisynga šaltinio URL. Patikrinkite adresą ir bandykite dar kartą</string>
     <string name="sources_management_blocked">Šis pataisų šaltinis užblokuotas ir jo negalima pridėti</string>
@@ -207,16 +213,21 @@
     <string name="sources_management_metadata_unavailable">Metaduomenys N/A</string>
     <string name="sources_management_metadata_unavailable_hint">Nutolusių metaduomenų failas nepasiekiamas. Programėlė vis tiek funkcionuos su įdiegtu paketu, bet automatinis atnaujinimas šitam šaltiniui bus išjungtas</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Šaltinio paketo rinkinys nepavyko atsisiųsti. Galbūt neteisingas šaltinio URL arba failas neegzistuoja.</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">Šaltinio paketo rinkinys nepavyko atsisiųsti. Galbūt neteisingas šaltinio URL arba failas neegzistuoja. Bakstelėkite, kad jį pakeistumėte</string>
     <string name="sources_management_outdated_manager_badge">Atnaujinti „Morphe“</string>
     <string name="sources_management_outdated_manager_hint">Šis šaltinis sukurtas pataisymo įrankiui %1$s, o „Morphe“ %2$s apima pataisymo įrankį %3$s. Atnaujinkite „Morphe“, kad galėtumėte jį naudoti</string>
     <string name="sources_management_held_back_badge">Sugriuvo</string>
     <string name="sources_management_held_back_hint">Šis šaltinis sukėlė „Morphe“ gedimą įkėlimo metu, todėl jis praleidžiamas. Atnaujinkite arba iš naujo importuokite jį, kad bandytumėte dar kartą</string>
+    <string name="sources_management_signed_by">Pasirašyta</string>
+    <string name="sources_management_signing_key_changed_badge">Raktas pakeistas</string>
+    <string name="sources_management_signing_key_changed_hint">Naujausia versija nėra pasirašyta raktu, kurio šis šaltinis naudojo anksčiau, todėl ji nebuvo įdiegta. Bakstelėkite, kad peržiūrėtumėte</string>
     <string name="sources_management_source_enabled">Šaltinis įjungtas</string>
     <string name="sources_management_source_disabled">Šaltinis išjungtas</string>
     <string name="sources_management_source_updating">Atnaujinamas šaltinis</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Rodomas vardas</string>
     <string name="sources_dialog_rename">Pervadinti pataisos šaltinį</string>
+    <string name="sources_dialog_change_url">Pakeiskite vietą, iš kurios atsisiunčia pataikymo šaltinis</string>
     <string name="sources_dialog_duplicate_name_error">Pataisų šaltinis su šiuo pavadinimu jau egzistuoja</string>
     <string name="sources_dialog_missing_error">Negalima atnaujinti šio pataisos šaltinio</string>
     <string name="sources_dialog_add_source">Pridėti pataisų šaltini</string>
@@ -227,9 +238,6 @@
     <string name="sources_dialog_paste_no_links">Iškarpinėje nuorodų nerasta</string>
     <string name="sources_dialog_local">Vietinis</string>
     <string name="sources_dialog_local_files">Pasirinkite pataisų šaltinio failus</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">Pridėti daugiau failų</string>
-    <string name="sources_dialog_local_file_tap_hint">Palieskite, kad peržiūrėtumėte saugojimo vietą</string>
     <string name="sources_dialog_local_invalid_extension">Failas turi turėti .mpp pabaiga</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">Atnaujina %s</string>
@@ -237,6 +245,7 @@
     <string name="sources_dialog_url_invalid">URL turi rodyti į GitHub/GitLab repo arba .json failą</string>
     <string name="sources_dialog_preinstalled">iš anksto įdiegta</string>
     <string name="sources_dialog_community">Bendruomenės pataisos</string>
+    <string name="sources_dialog_choose_apps">Pasirinkite programėles</string>
     <string name="sources_dialog_choose_apps_description">Pasirinkite, kurias jo programas išlaikyti, kai šaltinis bus įkeltas</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Trečiųjų šalių pataisų šaltiniai</string>
@@ -246,18 +255,25 @@
     <string name="sources_download_fail">Nepavyko atsisiųsti šaltinio: %s</string>
     <string name="sources_download_fail_named">\'%s\' neįmanoma atnaujinti. Patikrinkite savo interneto ryšį ir bandykite dar kartą</string>
     <string name="sources_download_endpoint_not_found">\'%s\': trūkst meta duomenų apie pataisą</string>
+    <string name="sources_signing_key_changed_named">\"%s\" nebuvo atnaujinta, nes naujausia versija nėra pasirašyta raktu, kurio ji naudojo anksčiau</string>
+    <string name="sources_signing_key_changed_local">Failas nėra pasirašytas raktu, kurio šis šaltinis naudojo anksčiau. Norėdami jį patikėti, ištrinkite šaltinį ir pridėkite failą iš naujo</string>
+    <string name="sources_signing_key_trust_title">Pasitikėti nauju raktu?</string>
+    <string name="sources_signing_key_trust_message">Naujausia versija pasirašyta kitu raktu. Galbūt kūrėjas pakeitė savo raktą arba šią versiją paskelbė kažkas kitas. Pasitikėkite ja tik tada, jei kūrėjas pranešė apie naują raktą</string>
+    <string name="sources_signing_key_trust_message_unsigned">Naujausia versija nėra pasirašyta. Galbūt kūrėjas nustojo pasirašyti versijas arba šią versiją paskelbė kažkas kitas. Pasitikėkite ja tik tada, jei kūrėjas tai pranešė</string>
+    <string name="sources_signing_key_trusted">Pasitikėtas raktas</string>
+    <string name="sources_signing_key_new">Naujas raktas</string>
     <string name="sources_patch_expert_badge">Ekspertas</string>
     <string name="sources_patch_expert_badge_tooltip">Įjunkite Ekspertų režimą Parametruose, kad galėtumėte rankiniu būdu įtraukti šį pataisą</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">Reikia pagalbos randant originalų nepataisyta APK?</string>
+    <string name="home_apk_availability_title">Reikia pagalbos surast APK?</string>
     <string name="home_apk_availability_dialog_simple">Kad pataisyti&lt;b&gt;%s&lt;/b&gt;, jums reikia nepataisytos versijos:</string>
     <string name="home_apk_availability_dialog_expert">Kad pataisyti&lt;b&gt;%s&lt;/b&gt;, jums reikia nepataisytu versiju:</string>
     <string name="home_apk_availability_recommended_label">Rekomenduojama</string>
     <string name="home_apk_availability_unpatched_label">Nepataisytas</string>
     <string name="home_apk_availability_incompatible_label">Nesuderinama</string>
     <string name="home_apk_availability_installed_version">Įdiegta šiame įrenginyje: %s</string>
-    <string name="home_apk_availability_yes">Taip, padėkite man rasti APK</string>
-    <string name="home_apk_availability_no">Ne, jau turiu APK</string>
+    <string name="home_apk_availability_find">Taip, padėkite man jį surasti</string>
+    <string name="home_apk_availability_have">Ne, aš jį jau turiu</string>
     <string name="home_apk_helper_download">Naudoti pagalbinę programą</string>
     <string name="home_apk_helper_untrusted">Padalinio programėlė įdiegta, bet dar nėra patikima, todėl čia ne siūloma</string>
     <string name="home_apk_helper_untrusted_action">Peržiūrėti padalinius</string>
@@ -273,8 +289,8 @@
     <string name="home_apk_helper_wrong_package">Pagalbinė programa grąžino kitą programą, nei ta, kuri pataisoma</string>
     <string name="home_apk_helper_installed_unavailable">„Morphe“ nepavyko naudoti įdiegtos programos</string>
     <string name="home_apk_helper_installed_incompatible">Įdiegtos versijos pataisyti negalima</string>
-    <string name="home_apk_use_saved">Naudoti išsaugotą APK failą</string>
-    <string name="home_apk_use_installed">Naudoti įdiegtą APK failą</string>
+    <string name="home_apk_use_saved_copy">Naudoti išsaugotą kopiją</string>
+    <string name="home_apk_use_installed_app">Naudoti įdiegtą programą</string>
     <string name="home_apk_use_saved_unsupported">Pataisos nepalaiko šios išsaugotos kopijos. Pataisant jos bus paprašyta patvirtinti arba pasirinkti kitą APK</string>
     <string name="home_apk_use_installed_unverified">Nepavyko patikrinti įdiegtos programos parašo, todėl ji gali būti jau pataisyta</string>
     <string name="home_unverified">Nepatikrinta</string>
@@ -310,14 +326,19 @@
     <string name="home_download_instructions_copy_link">Kopijuoti nuorodą</string>
     <string name="home_download_instructions_link_copied">Nuoroda nukopijuota</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">Pasirinkite atsisiųstą APK</string>
-    <string name="home_file_picker_prompt_description">Pasirinkite &lt;b&gt;%s&lt;/b&gt; APK kuri tika atsisiuntete</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">Pasirinkite %s APK</string>
+    <string name="home_file_picker_prompt_where">Naršyklės paprastai išsaugo jį į „Atsisiųsti“ aplanką</string>
     <string name="home_file_picker_prompt_open_apk">Atverti APK failą</string>
     <string name="home_recommended_version">Rekomenduojama versija</string>
     <string name="home_selected_version">Pasirinkta versija</string>
     <string name="home_select_apk_title">Pasirinkite APK</string>
-    <string name="home_select_any_apk_description">Pasirinkite bet kurios programos APK failą arba pasirinkite įdiegtą programą šiame įrenginyje</string>
+    <string name="home_select_apk_description">"Universalios pataisos veikia su bet kuria programėle
+
+Pasirinkite, iš kur paimti jos APK"</string>
     <string name="home_use_installed_app">Naudoti įdiegtą programą</string>
+    <string name="home_use_installed_app_description">Pasirinkite programėlę, kuri jau yra šiame įrenginyje</string>
+    <string name="home_open_apk_file_description">Iš atminties pasirinkite APK, APKM, APKS arba XAPK failą</string>
     <string name="home_installed_app_picker_title">Įdiegtos programos</string>
     <string name="home_installed_app_picker_empty">Nėra rastų programų</string>
     <string name="home_installed_app_picker_filter_user">Tik naudotojo programos</string>
@@ -330,19 +351,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">Ieškoti modifikacijų</string>
     <string name="expert_mode_disable_all">Išjungti viską</string>
-    <string name="expert_mode_disable_all_done">Visi pataisymai išjungti</string>
     <string name="expert_mode_enable_all">Įjungti visus</string>
-    <string name="expert_mode_enable_all_done">Visi pataisymai įjungti</string>
     <string name="expert_mode_enable_all_universal_pending">Palieskite dar kartą, kad įjungtumėte universalias pataisas</string>
     <string name="expert_mode_universal_all_warning_title">Įjungti visas universalias pataisas?</string>
     <string name="expert_mode_universal_all_warning_message">Universalios pataisos nėra išbandytos kartu. Įjungus jas visas vienu metu, gali kilti konfliktų, pataisymas gali nepavykti arba programa gali strigti</string>
-    <string name="expert_mode_reset_to_default">Įjungti rekomenduojamus pataisymus</string>
+    <string name="expert_mode_recommended">Rekomenduojami pataisymai</string>
     <string name="expert_mode_reset_to_default_done">Rekomenduojami pataisymai pridėti</string>
-    <string name="expert_mode_restore_saved">Atkurti išsaugotą pasirinkimą</string>
+    <string name="expert_mode_selected_count">Pasirinkta %1$s iš %2$s</string>
+    <string name="expert_mode_saved_selection">Išsaugotas pasirinkimas</string>
     <string name="expert_mode_restore_saved_done">Išsaugotas pasirinkimas atkurtas</string>
-    <string name="expert_mode_copy_from_bundle">Kopijuoti pasirinkimą iš kito rinkinio</string>
     <string name="expert_mode_copy_from_bundle_no_patches">Šiame rinkinyje nėra atitinkančių pataisų</string>
     <string name="expert_mode_no_results">Nėra rasti pataisų</string>
+    <string name="expert_mode_selected_only">Tik pasirinktos pataisos</string>
     <string name="expert_mode_selected_only_on">Rodomos tik pasirinktos pataisos</string>
     <string name="expert_mode_selected_only_off">Rodomos visos pataisos</string>
     <string name="expert_mode_universal_patches">Univeralus pataisymai</string>
@@ -351,9 +371,7 @@
     <string name="expert_mode_patch_required_by_installer">Būtina pasirinktam diegimo tikslui</string>
     <string name="expert_mode_patch_unavailable_for_installer">Neprieinama pasirinktam diegimo tikslui</string>
     <string name="expert_mode_multiple_sources_warning_title">Pasirinkta keli šaltiniai</string>
-    <string name="expert_mode_multiple_sources_warning_message">"Jūs pasirinkote pataisas iš kelių pataisų šaltinių. Tai gali sukelti nesuderinamumo problemų arba netikėtų veikimo ypatumų.
-
-Ar tikrai norite tęsti?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Taisyklai iš skirtingų šaltinių nėra skirti veikti kartu ir gali sukelti konfliktų arba sugadinti programėlę</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">Nepatvirtintas APK</string>
     <string name="home_invalid_signature_message">Pasiringtas APK rinkinys nesutampa su tikėtinu skaitmenimis sertifikatu. Jis galbētč buvo modifikuotas arba yra nepatikimos šaltinio.</string>
@@ -367,7 +385,9 @@ Norint gauti geriausią rezultatą, ši programa rekomenduoja pataisyti &lt;b&gt
     <string name="home_dialog_unsupported_version_experimental_label">Eksperimentinis</string>
     <string name="home_dialog_unsupported_version_experimental_description">Ši versija turi eksperimentinę palaikymą ir gali būti nestabili arba nebaigta</string>
     <string name="morphe_experimental_app_version_dialog_title">Ar norite eksperimentuoti? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">Ši versija &lt;b&gt;%s&lt;/b&gt; turi ankstyvą eksperimentinį palaikymą&lt;br/&gt;&lt;br/&gt;🔧 Tikėtinos keistos programos veikimas arba neatpažintų klaidų, nes šios programos versijos pataisos yra tobulinamas</string>
+    <string name="morphe_experimental_app_version_dialog_message">"Ši versija &lt;b&gt;%s&lt;/b&gt; turi ankstyvą eksperimentinį palaikymą.
+
+🔧 Tikėtės keisto programėlės elgesio arba neatpažintų klaidų, kol pataisos šiai programėlės versijai yra tobulinamos"</string>
     <string name="home_dialog_unsupported_version_dialog_title">Nepalaikoma versija</string>
     <string name="home_dialog_unsupported_version_dialog_description">Šis APK yra nerekomenduota programos versija. Toliau veikti gali lemti neveikiancią programą</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -504,7 +524,8 @@ Norint gauti geriausią rezultatą, ši programa rekomenduoja pataisyti &lt;b&gt
     <string name="shortcut_check_updates_long">Ieškoti pataisų naujinimų</string>
     <string name="shortcut_patch_app">Pataisyti %s</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">Ar tikrai norite ištrinti šią programą?</string>
+    <string name="home_app_info_uninstall_title">Ištrinti šią programėlę?</string>
+    <string name="home_app_info_uninstall_removes_data">Programėlė ir jos duomenys bus pašalinti iš šio įrenginio</string>
     <string name="batch_uninstall_confirm_body">Pasirinktos programos bus visam laikui pašalintos iš jūsų įrenginio</string>
     <string name="home_app_info_remove_app_warning">Tai visam laikui ištryns:</string>
     <string name="home_app_info_delete_item_database">Duomenų bazės įrašas</string>
@@ -643,12 +664,15 @@ Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <string name="patcher_storage_permission_open_settings">Atverti saugyklos nustatymus</string>
     <string name="patcher_storage_badge_denied">Leidimas atmestas</string>
     <string name="patcher_storage_badge_missing">Nerasta</string>
+    <string name="patcher_storage_badge_rejected">Nenaudojamas</string>
     <string name="batch_patch_option_paths_skipped">Trūksta pataisos parinkčių failų, jie bus praleisti: %1$s</string>
     <string name="patcher_missing_patches_title">Kai kurių pataisų nebėra</string>
     <string name="patcher_missing_patches_description">Išsaugotas šios programėlės pasirinkimas nurodo pleistrus, kurių daugiau nebeturi jokia įjungta šaltinio versija. Tęsdami, taikysite pleistrus programėlei be jų</string>
     <string name="patcher_missing_patches_label">Nebesiūloma</string>
     <string name="patcher_option_paths_gone_title">Trūksta pataisos parinkčių failų</string>
     <string name="patcher_option_paths_gone_description">Viena ar daugiau pataisos parinkčių nurodo failus, kurių jau nebėra. Pašalinkite kelius, kad pataisytumėte be jų, arba grąžinkite failus ir bandykite dar kartą</string>
+    <string name="patcher_option_paths_rejected_title">Lopų parinkčių failai negali būti naudojami</string>
+    <string name="patcher_option_paths_rejected_description">Viena arba daugiau lopų parinkčių nurodo failus, kurie nėra rasti arba neturi reikiamų lopui duomenų. Pašalinkite keliamus Lopai be jų, arba sutvarkykite failus pagal parinkties instrukcijas ir pabandykite dar kartą</string>
     <string name="patcher_option_paths_clear">Pašalinti kelius ir tęsti</string>
     <string name="patcher_storage_permission_hint">Patarimas: perkelkite failus į /Android/data/app.morphe.manager/files/ – jokių papildomų leidimų nereikia</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -666,8 +690,10 @@ Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Vyksta taisymas…</string>
     <string name="patcher_notification_text">Paspauskite, kad grįžtumėte į taisytoją</string>
-    <string name="patcher_stop_confirm_title">Sustabdyti taisytoją</string>
-    <string name="patcher_stop_confirm_description">Ar jūs tikrai norite sustabdyti taisymą?</string>
+    <string name="patcher_stop_title">Sustabdyti taisymą?</string>
+    <string name="patcher_stop_discards">Iki šiol pasiektas progresas bus atmestas ir niekas nebus įdiegtas</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Tęsti taisymą</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">Jūsų programa transformuojama į kažką neįtikėtino… 🏆</string>
     <string name="patcher_message_2">Senos programos mokinamos naujų triukų… 🎩</string>
@@ -809,21 +835,21 @@ Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <string name="settings_appearance_repatch_notice_description">Rodo šaukštą, kai pataisytas programas galima pataisyti dar kartą</string>
     <string name="settings_appearance_more_apps_card">„Daugiau programų“ kortelė</string>
     <string name="settings_appearance_more_apps_card_description">Rodo kortelę po programėlėmis, vedančią į bendruomenės pataisymus</string>
-    <string name="settings_appearance_app_card_colors">Programų kortelių spalvos</string>
+    <string name="settings_appearance_app_card_colors">Kortelių spalvos</string>
     <string name="settings_appearance_app_card_colors_default">Numatytasis</string>
-    <string name="settings_appearance_app_card_colors_default_description">Suteikite kiekvienai programai jos pačios rinkinio spalvą</string>
+    <string name="settings_appearance_app_card_colors_default_description">Priskirkite kiekvienai programėliui ir šaltiniui savo spalvą</string>
     <string name="settings_appearance_app_card_colors_accent">Akcentas</string>
-    <string name="settings_appearance_app_card_colors_accent_description">Naudoti programos akcento spalvą pradinio ekrano programų kortelėse</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Naudokite programėlės akcentinę spalvą programėlės ir šaltinio kortelėms</string>
     <string name="settings_appearance_app_card_colors_gradient">Gradientas</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">Naudoti vieną pasirinktinį gradientą pradinio ekrano programų kortelėse</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Naudokite vieną pasirinktą gradientą programėlės kortelėms, kuris šaltinio kortelėse sutaps į vieną spalvą</string>
     <string name="settings_appearance_app_card_colors_solid">Vientisa</string>
-    <string name="settings_appearance_app_card_colors_solid_description">Naudoti vieną pasirinktinę spalvą pradinio ekrano programų kortelėse</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Naudokite vieną pasirinktą spalvą programėlės ir šaltinio kortelėms</string>
     <string name="settings_appearance_app_card_colors_start">Pradžios spalva</string>
     <string name="settings_appearance_app_card_colors_middle">Vidurio spalva</string>
     <string name="settings_appearance_app_card_colors_end">Pabaigos spalva</string>
     <string name="settings_appearance_app_card_colors_solid_color">Vientisa spalva</string>
     <string name="settings_appearance_app_card_colors_bundle">Programų rinkinio spalva</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">Čia naudokite kiekvienos programos spalvą, automatiškai pritemdytą, kad tiktų</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Čia naudokite kiekvienos programėlės arba šaltinio spalvą, kuri automatiškai bus pritaikyta</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Programėlės piktograma</string>
     <string name="settings_appearance_app_icon_selector_description">Kaip „Morphe“ atrodo pradiniame ekrane ir programų stalčiuje</string>
@@ -849,7 +875,8 @@ Pašalinus bus visam laikui ištrinti visi programos duomenys."</string>
     <string name="settings_appearance_app_icon_mark_white">Balta</string>
     <string name="settings_appearance_app_icon_mark_black">Juoda</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Pakeisti programėlės piktogramą?</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">Pakeisti į &lt;b&gt;%s&lt;/b&gt; ir paleisti iš naujo?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe išišsiko, kad perjungtų į &lt;b&gt;%s&lt;/b&gt;</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Pakeisti piktogramą</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1036,6 +1063,8 @@ Vaizdų matmenys turi būti tokie:
     <string name="installer_play_store_warning_continue">Suprantu, tęskite</string>
     <string name="installer_play_store_mode">Diegti kaip „Play“ parduotuvės</string>
     <string name="installer_play_store_mode_description">Žymi „Google Play Store</string>
+    <string name="settings_nomount_only">Tik NoMount</string>
+    <string name="settings_nomount_only_description">Programas montuoja tik naudojant „NoMount“ ir niekada negrįžta prie „bind mount“, todėl be jo jos lieka nemontuotos</string>
     <string name="settings_prompt_installer_on_install">Diegimo įrankio pasirinkimo raginimas</string>
     <string name="settings_prompt_installer_on_install_description">Kiekvieno programėle įdiegimo metu klausia, kaip ją diegti: su root teisėmis prieš šlifavimą, kitaip – po jo</string>
     <string name="settings_auto_install_with_shizuku">Automatiškai įdiegti po pataisymo</string>
@@ -1205,12 +1234,22 @@ Išsami informacija: %2$s"</string>
     <string name="settings_system_import_source_data_success">Šaltinio duomenys sėkmingai importuoti</string>
     <string name="settings_system_selected_patches_section">Pasirinktos pataisos</string>
     <string name="settings_system_no_patches_or_options">Nėra išsaugotų pataisų ar parinkčių</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">Kopijuoti pasirinkimą iš…</string>
-    <string name="copy_selection_confirm_with_count">Kopijuoti %s</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Pasirinkimai</string>
+    <string name="selection_panel_copy_into">Kopijuoti į %s</string>
+    <string name="selection_sets_title">Rinkiniai</string>
+    <string name="selection_set_name">Rinkinio pavadinimas</string>
+    <string name="selection_set_save">Išsaugoti kaip rinkinį</string>
+    <string name="selection_set_replace">Pakeisti rinkinį</string>
+    <string name="selection_set_saved">Išsaugota kaip %s</string>
+    <string name="selection_set_applied">Pereita prie %s</string>
+    <string name="selection_set_deleted">%s ištrinta</string>
+    <string name="selection_set_renamed">Pervardyta į %s</string>
+    <string name="selection_set_rename_title">Pervardyti rinkinį</string>
+    <string name="selection_set_delete_title">Ištrinti rinkinį?</string>
+    <string name="selection_set_delete_message">Ši operacija visiškai ištrins rinkinį %s</string>
     <string name="copy_selection_empty">Nėra kitų išsaugotų pasirinkimų, iš kurių būtų galima kopijuoti</string>
     <string name="copy_selection_available_format">Prieinama %1$s iš %2$s</string>
-    <string name="copy_selection_same_source">Tas pats šaltinis</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Pasirinktinis failų parinkiklis</string>
     <string name="settings_system_custom_file_picker_description">Naudoja „Morphe</string>
@@ -1219,7 +1258,6 @@ Išsami informacija: %2$s"</string>
     <string name="settings_system_apk_download_helper_trusted_count">Patikima: %1$d iš %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Pagalbinės programos gali už jus atsisiųsti originalius APK. Atsisiuntimo instrukcijose siūlomos tik tos, kuriomis čia pasitikite</string>
     <string name="settings_system_apk_download_helper_trust_title">Ar pasitikite šiuo pagalbininku?</string>
-    <string name="settings_system_apk_download_helper_trust">Pasitikėti</string>
     <string name="settings_system_apk_download_helper_warning">APK gaunamas iš pagalbinės programos, todėl pasitikėkite tik jums žinomomis programomis. „Morphe“ vis tiek prieš pataisymą patikrina kiekvieno failo paketą, versiją ir parašą</string>
     <string name="settings_system_apk_download_helper_installed_by">Įdiegė %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Diegimo įrankis nežinomas</string>
@@ -1231,7 +1269,10 @@ Išsami informacija: %2$s"</string>
     <string name="file_picker_internal_storage">Vidinė saugykla</string>
     <string name="file_picker_sd_card">SD kortelė</string>
     <string name="file_picker_root">Šaknis (/)</string>
+    <string name="file_picker_storage_access_unavailable">Šis įrenginys neturi ekrano, kuris leistų suteikti prieigą prie visų failų. Leiskite tai per ADB komanda: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">Saugyklos</string>
+    <string name="file_saver_downloads_failed">Nepavyko sukurti failo \" Atsisiųsti\" aplanke</string>
+    <string name="file_saver_saving_to_downloads">Šis įrenginys neturi išsaugymo ekrano, todėl failas išsaugomas į \"Atsisiųsti\" kaip %1$s</string>
     <string name="file_picker_sort_name_asc">Pavadinimas (A–Z)</string>
     <string name="file_picker_sort_name_desc">Pavadinimas (Z–A)</string>
     <string name="file_picker_sort_size_desc">Dydis (didžiausi pirmiausia)</string>
@@ -1314,6 +1355,7 @@ Išsami informacija: %2$s"</string>
     <string name="include">Įtraukti</string>
     <string name="disable">Išjungti</string>
     <string name="enable">Įjungti</string>
+    <string name="trust">Pasitikėti</string>
     <string name="loading">Įkeliama…</string>
     <string name="creating">Kuriama…</string>
     <string name="processing_apk">Apdorojamas APK…</string>
@@ -1335,6 +1377,8 @@ Išsami informacija: %2$s"</string>
     <string name="reorder_done">Eilė išsaugota</string>
     <string name="reset_order">Atstatyti eilę</string>
     <string name="reset_order_done">Eilė atstatyta</string>
+    <string name="reset_order_confirm_title">Atstatyti tvarką?</string>
+    <string name="reset_order_confirm_message">Sąrašas grįš į pradinę tvarką, o rankiniu būdu nustatyta tvarka bus prarasta</string>
     <string name="accessibility_select_app">Pasirinkti programą</string>
     <string name="accessibility_select_source">Pasirinkite šaltinį</string>
     <string name="accessibility_move_up">Perkelti aukštyn</string>
@@ -1342,6 +1386,7 @@ Išsami informacija: %2$s"</string>
     <string name="accessibility_app_moved_announcement">%1$s perkelta į %2$s poziciją iš %3$s</string>
     <string name="accessibility_scroll_to_top">Slinkti į sąrašo pradžią</string>
     <string name="rename">Pervadinti</string>
+    <string name="more_options">Daugiau parinkčių</string>
     <string name="import_">Importuoti</string>
     <string name="export">Eksportuoti</string>
     <string name="copy">Kopijuoti</string>
@@ -1386,6 +1431,7 @@ Išsami informacija: %2$s"</string>
     <string name="show_all">Rodyti visus</string>
     <string name="ignore">Nepaisyti</string>
     <string name="stop_ignoring">Nustoti nepaisyti</string>
+    <string name="stop">Stoptis</string>
     <string name="logs">Žurnalai</string>
     <string name="sources">Šaltiniai</string>
     <string name="installing_ellipsis">Diegiama…</string>
@@ -1479,7 +1525,7 @@ Ar vis tiek norite tęsti?"</string>
     <string name="sources_apps_leave_out">Pašalinti</string>
     <string name="sources_apps_leave_out_done">Pašalinta</string>
     <string name="sources_apps_bring_back">Grąžinti</string>
-    <string name="sources_dialog_choose_apps">Pasirinkti programas</string>
+
     <string name="hex_color">„Hex“ spalvos kodas</string>
     <string name="patcher_memory_adjustment_title">Nepakanka atminties</string>
     <string name="patcher_memory_adjustment_description">Sistema sustabdė pataisymo procesą, kai jis veikė su %1$d MB atminties limitu. Sumažinus limitą iki %2$d MB, pataisymo procesas tampa mažesniu taikiniu ir gali leisti užbaigti darbą</string>

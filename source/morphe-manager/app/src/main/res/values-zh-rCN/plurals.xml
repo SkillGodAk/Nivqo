@@ -37,6 +37,9 @@
     <plurals name="source_count">
         <item quantity="other">%s 个源</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="other">%s 组</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="other">%s 个包</item>
     </plurals>

@@ -30,11 +30,14 @@ fun InstallerSettings(settingsViewModel: SettingsViewModel = koinViewModel()) {
     }
 
     val autoInstallEnabled by prefs.autoInstallAfterPatching.getAsState()
+    val noMountOnly by prefs.noMountOnly.getAsState()
     val autoUninstallEnabled by prefs.autoUninstallWithShizuku.getAsState()
     val promptEnabled by prefs.promptInstallerOnInstall.getAsState()
     val ignoreTargetRulesEnabled by prefs.ignoreInstallTargetRules.getAsState()
     val useExpertMode by prefs.useExpertMode.getAsState()
     val rooted = remember { settingsViewModel.isDeviceRooted() }
+    // NoMount runs on KernelSU and APatch only
+    val magisk by produceState(false) { value = settingsViewModel.isMagisk() }
 
     var pendingAutoUninstallConfirm by remember { mutableStateOf(false) }
 
@@ -65,6 +68,17 @@ fun InstallerSettings(settingsViewModel: SettingsViewModel = koinViewModel()) {
                 shizukuStatusProvider = settingsViewModel::getShizukuStatus,
                 onRequestShizukuPermission = settingsViewModel::requestShizukuPermission
             )
+            FoldingVisibility(visible = primaryToken.isRootMount && !magisk) {
+                SettingsGroup {
+                    SettingsSwitchItem(
+                        checked = noMountOnly,
+                        onToggle = { settingsViewModel.setNoMountOnly(!noMountOnly) },
+                        icon = MaterialSymbols.Rounded.Lock,
+                        title = stringResource(R.string.settings_nomount_only),
+                        subtitle = stringResource(R.string.settings_nomount_only_description)
+                    )
+                }
+            }
         }
 
         SettingsSection(
@@ -72,8 +86,9 @@ fun InstallerSettings(settingsViewModel: SettingsViewModel = koinViewModel()) {
             icon = MaterialSymbols.Rounded.Auto_fix_high
         ) {
             SettingsGroup {
-                // Offered only where the install can reach the user on its own
-                FoldingVisibility(visible = primaryToken.supportsAutoInstall) {
+                // Offered only where the install can reach the user on its own, which a mount
+                // picked before patching always does
+                FoldingVisibility(visible = primaryToken.supportsAutoInstall || promptEnabled && rooted) {
                     Column {
                         SettingsSwitchItem(
                             checked = autoInstallEnabled,

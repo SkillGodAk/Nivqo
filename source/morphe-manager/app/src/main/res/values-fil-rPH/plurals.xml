@@ -48,6 +48,10 @@
         <item quantity="one">%s mapagkukunan</item>
         <item quantity="other">%s mga mapagkukunan</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s na nailagay</item>
+        <item quantity="other">%s sets</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pakete</item>
         <item quantity="other">%s mga pakete</item>

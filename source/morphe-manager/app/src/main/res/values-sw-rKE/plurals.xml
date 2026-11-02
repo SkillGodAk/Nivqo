@@ -1,8 +1,180 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">patch %s</item>
+        <item quantity="other">patch %s</item>
+    </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">maktaba %s</item>
+        <item quantity="other">maktaba %s</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">chaguo la patch %s</item>
+        <item quantity="other">machaguo ya patch %s</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">kitu %s</item>
+        <item quantity="other">vitu %s</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Chagua faili %s</item>
+        <item quantity="other">Chagua faili %s</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Ongeza chanzo %s</item>
+        <item quantity="other">Ongeza vyanzo %s</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Vyanzo vya patch kwa ajili ya app %s</item>
+        <item quantity="other">Vyanzo vya patch kwa ajili ya apps %s</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">chanzo %s kimefichwa kwa programu hii. Chagua programu kwenye tabo ya Programu na ufungue Vyanzo vya Patch ili kukirudisha</item>
+        <item quantity="other">vyanzo %s vimefichwa kwa programu hii. Chagua programu kwenye tabo ya Programu na ufungue Vyanzo vya Patch ili kuvirudisha</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">Chanzo %s kimefichwa. Gusa ili kuonyesha</item>
+        <item quantity="other">Vyanzo %s vimefichwa. Gusa ili kuonyesha</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">patch %s inayolingana</item>
+        <item quantity="other">patch %s zinazolingana</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">chanzo %s</item>
+        <item quantity="other">vyanzo %s</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s imewekwa</item>
+        <item quantity="other">%s zimewekwa</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">kifurushi %s</item>
+        <item quantity="other">vifurushi %s</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">Imetekelezwa patch %s</item>
+        <item quantity="other">Imetekelezwa patch %s</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">faili la APK %s</item>
+        <item quantity="other">faili %s za APK</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Imesakinisha programu %s</item>
+        <item quantity="other">Imesakinisha programu %s</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Imewekwa programu %s</item>
+        <item quantity="other">Zimewekwa programu %s</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Imesakinisha programu %s tena</item>
+        <item quantity="other">Imesakinisha programu %s tena</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Imeondoa programu %s</item>
+        <item quantity="other">Imeondoa programu %s</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Ondoa programu %s?</item>
+        <item quantity="other">Ondoa programu %s?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">Programu %s iko tayari kurekebishwa</item>
+        <item quantity="other">Programu %s ziko tayari kurekebishwa</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">programu %s imewekwa kwenye foleni kwa ajili ya patching</item>
+        <item quantity="other">programu %s zimewekwa kwenye foleni kwa ajili ya patching</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">taarifa %s iliyofichwa, gusa ili kuionyesha</item>
+        <item quantity="other">taarifa %s zilizofichwa, gusa ili kuzionyesha</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">Programu %s inaweza kurekebishwa tena</item>
+        <item quantity="other">Programu %s zinaweza kurekebishwa tena</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Ruka programu %s</item>
+        <item quantity="other">Ruka programu %s</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Ondolewa patch %s iliyopitwa na wakati kutoka kwenye uteuzi ulihifadhiwa</item>
+        <item quantity="other">Ondolewa patch %s zilizopitwa na wakati kutoka kwenye uteuzi ulihifadhiwa</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">chanzo %s kimeidhinishwa</item>
+        <item quantity="other">vyanzo %s vimeidhinishwa</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">programu %s imefichwa</item>
+        <item quantity="other">programu %s zimefichwa</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">programu %s inaonekana</item>
+        <item quantity="other">programu %s zinaonekana</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Onyesha programu %s?</item>
+        <item quantity="other">Onyesha tena programu %s?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">app %s iliyofichwa</item>
+        <item quantity="other">app %s zilizofichwa</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">programu %s</item>
+        <item quantity="other">programu %s</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s imechaguliwa</item>
+        <item quantity="other">%s zimechaguliwa</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Imenakili patch %s kutoka kwenye bundle lililochaguliwa</item>
+        <item quantity="other">Imenakili patch %s kutoka kwenye bundle lililochaguliwa</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">core %s</item>
+        <item quantity="other">core %s</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">kipengele %s</item>
+        <item quantity="other">vipengele %s</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">marekebisho %s</item>
+        <item quantity="other">marekebisho %s</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">uboreshaji %s</item>
+        <item quantity="other">uboreshaji %s</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">mabadiliko %s</item>
+        <item quantity="other">mabadiliko %s</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d mpya</item>
+        <item quantity="other">%1$s · %2$d mpya</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">toleo %s jipya</item>
+        <item quantity="other">matoleo %s mapya</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">linki %d imewezeshwa</item>
+        <item quantity="other">linki %d zimewezeshwa</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">linki %d isiyothibitishwa</item>
+        <item quantity="other">linki %d zisizothibitishwa</item>
+    </plurals>
 </resources>

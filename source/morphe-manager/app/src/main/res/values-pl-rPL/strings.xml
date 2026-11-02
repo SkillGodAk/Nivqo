@@ -98,8 +98,10 @@
     <string name="home_category_name">Nazwa kategorii</string>
     <string name="home_category_move_to">Przenieś do kategorii</string>
     <string name="home_category_move_selected_title">Przenieś wybrane aplikacje</string>
-    <string name="home_category_delete_confirm_title">Usuń kategorię</string>
-    <string name="home_category_delete_confirm_message">Usunąć kategorię &lt;b&gt;%1$s&lt;/b&gt;? Znajdujące się w niej aplikacje wrócą do &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">Usunąć kategorię %s?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Przypisane do niej aplikacje wrócą do kategorii &lt;b&gt;%s&lt;/b&gt;</string>
     <string name="home_category_actions_unavailable">Akcje niedostępne dla tej kategorii</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Jaką aplikację chcesz zmodyfikować?</string>
@@ -196,10 +198,14 @@
     <string name="sources_management_prerelease_toggle_description">Zapewnia wczesny dostęp do nowych, eksperymentalnych wersji modyfikacji</string>
     <string name="sources_prerelease_warning_title">Włączyć przedpremierowe modyfikacje?</string>
     <string name="sources_prerelease_warning_message">Wersje przedpremierowe są nadal w fazie rozwoju. Modyfikacje mogą zakończyć się niepowodzeniem lub popsuć aplikację, a funkcje mogą ulec zmianie bez ostrzeżenia</string>
-    <string name="expert_mode_prerelease_notice">To źródło korzysta z przedpremierowych modyfikacji. Modyfikowanie może się nie powieść lub działać nieoczekiwanie</string>
-    <string name="expert_mode_experimental_version_notice">To źródło oferuje jedynie eksperymentalną obsługę tej wersji aplikacji. Jego modyfikacje mogą działać niestabilnie lub być niekompletne</string>
+    <string name="expert_mode_unstable_notice">Przedpremierowe lub eksperymentalne modyfikacje mogą działać niestabilnie</string>
     <string name="sources_management_experimental_versions_toggle">Eksperymentalne wersje aplikacji</string>
     <string name="sources_management_experimental_versions_toggle_description">Wyświetla i modyfikuje eksperymentalne wersje docelowe aplikacji</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Włącz przedpremierowe modyfikacje</string>
+    <string name="sources_management_prerelease_disable">Wyłącz przedpremierowe modyfikacje</string>
+    <string name="sources_management_experimental_versions_enable">Włącz eksperymentalne wersje aplikacji</string>
+    <string name="sources_management_experimental_versions_disable">Wyłącz eksperymentalne wersje aplikacji</string>
     <string name="sources_management_already_exists">To źródło zostało już dodane</string>
     <string name="sources_management_invalid_url">Nieprawidłowy adres źródła. Sprawdź adres i spróbuj ponownie</string>
     <string name="sources_management_blocked">To źródło modyfikacji jest zablokowane i nie może zostać dodane</string>
@@ -207,17 +213,22 @@
     <string name="sources_management_metadata_unavailable">Brak metadanych</string>
     <string name="sources_management_metadata_unavailable_hint">Zdalny plik metadanych jest niedostępny. Modyfikowanie przy użyciu zainstalowanego pakietu nadal działa, ale automatyczna aktualizacja dla tego źródła została wyłączona</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Nie udało się pobrać pakietu modyfikacji. Adres źródła może być nieprawidłowy lub plik nie istnieje</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">Nie udało się pobrać pakietu modyfikacji. Adres źródła może być nieprawidłowy lub plik nie istnieje. Dotknij, aby go zmienić</string>
     <string name="sources_management_outdated_manager_badge">Zaktualizuj Nivqo</string>
     <string name="sources_management_outdated_manager_hint">To źródło zostało przygotowane dla modyfikatora %1$s, ale Morphe %2$s zawiera modyfikator %3$s. Zaktualizuj Morphe, aby go użyć
 </string>
     <string name="sources_management_held_back_badge">Awaria</string>
     <string name="sources_management_held_back_hint">To źródło spowodowało awarię Morphe podczas wczytywania, dlatego jest pomijane. Zaktualizuj lub zaimportuj je ponownie, aby spróbować jeszcze raz</string>
+    <string name="sources_management_signed_by">Podpisano przez</string>
+    <string name="sources_management_signing_key_changed_badge">Zmieniono klucz</string>
+    <string name="sources_management_signing_key_changed_hint">Najnowsze wydanie nie zostało podpisane kluczem używanym wcześniej przez to źródło, dlatego nie zostało zainstalowane. Dotknij, aby je przejrzeć</string>
     <string name="sources_management_source_enabled">Źródło włączone</string>
     <string name="sources_management_source_disabled">Źródło wyłączone</string>
     <string name="sources_management_source_updating">Aktualizowanie źródła</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Nazwa wyświetlana</string>
     <string name="sources_dialog_rename">Zmień nazwę źródła modyfikacji</string>
+    <string name="sources_dialog_change_url">Zmień adres pobierania źródła modyfikacji</string>
     <string name="sources_dialog_duplicate_name_error">Źródło modyfikacji o tej nazwie już istnieje</string>
     <string name="sources_dialog_missing_error">Nie można zaktualizować tego źródła modyfikacji</string>
     <string name="sources_dialog_add_source">Dodaj źródło modyfikacji</string>
@@ -228,9 +239,6 @@
     <string name="sources_dialog_paste_no_links">Nie znaleziono linków w schowku</string>
     <string name="sources_dialog_local">Lokalne</string>
     <string name="sources_dialog_local_files">Wybierz pliki źródłowe modyfikacji</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">Dodaj więcej plików</string>
-    <string name="sources_dialog_local_file_tap_hint">Dotknij, aby przeglądać pliki</string>
     <string name="sources_dialog_local_invalid_extension">Plik musi mieć rozszerzenie .mpp</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">Aktualizuje %s</string>
@@ -238,6 +246,7 @@
     <string name="sources_dialog_url_invalid">Adres musi wskazywać na repozytorium GitHub/GitLab lub plik .json</string>
     <string name="sources_dialog_preinstalled">Wbudowane</string>
     <string name="sources_dialog_community">Modyfikacje społeczności</string>
+    <string name="sources_dialog_choose_apps">Wybierz aplikacje</string>
     <string name="sources_dialog_choose_apps_description">Wybierz, które aplikacje mają zostać zachowane po wczytaniu źródła</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Zewnętrzne źródła modyfikacji</string>
@@ -247,18 +256,25 @@
     <string name="sources_download_fail">Nie udało się pobrać źródeł: %s</string>
     <string name="sources_download_fail_named">Nie udało się zaktualizować \"%s\". Sprawdź połączenie z internetem i spróbuj ponownie</string>
     <string name="sources_download_endpoint_not_found">\"%s\": nie znaleziono metadanych modyfikacji</string>
+    <string name="sources_signing_key_changed_named">Nie zaktualizowano źródła \"%s\", ponieważ jego najnowsze wydanie nie zostało podpisane używanym wcześniej kluczem</string>
+    <string name="sources_signing_key_changed_local">Plik nie jest podpisany kluczem używanym wcześniej przez to źródło. Aby mu zaufać, usuń to źródło i dodaj plik ponownie</string>
+    <string name="sources_signing_key_trust_title">Zaufać nowemu kluczowi?</string>
+    <string name="sources_signing_key_trust_message">Najnowsze wydanie jest podpisane innym kluczem. Programista zmienił swój klucz lub wydanie opublikował ktoś inny. Zaufaj mu tylko wtedy, gdy programista poinformował o nowym kluczu</string>
+    <string name="sources_signing_key_trust_message_unsigned">Najnowsze wydanie nie jest podpisane. Programista przestał podpisywać wydania lub opublikował je ktoś inny. Zaufaj mu tylko wtedy, gdy programista o tym poinformował</string>
+    <string name="sources_signing_key_trusted">Zaufany klucz</string>
+    <string name="sources_signing_key_new">Nowy klucz</string>
     <string name="sources_patch_expert_badge">Ekspert</string>
     <string name="sources_patch_expert_badge_tooltip">Włącz tryb ekspercki w Ustawieniach, aby ręcznie dodać tę modyfikację</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">Potrzebujesz pomocy w znalezieniu oryginalnego pliku APK?</string>
+    <string name="home_apk_availability_title">Potrzebujesz pomocy w znalezieniu pliku APK?</string>
     <string name="home_apk_availability_dialog_simple">Aby zmodyfikować &lt;b&gt;%s&lt;/b&gt;, potrzebujesz niezmodyfikowanego pliku APK w wersji:</string>
     <string name="home_apk_availability_dialog_expert">Aby zmodyfikować &lt;b&gt;%s&lt;/b&gt;, potrzebujesz niezmodyfikowanego pliku APK w jednej z poniższych wersji:</string>
     <string name="home_apk_availability_recommended_label">Zalecana</string>
     <string name="home_apk_availability_unpatched_label">Niezmodyfikowana</string>
     <string name="home_apk_availability_incompatible_label">Niezgodna</string>
     <string name="home_apk_availability_installed_version">Zainstalowano na tym urządzeniu: %s</string>
-    <string name="home_apk_availability_yes">Tak, pomóż mi znaleźć plik APK</string>
-    <string name="home_apk_availability_no">Nie, mam już plik APK</string>
+    <string name="home_apk_availability_find">Tak, pomóż mi go znaleźć</string>
+    <string name="home_apk_availability_have">Nie, już go mam</string>
     <string name="home_apk_helper_download">Użyj asystenta</string>
     <string name="home_apk_helper_untrusted">Asystent jest zainstalowany, ale nie jest jeszcze zaufany, więc nie jest tutaj dostępny</string>
     <string name="home_apk_helper_untrusted_action">Przejrzyj asystenty</string>
@@ -274,8 +290,8 @@
     <string name="home_apk_helper_wrong_package">Asystent zwrócił inną aplikację niż ta, która jest modyfikowana</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo nie mógł użyć zainstalowanej aplikacji</string>
     <string name="home_apk_helper_installed_incompatible">Zainstalowana wersja nie może zostać zmodyfikowana</string>
-    <string name="home_apk_use_saved">Użyj zapisanego pliku APK</string>
-    <string name="home_apk_use_installed">Użyj zainstalowanego pliku APK</string>
+    <string name="home_apk_use_saved_copy">Użyj zapisanej kopii</string>
+    <string name="home_apk_use_installed_app">Użyj zainstalowanej aplikacji</string>
     <string name="home_apk_use_saved_unsupported">Modyfikacje nie obsługują tej zapisanej kopii. Jej modyfikacja będzie wymagała potwierdzenia lub wyboru innego pliku APK</string>
     <string name="home_apk_use_installed_unverified">Nie udało się zweryfikować podpisu zainstalowanej aplikacji, więc może być już zmodyfikowana</string>
     <string name="home_unverified">Niezweryfikowano</string>
@@ -311,14 +327,19 @@
     <string name="home_download_instructions_copy_link">Skopiuj link</string>
     <string name="home_download_instructions_link_copied">Skopiowano link</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">Wybierz pobrany plik APK</string>
-    <string name="home_file_picker_prompt_description">Wybierz pobrany przed chwilą plik APK &lt;b&gt;%s&lt;/b&gt;</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">Wybierz plik APK aplikacji %s</string>
+    <string name="home_file_picker_prompt_where">Przeglądarki zazwyczaj zapisują go w folderze Pobrane</string>
     <string name="home_file_picker_prompt_open_apk">Otwórz plik APK</string>
     <string name="home_recommended_version">Zalecana wersja</string>
     <string name="home_selected_version">Wybrana wersja</string>
     <string name="home_select_apk_title">Wybierz plik APK</string>
-    <string name="home_select_any_apk_description">Wybierz plik APK dowolnej aplikacji lub wybierz aplikację już zainstalowaną na tym urządzeniu</string>
+    <string name="home_select_apk_description">"Uniwersalne modyfikacje działają z każdą aplikacją
+
+​Wybierz, skąd pobrać jej plik APK"</string>
     <string name="home_use_installed_app">Użyj zainstalowanej aplikacji</string>
+    <string name="home_use_installed_app_description">Wybierz aplikację już zainstalowaną na tym urządzeniu</string>
+    <string name="home_open_apk_file_description">Wybierz plik APK, APKM, APKS lub XAPK z pamięci urządzenia</string>
     <string name="home_installed_app_picker_title">Zainstalowane aplikacje</string>
     <string name="home_installed_app_picker_empty">Nie znaleziono aplikacji</string>
     <string name="home_installed_app_picker_filter_user">Tylko aplikacje użytkownika</string>
@@ -331,19 +352,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">Szukaj modyfikacji</string>
     <string name="expert_mode_disable_all">Wyłącz wszystkie</string>
-    <string name="expert_mode_disable_all_done">Wyłączono wszystkie modyfikacje</string>
     <string name="expert_mode_enable_all">Włącz wszystkie</string>
-    <string name="expert_mode_enable_all_done">Włączono wszystkie modyfikacje</string>
     <string name="expert_mode_enable_all_universal_pending">Dotknij ponownie dla uniwersalnych modyfikacji</string>
     <string name="expert_mode_universal_all_warning_title">Włączyć wszystkie uniwersalne modyfikacje?</string>
     <string name="expert_mode_universal_all_warning_message">Uniwersalne modyfikacje nie są testowane razem. Włączenie ich wszystkich naraz może spowodować konflikty, niepowodzenie modyfikowania lub awarie</string>
-    <string name="expert_mode_reset_to_default">Włącz zalecane modyfikacje</string>
+    <string name="expert_mode_recommended">Zalecane łatki</string>
     <string name="expert_mode_reset_to_default_done">Zastosowano zalecane modyfikacje</string>
-    <string name="expert_mode_restore_saved">Przywróć zapisany wybór</string>
+    <string name="expert_mode_selected_count">%1$s z %2$s wybranych</string>
+    <string name="expert_mode_saved_selection">Zapisany wybór</string>
     <string name="expert_mode_restore_saved_done">Przywrócono zapisany wybór</string>
-    <string name="expert_mode_copy_from_bundle">Kopiuj wybór z innego pakietu</string>
     <string name="expert_mode_copy_from_bundle_no_patches">Brak pasujących modyfikacji w tym pakiecie</string>
     <string name="expert_mode_no_results">Nie znaleziono modyfikacji</string>
+    <string name="expert_mode_selected_only">Tylko wybrane modyfikacje</string>
     <string name="expert_mode_selected_only_on">Wyświetlanie tylko wybranych modyfikacji</string>
     <string name="expert_mode_selected_only_off">Wyświetlanie wszystkich modyfikacji</string>
     <string name="expert_mode_universal_patches">Uniwersalne modyfikacje</string>
@@ -352,9 +372,7 @@
     <string name="expert_mode_patch_required_by_installer">Wymagane dla wybranego celu instalacji</string>
     <string name="expert_mode_patch_unavailable_for_installer">Niedostępne dla wybranego celu instalacji</string>
     <string name="expert_mode_multiple_sources_warning_title">Wybrano wiele źródeł modyfikacji</string>
-    <string name="expert_mode_multiple_sources_warning_message">"Wybrano modyfikacje z wielu źródeł. Może to spowodować problemy z kompatybilnością lub nieoczekiwane działanie aplikacji.
-
-Czy na pewno chcesz kontynuować?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Modyfikacje z różnych źródeł nie są przystosowane do wspólnego działania i mogą powodować konflikty lub zepsuć aplikację</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">Niezweryfikowany plik APK</string>
     <string name="home_invalid_signature_message">Wybrany plik APK aplikacji &lt;b&gt;%s&lt;/b&gt; nie jest zgodny z oczekiwanym certyfikatem podpisu. Może być zmodyfikowany lub pochodzić z niezaufanego źródła</string>
@@ -368,13 +386,15 @@ Aby uzyskać najlepszy efekt, zalecamy zmodyfikowanie &lt;b&gt;pełnego pliku AP
     <string name="home_dialog_unsupported_version_experimental_label">Eksperymentalna</string>
     <string name="home_dialog_unsupported_version_experimental_description">Ta wersja ma wsparcie eksperymentalne i może działać niestabilnie lub być niekompletna</string>
     <string name="morphe_experimental_app_version_dialog_title">Chcesz poeksperymentować? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">Ta wersja &lt;b&gt;%s&lt;/b&gt; ma wczesne wsparcie eksperymentalne&lt;br/&gt;&lt;br/&gt;🔧 Spodziewaj się niestabilnego działania aplikacji lub nieznanych błędów do czasu dopracowania modyfikacji dla tej wersji</string>
-    <string name="home_dialog_unsupported_version_dialog_title">Niewspierana wersja</string>
+    <string name="morphe_experimental_app_version_dialog_message">"Ta wersja &lt;b&gt;%s&lt;/b&gt; ma wczesne wsparcie eksperymentalne.
+
+🔧 Spodziewaj się niestabilnego działania aplikacji lub nieznanych błędów do czasu dopracowania modyfikacji dla tej wersji"</string>
+    <string name="home_dialog_unsupported_version_dialog_title">Nieobsługiwana wersja</string>
     <string name="home_dialog_unsupported_version_dialog_description">Ten plik APK nie jest zalecaną wersją. Kontynuowanie może sprawić, że aplikacja przestanie działać</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="home_dialog_unsupported_version_dialog_proceed">Kontynuuj mimo to</string>
-    <string name="home_dialog_unsupported_version_compatible_versions">Zgodne wersje:</string>
-    <string name="home_dialog_unsupported_version_unsupported_label">Niewspierana</string>
+    <string name="home_dialog_unsupported_version_compatible_versions">Obsługiwane wersje:</string>
+    <string name="home_dialog_unsupported_version_unsupported_label">Nieobsługiwana</string>
     <!-- "Build" here refers to a specific compiled version of the app (versionCode) -->
     <string name="home_dialog_unsupported_version_build">Kompilacja %s</string>
     <string name="home_dialog_unsupported_version_build_mismatch_description">To inna kompilacja tej samej wersji. Te modyfikacje wymagają konkretnej kompilacji</string>
@@ -505,7 +525,8 @@ Aby uzyskać najlepszy efekt, zalecamy zmodyfikowanie &lt;b&gt;pełnego pliku AP
     <string name="shortcut_check_updates_long">Sprawdź aktualizacje modyfikacji</string>
     <string name="shortcut_patch_app">Zmodyfikuj %s</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">Czy na pewno chcesz odinstalować tę aplikację?</string>
+    <string name="home_app_info_uninstall_title">Odinstalować tę aplikację?</string>
+    <string name="home_app_info_uninstall_removes_data">Aplikacja i jej dane zostaną usunięte z tego urządzenia</string>
     <string name="batch_uninstall_confirm_body">Wybrane aplikacje zostaną trwale usunięte z twojego urządzenia</string>
     <string name="home_app_info_remove_app_warning">Spowoduje to trwałe usunięcie:</string>
     <string name="home_app_info_delete_item_database">Wpis w bazie danych</string>
@@ -644,12 +665,15 @@ Odinstalowanie bezpowrotnie usunie wszystkie dane aplikacji"</string>
     <string name="patcher_storage_permission_open_settings">Otwórz ustawienia pamięci</string>
     <string name="patcher_storage_badge_denied">Brak uprawnień</string>
     <string name="patcher_storage_badge_missing">Nie znaleziono</string>
+    <string name="patcher_storage_badge_rejected">Niezdatny do użytku</string>
     <string name="batch_patch_option_paths_skipped">Brakuje plików opcji modyfikacji i zostaną one pominięte: %1$s</string>
     <string name="patcher_missing_patches_title">Brak niektórych modyfikacji</string>
     <string name="patcher_missing_patches_description">Zapisany wybór dla tej aplikacji obejmuje modyfikacje, których nie proponuje już żadne włączone źródło. Kontynuacja spowoduje zmodyfikowanie aplikacji bez nich</string>
     <string name="patcher_missing_patches_label">Już nieproponowane</string>
     <string name="patcher_option_paths_gone_title">Brakuje plików opcji modyfikacji</string>
     <string name="patcher_option_paths_gone_description">Przynajmniej jedna opcja modyfikacji wskazuje na pliki, których już nie ma. Usuń ścieżki, aby modyfikować bez nich, albo przywróć pliki i spróbuj ponownie</string>
+    <string name="patcher_option_paths_rejected_title">Nie można użyć plików opcji modyfikacji</string>
+    <string name="patcher_option_paths_rejected_description">Co najmniej jedna opcja modyfikacji wskazuje na pliki, których brakuje lub które nie zawierają danych wymaganych przez modyfikację. Usuń ścieżki, aby zmodyfikować aplikację bez nich, lub popraw pliki zgodnie z instrukcją opcji i spróbuj ponownie</string>
     <string name="patcher_option_paths_clear">Usuń ścieżki i kontynuuj</string>
     <string name="patcher_storage_permission_hint">Wskazówka: Przenieś pliki do /Android/data/app.morphe.manager/files/. Nie wymaga to dodatkowych uprawnień</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -667,8 +691,10 @@ Odinstalowanie bezpowrotnie usunie wszystkie dane aplikacji"</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Modyfikowanie w toku…</string>
     <string name="patcher_notification_text">Dotknij, aby wrócić do modyfikatora</string>
-    <string name="patcher_stop_confirm_title">Zatrzymaj modyfikator</string>
-    <string name="patcher_stop_confirm_description">Czy na pewno chcesz zatrzymać proces modyfikowania?</string>
+    <string name="patcher_stop_title">Zatrzymać modyfikowanie?</string>
+    <string name="patcher_stop_discards">Dotychczasowy postęp zostanie odrzucony i nic nie zostanie zainstalowane</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Kontynuuj modyfikowanie</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">Przekształcanie aplikacji w coś niesamowitego… 🏆</string>
     <string name="patcher_message_2">Uczenie starych aplikacji nowych sztuczek… 🎩</string>
@@ -810,21 +836,21 @@ Odinstalowanie bezpowrotnie usunie wszystkie dane aplikacji"</string>
     <string name="settings_appearance_repatch_notice_description">Wyświetla baner, gdy można ponownie zmodyfikować aplikacje</string>
     <string name="settings_appearance_more_apps_card">Karta \"Więcej aplikacji\"</string>
     <string name="settings_appearance_more_apps_card_description">Wyświetla kartę pod listą aplikacji, prowadzącą do modyfikacji społeczności</string>
-    <string name="settings_appearance_app_card_colors">Kolory kart aplikacji</string>
+    <string name="settings_appearance_app_card_colors">Kolory kart</string>
     <string name="settings_appearance_app_card_colors_default">Domyślne</string>
-    <string name="settings_appearance_app_card_colors_default_description">Nadaj każdej aplikacji kolor z jego własnego pakietu</string>
+    <string name="settings_appearance_app_card_colors_default_description">Nadaj każdej aplikacji i źródłu własny kolor</string>
     <string name="settings_appearance_app_card_colors_accent">Akcent</string>
-    <string name="settings_appearance_app_card_colors_accent_description">Używaj koloru akcentu aplikacji dla kart na ekranie głównym</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Używaj koloru akcentu aplikacji dla kart aplikacji i źródeł</string>
     <string name="settings_appearance_app_card_colors_gradient">Gradient</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">Użyj jednego własnego gradientu dla kart aplikacji na ekranie głównym</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Używaj jednego własnego gradientu dla kart aplikacji, połączonego w jednolity kolor dla kart źródeł</string>
     <string name="settings_appearance_app_card_colors_solid">Jednolity</string>
-    <string name="settings_appearance_app_card_colors_solid_description">Użyj jednego, własnego koloru dla kart aplikacji na ekranie głównym</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Używaj jednego własnego koloru dla kart aplikacji i źródeł</string>
     <string name="settings_appearance_app_card_colors_start">Kolor początkowy</string>
     <string name="settings_appearance_app_card_colors_middle">Kolor środkowy</string>
     <string name="settings_appearance_app_card_colors_end">Kolor końcowy</string>
     <string name="settings_appearance_app_card_colors_solid_color">Jednolity kolor</string>
     <string name="settings_appearance_app_card_colors_bundle">Kolor pakietu aplikacji</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">Używaj własnego koloru każdej aplikacji z automatycznie dopasowanym odcieniem</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Używaj własnego koloru każdej aplikacji lub źródła z automatycznie dopasowanym odcieniem</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Ikona aplikacji</string>
     <string name="settings_appearance_app_icon_selector_description">Wygląd aplikacji Morphe na ekranie głównym i w szufladzie aplikacji</string>
@@ -850,7 +876,8 @@ Odinstalowanie bezpowrotnie usunie wszystkie dane aplikacji"</string>
     <string name="settings_appearance_app_icon_mark_white">Białe</string>
     <string name="settings_appearance_app_icon_mark_black">Czarne</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Zmienić ikonę aplikacji?</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">Zmienić na &lt;b&gt;%s&lt;/b&gt; i uruchomić ponownie?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe uruchomi się ponownie, aby przełączyć ikonę na &lt;b&gt;%s&lt;/b&gt;</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Zmień ikonę</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1018,7 +1045,7 @@ Wymagane są następujące wymiary obrazów:
     <string name="installer_mount_warning_install">Główny instalator został ustawiony na instalator z montowaniem. Ta zapisana aplikacja nie została zainstalowana przy użyciu montowania</string>
     <string name="mount_version_mismatch_message">Wersja oryginalnej aplikacji (%2$s) nie jest zgodna z wersją zmodyfikowanej aplikacji (%1$s). Zamontuj zgodną wersję oryginalną, a następnie spróbuj ponownie</string>
     <string name="mount_stock_restore_failed_message">Android odrzucił zapisany, oryginalny plik APK. Zainstaluj odpowiednią, oryginalną wersję, a następnie spróbuj zamontować ponownie</string>
-    <string name="installer_status_shizuku_unsupported">Zainstalowana wersja Shizuku nie jest wspierana</string>
+    <string name="installer_status_shizuku_unsupported">Zainstalowana wersja Shizuku nie jest obsługiwana</string>
     <string name="installer_action_open_shizuku">Otwórz Shizuku</string>
     <string name="installer_hint_generic">Instalacja nie powiodła się. Spróbuj ponownie lub wybierz inny instalator</string>
     <string name="installer_hint_conflict">Inna aplikacja o tej samej nazwie pakietu jest już zainstalowana. Odinstaluj ją, aby kontynuować</string>
@@ -1037,6 +1064,8 @@ Wymagane są następujące wymiary obrazów:
     <string name="installer_play_store_warning_continue">Rozumiem, kontynuuj</string>
     <string name="installer_play_store_mode">Instaluj jako Sklep Play</string>
     <string name="installer_play_store_mode_description">Oznacza Sklep Play jako źródło instalacji</string>
+    <string name="settings_nomount_only">Tylko NoMount</string>
+    <string name="settings_nomount_only_description">Montuje aplikacje wyłącznie przez NoMount i nigdy nie przełącza się awaryjnie na montowanie wiązane, więc bez niego pozostaną niezamontowane</string>
     <string name="settings_prompt_installer_on_install">Monit o wybór instalatora</string>
     <string name="settings_prompt_installer_on_install_description">Pyta o sposób instalacji każdej aplikacji: z dostępem root przed modyfikowaniem, w pozostałych przypadkach po nim</string>
     <string name="settings_auto_install_with_shizuku">Autoinstalacja po modyfikacji</string>
@@ -1206,12 +1235,22 @@ Wymagane są następujące wymiary obrazów:
     <string name="settings_system_import_source_data_success">Dane źródła zaimportowane pomyślnie</string>
     <string name="settings_system_selected_patches_section">Wybrane modyfikacje</string>
     <string name="settings_system_no_patches_or_options">Brak zapisanych modyfikacji lub opcji</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">Kopiuj wybór z…</string>
-    <string name="copy_selection_confirm_with_count">Kopiuj %s</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Wybory</string>
+    <string name="selection_panel_copy_into">Kopiuj do %s</string>
+    <string name="selection_sets_title">Zestawy</string>
+    <string name="selection_set_name">Nazwa zestawu</string>
+    <string name="selection_set_save">Zapisz jako zestaw</string>
+    <string name="selection_set_replace">Zastąp zestaw</string>
+    <string name="selection_set_saved">Zapisano jako %s</string>
+    <string name="selection_set_applied">Przełączono na zestaw %s</string>
+    <string name="selection_set_deleted">Usunięto zestaw %s</string>
+    <string name="selection_set_renamed">Zmieniono nazwę na %s</string>
+    <string name="selection_set_rename_title">Zmień nazwę zestawu</string>
+    <string name="selection_set_delete_title">Usunąć zestaw?</string>
+    <string name="selection_set_delete_message">Spowoduje to trwałe usunięcie zestawu %s</string>
     <string name="copy_selection_empty">Brak innych zapisanych wyborów do skopiowania</string>
     <string name="copy_selection_available_format">Dostępne %1$s z %2$s</string>
-    <string name="copy_selection_same_source">To samo źródło</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Niestandardowa przeglądarka plików</string>
     <string name="settings_system_custom_file_picker_description">Używa wbudowanej przeglądarki plików Morphe zamiast systemowej</string>
@@ -1220,7 +1259,6 @@ Wymagane są następujące wymiary obrazów:
     <string name="settings_system_apk_download_helper_trusted_count">Zaufane: %1$d z %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Asystenci mogą pobierać dla Ciebie oryginalne pliki APK. W instrukcjach pobierania proponowane są tylko te aplikacje, które oznaczysz tutaj jako zaufane</string>
     <string name="settings_system_apk_download_helper_trust_title">Zaufać temu asystentowi?</string>
-    <string name="settings_system_apk_download_helper_trust">Zaufaj</string>
     <string name="settings_system_apk_download_helper_warning">Plik APK pochodzi z asystenta, dlatego ufaj tylko aplikacjom, które znasz. Morphe nadal sprawdza pakiet, wersję i podpis każdego pliku przed modyfikowaniem</string>
     <string name="settings_system_apk_download_helper_installed_by">Zainstalowane przez %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Nieznany instalator</string>
@@ -1232,7 +1270,10 @@ Wymagane są następujące wymiary obrazów:
     <string name="file_picker_internal_storage">Pamięć wewnętrzna</string>
     <string name="file_picker_sd_card">Karta SD</string>
     <string name="file_picker_root">Katalog główny (/)</string>
+    <string name="file_picker_storage_access_unavailable">To urządzenie nie ma ekranu pozwalającego na przyznanie dostępu do wszystkich plików. Przyznaj go przez ADB za pomocą polecenia: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">Nośniki pamięci</string>
+    <string name="file_saver_downloads_failed">Nie udało się utworzyć pliku w folderze Pobrane</string>
+    <string name="file_saver_saving_to_downloads">To urządzenie nie ma ekranu zapisu, więc plik trafi do folderu Pobrane jako %1$s</string>
     <string name="file_picker_sort_name_asc">Nazwa (A - Z)</string>
     <string name="file_picker_sort_name_desc">Nazwa (Z - A)</string>
     <string name="file_picker_sort_size_desc">Rozmiar (od największego)</string>
@@ -1315,6 +1356,7 @@ Wymagane są następujące wymiary obrazów:
     <string name="include">Uwzględnij</string>
     <string name="disable">Wyłącz</string>
     <string name="enable">Włącz</string>
+    <string name="trust">Zaufaj</string>
     <string name="loading">Wczytywanie…</string>
     <string name="creating">Tworzenie…</string>
     <string name="processing_apk">Przetwarzanie pliku APK…</string>
@@ -1336,6 +1378,8 @@ Wymagane są następujące wymiary obrazów:
     <string name="reorder_done">Zapisano kolejność</string>
     <string name="reset_order">Zresetuj kolejność</string>
     <string name="reset_order_done">Zresetowano kolejność</string>
+    <string name="reset_order_confirm_title">Zresetować kolejność?</string>
+    <string name="reset_order_confirm_message">Lista wróci do domyślnej kolejności, a ręcznie ustawiony układ zostanie utracony</string>
     <string name="accessibility_select_app">Wybierz aplikację</string>
     <string name="accessibility_select_source">Wybierz źródło</string>
     <string name="accessibility_move_up">Przenieś w górę</string>
@@ -1343,6 +1387,7 @@ Wymagane są następujące wymiary obrazów:
     <string name="accessibility_app_moved_announcement">Przeniesiono %1$s na pozycję %2$s z %3$s</string>
     <string name="accessibility_scroll_to_top">Przewiń do góry listy</string>
     <string name="rename">Zmień nazwę</string>
+    <string name="more_options">Więcej opcji</string>
     <string name="import_">Importuj</string>
     <string name="export">Eksportuj</string>
     <string name="copy">Kopiuj</string>
@@ -1387,6 +1432,7 @@ Wymagane są następujące wymiary obrazów:
     <string name="show_all">Pokaż wszystko</string>
     <string name="ignore">Ignoruj</string>
     <string name="stop_ignoring">Przestań ignorować</string>
+    <string name="stop">Zatrzymaj</string>
     <string name="logs">Logi</string>
     <string name="sources">Źródła</string>
     <string name="installing_ellipsis">Instalowanie…</string>
@@ -1473,14 +1519,43 @@ Czy mimo to chcesz kontynuować?"</string>
     <string name="onboarding_restart_title">Przewodnik po funkcjach</string>
     <string name="onboarding_restart_desc">Przewodnik po kluczowych funkcjach</string>
 
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <!-- Preserved Nivqo localization -->
+    <string name="home_category_delete_confirm_title">Usuń kategorię</string>
+    <string name="home_category_delete_confirm_message">Usunąć kategorię &lt;b&gt;%1$s&lt;/b&gt;? Znajdujące się w niej aplikacje wrócą do &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <string name="expert_mode_prerelease_notice">To źródło korzysta z przedpremierowych modyfikacji. Modyfikowanie może się nie powieść lub działać nieoczekiwanie</string>
+    <string name="expert_mode_experimental_version_notice">To źródło oferuje jedynie eksperymentalną obsługę tej wersji aplikacji. Jego modyfikacje mogą działać niestabilnie lub być niekompletne</string>
+    <string name="sources_dialog_local_add_more">Dodaj więcej plików</string>
+    <string name="sources_dialog_local_file_tap_hint">Dotknij, aby przeglądać pliki</string>
+    <string name="home_apk_availability_dialog_title">Potrzebujesz pomocy w znalezieniu oryginalnego pliku APK?</string>
+    <string name="home_apk_availability_yes">Tak, pomóż mi znaleźć plik APK</string>
+    <string name="home_apk_availability_no">Nie, mam już plik APK</string>
+    <string name="home_apk_use_saved">Użyj zapisanego pliku APK</string>
+    <string name="home_apk_use_installed">Użyj zainstalowanego pliku APK</string>
+    <string name="home_file_picker_prompt_title">Wybierz pobrany plik APK</string>
+    <string name="home_file_picker_prompt_description">Wybierz pobrany przed chwilą plik APK &lt;b&gt;%s&lt;/b&gt;</string>
+    <string name="home_select_any_apk_description">Wybierz plik APK dowolnej aplikacji lub wybierz aplikację już zainstalowaną na tym urządzeniu</string>
+    <string name="expert_mode_disable_all_done">Wyłączono wszystkie modyfikacje</string>
+    <string name="expert_mode_enable_all_done">Włączono wszystkie modyfikacje</string>
+    <string name="expert_mode_reset_to_default">Włącz zalecane modyfikacje</string>
+    <string name="expert_mode_restore_saved">Przywróć zapisany wybór</string>
+    <string name="expert_mode_copy_from_bundle">Kopiuj wybór z innego pakietu</string>
+    <string name="expert_mode_multiple_sources_warning_message">"Wybrano modyfikacje z wielu źródeł. Może to spowodować problemy z kompatybilnością lub nieoczekiwane działanie aplikacji.
+
+Czy na pewno chcesz kontynuować?"</string>
+    <string name="home_app_info_uninstall_app_confirmation">Czy na pewno chcesz odinstalować tę aplikację?</string>
+    <string name="patcher_stop_confirm_title">Zatrzymaj modyfikator</string>
+    <string name="patcher_stop_confirm_description">Czy na pewno chcesz zatrzymać proces modyfikowania?</string>
+    <string name="settings_appearance_app_icon_change_dialog_message">Zmienić na &lt;b&gt;%s&lt;/b&gt; i uruchomić ponownie?</string>
+    <string name="copy_selection_title">Kopiuj wybór z…</string>
+    <string name="copy_selection_confirm_with_count">Kopiuj %s</string>
+    <string name="copy_selection_same_source">To samo źródło</string>
+    <string name="settings_system_apk_download_helper_trust">Zaufaj</string>
     <string name="home_app_list_options_title">Sortuj i filtruj</string>
     <string name="home_app_list_options_state_description">Posortowane według %1$s, filtrowane według %2$s</string>
     <string name="sources_sort_title">Sortuj źródła modyfikacji</string>
     <string name="sources_apps_leave_out">Wyklucz</string>
     <string name="sources_apps_leave_out_done">Wykluczono</string>
     <string name="sources_apps_bring_back">Przywróć</string>
-    <string name="sources_dialog_choose_apps">Wybierz aplikacje</string>
     <string name="hex_color">Kolor HEX</string>
     <string name="patcher_memory_adjustment_title">Za mało pamięci</string>
     <string name="patcher_memory_adjustment_description">System zatrzymał modyfikator podczas działania z limitem pamięci %1$d MB. Obniżenie limitu do %2$d MB sprawia, że modyfikator staje się mniejszym celem dla systemu i może pozwolić na ukończenie procesu</string>

@@ -14,12 +14,44 @@
         <item quantity="other">%s Opcións de parche</item>
     </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s elemento</item>
+        <item quantity="other">%s elementos</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Seleccionar %s ficheiro</item>
+        <item quantity="other">Seleccionar %s ficheiros</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Engadir %s fonte</item>
+        <item quantity="other">Engadir %s fontes</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Fontes de parche para %s aplicación</item>
+        <item quantity="other">Fontes de parche para %s aplicacións</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">A fonte %s está oculta para esta aplicación. Selecciona a aplicación na pestana de Aplicacións e abre Fontes de parche para recuperala</item>
+        <item quantity="other">As fontes %s están ocultas para esta aplicación. Selecciona a aplicación na pestana de Aplicacións e abre Fontes de parche para recuperalas</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s fonte oculta. Toca para mostrar</item>
+        <item quantity="other">%s fontes ocultas. Toca para mostrar</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s parche coincidente</item>
+        <item quantity="other">%s parches coincidentes</item>
+    </plurals>
     <plurals name="source_count">
         <item quantity="one">%s Fonte</item>
         <item quantity="other">
 %s Fontes</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s conxunto</item>
+        <item quantity="other">%s conxuntos</item>
     </plurals>
     <plurals name="package_count">
         <item quantity="one">%s Paquete</item>
@@ -33,6 +65,46 @@
         <item quantity="one">%s Arquivo APK</item>
         <item quantity="other">%s Arquivos APK</item>
     </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Instalada %s aplicación</item>
+        <item quantity="other">Instaladas %s aplicacións</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Montada %s aplicación</item>
+        <item quantity="other">Montadas %s aplicacións</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Reinstalada %s aplicación</item>
+        <item quantity="other">Reinstaladas %s aplicacións</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Desinstalada %s aplicación</item>
+        <item quantity="other">Desinstaladas %s aplicacións</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Desinstalar %s aplicación?</item>
+        <item quantity="other">Desinstalar %s aplicacións?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s aplicación lista para parchear</item>
+        <item quantity="other">%s aplicacións listas para parchear</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s aplicación na cola para parchear</item>
+        <item quantity="other">%s aplicacións na cola para parchear</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s notificación oculta, toca para mostrare</item>
+        <item quantity="other">%s notificacións ocultas, toca para amostralas</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s aplicación pode ser parcheada de novo</item>
+        <item quantity="other">%s aplicacións poden volver parchearse</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Saltada %s aplicación</item>
+        <item quantity="other">Saltadas %s aplicacións</item>
+    </plurals>
     <plurals name="home_app_info_repatch_cleaned_invalid_data">
         <item quantity="one">Eliminado %s parche obsoleto da selección gardada</item>
         <item quantity="other">Eliminados %s parches obsoletos da selección gardada</item>
@@ -41,13 +113,69 @@
         <item quantity="one">%s Fonte instalada</item>
         <item quantity="other">%s Fontes instaladas</item>
     </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s aplicación oculta</item>
+        <item quantity="other">%s aplicacións ocultas</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s aplicación amostrada</item>
+        <item quantity="other">%s aplicacións amostradas</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Amosar %s aplicación?</item>
+        <item quantity="other">Mostrar %s aplicacións?</item>
+    </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s Aplicación oculta</item>
         <item quantity="other">%s Aplicacións ocultas</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s aplicación</item>
+        <item quantity="other">%s aplicacións</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s seleccionado</item>
+        <item quantity="other">%s seleccionados</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Copiado %s parche do paquete seleccionado</item>
+        <item quantity="other">Copiados %s parches do paquete seleccionado</item>
     </plurals>
     <plurals name="core_count">
         <item quantity="one">%s núcleo</item>
         <item quantity="other">%s núcleos</item>
     </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s función</item>
+        <item quantity="other">%s funcións</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s corrección</item>
+        <item quantity="other">%s correccións</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimización</item>
+        <item quantity="other">%s optimizacións</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s cambio</item>
+        <item quantity="other">%s cambios</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d novo</item>
+        <item quantity="other">%1$s · %2$d novos</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s nova versión</item>
+        <item quantity="other">%s novos lanzamentos</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d enlace activado</item>
+        <item quantity="other">%d enlaces activados</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d ligazón non verificada</item>
+        <item quantity="other">%d ligazóns non verificadas</item>
+    </plurals>
 </resources>

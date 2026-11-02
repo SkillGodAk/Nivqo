@@ -13,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.seconds
 
 class ReduxStoreTest {
 
@@ -37,7 +38,7 @@ class ReduxStoreTest {
         }
         jobs.joinAll()
 
-        withTimeout(5000L) {
+        withTimeout(5.seconds) {
             store.state.first { it == count }
         }
         assertEquals(count, store.state.value)
@@ -50,9 +51,21 @@ class ReduxStoreTest {
         store.dispatch(FailingExceptionAction())
         store.dispatch(AddAction(5))
 
-        withTimeout(5000L) {
+        withTimeout(5.seconds) {
             store.state.first { it == 5 }
         }
         assertEquals(5, store.state.value)
+    }
+
+    @Test
+    fun `dispatch and await returns with the state the action led to`() = runBlocking(Dispatchers.Default) {
+        val store = Store(this, 0)
+
+        store.dispatchAndAwait(AddAction(3))
+        assertEquals(3, store.state.value)
+
+        // A failing action still lets its caller go on, the state left as it was
+        store.dispatchAndAwait(FailingExceptionAction())
+        assertEquals(3, store.state.value)
     }
 }

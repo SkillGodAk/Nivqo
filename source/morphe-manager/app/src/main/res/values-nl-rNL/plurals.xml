@@ -48,6 +48,10 @@
         <item quantity="one">%s bron</item>
         <item quantity="other">%s bronnen</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s set</item>
+        <item quantity="other">%s sets</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pakket</item>
         <item quantity="other">%s pakketten</item>

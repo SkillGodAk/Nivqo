@@ -7,7 +7,6 @@ package app.morphe.manager.patcher.runtime.jvm
 
 import android.app.Application
 import android.os.Build
-import android.os.Process
 import android.util.Log
 import app.morphe.manager.BuildConfig
 import app.morphe.manager.patcher.runtime.JvmUnavailableException
@@ -38,11 +37,12 @@ import java.util.zip.ZipOutputStream
 class JvmInstallation(private val app: Application) {
     /**
      * The ABI of the runtime this device gets, null where the app ships none for it. Matched to
-     * the process rather than the device, as a 64 bit device can run the app as a 32 bit one.
+     * the process rather than the device, as a 64 bit device can run the app as a 32 bit one and
+     * an x86 device can run ARM code through translation, which the JVM cannot be loaded into.
+     * The process runs the native libraries of the folder Android named after its instruction set.
      */
-    val abi: String? =
-        (if (Process.is64Bit()) Build.SUPPORTED_64_BIT_ABIS else Build.SUPPORTED_32_BIT_ABIS)
-            .firstOrNull { it in BuildConfig.EMBEDDED_JVM_ABIS }
+    val abi: String? = ABIS_BY_INSTRUCTION_SET[File(app.applicationInfo.nativeLibraryDir).name]
+        ?.takeIf { it in BuildConfig.EMBEDDED_JVM_ABIS }
 
     val isAvailable get() = abi != null
 
@@ -105,13 +105,13 @@ class JvmInstallation(private val app: Application) {
         image.parentFile?.mkdirs()
         val delta = "$abi$DELTA_SUFFIX"
         if (app.assets.list(ASSETS_DIR)?.contains(delta) != true) {
-            unpackXz(IMAGE_ASSET, image)
+            unpackSharedImage(image)
             return
         }
 
         val base = File(image.path + BASE_SUFFIX)
         try {
-            unpackXz(IMAGE_ASSET, base)
+            unpackSharedImage(base)
             RandomAccessFile(base, "r").use { baseImage ->
                 XZInputStream(app.assets.open("$ASSETS_DIR/$delta").buffered()).use { input ->
                     image.outputStream().buffered().use { JvmImageDelta.apply(baseImage, input, it) }
@@ -122,8 +122,8 @@ class JvmInstallation(private val app: Application) {
         }
     }
 
-    private fun unpackXz(asset: String, target: File) {
-        XZInputStream(app.assets.open("$ASSETS_DIR/$asset").buffered()).use { input ->
+    private fun unpackSharedImage(target: File) {
+        XZInputStream(app.assets.open("$ASSETS_DIR/$IMAGE_ASSET").buffered()).use { input ->
             target.outputStream().use { input.copyTo(it) }
         }
     }
@@ -182,6 +182,13 @@ class JvmInstallation(private val app: Application) {
         const val IMAGE_PATH = "lib/modules"
         const val BASE_SUFFIX = ".base"
         const val FRAMEWORKS_DIR = "frameworks/"
+
+        val ABIS_BY_INSTRUCTION_SET = mapOf(
+            "arm64" to "arm64-v8a",
+            "arm" to "armeabi-v7a",
+            "x86_64" to "x86_64",
+            "x86" to "x86"
+        )
 
         val VMS = listOf("server", "client")
 

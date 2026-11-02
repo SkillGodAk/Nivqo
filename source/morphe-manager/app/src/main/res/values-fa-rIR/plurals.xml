@@ -48,6 +48,10 @@
         <item quantity="one">%s منبع</item>
         <item quantity="other">%s منبع</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s ست</item>
+        <item quantity="other">%s ست</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s بسته</item>
         <item quantity="other">%s بسته</item>

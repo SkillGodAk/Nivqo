@@ -70,6 +70,12 @@
         <item quantity="many">%s источников</item>
         <item quantity="other">%s источников</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s сет</item>
+        <item quantity="few">%s сета</item>
+        <item quantity="many">%s сетов</item>
+        <item quantity="other">%s сета</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s пакет</item>
         <item quantity="few">%s пакеты</item>

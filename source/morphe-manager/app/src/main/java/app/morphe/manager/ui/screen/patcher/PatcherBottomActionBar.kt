@@ -233,11 +233,7 @@ private fun RowScope.BarButton(
     }
 }
 
-/**
- * Glass action of the patcher screens, sized by [modifier]. A hidden label falls back to a
- * tooltip, which carries the accessible label too, so an icon alone still explains itself.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Glass action of the patcher screens, sized by [modifier], at the height of the patcher's actions. */
 @Composable
 internal fun PatcherActionButton(
     onClick: () -> Unit,
@@ -251,36 +247,19 @@ internal fun PatcherActionButton(
     shape: Shape = Defaults.PillShape,
     interactionSource: MutableInteractionSource? = null
 ) {
-    val button: @Composable () -> Unit = {
-        ActionGlassButton(
-            onClick = onClick,
-            icon = icon,
-            modifier = Modifier.fillMaxSize(),
-            text = text,
-            showLabel = showLabel,
-            tone = tone,
-            enabled = enabled,
-            showProgress = showProgress,
-            shape = shape,
-            height = PatcherActionHeight,
-            interactionSource = interactionSource
-        )
-    }
-
-    // TooltipBox would bury the modifier in a wrapper a row can't read, so the Box carries it.
-    // A tooltip only for a hidden label, otherwise the two would repeat
-    Box(modifier = modifier, propagateMinConstraints = true) {
-        if (showLabel) {
-            button()
-        } else {
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                tooltip = { PlainTooltip { Text(text) } },
-                state = rememberTooltipState(),
-                content = button
-            )
-        }
-    }
+    ActionGlassButton(
+        onClick = onClick,
+        icon = icon,
+        modifier = modifier,
+        text = text,
+        showLabel = showLabel,
+        tone = tone,
+        enabled = enabled,
+        showProgress = showProgress,
+        shape = shape,
+        height = PatcherActionHeight,
+        interactionSource = interactionSource
+    )
 }
 
 private val TailWidth = 14.dp

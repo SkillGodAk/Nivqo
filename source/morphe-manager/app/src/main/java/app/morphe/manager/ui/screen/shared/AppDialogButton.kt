@@ -6,7 +6,6 @@
 package app.morphe.manager.ui.screen.shared
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -218,7 +217,7 @@ private fun RowScope.DialogButtonContent(
             overflow = TextOverflow.Clip,
             modifier = Modifier
                 .weight(1f, fill = false)
-                .basicMarquee()
+                .marquee()
         )
     }
 }

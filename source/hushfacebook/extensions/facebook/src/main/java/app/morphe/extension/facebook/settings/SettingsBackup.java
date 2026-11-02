@@ -32,19 +32,25 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.reels.BurnInMode;
+import app.morphe.extension.facebook.reels.BurnInWait;
 import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.FileNameTemplate;
 import app.morphe.extension.facebook.download.SaveFolder;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
+import app.morphe.extension.facebook.feed.FeedTypeNames;
 import app.morphe.extension.facebook.feed.PostSources;
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.menu.MenuTiles;
 import app.morphe.extension.facebook.media.PlaybackQuality;
+import app.morphe.extension.facebook.media.RecentlyWatched;
 import app.morphe.extension.facebook.media.SurfaceQuality;
 import app.morphe.extension.facebook.misc.AppLock;
+import app.morphe.extension.facebook.misc.BreakTimer;
 import app.morphe.extension.facebook.misc.HeaderText;
+import app.morphe.extension.facebook.misc.OpeningPause;
 import app.morphe.extension.facebook.misc.ShareSheetItems;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.feed.ReactionCeiling;
@@ -139,6 +145,7 @@ public final class SettingsBackup {
             Settings.HIDE_FEED_REELS,
             Settings.BLOCK_RETURN_REFRESH,
             Settings.RETURN_REFRESH_NO_LIMIT,
+            Settings.BACK_KEEPS_HOME,
             Settings.HIDE_AI_DETECTED_POSTS,
             Settings.HIDE_AI_LABELLED_POSTS,
             Settings.HIDE_META_AI_FEED_UNITS,
@@ -162,18 +169,22 @@ public final class SettingsBackup {
             Settings.HIDE_META_AI_QUESTIONS,
             Settings.KEEP_POST_DATES,
             Settings.SHOW_FULL_POST_TEXT,
+            Settings.SEE_WHO_SHARED,
             Settings.TURN_OFF_AUTO_TRANSLATION,
             Settings.HIDE_FEEDS_HEADER,
             Settings.HIDE_SPONSORED_STORIES,
             Settings.HIDE_SUGGESTED_STORIES,
             Settings.HIDE_CONTACT_IMPORT_CARD,
             Settings.HIDE_STORY_PROMPTS,
+            Settings.HIDE_PAGE_STORIES,
+            Settings.HIDE_SEEN_STORIES,
             Settings.BLOCK_STORY_AUTO_ADVANCE,
             Settings.LOOP_STORIES,
             Settings.VIEW_STORIES_ANONYMOUSLY,
             Settings.MARK_STORIES_SEEN,
             Settings.UPLOAD_STORIES_IN_HD,
             Settings.LONGER_STORY_MUSIC,
+            Settings.STORIES_TRAY_CIRCLES,
             Settings.PINCH_TO_ZOOM,
             Settings.PINCH_TO_ZOOM_KEEP,
             Settings.PINCH_TO_ZOOM_DOUBLE_TAP,
@@ -181,6 +192,7 @@ public final class SettingsBackup {
             Settings.HIDE_SPONSORED_SEARCH_RESULTS,
             Settings.HIDE_SPONSORED_PROFILE_POSTS,
             Settings.HIDE_PROFILE_NOTES,
+            Settings.LOCAL_PROFILE_COUNTS,
             Settings.POST_SAVE_BUTTON,
             Settings.POST_DOWNLOAD_BUTTON,
             Settings.HIDE_POST_LIKE_BUTTON,
@@ -188,24 +200,32 @@ public final class SettingsBackup {
             Settings.HIDE_POST_SHARE_BUTTON,
             Settings.HIDE_POST_SEND_BUTTON,
             Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS,
+            Settings.MARKETPLACE_ADVANCED_SEARCH,
+            Settings.MARKETPLACE_FILTERS_BUTTON,
+            Settings.MARKETPLACE_LISTING_DATE,
             Settings.SHOW_SELLER_VIEW_PROFILE,
             Settings.BLOCK_GAME_ADS,
             Settings.ANSWER_REWARDED_GAME_ADS,
             Settings.HIDE_AFFILIATE_LINKS,
             Settings.HIDE_REEL_CHIPS,
             Settings.HIDE_REEL_FOLLOW_BUTTON,
+            Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON,
             Settings.HIDE_REEL_SOCIAL_FOOTER,
             Settings.HIDE_REEL_THREADS_CARDS,
             Settings.REEL_CLEAN_MODE,
             Settings.PLAY_REELS_ONCE,
             Settings.ORIGINAL_AUDIO,
             Settings.HIDE_REEL_SEARCH_PILL,
+            Settings.HIDE_VIEWER_TOP_BUTTONS,
+            Settings.BURN_IN_STAY_DIM,
             Settings.HIDE_REEL_COUNTS,
             Settings.HIDE_REEL_SAVE_BUTTON,
             Settings.HIDE_REEL_WHATSAPP_BUTTON,
             Settings.HIDE_REEL_LIKE_BUTTON,
             Settings.HIDE_REEL_COMMENT_BUTTON,
             Settings.HIDE_REEL_SHARE_BUTTON,
+            Settings.SHOW_REEL_COMMENT_BUTTON,
+            Settings.SHOW_REEL_POST_DATE,
             Settings.HIDE_REEL_SOUND_BUTTON,
             Settings.HIDE_REEL_AUDIO_LINE,
             Settings.HIDE_SLOW_CONNECTION_MESSAGE,
@@ -213,6 +233,7 @@ public final class SettingsBackup {
             Settings.PLAY_FEED_REELS_WHOLE,
             Settings.DONT_SEND_REEL_WATCH_HISTORY,
             Settings.NEWEST_REELS_FIRST,
+            Settings.PROFILE_REELS_MOST_VIEWED,
             Settings.HOLD_ANALYTICS_UPLOADS,
             Settings.HOLD_CAMERA_ROLL_PROCESSING,
             Settings.ALLOW_SCREENSHOTS,
@@ -232,21 +253,27 @@ public final class SettingsBackup {
             Settings.TAP_SHOWS_CONTROLS,
             Settings.DOUBLE_TAP_OPENS_COMMENTS,
             Settings.LONG_PRESS_OPENS_COMMENTS,
+            Settings.SELECT_POST_TEXT,
             Settings.KEEP_REEL_SPEED,
             Settings.KEEP_VIDEO_SPEED,
             Settings.SLOWER_REEL_SPEEDS,
+            Settings.SPEED_ON_REPLAYS,
             Settings.HOLD_REEL_FOR_2X,
             Settings.HOLD_REEL_RIGHT_EDGE,
             Settings.HOLD_FEED_VIDEO_FOR_2X,
+            Settings.HIDE_2X_LOCK_HINT,
             Settings.DEFAULT_COMMENT_ORDER,
             Settings.HIDE_META_AI_SUMMARIES,
             Settings.LIKE_ONLY,
             Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS,
+            Settings.HIDE_COMMENT_EMOJI_ROW,
             Settings.OPEN_REPLY_THREADS,
             Settings.LOAD_WHOLE_REPLY_THREADS,
             Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES,
             Settings.HIDE_POST_COMMENT_PREVIEWS,
             Settings.HIDE_COMMENT_DOWNVOTE_BUTTON,
+            Settings.HIDE_COMMENT_LIKE_BUTTON,
+            Settings.COMMENT_BLOCK_BUTTON,
             Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
             Settings.HIDE_SHOP_LINK_COMMENTS,
             Settings.HIDE_COMMENTS_WITH_WORDS,
@@ -255,9 +282,11 @@ public final class SettingsBackup {
             Settings.HIDE_VIDEO_COMMENT_COMPOSER,
             Settings.OPEN_COMMENTS_FULL_HEIGHT,
             Settings.PAUSE_REELS_UNDER_COMMENTS,
+            Settings.TAP_REELS_ABOVE_COMMENTS,
             Settings.TAG_SUGGESTIONS_ONLY_AFTER_AT,
             Settings.TAP_TO_PLAY,
             Settings.TAP_TO_PLAY_REELS_AFTER_FIRST,
+            Settings.TAP_TO_PLAY_STORIES,
             Settings.INLINE_FEED_VIDEO_CONTROLS,
             Settings.FEED_VIDEO_CAST_BUTTON,
             Settings.RESUME_LONG_VIDEOS,
@@ -269,10 +298,13 @@ public final class SettingsBackup {
             Settings.PICTURE_IN_PICTURE_BUTTON,
             Settings.TURN_OFF_HDR_BRIGHTNESS,
             Settings.PREFER_SDR_RENDITIONS,
+            Settings.DRAW_VIDEOS_WITH_THE_SCREEN,
             Settings.SKIP_SILENT_PARTS,
             Settings.KEEP_FEED_VIDEOS_MUTED,
+            Settings.MUTE_STORIES,
             Settings.KEEP_PROGRESS_BAR,
             Settings.KEEP_PROGRESS_BAR_TIME,
+            Settings.KEEP_REEL_OVERLAY,
             Settings.TAP_TO_SEEK,
             Settings.USE_SYSTEM_FONT,
             Settings.USE_SYSTEM_EMOJI,
@@ -287,6 +319,7 @@ public final class SettingsBackup {
             Settings.SAVE_STORY_PHOTOS,
             Settings.DOWNLOAD_REELS,
             Settings.SHOW_REEL_DOWNLOAD_BUTTON,
+            Settings.REEL_CAST_BUTTON,
             Settings.COPY_REEL_CAPTION,
             Settings.DOWNLOAD_VIDEOS,
             Settings.CLIPBOARD_DOWNLOAD,
@@ -308,6 +341,8 @@ public final class SettingsBackup {
             Settings.APP_LOCK,
             Settings.SAVE_CRASH_FILE,
             Settings.CLOSE_WHEN_LEFT,
+            Settings.OPENING_PAUSE,
+            Settings.TAKE_BREAKS,
             Settings.MARKETPLACE_ONLY,
             Settings.EVENTS_ONLY,
             Settings.MARKETPLACE_QUIET_NOTIFICATIONS,
@@ -347,6 +382,8 @@ public final class SettingsBackup {
             Settings.HIDE_MESSENGER_COUNT,
             Settings.HIDE_FACEBOOK_LOGO,
             Settings.HIDE_CREATE_BUTTON,
+            Settings.HIDE_SEARCH_BUTTON,
+            Settings.SEARCH_WITH_PICTURE,
             Settings.FORCE_DARK_MODE,
             Settings.AMOLED_FLAT_CARDS,
             Settings.AMOLED_FEED_GAPS,
@@ -373,6 +410,7 @@ public final class SettingsBackup {
             Settings.HIDE_META_AI_POST_BUTTONS,
             Settings.HIDE_META_AI_IN_SEARCH,
             Settings.DONT_SAVE_SEARCH_HISTORY,
+            Settings.SEARCH_DATE_RANGE,
             Settings.BLOCK_TRENDING_VIDEO_NOTIFICATIONS,
             Settings.BLOCK_MEMORY_NOTIFICATIONS,
             Settings.BLOCK_BIRTHDAY_NOTIFICATIONS,
@@ -493,6 +531,7 @@ public final class SettingsBackup {
      */
     static final StringSetting BADGE = Settings.BADGE_COLOR;
     static final StringSetting LOGO = Settings.LOGO_COLOR;
+    static final StringSetting TAB = Settings.TAB_COLOR;
 
     /**
      * Home header text, held in a file as its row keeps it: blank, or one line {@link HeaderText}
@@ -526,6 +565,13 @@ public final class SettingsBackup {
     static final EnumSetting<ReelsOrder> REELS_ORDER = Settings.REELS_ORDER;
 
     /**
+     * Burn-in guard and its Dim after wait (#288), held in a file as their {@link BurnInMode#fileValue}
+     * and {@link BurnInWait#fileValue}. Anything else refuses the whole file, as a reels order does.
+     */
+    static final EnumSetting<BurnInMode> BURN_IN = Settings.BURN_IN_GUARD;
+    static final EnumSetting<BurnInWait> BURN_IN_WAIT = Settings.BURN_IN_WAIT;
+
+    /**
      * The hours notification quiet hours start and end, each held in a file as its
      * {@link QuietHour#fileValue}, a 24-hour time on the hour. Anything else refuses the whole file,
      * as a playback quality does.
@@ -538,6 +584,27 @@ public final class SettingsBackup {
      * {@link AppLock.After#fileValue}. Anything else refuses the whole file, as a comment order does.
      */
     static final EnumSetting<AppLock.After> LOCK_AFTER = Settings.APP_LOCK_AFTER;
+
+    /**
+     * How long the opening pause counts down, held in a file as its
+     * {@link OpeningPause.Length#fileValue}. Anything else refuses the whole file, as a lock time does.
+     */
+    static final EnumSetting<OpeningPause.Length> PAUSE_LENGTH = Settings.OPENING_PAUSE_LENGTH;
+
+    /**
+     * How long Take breaks lets browsing go and how long a break lasts, held in a file as their
+     * {@link BreakTimer.Use#fileValue} and {@link BreakTimer.Length#fileValue}. Anything else refuses
+     * the whole file, as a pause length does. The time used and a break under way never go in a file.
+     */
+    static final EnumSetting<BreakTimer.Use> BREAK_AFTER = Settings.BREAK_AFTER;
+    static final EnumSetting<BreakTimer.Length> BREAK_LENGTH = Settings.BREAK_LENGTH;
+
+    /**
+     * How long a Recently watched entry stays, held in a file as its
+     * {@link RecentlyWatched.Keep#fileValue}. Anything else refuses the whole file, as a pause
+     * length does. The entries themselves never go in a file.
+     */
+    static final EnumSetting<RecentlyWatched.Keep> WATCHED_KEEP = Settings.RECENTLY_WATCHED_KEEP;
 
     /**
      * How long a seen post stays hidden, held in a file as its {@link SeenPosts.Keep#fileValue}.
@@ -580,11 +647,19 @@ public final class SettingsBackup {
      */
     static final StringSetting MENU_TILES = Settings.HIDDEN_MENU_TILES;
 
+    /**
+     * The feed types to hide, held in a file exactly as their row stores them: GraphQL type names,
+     * commas between. A type this build hasn't seen is carried like any other. A list
+     * {@link FeedTypeNames#clean} would change refuses the whole file, as a Menu tiles list does.
+     */
+    static final StringSetting FEED_TYPES = Settings.HIDDEN_FEED_TYPES;
+
     /** The settings a file carries that aren't switches, in the order Settings declares them. */
     static final List<Setting<?>> VALUES = Collections.unmodifiableList(
-            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, CEILING, REELS_ORDER, SHARE_ITEMS, MENU_TILES, HOME_FEED, BACKGROUND, LIGHT_BACKGROUND, HEADER_TEXT, SEEN_KEEP, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
+            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, FEED_TYPES, CEILING, BURN_IN, BURN_IN_WAIT, REELS_ORDER, WATCHED_KEEP, SHARE_ITEMS, MENU_TILES, HOME_FEED, BACKGROUND, LIGHT_BACKGROUND, HEADER_TEXT, SEEN_KEEP, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
                     FILE_NAME, PHOTO_NAME, ACTION, APP, START, SUBTAB, ORDER, PLAYBACK, REELS_QUALITY, STORIES_QUALITY,
-                    QUIET_FROM, QUIET_UNTIL, LOCK_AFTER, TEXT_SIZE, ACCENT, BADGE, LOGO));
+                    QUIET_FROM, QUIET_UNTIL, LOCK_AFTER, PAUSE_LENGTH, BREAK_AFTER, BREAK_LENGTH, TEXT_SIZE, ACCENT, BADGE,
+                    LOGO, TAB));
 
     /** The longest name or value a file holds that isn't a word list, far past a package name. */
     private static final int MAX_OTHER_CHARS = 1024;
@@ -686,18 +761,26 @@ public final class SettingsBackup {
         private static final String QUIET_UNTIL_NAME = "quiet_hours_until";
         private static final String LOCK_AFTER_NAME = "app_lock_after";
         private static final String SEEN_KEEP_NAME = "seen_posts_keep";
+        private static final String PAUSE_LENGTH_NAME = "opening_pause_length";
+        private static final String BREAK_AFTER_NAME = "break_after";
+        private static final String BREAK_LENGTH_NAME = "break_length";
+        private static final String WATCHED_KEEP_NAME = "recently_watched_keep";
         private static final String TEXT_SIZE_NAME = "text_size";
         private static final String ACCENT_NAME = "accent_color";
         private static final String CEILING_NAME = "hide_posts_over_reactions";
         private static final String SHARE_ITEMS_NAME = "hidden_share_items";
         private static final String MENU_TILES_NAME = "hidden_menu_tiles";
+        private static final String FEED_TYPES_NAME = "hidden_feed_types";
         private static final String HOME_FEED_NAME = "home_feed";
         private static final String BACKGROUND_NAME = "amoled_background";
         private static final String LIGHT_BACKGROUND_NAME = "amoled_light_background";
         private static final String BADGE_NAME = "badge_color";
         private static final String LOGO_NAME = "logo_color";
+        private static final String TAB_NAME = "tab_color";
         private static final String HEADER_TEXT_NAME = "header_text";
         private static final String REELS_ORDER_NAME = "reels_order";
+        private static final String BURN_IN_NAME = "burn_in_guard";
+        private static final String BURN_IN_WAIT_NAME = "burn_in_wait";
 
         /** In {@link #ALLOWLIST} order, and only the switches the file named. */
         final Map<BooleanSetting, Boolean> values;
@@ -776,12 +859,27 @@ public final class SettingsBackup {
         /** How long the file says a seen post stays hidden, or null when it names none. Set once, as it's read. */
         @Nullable
         SeenPosts.Keep seenKeep;
+        /** How long the file says the opening pause counts down, or null when it names none. Set once, as it's read. */
+        @Nullable
+        OpeningPause.Length pauseLength;
+        /** How long the file says browsing goes before a break, or null when it names none. Set once, as it's read. */
+        @Nullable
+        BreakTimer.Use breakAfter;
+        /** How long the file says a break lasts, or null when it names none. Set once, as it's read. */
+        @Nullable
+        BreakTimer.Length breakLength;
+        /** How long the file says a Recently watched entry stays, or null when it names none. Set once, as it's read. */
+        @Nullable
+        RecentlyWatched.Keep watchedKeep;
         /** The clean list of share sheet items to hide the file holds, or null when it names none. Set once, as it's read. */
         @Nullable
         String shareItems;
         /** The clean list of Menu tiles to hide the file holds, or null when it names none. Set once, as it's read. */
         @Nullable
         String menuTiles;
+        /** The clean list of feed types to hide the file holds, or null when it names none. Set once, as it's read. */
+        @Nullable
+        String feedTypes;
         /** The feed the file says Home shows, or null when it names none. Set once, as it's read. */
         @Nullable
         FeedsSubtab homeFeed;
@@ -797,12 +895,21 @@ public final class SettingsBackup {
         /** The Logo color the file holds, the same way. */
         @Nullable
         String logo;
+        /** The Selected tab color the file holds, the same way. */
+        @Nullable
+        String tab;
         /** The Home header text the file holds, the same way. */
         @Nullable
         String headerText;
         /** What the file says Sort loaded reels sorts by, or null when it names none. Set once, as it's read. */
         @Nullable
         ReelsOrder reelsOrder;
+        /** What the file says Burn-in guard does, or null when it names none. Set once, as it's read. */
+        @Nullable
+        BurnInMode burnIn;
+        /** The Dim after wait the file holds, the same way. */
+        @Nullable
+        BurnInWait burnInWait;
         /** Names the file holds that aren't settings this build knows. They're left out. */
         final int unknown;
 
@@ -1006,6 +1113,10 @@ public final class SettingsBackup {
             if (quietUntilChange != null) changes.put(QUIET_UNTIL, quietUntilChange);
             AppLock.After lockAfterChange = lockAfterChange();
             if (lockAfterChange != null) changes.put(LOCK_AFTER, lockAfterChange);
+            if (pauseLength != null && pauseLength != PAUSE_LENGTH.savedValue()) changes.put(PAUSE_LENGTH, pauseLength);
+            if (breakAfter != null && breakAfter != BREAK_AFTER.savedValue()) changes.put(BREAK_AFTER, breakAfter);
+            if (breakLength != null && breakLength != BREAK_LENGTH.savedValue()) changes.put(BREAK_LENGTH, breakLength);
+            if (watchedKeep != null && watchedKeep != WATCHED_KEEP.savedValue()) changes.put(WATCHED_KEEP, watchedKeep);
             TextSize.Scale textSizeChange = textSizeChange();
             if (textSizeChange != null) changes.put(TEXT_SIZE, textSizeChange);
             AccentColor.Preset accentChange = accentChange();
@@ -1016,6 +1127,8 @@ public final class SettingsBackup {
             if (shareItemsChange != null) changes.put(SHARE_ITEMS, shareItemsChange);
             String menuTilesChange = menuTilesChange();
             if (menuTilesChange != null) changes.put(MENU_TILES, menuTilesChange);
+            String feedTypesChange = feedTypesChange();
+            if (feedTypesChange != null) changes.put(FEED_TYPES, feedTypesChange);
             if (seenKeep != null && seenKeep != SEEN_KEEP.savedValue()) changes.put(SEEN_KEEP, seenKeep);
             FeedsSubtab homeFeedChange = homeFeedChange();
             if (homeFeedChange != null) changes.put(HOME_FEED, homeFeedChange);
@@ -1027,10 +1140,16 @@ public final class SettingsBackup {
             if (badgeChange != null) changes.put(BADGE, badgeChange);
             String logoChange = logoChange();
             if (logoChange != null) changes.put(LOGO, logoChange);
+            String tabChange = tabChange();
+            if (tabChange != null) changes.put(TAB, tabChange);
             String headerTextChange = headerTextChange();
             if (headerTextChange != null) changes.put(HEADER_TEXT, headerTextChange);
             ReelsOrder reelsOrderChange = reelsOrderChange();
             if (reelsOrderChange != null) changes.put(REELS_ORDER, reelsOrderChange);
+            BurnInMode burnInChange = burnInChange();
+            if (burnInChange != null) changes.put(BURN_IN, burnInChange);
+            BurnInWait burnInWaitChange = burnInWaitChange();
+            if (burnInWaitChange != null) changes.put(BURN_IN_WAIT, burnInWaitChange);
             SendLink.Action actionChange = actionChange();
             if (actionChange != null) changes.put(ACTION, actionChange);
             String appChange = appChange();
@@ -1231,6 +1350,13 @@ public final class SettingsBackup {
             return menuTiles.equals(MenuTiles.clean(MENU_TILES.savedValue())) ? null : menuTiles;
         }
 
+        /** The feed types to hide this file sets, or null when it names none or the ones already set. */
+        @Nullable
+        String feedTypesChange() {
+            if (feedTypes == null) return null;
+            return feedTypes.equals(FeedTypeNames.clean(FEED_TYPES.savedValue())) ? null : feedTypes;
+        }
+
         /** The Background color this file sets, or null when it names none or the one already set. */
         @Nullable
         String backgroundChange() {
@@ -1259,6 +1385,13 @@ public final class SettingsBackup {
             return logo.equals(LOGO.savedValue()) ? null : logo;
         }
 
+        /** The Selected tab color this file sets, or null when it names none or the one already set. */
+        @Nullable
+        String tabChange() {
+            if (tab == null) return null;
+            return tab.equals(TAB.savedValue()) ? null : tab;
+        }
+
         /** The Home header text this file sets, or null when it names none or the one already set. */
         @Nullable
         String headerTextChange() {
@@ -1276,6 +1409,18 @@ public final class SettingsBackup {
         @Nullable
         ReelsOrder reelsOrderChange() {
             return reelsOrder == null || reelsOrder == REELS_ORDER.savedValue() ? null : reelsOrder;
+        }
+
+        /** What Burn-in guard does after this file, or null when it names none or the one already set. */
+        @Nullable
+        BurnInMode burnInChange() {
+            return burnIn == null || burnIn == BURN_IN.savedValue() ? null : burnIn;
+        }
+
+        /** The Dim after wait after this file, the same way. */
+        @Nullable
+        BurnInWait burnInWaitChange() {
+            return burnInWait == null || burnInWait == BURN_IN_WAIT.savedValue() ? null : burnInWait;
         }
 
         @Nullable
@@ -1317,15 +1462,23 @@ public final class SettingsBackup {
             if (accent != null) state.putString(ACCENT_NAME, accent.fileValue);
             if (ceiling != null) state.putString(CEILING_NAME, ceiling.fileValue);
             if (seenKeep != null) state.putString(SEEN_KEEP_NAME, seenKeep.fileValue);
+            if (pauseLength != null) state.putString(PAUSE_LENGTH_NAME, pauseLength.fileValue);
+            if (breakAfter != null) state.putString(BREAK_AFTER_NAME, breakAfter.fileValue);
+            if (breakLength != null) state.putString(BREAK_LENGTH_NAME, breakLength.fileValue);
+            if (watchedKeep != null) state.putString(WATCHED_KEEP_NAME, watchedKeep.fileValue);
             if (shareItems != null) state.putString(SHARE_ITEMS_NAME, shareItems);
             if (menuTiles != null) state.putString(MENU_TILES_NAME, menuTiles);
+            if (feedTypes != null) state.putString(FEED_TYPES_NAME, feedTypes);
             if (homeFeed != null) state.putString(HOME_FEED_NAME, homeFeed.fileValue);
             if (background != null) state.putString(BACKGROUND_NAME, background);
             if (lightBackground != null) state.putString(LIGHT_BACKGROUND_NAME, lightBackground);
             if (badge != null) state.putString(BADGE_NAME, badge);
             if (logo != null) state.putString(LOGO_NAME, logo);
+            if (tab != null) state.putString(TAB_NAME, tab);
             if (headerText != null) state.putString(HEADER_TEXT_NAME, headerText);
             if (reelsOrder != null) state.putString(REELS_ORDER_NAME, reelsOrder.fileValue);
+            if (burnIn != null) state.putString(BURN_IN_NAME, burnIn.fileValue);
+            if (burnInWait != null) state.putString(BURN_IN_WAIT_NAME, burnInWait.fileValue);
             state.putInt(UNKNOWN, unknown);
             return state;
         }
@@ -1379,14 +1532,23 @@ public final class SettingsBackup {
                     ReactionCeiling.fromFile(state.get(CEILING_NAME)),
                     unknown);
             read.seenKeep = SeenPosts.Keep.fromFile(state.get(SEEN_KEEP_NAME));
+            read.pauseLength = OpeningPause.Length.fromFile(state.get(PAUSE_LENGTH_NAME));
+            read.breakAfter = BreakTimer.Use.fromFile(state.get(BREAK_AFTER_NAME));
+            read.breakLength = BreakTimer.Length.fromFile(state.get(BREAK_LENGTH_NAME));
+            read.watchedKeep = RecentlyWatched.Keep.fromFile(state.get(WATCHED_KEEP_NAME));
             Object shareItems = state.get(SHARE_ITEMS_NAME);
             read.shareItems = shareItems instanceof String && ShareSheetItems.isClean((String) shareItems)
                     ? (String) shareItems : null;
             Object menuTiles = state.get(MENU_TILES_NAME);
             read.menuTiles = menuTiles instanceof String && MenuTiles.isClean((String) menuTiles)
                     ? (String) menuTiles : null;
+            Object feedTypes = state.get(FEED_TYPES_NAME);
+            read.feedTypes = feedTypes instanceof String && FeedTypeNames.isClean((String) feedTypes)
+                    ? (String) feedTypes : null;
             read.homeFeed = FeedsSubtab.fromFile(state.get(HOME_FEED_NAME));
             read.reelsOrder = ReelsOrder.fromFile(state.get(REELS_ORDER_NAME));
+            read.burnIn = BurnInMode.fromFile(state.get(BURN_IN_NAME));
+            read.burnInWait = BurnInWait.fromFile(state.get(BURN_IN_WAIT_NAME));
             Object background = state.get(BACKGROUND_NAME);
             read.background = isBackground(background) ? (String) background : null;
             Object lightBackground = state.get(LIGHT_BACKGROUND_NAME);
@@ -1395,6 +1557,8 @@ public final class SettingsBackup {
             read.badge = isMarkColor(badge) ? (String) badge : null;
             Object logo = state.get(LOGO_NAME);
             read.logo = isMarkColor(logo) ? (String) logo : null;
+            Object tab = state.get(TAB_NAME);
+            read.tab = isMarkColor(tab) ? (String) tab : null;
             Object headerText = state.get(HEADER_TEXT_NAME);
             read.headerText = HeaderText.isClean(headerText instanceof String ? (String) headerText : null)
                     ? (String) headerText : null;
@@ -1450,9 +1614,15 @@ public final class SettingsBackup {
             switches.put(REELS_QUALITY.key, of(REELS_QUALITY).fileValue);
             switches.put(STORIES_QUALITY.key, of(STORIES_QUALITY).fileValue);
             switches.put(REELS_ORDER.key, of(REELS_ORDER).fileValue);
+            switches.put(BURN_IN.key, of(BURN_IN).fileValue);
+            switches.put(BURN_IN_WAIT.key, of(BURN_IN_WAIT).fileValue);
             switches.put(QUIET_FROM.key, of(QUIET_FROM).fileValue());
             switches.put(QUIET_UNTIL.key, of(QUIET_UNTIL).fileValue());
             switches.put(LOCK_AFTER.key, of(LOCK_AFTER).fileValue);
+            switches.put(PAUSE_LENGTH.key, of(PAUSE_LENGTH).fileValue);
+            switches.put(BREAK_AFTER.key, of(BREAK_AFTER).fileValue);
+            switches.put(BREAK_LENGTH.key, of(BREAK_LENGTH).fileValue);
+            switches.put(WATCHED_KEEP.key, of(WATCHED_KEEP).fileValue);
             switches.put(SEEN_KEEP.key, of(SEEN_KEEP).fileValue);
             switches.put(TEXT_SIZE.key, of(TEXT_SIZE).fileValue);
             switches.put(ACCENT.key, of(ACCENT).fileValue);
@@ -1466,6 +1636,7 @@ public final class SettingsBackup {
             switches.put(SOURCES.key, PostSources.clean(of(SOURCES)));
             switches.put(SHARE_ITEMS.key, ShareSheetItems.clean(of(SHARE_ITEMS)));
             switches.put(MENU_TILES.key, MenuTiles.clean(of(MENU_TILES)));
+            switches.put(FEED_TYPES.key, FeedTypeNames.clean(of(FEED_TYPES)));
             // The colour as the row keeps it, so a file never carries one an import would refuse.
             String background = AmoledBackground.stored(of(BACKGROUND));
             switches.put(BACKGROUND.key, background == null ? "" : background);
@@ -1475,6 +1646,8 @@ public final class SettingsBackup {
             switches.put(BADGE.key, badge == null ? "" : badge);
             String logo = MarkColors.stored(of(LOGO));
             switches.put(LOGO.key, logo == null ? "" : logo);
+            String tab = MarkColors.stored(of(TAB));
+            switches.put(TAB.key, tab == null ? "" : tab);
             switches.put(HEADER_TEXT.key, HeaderText.clean(of(HEADER_TEXT)));
             return new JSONObject()
                     .put(FORMAT_NAME, FORMAT)
@@ -1594,18 +1767,26 @@ public final class SettingsBackup {
         QuietHour quietUntil = null;
         AppLock.After lockAfter = null;
         SeenPosts.Keep seenKeep = null;
+        OpeningPause.Length pauseLength = null;
+        BreakTimer.Use breakAfter = null;
+        BreakTimer.Length breakLength = null;
+        RecentlyWatched.Keep watchedKeep = null;
         TextSize.Scale textSize = null;
         AccentColor.Preset accent = null;
         ReactionCeiling ceiling = null;
         String shareItems = null;
         String menuTiles = null;
+        String feedTypes = null;
         FeedsSubtab homeFeed = null;
         String background = null;
         String lightBackground = null;
         String badge = null;
         String logo = null;
+        String tab = null;
         String headerText = null;
         ReelsOrder reelsOrder = null;
+        BurnInMode burnIn = null;
+        BurnInWait burnInWait = null;
         JSONObject values = (JSONObject) settings;
         for (Iterator<String> names = values.keys(); names.hasNext(); ) {
             String name = names.next();
@@ -1687,11 +1868,12 @@ public final class SettingsBackup {
                 lightBackground = (String) value;
                 continue;
             }
-            if (BADGE.key.equals(name) || LOGO.key.equals(name)) {
+            if (BADGE.key.equals(name) || LOGO.key.equals(name) || TAB.key.equals(name)) {
                 Object value = values.opt(name);
                 if (!isMarkColor(value)) throw new Rejected(Reason.VALUE, "Not a color code: " + name);
                 if (BADGE.key.equals(name)) badge = (String) value;
-                else logo = (String) value;
+                else if (LOGO.key.equals(name)) logo = (String) value;
+                else tab = (String) value;
                 continue;
             }
             if (HEADER_TEXT.key.equals(name)) {
@@ -1724,6 +1906,16 @@ public final class SettingsBackup {
                 if (reelsOrder == null) throw new Rejected(Reason.VALUE, "Not a reels order: " + name);
                 continue;
             }
+            if (BURN_IN.key.equals(name)) {
+                burnIn = BurnInMode.fromFile(values.opt(name));
+                if (burnIn == null) throw new Rejected(Reason.VALUE, "Not a burn-in guard choice: " + name);
+                continue;
+            }
+            if (BURN_IN_WAIT.key.equals(name)) {
+                burnInWait = BurnInWait.fromFile(values.opt(name));
+                if (burnInWait == null) throw new Rejected(Reason.VALUE, "Not a dim after wait: " + name);
+                continue;
+            }
             if (QUIET_FROM.key.equals(name) || QUIET_UNTIL.key.equals(name)) {
                 QuietHour hour = QuietHour.fromFile(values.opt(name));
                 if (hour == null) throw new Rejected(Reason.VALUE, "Not an hour on the hour: " + name);
@@ -1739,6 +1931,26 @@ public final class SettingsBackup {
             if (LOCK_AFTER.key.equals(name)) {
                 lockAfter = AppLock.After.fromFile(values.opt(name));
                 if (lockAfter == null) throw new Rejected(Reason.VALUE, "Not an app lock time: " + name);
+                continue;
+            }
+            if (PAUSE_LENGTH.key.equals(name)) {
+                pauseLength = OpeningPause.Length.fromFile(values.opt(name));
+                if (pauseLength == null) throw new Rejected(Reason.VALUE, "Not an opening pause length: " + name);
+                continue;
+            }
+            if (BREAK_AFTER.key.equals(name)) {
+                breakAfter = BreakTimer.Use.fromFile(values.opt(name));
+                if (breakAfter == null) throw new Rejected(Reason.VALUE, "Not a time before a break: " + name);
+                continue;
+            }
+            if (BREAK_LENGTH.key.equals(name)) {
+                breakLength = BreakTimer.Length.fromFile(values.opt(name));
+                if (breakLength == null) throw new Rejected(Reason.VALUE, "Not a break length: " + name);
+                continue;
+            }
+            if (WATCHED_KEEP.key.equals(name)) {
+                watchedKeep = RecentlyWatched.Keep.fromFile(values.opt(name));
+                if (watchedKeep == null) throw new Rejected(Reason.VALUE, "Not a watched entries time: " + name);
                 continue;
             }
             if (TEXT_SIZE.key.equals(name)) {
@@ -1810,6 +2022,14 @@ public final class SettingsBackup {
                 menuTiles = (String) value;
                 continue;
             }
+            if (FEED_TYPES.key.equals(name)) {
+                Object value = values.opt(name);
+                if (!(value instanceof String) || !FeedTypeNames.isClean((String) value)) {
+                    throw new Rejected(Reason.VALUE, "Not one clean list of feed types: " + name);
+                }
+                feedTypes = (String) value;
+                continue;
+            }
             BooleanSetting setting = known.get(name);
             if (setting == null) {
                 // A name this build doesn't know, Pause and the debug settings included: left
@@ -1844,15 +2064,23 @@ public final class SettingsBackup {
                 subtab, sources, photoName, videoSubfolder, photoSubfolder, reelsQuality, storiesQuality, quietFrom,
                 quietUntil, lockAfter, textSize, accent, ceiling, unknown);
         read.seenKeep = seenKeep;
+        read.pauseLength = pauseLength;
+        read.breakAfter = breakAfter;
+        read.breakLength = breakLength;
+        read.watchedKeep = watchedKeep;
         read.shareItems = shareItems;
         read.menuTiles = menuTiles;
+        read.feedTypes = feedTypes;
         read.homeFeed = homeFeed;
         read.background = background;
         read.lightBackground = lightBackground;
         read.badge = badge;
         read.logo = logo;
+        read.tab = tab;
         read.headerText = headerText;
         read.reelsOrder = reelsOrder;
+        read.burnIn = burnIn;
+        read.burnInWait = burnInWait;
         return read;
     }
 
@@ -1866,7 +2094,7 @@ public final class SettingsBackup {
         return value instanceof String && value.equals(AmoledLightBackground.stored((String) value));
     }
 
-    /** A Badge or Logo color as its row keeps it, which {@link MarkColors} takes. */
+    /** A Badge, Logo or Selected tab color as its row keeps it, which {@link MarkColors} takes. */
     static boolean isMarkColor(@Nullable Object value) {
         return value instanceof String && value.equals(MarkColors.stored((String) value));
     }

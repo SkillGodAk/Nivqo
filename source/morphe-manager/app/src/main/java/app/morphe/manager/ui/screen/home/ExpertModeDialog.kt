@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
 import app.morphe.manager.domain.bundles.PatchBundleSource
 import app.morphe.manager.patcher.patch.PatchBundleInfo
@@ -38,8 +39,8 @@ import app.morphe.manager.patcher.patch.PatchLockState
 import app.morphe.manager.patcher.patch.appColorFor
 import app.morphe.manager.ui.model.renamesByDefault
 import app.morphe.manager.ui.screen.shared.*
+import app.morphe.manager.ui.viewmodel.SelectionPanelHost
 import app.morphe.manager.util.Options
-import app.morphe.manager.util.PatchSelection
 import app.morphe.manager.util.PatchSelectionUtils.hasCustomizedOptions
 import app.morphe.manager.util.PatchSelectionUtils.hasMissingRequiredOptions
 import app.morphe.manager.util.PatchSelectionUtils.hasUniversalToEnable
@@ -59,7 +60,6 @@ data class ExpertPatchSelection(
     val options: Options,
     val totalSelectedCount: Int,
     val newPatches: Map<Int, Set<String>> = emptyMap(),
-    val savedPatches: PatchSelection = emptyMap(),
     val lockStateOf: (PatchInfo) -> PatchLockState = { PatchLockState.NONE },
     /** True while "Enable all" still holds the universal patches of the given list back. */
     val holdsUniversalPatches: (bundleUid: Int, patches: List<Pair<PatchInfo, Boolean>>) -> Boolean = { _, _ -> false }
@@ -71,12 +71,69 @@ class ExpertPatchActions(
     val onPatchToggle: (bundleUid: Int, patchName: String) -> Unit,
     val onSelectAll: (bundleUid: Int, patches: List<Pair<PatchInfo, Boolean>>) -> Unit,
     val onDeselectAll: (bundleUid: Int, patches: List<Pair<PatchInfo, Boolean>>) -> Unit,
-    val onResetToDefault: (bundleUid: Int) -> Unit,
-    val onRestoreSaved: (bundleUid: Int) -> Unit,
-    val onCopyFromBundle: ((bundleUid: Int) -> Unit)? = null,
     val onOptionChange: (bundleUid: Int, patchName: String, optionKey: String, value: Any?) -> Unit,
     val onResetOptions: (bundleUid: Int, patchName: String) -> Unit
 )
+
+/**
+ * The source whose tab is open, as the selection panel heads with it: its name and how much of it
+ * is selected, and the buttons acting on its patches in view.
+ */
+@Stable
+class OpenSource(
+    val bundle: PatchBundleInfo.Scoped,
+    val summary: String,
+    val actions: @Composable RowScope.() -> Unit
+)
+
+/**
+ * The panel the expert-mode dialog docks under its list for the selection as a whole, see
+ * [SelectionPanel], opened and closed from the header.
+ *
+ * @param content Drawn while open, given the source whose tab is open, which the panel's own
+ *   actions and a copy land in.
+ */
+@Stable
+class ExpertSelectionPanel(
+    val isOpen: Boolean,
+    val onToggle: () -> Unit,
+    val content: @Composable (openSource: OpenSource?) -> Unit
+)
+
+/** The [SelectionPanel] of [host], for the [ExpertModeDialog] editing its selection. */
+@Composable
+fun expertSelectionPanel(host: SelectionPanelHost): ExpertSelectionPanel {
+    val panel = host.panel
+    val sets by remember(host.setsPackageName) { panel.setsFor(host.setsPackageName) }
+        .collectAsStateWithLifecycle(initialValue = emptyList())
+    return ExpertSelectionPanel(isOpen = panel.isOpen, onToggle = panel::toggle) { openSource ->
+        val openBundle = openSource?.bundle
+        // Follows the open tab, which is the source a copy lands in
+        LaunchedEffect(openBundle?.uid) {
+            openBundle?.let { host.loadCopyCandidates(it.uid) }
+        }
+        SelectionPanel(
+            title = stringResource(R.string.selection_panel_title),
+            subtitle = openSource?.summary,
+            headerActions = { openSource?.actions(this) },
+            sets = SelectionSetActions(
+                sets = sets,
+                canApplyRecommended = openBundle != null,
+                onApplyRecommended = { openBundle?.let { host.resetToDefault(it.uid) } },
+                hasSavedSelection = host.hasSavedSelection,
+                onRestoreSaved = host::restoreSaved,
+                onApply = host::applySet,
+                onSave = host::saveSet,
+                onDelete = host::deleteSet,
+                onRename = host::renameSet
+            ),
+            copyTargetName = openBundle?.name,
+            candidates = panel.candidates.takeIf { panel.copyTargetUid == openBundle?.uid },
+            onCopy = host::applyCopy,
+            onClose = panel::close
+        )
+    }
+}
 
 /**
  * Advanced patch selection and configuration dialog.
@@ -97,24 +154,23 @@ fun DialogHostScope.ExpertModeDialog(
     proceedText: String = stringResource(R.string.patch),
     /** Off where mixing sources is the norm rather than something the user just did. */
     warnOnMultipleBundles: Boolean = true,
-    /** Whether a source receives pre-release patch versions, which its tab warns about. */
+    /** Whether a source receives pre-release patch versions, which its page warns about. */
     usesPrerelease: (bundleUid: Int) -> Boolean = { false },
     /** Sources this app is being kept from, which the notice above the list offers back. */
     hiddenSourceCount: Int = 0,
     onShowHiddenSources: () -> Unit = {},
+    selectionPanel: ExpertSelectionPanel? = null,
     onDismiss: () -> Unit,
     onProceed: () -> Unit
 ) {
-    val (allPatchesInfo, options, totalSelectedCount, newPatches, savedPatches, lockStateOf, holdsUniversalPatches) =
+    val (allPatchesInfo, options, totalSelectedCount, newPatches, lockStateOf, holdsUniversalPatches) =
         selection
     val totalPatchesCount = allPatchesInfo.sumOf { (_, patches) -> patches.size }
-    val prereleaseBundleUids = allPatchesInfo.mapNotNullTo(mutableSetOf()) { (bundle, _) ->
-        bundle.uid.takeIf(usesPrerelease)
-    }
-    // Sources marking the APK's version experimental. A run leaves out the ones whose experimental
-    // versions are off, so a source added back by hand says what its patches are applied to
-    val experimentalBundleUids = allPatchesInfo.mapNotNullTo(mutableSetOf()) { (bundle, _) ->
-        bundle.uid.takeIf { bundle.isVersionExperimental }
+    // Sources on pre-release patches or marking the APK's version experimental. A run leaves out
+    // the ones whose experimental versions are off, so one added back by hand still says what its
+    // patches are applied to
+    val unstableBundleUids = allPatchesInfo.mapNotNullTo(mutableSetOf()) { (bundle, _) ->
+        bundle.uid.takeIf { usesPrerelease(it) || bundle.isVersionExperimental }
     }
     val selectedPatchForOptions = remember { mutableStateOf<Pair<Int, PatchInfo>?>(null) }
     val search = rememberSearchFieldState()
@@ -137,13 +193,10 @@ fun DialogHostScope.ExpertModeDialog(
 
     val patchSections = rememberPatchSectionState()
 
-    // The pre-release warning is worth a glance, not a permanent strip on top of the list. It
-    // retires per source, so a source the user has not opened yet still gets its turn, and the
-    // state lives for this dialog only: the next open warns again
+    // The unstable warning is worth a glance, not a permanent strip on top of the list. It retires
+    // per source, so a source the user has not opened yet still gets its turn, and the state lives
+    // for this dialog only: the next open warns again
     val retiredNotices = remember { mutableStateOf(emptySet<Int>()) }
-    fun retireNotice(bundleUid: Int) {
-        retiredNotices.value += bundleUid
-    }
 
     // Names the filter holds on to, or null while it is off. A snapshot rather than a live read,
     // so a patch unticked under the filter keeps its place instead of vanishing mid-edit
@@ -195,16 +248,14 @@ fun DialogHostScope.ExpertModeDialog(
         newPatches,
         patchesWithMissingRequired,
         patchesWithCustomOptions,
-        prereleaseBundleUids,
-        experimentalBundleUids,
+        unstableBundleUids,
         retiredNotices.value
     ) {
         PatchMarkers(
             newPatches = newPatches,
             missingRequiredOptions = patchesWithMissingRequired,
             customOptions = patchesWithCustomOptions,
-            prereleaseNotices = prereleaseBundleUids - retiredNotices.value,
-            experimentalNotices = experimentalBundleUids
+            unstableNotices = unstableBundleUids - retiredNotices.value
         )
     }
 
@@ -286,14 +337,14 @@ fun DialogHostScope.ExpertModeDialog(
                     AppIcon(packageName = packageName, icon = appIcon, contentDescription = null, modifier = modifier)
                 },
                 title = appName,
+                // How much of the app is selected, every source counted, while the tabs count each
                 subtitle = listOfNotNull(
-                    stringResource(R.string.settings_advanced_expert_mode),
+                    stringResource(R.string.expert_mode_selected_count, totalSelectedCount, totalPatchesCount),
                     allPatchesInfo.singleOrNull()?.first?.name
                 ).joinToString("\n"),
                 search = search,
                 searchLabel = stringResource(R.string.expert_mode_search),
-                // The tabs between the sources stay put, the controls of the open one fold away
-                // while the patches scroll
+                // The tabs between the sources stay put while the patches scroll
                 content = if (hasMultipleBundleLayout && displayedBundles.isNotEmpty()) {
                     {
                         // The open tab is marked by a fill of its own rather than a line under it, and
@@ -321,42 +372,10 @@ fun DialogHostScope.ExpertModeDialog(
                             }
                         }
                     }
-                } else null,
-                // Kept in place on a tab the filters emptied, so the head keeps its height and the
-                // bulk actions gray out instead of the whole row snapping away
-                collapsible = headBundle?.let { bundle ->
-                    {
-                        BundleControls(
-                            bundle = bundle,
-                            patches = filteredPatchesByUid[bundle.uid].orEmpty(),
-                            patchActions = patchActions,
-                            savedPatches = savedPatches,
-                            lockStateOf = lockStateOf,
-                            holdsUniversalPatches = holdsUniversalPatches,
-                            onExpandUniversal = { patchSections.setExpanded(it, UNIVERSAL_GROUP_KEY, true) }
-                        )
-                    }
-                }
+                } else null
             ) {
-                // The counter already stands for the selection, so it doubles as the way to filter
-                // the list down to it
-                val badgeTone = if (totalSelectedCount > 0) SemanticTone.Primary else SemanticTone.Neutral
-                // In the header's color like the search beside it: tinted while it counts,
-                // filled while it filters
-                val accent = LocalAccent.current
-                val badgeContainer = when {
-                    accent == null -> if (isSelectedOnly) MaterialTheme.colorScheme.primary else badgeTone.container
-                    isSelectedOnly -> accent
-                    totalSelectedCount > 0 -> accent.copy(alpha = AccentAlpha.LEAD)
-                    else -> accent.copy(alpha = AccentAlpha.STEP)
-                }
-                val badgeContent = when {
-                    accent != null -> appAccentContent(badgeContainer)
-                    isSelectedOnly -> MaterialTheme.colorScheme.onPrimary
-                    else -> badgeTone.content
-                }
-                // Still switchable off after the last patch is unticked under the filter
-                val canFilter = totalSelectedCount > 0 || isSelectedOnly
+                // Narrows how the list is shown rather than what is selected, so it stays in view
+                // while it is on rather than in the panel, which closes
                 val filterState = stringResource(
                     if (isSelectedOnly) {
                         R.string.expert_mode_selected_only_on
@@ -364,22 +383,25 @@ fun DialogHostScope.ExpertModeDialog(
                         R.string.expert_mode_selected_only_off
                     }
                 )
-                StatusBadge(
-                    text = "$totalSelectedCount/$totalPatchesCount",
-                    // Carried while the filter is merely available, so the counter reads as the
-                    // control it is instead of only announcing itself once tapped
-                    icon = MaterialSymbols.Rounded.Filter_alt.takeIf { canFilter },
-                    tone = badgeTone,
-                    // Filled rather than tonal while filtering, so the narrowed list has a visible cause
-                    containerColor = badgeContainer,
-                    contentColor = badgeContent,
-                    onClick = if (canFilter) {
-                        { toggleSelectedOnly() }
-                    } else {
-                        null
-                    },
+                TitleAction(
+                    icon = MaterialSymbols.Rounded.Filter_alt,
+                    contentDescription = stringResource(R.string.expert_mode_selected_only),
+                    onClick = ::toggleSelectedOnly,
+                    style = TitleActionStyle.Toggle,
+                    active = isSelectedOnly,
+                    // Still switchable off after the last patch is unticked under the filter
+                    enabled = totalSelectedCount > 0 || isSelectedOnly,
                     modifier = Modifier.semantics { stateDescription = filterState }
                 )
+                if (selectionPanel != null) {
+                    TitleAction(
+                        icon = MaterialSymbols.Rounded.Bookmarks,
+                        contentDescription = stringResource(R.string.selection_panel_title),
+                        onClick = selectionPanel.onToggle,
+                        style = TitleActionStyle.Toggle,
+                        active = selectionPanel.isOpen
+                    )
+                }
             }
         },
         footer = {
@@ -403,21 +425,42 @@ fun DialogHostScope.ExpertModeDialog(
                 )
             )
         },
+        // Docked under the list rather than over it, so a set applied or a copy made shows in the
+        // list above the panel at once
+        bottomBar = if (selectionPanel?.isOpen == true) {
+            {
+                // Kept on a tab the filters emptied, so its buttons gray out rather than the
+                // panel's head changing under the user
+                val openSource = headBundle?.let { bundle ->
+                    val patches = filteredPatchesByUid[bundle.uid].orEmpty()
+                    OpenSource(
+                        bundle = bundle,
+                        summary = "${bundle.name} · ${patches.count { (_, isEnabled) -> isEnabled }}/${patches.size}",
+                        actions = {
+                            BundleControls(
+                                bundle = bundle,
+                                patches = patches,
+                                patchActions = patchActions,
+                                lockStateOf = lockStateOf,
+                                holdsUniversalPatches = holdsUniversalPatches,
+                                onExpandUniversal = { patchSections.setExpanded(it, UNIVERSAL_GROUP_KEY, true) }
+                            )
+                        }
+                    )
+                }
+                selectionPanel.content(openSource)
+            }
+        } else null,
         hideFooterWhileTyping = true
     ) {
         SearchFieldBackHandler(search)
         // Back unwinds the filter before the dialog itself, the way the search field does
         BackHandler(enabled = isSelectedOnly) { selectedOnly.value = null }
 
-        RetirePrereleaseNotice(
-            bundleUid = headBundle?.uid?.takeIf { it in prereleaseBundleUids },
-            onRetire = { retireNotice(it) }
+        RetireUnstableNotice(
+            bundleUid = headBundle?.uid?.takeIf { it in markers.unstableNotices },
+            onRetire = { retiredNotices.value += it }
         )
-
-        // Each source's page keeps its own scroll, so the controls of the one turned to come back
-        // into view rather than staying folded from the page left
-        val headerCollapse = LocalDialogHeaderCollapse.current
-        LaunchedEffect(pagerState.settledPage) { headerCollapse?.unfold() }
 
         // Above every source's patches rather than inside one: what it counts is the sources that
         // have no page here at all
@@ -513,7 +556,7 @@ fun DialogHostScope.ExpertModeDialog(
     DialogHost(visible = showMultipleSourcesWarning.value) {
         ConfirmDialog(
             title = stringResource(R.string.expert_mode_multiple_sources_warning_title),
-            message = stringResource(R.string.expert_mode_multiple_sources_warning_message),
+            message = stringResource(R.string.expert_mode_multiple_sources_warning_conflict),
             primaryText = stringResource(R.string.home_dialog_unsupported_version_dialog_proceed),
             isPrimaryDestructive = false,
             onConfirm = {
@@ -632,58 +675,42 @@ private data class PatchMarkers(
     val newPatches: Map<Int, Set<String>>,
     val missingRequiredOptions: Map<Int, Set<String>>,
     val customOptions: Map<Int, Set<String>>,
-    val prereleaseNotices: Set<Int>,
-    val experimentalNotices: Set<Int>
+    val unstableNotices: Set<Int>
 )
 
-/** How long a pre-release warning holds its place, long enough to read it once. */
-private val PrereleaseNoticeDuration = 8.seconds
+/** How long the unstable warning holds its place, long enough to read it once. */
+private val UnstableNoticeDuration = 8.seconds
 
 /**
- * Retires the pre-release warning of [bundleUid] once it has had its seconds on screen. Null while
+ * Retires the unstable warning of [bundleUid] once it has had its seconds on screen. Null while
  * the source in view carries no warning, and keyed on the bundle, so switching tabs hands the
  * countdown to whichever source the user just opened rather than expiring one never seen.
  */
 @Composable
-private fun RetirePrereleaseNotice(bundleUid: Int?, onRetire: (Int) -> Unit) {
+private fun RetireUnstableNotice(bundleUid: Int?, onRetire: (Int) -> Unit) {
     LaunchedEffect(bundleUid) {
         if (bundleUid == null) return@LaunchedEffect
-        delay(PrereleaseNoticeDuration)
+        delay(UnstableNoticeDuration)
         onRetire(bundleUid)
     }
 }
 
 /**
- * Warning header for a source on the dev branch. It scrolls with the patches it belongs to
- * rather than holding a fixed strip, which also keeps the tabs from shifting as pages change.
+ * One line heading a source whose patches may be unstable, pre-release or experimental alike. It
+ * scrolls with the patches it belongs to rather than holding a fixed strip, which also keeps the
+ * tabs from shifting as pages change.
  *
  * It animates its own placement like the rows below it, so the list closes the gap when the
  * warning retires instead of snapping shut.
  */
-private fun LazyListScope.prereleaseNotice() = item(key = "prerelease-notice") {
+private fun LazyListScope.unstableNotice() = item(key = "unstable-notice") {
     Notice(
-        text = stringResource(R.string.expert_mode_prerelease_notice),
+        text = stringResource(R.string.expert_mode_unstable_notice),
         modifier = Modifier
             .animatedListItem(this)
             .endsBlock(),
         icon = MaterialSymbols.Rounded.Warning,
         tone = SemanticTone.Warning,
-        density = NoticeDensity.Compact
-    )
-}
-
-/**
- * Header for a source marking the APK's version experimental. Unlike the pre-release warning it
- * stays, since it matters for as long as the source's patches can be switched on.
- */
-private fun LazyListScope.experimentalVersionNotice() = item(key = "experimental-version-notice") {
-    Notice(
-        text = stringResource(R.string.expert_mode_experimental_version_notice),
-        modifier = Modifier
-            .animatedListItem(this)
-            .endsBlock(),
-        icon = VersionTag.Experimental.icon,
-        tone = VersionTag.Experimental.tone,
         density = NoticeDensity.Compact
     )
 }
@@ -702,47 +729,46 @@ private inline fun List<Pair<PatchBundleInfo.Scoped, List<Pair<PatchInfo, Boolea
 }.toMap()
 
 /**
- * Bulk-action row for one bundle, wired to the patches currently in view: what "enable all" and
- * "disable all" reach is what the search and the filters left on screen.
+ * Select all and deselect all for one bundle, wired to the patches currently in view: what turning
+ * all on or off reaches is what the search and the filters left on screen.
  */
 @Composable
 private fun BundleControls(
     bundle: PatchBundleInfo.Scoped,
     patches: List<Pair<PatchInfo, Boolean>>,
     patchActions: ExpertPatchActions,
-    savedPatches: PatchSelection,
     lockStateOf: (PatchInfo) -> PatchLockState,
     holdsUniversalPatches: (bundleUid: Int, patches: List<Pair<PatchInfo, Boolean>>) -> Boolean,
     onExpandUniversal: (bundleUid: Int) -> Unit
 ) {
     val holdsUniversal = holdsUniversalPatches(bundle.uid, patches)
-    val copySelection: (() -> Unit)? = patchActions.onCopyFromBundle?.let { copy ->
-        { copy(bundle.uid) }
+    // Locked patches stay as they are either way, so they decide neither
+    val canEnableMore = patches.any { (patch, isEnabled) ->
+        !isEnabled && lockStateOf(patch) != PatchLockState.LOCKED_OFF
+    }
+    val canDisable = patches.any { (patch, isEnabled) ->
+        isEnabled && lockStateOf(patch) != PatchLockState.LOCKED_ON
     }
 
-    BundlePatchControls(
-        enabledCount = patches.count { (_, isEnabled) -> isEnabled },
-        totalCount = patches.size,
+    BulkSelectActions(
+        canEnableMore = canEnableMore,
+        canDisable = canDisable,
         holdsUniversalPatches = holdsUniversal,
-        // The second "Enable all" tap applies every universal patch at once; warn first
+        // The tap that applies every universal patch at once warns first
         warnOnUniversalAll = !holdsUniversal && patches.hasUniversalToEnable(lockStateOf),
         onSelectAll = {
             // This tap enables the universal patches, so it has to show what it turned on
             if (!holdsUniversal) onExpandUniversal(bundle.uid)
             patchActions.onSelectAll(bundle.uid, patches)
         },
-        onDeselectAll = { patchActions.onDeselectAll(bundle.uid, patches) },
-        onResetToDefault = { patchActions.onResetToDefault(bundle.uid) },
-        onRestoreSaved = { patchActions.onRestoreSaved(bundle.uid) },
-        onCopyFromBundle = copySelection,
-        hasSavedSelection = savedPatches[bundle.uid]?.isNotEmpty() == true
+        onDeselectAll = { patchActions.onDeselectAll(bundle.uid, patches) }
     )
 }
 
 /**
- * One bundle's scrolling list: its pre-release warning, then the patches block by block, each
- * behind a collapsible header of its own. Every row animates its own placement, so search
- * results and the fold settle instead of jumping.
+ * One bundle's scrolling list: its unstable warning, then the patches block by block, each behind
+ * a collapsible header of its own. Every row animates its own placement, so search results and the
+ * fold settle instead of jumping.
  *
  * The scrollbar stays with the caller, since the tabbed layout draws a single overlay for the
  * whole pager rather than one per page.
@@ -791,8 +817,7 @@ private fun BundlePatchList(
         verticalArrangement = Arrangement.spacedBy(SegmentGap)
     ) {
         leadingRows()
-        if (bundle.uid in markers.prereleaseNotices) prereleaseNotice()
-        if (bundle.uid in markers.experimentalNotices) experimentalVersionNotice()
+        if (bundle.uid in markers.unstableNotices) unstableNotice()
 
         // Kept in the list rather than laid over it, so the message holds its place under a notice
         // and an opening keyboard shortens the surrounding page instead of moving it

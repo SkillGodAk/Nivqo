@@ -21,12 +21,16 @@ import app.morphe.patches.facebook.comments.summaries.switchKeys
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.feed.methodsHolding
+import app.morphe.patches.facebook.feed.refresh.enumConstant
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.extension.requireStatusMethod
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.reels.gesture.COMPOSER_ACTION
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
@@ -62,11 +66,28 @@ internal const val GIF_BUTTON =
 internal const val STICKER_BUTTON =
     "com.facebook.feedback.comments.plugins.commentcomposer.attachmentbutton.sticker.StickerAttachmentButtonPlugin"
 
+/** The name the socket over the comment box's text field gives itself, in its render (#290). */
+internal const val PRE_INPUT_SOCKET = "CommentComposerPreInputContentSocket"
+
+/** The row of emoji over the comment box, a kept class name the same render loads. */
+internal const val EMOJI_ROW =
+    "com.facebook.feedback.comments.plugins.commentcomposerpreinput.conversationguide.ConversationGuidePlugin"
+
+/** Meta AI's suggestion pills, the socket's other plugin, a kept class its applies check calls. */
+internal const val META_AI_PILLS =
+    "Lcom/facebook/feedback/comments/plugins/commentcomposerpreinput/metaaisuggestionpills/MetaAISuggestionPillsPlugin;"
+
 /** The name the comment bar under a video in the full-screen viewer gives its sticker button, where it builds it. */
 internal const val VIEWER_STICKER = "FbShortsComposerAttachmentComponentSpec_STICKER"
 
-/** The name the same bar gives its GIF button. */
+/** The name the same bar gives its GIF button, up to 584. */
 internal const val VIEWER_GIF = "FbShortsComposerAttachmentComponentSpec_GIF"
+
+/**
+ * The flyout composer action the same bar hands its GIF button's builder, a constant of the kept
+ * enum [COMPOSER_ACTION]. 585 names that button by a string resource instead of [VIEWER_GIF].
+ */
+internal const val VIEWER_GIF_ACTION = "GIF_PICKER"
 
 /** The transition key the whole of that bar, the Add a comment box and its buttons, is laid out under, in its render. */
 internal const val VIDEO_COMMENT_BAR = "comment_bar_layout_transition_key"
@@ -93,15 +114,13 @@ internal const val INLINE_COMMENTS_DWELL_TIME =
 internal const val INLINE_COMMENTS_CLIENT_RANKING =
     "com.facebook.feed.plugins.belowufifooter.impl.inlinecommentwithclientranking.InlineCommentWithClientRankingPlugin"
 
-/** The name the socket of the buttons under each comment gives itself, in the methods that go through its plugins. */
-internal const val COMMENT_UFI_SOCKET = "CommentUfiSocket"
-
-/** The thumbs-down under a comment, next to Like, a kept class name that socket's name table loads (#241). */
+/** The plugin that builds the thumbs-down under a comment, next to Like, a kept class (#241). */
 internal const val COMMENT_DOWNVOTE =
-    "com.facebook.feedback.comments.plugins.commentufi.commentsdownvote.CommentsUFIInlineDownvotePlugin"
+    "Lcom/facebook/feedback/comments/plugins/commentufi/commentsdownvote/CommentsUFIInlineDownvotePlugin;"
 
-/** A comment's Like button, in the same name table. */
-internal const val COMMENT_LIKE = "com.facebook.feedback.comments.plugins.commentufi.like.LikePlugin"
+/** The plugin that writes Like in the row under a comment, a kept class (#241). */
+internal const val COMMENT_LIKE =
+    "Lcom/facebook/feedback/comments/plugins/commentufi/like/InlineCommentLikePlugin;"
 
 /** The name the reaction picker's popup logs itself under, in the method that opens it. */
 internal const val DOCK_NAME = "reactions_dock"
@@ -142,11 +161,13 @@ private const val OBJECTS = "[Ljava/lang/Object;"
 
 internal const val COMMENT_SHEET_OPTIONS = "$EXTENSION_PACKAGE/comments/CommentSheetOptions;"
 internal const val HOLDS_BUTTON = "$COMMENT_SHEET_OPTIONS->holdsButton(Ljava/lang/String;)Z"
+internal const val HOLDS_EMOJI_ROW = "$COMMENT_SHEET_OPTIONS->holdsEmojiRow()Z"
 internal const val HOLDS_VIEWER_BUTTONS = "$COMMENT_SHEET_OPTIONS->holdsViewerButtons()Z"
 internal const val HIDES_VIDEO_COMMENT_COMPOSER = "$COMMENT_SHEET_OPTIONS->hidesVideoCommentComposer()Z"
 internal const val HOLDS_BOTTOM_CONTENT = "$COMMENT_SHEET_OPTIONS->holdsBottomContent(Ljava/lang/String;)Z"
 internal const val HOLDS_POST_COMMENTS = "$COMMENT_SHEET_OPTIONS->holdsPostComments(Ljava/lang/String;)Z"
-internal const val HOLDS_COMMENT_BUTTON = "$COMMENT_SHEET_OPTIONS->holdsCommentButton(Ljava/lang/String;)Z"
+internal const val HOLDS_COMMENT_DISLIKE = "$COMMENT_SHEET_OPTIONS->holdsCommentDislike()Z"
+internal const val HOLDS_COMMENT_LIKE = "$COMMENT_SHEET_OPTIONS->holdsCommentLike()Z"
 internal const val SKIP_PICKER = "$COMMENT_SHEET_OPTIONS->skipReactionPicker()Z"
 internal const val OPEN_REPLY_THREADS = "$COMMENT_SHEET_OPTIONS->openReplyThreads(Z)Z"
 internal const val HIDES_COMMENT = "$COMMENT_SHEET_OPTIONS->hidesComment(Ljava/lang/Object;)Z"
@@ -173,6 +194,10 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * [VIEWER_GIF], then passes all three to a builder whose child list skips a missing one (582
  * `LX/9xu;->A1H` into `LX/1bP;->A00`). Once the GIF button is built the extension is asked, and
  * while the switch is on both buttons' registers are cleared, so the bar keeps only mention.
+ * 585 (`LX/09gL;->render` arm64, `LX/09gQ;->render` armv7) hands its helper (`A0B`) each button's
+ * [COMPOSER_ACTION] constant as well and names only the sticker: the GIF button's label is a string
+ * resource (0x7f1413dc read through `LX/02Hq;->A08`), so its constant, [VIEWER_GIF_ACTION] (`A02`
+ * there), picks it out, and the children go to `LX/01U2;->A00`, which still skips a missing one.
  *
  * Hide the video comment box (#213): those buttons are only the box's inner row. The whole bar is
  * another component, the one class naming [VIDEO_COMMENT_BAR] that builds the row's class (583
@@ -193,15 +218,29 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * about its inline summary. Its name table (584 `LX/228;->A0k`) names three variants of them,
  * [INLINE_COMMENTS], [INLINE_COMMENTS_DWELL_TIME] and [INLINE_COMMENTS_CLIENT_RANKING], and its
  * check sits in the table's class. It's found and hooked the same way as the other two sockets:
- * while the switch is on the three get a no, and the socket goes on to its next plugin, so the
- * comment box under a post, Meta AI's summary switch and the post's Comment button stay as they were.
+ * while the switch is on the three get a no, and the socket goes on to its next plugin, so Meta
+ * AI's summary switch and the post's Comment button stay as they were. The same table names three
+ * comment boxes (584 `InlineCommentComposerPlugin`, its hoisted and its anonymous variants), and
+ * in 584 they draw the post's pinned comment above the box (#305), so the extension gives them the
+ * same no; the list of what it holds lives there, not here.
  *
- * Hide dislike on comments (#241): the buttons under each comment, Like, Reply and the thumbs-down
- * among them, come through the socket that names itself [COMMENT_UFI_SOCKET] (584 `LX/4Fu;->A03`
- * and `LX/5yK;->render`). Its name table (584 `LX/228;->A0t`) names [COMMENT_DOWNVOTE] next to
- * [COMMENT_LIKE], and its check (584 `LX/228;->A2C`) sits in the table's class. It's found and hooked
- * the same way as the other sockets: while the switch is on the thumbs-down gets a no, so Like,
- * Reply and the comment's other buttons stay.
+ * Hide dislike on comments (#241): the thumbs-down under a comment is built by its own plugin,
+ * [COMMENT_DOWNVOTE], a kept class with one static builder that takes the comment's context and
+ * props and returns the button's component, or nothing when Facebook has none to show (584
+ * `A00(LX/6u7;LX/4Fk;)LX/97H;`). The extension goes first in it, and while the switch is on the
+ * builder returns nothing, so the socket of a comment's buttons (584 `LX/4Fu;->A03`) still counts
+ * the plugin as present and draws Like, Reply, the reaction icons and their count as it does next
+ * to a thumbs-down. 0.19.0 answered no for the plugin in that socket's check instead (584
+ * `LX/228;->A2C`), and the reaction icons and count went with the thumbs-down.
+ *
+ * Hide Like on comments (#241): Like in that row is written by one of two plugins. The kept
+ * [COMMENT_LIKE] has one static builder that takes the comment's context and answers the Like
+ * text, or nothing when the comment has none to like (585 arm64 `A00(LX/07T7;)Landroid/text/Spannable;`).
+ * The other, `commentufi.like.LikePlugin`, draws Like as a button beside the thumbs-down on public
+ * Pages' comments, and its builder is folded into the plugin table's own (585 `LX/01xX;->A00`).
+ * Both write Like through one method, the SpannableString one the kept builder calls with the
+ * comment (585 `LX/05Mi;->A03`), and that's what's held, so the row keeps Reply, the reaction icons
+ * and their count either way. Holding the kept builder alone left the button beside the thumbs-down.
  *
  * Like only: a long press on Like opens the reaction picker through one method that builds
  * [UFI_DOCK] in a popup and logs [DOCK_NAME] (581 `LX/3FO;->A06`, each an instance (View, View)V
@@ -227,7 +266,9 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * pager is drawn and each tap on it loads one more page. The extension is handed the flag just
  * before it's written, and while the switch is on its answer is true, so the rest of a thread loads
  * as it's scrolled with no further taps. It loads a page at a time, as far as the reader scrolls,
- * so a thread with thousands of replies can't hold the sheet up.
+ * so a thread with thousands of replies can't hold the sheet up. 585 (`LX/0A8U;->A0p` writing
+ * `LX/0A8C;->A0W` on arm64) still writes false, copied from a high register right before the write
+ * (`const/16 v17, 0` near the top, `move/from16 v1, v17`), so the same finder and hook hold.
  *
  * Tap anywhere on View more replies (#219): the row's render names [VIEW_MORE_REPLIES] (584
  * `LX/BbN;->render`). It reads one server-set boolean (584 `LX/4EB;->A09` into v16) and builds its
@@ -268,11 +309,11 @@ val commentSheetOptionsPatch = bytecodePatch(
     name = "Comment sheet options",
     description = "Small fixes for comments. Stop a long press on Like from opening reactions, hide the GIF and " +
         "sticker buttons, show every reply without tapping View replies, load a whole reply thread as you " +
-        "scroll, open more replies with a tap anywhere on their row, hide the comments under feed posts or the thumbs-down on comments, hide Related groups under group posts, hide comments with shop links or your words, hide who is typing and the new comments pop-up, and hide the comment box under full-screen videos. Starts off. Turn on the parts you want in " +
+        "scroll, open more replies with a tap anywhere on their row, hide the comments under feed posts, hide the thumbs-down on comments or turn it into a Block button, hide Like on comments, hide Related groups under group posts, hide comments with shop links or your words, hide who is typing and the new comments pop-up, hide the emoji row over the comment box, and hide the comment box under full-screen videos. Starts off. Turn on the parts you want in " +
         "Hushfacebook settings > Comments and writing.",
 ) {
     category("Comments")
-    dependsOn(settingsPatch, facebookExtensionPatch, incomingCommentTypingPatch, newCommentsPillPatch)
+    dependsOn(settingsPatch, facebookExtensionPatch, incomingCommentTypingPatch, newCommentsPillPatch, commentBlockPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
@@ -296,13 +337,11 @@ val commentSheetOptionsPatch = bytecodePatch(
         if (post.check.descriptor() == buttons.check.descriptor() || post.check.descriptor() == bottom.check.descriptor()) {
             refuse("the socket under a post's buttons leads to another socket's check, ${post.check.descriptor()}")
         }
-        val ufi = commentUfiSocket(
-            holders(COMMENT_DOWNVOTE),
-            holders(COMMENT_UFI_SOCKET).flatMap { methodsHolding(it, COMMENT_UFI_SOCKET) },
-        ) { types -> types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type } }
-        if (ufi.check.descriptor() in listOf(buttons, bottom, post).map { it.check.descriptor() }) {
-            refuse("the socket of a comment's buttons leads to another socket's check, ${ufi.check.descriptor()}")
-        }
+        val dislike = dislikeBuilder(classDefByOrNull(COMMENT_DOWNVOTE))
+        val like = likeText(likeBuilder(classDefByOrNull(COMMENT_LIKE)))
+        if ((classDefByOrNull(like.definingClass)?.methods?.singleOrNull { it.descriptor() == like.descriptor() }
+                ?.localRegisterCount() ?: 0) < 1
+        ) refuse("${like.descriptor()} has no local register for the hook")
         val dock = reactionPicker(holders(DOCK_NAME))
         val threads = replyThreads(
             holders(COMMENT_SECTION),
@@ -315,8 +354,13 @@ val commentSheetOptionsPatch = bytecodePatch(
         val threadPager = threadPagerTap(holders(COMMENT_LIST), replyRow) { types ->
             types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type }
         }
-        val viewer = viewerButtons(holders(VIEWER_GIF))
-        val videoBar = videoCommentBar(holders(VIDEO_COMMENT_BAR), viewer.render)
+        // 585's bar no longer names its GIF button, so the bar is found by its sticker and the enum constant.
+        val gifAction = classDefByOrNull(COMPOSER_ACTION)?.let { enumConstant(it, VIEWER_GIF_ACTION) }
+        val viewer = viewerButtons(holders(VIEWER_STICKER), gifAction)
+        // 585 builds the video bar inside the player chrome's own method, so with no render of its own the inline form is used.
+        val barHolders = holders(VIDEO_COMMENT_BAR)
+        val videoBar = if (videoCommentBarRenders(barHolders, viewer.render).isEmpty()) null else videoCommentBar(barHolders, viewer.render)
+        val inlineBar = if (videoBar == null) inlineCommentBar(barHolders, viewer.render) else null
 
         mutableClassDefBy(buttons.check.definingClass).methods.single { it.descriptor() == buttons.check.descriptor() }
             .holdButtons(buttons.table)
@@ -324,8 +368,10 @@ val commentSheetOptionsPatch = bytecodePatch(
             .holdButtons(bottom.table, HOLDS_BOTTOM_CONTENT)
         mutableClassDefBy(post.check.definingClass).methods.single { it.descriptor() == post.check.descriptor() }
             .holdButtons(post.table, HOLDS_POST_COMMENTS)
-        mutableClassDefBy(ufi.check.definingClass).methods.single { it.descriptor() == ufi.check.descriptor() }
-            .holdButtons(ufi.table, HOLDS_COMMENT_BUTTON)
+        mutableClassDefBy(dislike.definingClass).methods.single { it.descriptor() == dislike.descriptor() }
+            .holdBuild(HOLDS_COMMENT_DISLIKE)
+        mutableClassDefBy(like.definingClass).methods.single { it.descriptor() == like.descriptor() }
+            .holdBuild(HOLDS_COMMENT_LIKE)
         mutableClassDefBy(dock.definingClass).methods.single { it.descriptor() == dock.descriptor() }
             .skipPicker()
         mutableClassDefBy(threads.initialState.definingClass).methods
@@ -345,10 +391,73 @@ val commentSheetOptionsPatch = bytecodePatch(
             .tapWholeReplyRow(threadPager)
         mutableClassDefBy(viewer.render.definingClass).methods.single { it.descriptor() == viewer.render.descriptor() }
             .holdViewerButtons(viewer)
-        mutableClassDefBy(videoBar.definingClass).methods.single { it.descriptor() == videoBar.descriptor() }
-            .hideVideoCommentComposer()
+        videoBar?.let { bar ->
+            mutableClassDefBy(bar.definingClass).methods.single { it.descriptor() == bar.descriptor() }.hideVideoCommentComposer()
+        }
+        inlineBar?.let { bar ->
+            mutableClassDefBy(bar.render.definingClass).methods.single { it.descriptor() == bar.render.descriptor() }
+                .hideInlineCommentBar(bar)
+        }
+        emojiRowCheck(holders(EMOJI_ROW))?.let { check ->
+            mutableClassDefBy(check.definingClass).methods.single { it.descriptor() == check.descriptor() }.holdEmojiRow()
+        }
         enableStatus("commentSheetOptions")
     }
+}
+
+/**
+ * The pre-input socket's check of whether a plugin applies, from [holders], the classes loading
+ * [EMOJI_ROW]: the one static (object, int) boolean method of the class whose render names
+ * [PRE_INPUT_SOCKET] and [EMOJI_ROW] and calls it. The socket numbers its two plugins, 1 for Meta
+ * AI's pills and 0 for the emoji row, and the check opens on that number: not zero runs on to Meta
+ * AI's own check, zero jumps to the emoji row's (584: LX/9eB;->A03). A build where the socket moved
+ * keeps the rest of the patch, with Hide the emoji row on comments left doing nothing and a warning
+ * saying why.
+ */
+internal fun emojiRowCheck(holders: List<ClassDef>): Method? {
+    fun skip(why: String): Method? {
+        patchLog.warning("$PATCH: $why. Hide the emoji row on comments does nothing in this build")
+        return null
+    }
+    val renders = holders.flatMap { methodsHolding(it, EMOJI_ROW) }.filter { holdsString(it, PRE_INPUT_SOCKET) }
+    val render = renders.singleOrNull() ?: return skip("expected one render naming $PRE_INPUT_SOCKET and the emoji row, found ${renders.size}")
+    val owner = holders.single { it.type == render.definingClass }
+    val checks = calls(render).filter { call ->
+        call.definingClass == owner.type && call.returnType == "Z" &&
+            call.parameterTypes.size == 2 && call.parameterTypes.last().toString() == "I"
+    }.map { it.descriptor() }.distinct().mapNotNull { called -> owner.methods.singleOrNull { it.descriptor() == called } }
+        .filter { AccessFlags.STATIC.isSet(it.accessFlags) }
+    val check = checks.singleOrNull() ?: return skip("expected one applies check in ${render.descriptor()}, found ${checks.size}")
+    if (check.localRegisterCount() < 1) return skip("${check.descriptor()} has no local register for the hook")
+    val code = check.implementation!!.instructions.toList()
+    val opening = code.firstOrNull()
+    if (opening?.opcode != Opcode.IF_EQZ || (opening as OneRegisterInstruction).registerA != check.parameterRegisterNumber(1)) {
+        return skip("${check.descriptor()} doesn't open on the plugin's number")
+    }
+    // The opening branch sits at code unit 0, so its offset is where plugin 0's check starts.
+    val zero = (opening as OffsetInstruction).codeOffset
+    var unit = 0
+    val pills = code.takeWhile { instruction -> (unit < zero).also { unit += instruction.codeUnits } }.any {
+        ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass == META_AI_PILLS
+    }
+    if (!pills) return skip("${check.descriptor()}'s non-zero path doesn't ask $META_AI_PILLS")
+    return check
+}
+
+/** First thing in the pre-input socket's applies check: for plugin 0, the emoji row, answer no while the extension says so. */
+internal fun MutableMethod.holdEmojiRow() {
+    addInstructionsWithLabels(
+        0,
+        """
+            if-nez p1, :check
+            invoke-static {}, $HOLDS_EMOJI_ROW
+            move-result v0
+            if-eqz v0, :check
+            const/4 v0, 0x0
+            return v0
+        """,
+        ExternalLabel("check", getInstruction(0)),
+    )
 }
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
@@ -397,15 +506,61 @@ internal fun postSocket(
 ): PluginSocket = pluginCheck(holders, sockets, classes, POST_SOCKET, INLINE_COMMENTS, INLINE_COMMENTS_CLIENT_RANKING)
 
 /**
- * The socket of the buttons under each comment, from [holders], the classes loading
- * [COMMENT_DOWNVOTE], and [sockets], the methods loading [COMMENT_UFI_SOCKET]. The table is the one
- * name table naming the thumbs-down and Like; see [pluginCheck] for the check.
+ * The builder of the thumbs-down under a comment: the one static method of [plugin], the class
+ * [COMMENT_DOWNVOTE], that takes two objects, the comment's context and props, and returns an
+ * object, the button's component, with a local register for the hook. Refuses without the class
+ * or with any other number of such methods.
  */
-internal fun commentUfiSocket(
-    holders: List<ClassDef>,
-    sockets: List<Method>,
-    classes: (Set<String>) -> Map<String, ClassDef>,
-): PluginSocket = pluginCheck(holders, sockets, classes, COMMENT_UFI_SOCKET, COMMENT_DOWNVOTE, COMMENT_LIKE)
+internal fun dislikeBuilder(plugin: ClassDef?): Method {
+    if (plugin == null) refuse("no class $COMMENT_DOWNVOTE")
+    val builders = plugin.methods.filter { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) &&
+            method.returnType.startsWith("L") &&
+            method.parameterTypes.size == 2 &&
+            method.parameterTypes.all { it.startsWith("L") }
+    }
+    val builder = builders.singleOrNull() ?: refuse(
+        "expected one static builder of two objects in $COMMENT_DOWNVOTE, found ${builders.size}: " +
+            builders.joinToString { it.descriptor() },
+    )
+    if (builder.localRegisterCount() < 1) refuse("${builder.descriptor()} has no local register for the hook")
+    return builder
+}
+
+/**
+ * The builder of Like in the row under a comment: the one static method of [plugin], the class
+ * [COMMENT_LIKE], that takes the comment's context and answers the Like text as a Spannable, or
+ * nothing when the comment has none, with a local register for the hook. Refuses without the class
+ * or with any other number of such methods.
+ */
+internal fun likeBuilder(plugin: ClassDef?): Method {
+    if (plugin == null) refuse("no class $COMMENT_LIKE")
+    val builders = plugin.methods.filter { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) &&
+            method.returnType == "Landroid/text/Spannable;" &&
+            method.parameterTypes.size == 1
+    }
+    val builder = builders.singleOrNull() ?: refuse(
+        "expected one static Spannable builder of one object in $COMMENT_LIKE, found ${builders.size}: " +
+            builders.joinToString { it.descriptor() },
+    )
+    if (builder.localRegisterCount() < 1) refuse("${builder.descriptor()} has no local register for the hook")
+    return builder
+}
+
+/**
+ * What writes Like, for both Like plugins: the one method [builder], the kept plugin's, calls that
+ * takes a GraphQLComment and answers a SpannableString. Refuses with any other number of them.
+ */
+internal fun likeText(builder: Method): MethodReference {
+    val writers = calls(builder).filter {
+        it.returnType == "Landroid/text/SpannableString;" && GRAPHQL_COMMENT in it.parameterTypes
+    }.distinctBy { it.descriptor() }
+    return writers.singleOrNull() ?: refuse(
+        "expected ${builder.descriptor()} to write Like through one method, found ${writers.size}: " +
+            writers.joinToString { it.descriptor() },
+    )
+}
 
 /**
  * A socket named [socket] whose name table names [plugin], and [alsoNamed] when it's given. The
@@ -485,6 +640,24 @@ internal fun MutableMethod.holdButtons(table: Method, hook: String = HOLDS_BUTTO
             return v0
         """,
         ExternalLabel("check", getInstruction(0)),
+    )
+}
+
+/**
+ * First thing where a button under a comment is built, the thumbs-down or Like: while the
+ * extension's [call] says so, return nothing.
+ */
+internal fun MutableMethod.holdBuild(call: String) {
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static {}, $call
+            move-result v0
+            if-eqz v0, :build
+            const/4 v0, 0x0
+            return-object v0
+        """,
+        ExternalLabel("build", getInstruction(0)),
     )
 }
 
@@ -966,36 +1139,62 @@ internal fun MutableMethod.tapWholeReplyRow(tap: ReplyRowTap) {
 internal class ViewerButtons(val render: Method, val sticker: Int, val gif: Int, val at: Int, val free: Int)
 
 /**
- * The video viewer's comment bar, from [holders], the classes loading [VIEWER_GIF]. Its render is
- * the one method naming both [VIEWER_STICKER] and [VIEWER_GIF]. Each name is loaded once and handed
- * to the next call, whose result, the button, is moved straight into a register. The hook goes after
- * the later of the two, so it must be reached only from there, neither button's register may be
- * written in between, and a local register other than theirs must be free there. Refuses unless
+ * The video viewer's comment bar, from [holders], the classes loading [VIEWER_STICKER]. Its render
+ * is the one method naming [VIEWER_STICKER] and either [VIEWER_GIF] or, from 585 on, the constant
+ * [gifAction] (`Class->field:Type`, the enum's [VIEWER_GIF_ACTION]). Each name is loaded once and
+ * handed to the next call, whose result, the button, is moved straight into a register. 585 builds
+ * the GIF button's label between the constant's load and its builder, so there the builder is the
+ * first call handed the constant, and it must be the call the sticker's name went to. The hook goes
+ * after the later of the two, so it must be reached only from there, neither button's register may
+ * be written in between, and a local register other than theirs must be free there. Refuses unless
  * each holds.
  */
-internal fun viewerButtons(holders: List<ClassDef>): ViewerButtons {
-    val renders = holders.flatMap { methodsHolding(it, VIEWER_GIF) }.filter { holdsString(it, VIEWER_STICKER) }
+internal fun viewerButtons(holders: List<ClassDef>, gifAction: String? = null): ViewerButtons {
+    fun loads(method: Method, field: String) = method.implementation?.instructions?.any {
+        it.opcode == Opcode.SGET_OBJECT && (it as ReferenceInstruction).reference.toString() == field
+    } == true
+    val renders = holders.flatMap { methodsHolding(it, VIEWER_STICKER) }
+        .filter { holdsString(it, VIEWER_GIF) || gifAction != null && loads(it, gifAction) }
         .distinctBy { it.descriptor() }
-    val render = renders.singleOrNull()
-        ?: refuse("expected one method naming \"$VIEWER_STICKER\" and \"$VIEWER_GIF\", found ${renders.size}")
+    val render = renders.singleOrNull() ?: refuse(
+        "expected one method naming \"$VIEWER_STICKER\" and \"$VIEWER_GIF\" (or loading ${gifAction ?: VIEWER_GIF_ACTION}), " +
+            "found ${renders.size}",
+    )
     val where = render.descriptor()
     val code = render.implementation!!.instructions.toList()
+    fun Instruction.call() = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+    /** The index of the move-result that keeps the button built by [call] from what [load] loads, [what]. */
+    fun kept(load: Int, call: Int, what: String): Int {
+        val named = (code[load] as OneRegisterInstruction).registerA
+        if ((load + 1 until call).any { code[it].writes(named) } || named !in code[call].namedRegisters()) {
+            refuse("$where doesn't hand $what to the call after it")
+        }
+        if (code.getOrNull(call + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$where doesn't keep what it builds from $what")
+        return call + 1
+    }
 
     /** The index of the move-result that keeps the button built from [name]. */
     fun built(name: String): Int {
         val loads = code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == name }
         val load = loads.singleOrNull() ?: refuse("$where loads \"$name\" ${loads.size} times, not once")
-        val named = (code[load] as OneRegisterInstruction).registerA
-        val call = (load + 1 until code.size).firstOrNull { code[it].opcode.name.startsWith("invoke") }
+        val call = (load + 1 until code.size).firstOrNull { code[it].call() != null }
             ?: refuse("$where makes nothing of \"$name\"")
-        if ((load + 1 until call).any { code[it].writes(named) } || named !in code[call].namedRegisters()) {
-            refuse("$where doesn't hand \"$name\" to the call after it")
-        }
-        if (code.getOrNull(call + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$where doesn't keep what it builds from \"$name\"")
-        return call + 1
+        return kept(load, call, "\"$name\"")
     }
     val stickerKept = built(VIEWER_STICKER)
-    val gifKept = built(VIEWER_GIF)
+    // 585 lost the GIF button's name; the enum constant the bar hands its builder stands in for it.
+    val gifKept = if (holdsString(render, VIEWER_GIF)) built(VIEWER_GIF) else {
+        val field = gifAction ?: refuse("$where doesn't name \"$VIEWER_GIF\" and no $VIEWER_GIF_ACTION constant was found")
+        val builder = code[stickerKept - 1].call().toString()
+        val gifLoads = code.indices.filter { code[it].opcode == Opcode.SGET_OBJECT && (code[it] as ReferenceInstruction).reference.toString() == field }
+        val load = gifLoads.singleOrNull() ?: refuse("$where loads $field ${gifLoads.size} times, not once")
+        val named = (code[load] as OneRegisterInstruction).registerA
+        val call = (load + 1 until code.size).firstOrNull { code[it].call() != null && named in code[it].namedRegisters() }
+            ?: refuse("$where makes nothing of $field")
+        if (code[call].call().toString() != builder) refuse("$where hands $field to ${code[call].call()}, not the sticker's $builder")
+        kept(load, call, field)
+    }
     val sticker = (code[stickerKept] as OneRegisterInstruction).registerA
     val gif = (code[gifKept] as OneRegisterInstruction).registerA
     if (sticker == gif) refuse("$where keeps both buttons in v$gif")
@@ -1045,19 +1244,98 @@ internal fun MutableMethod.holdViewerButtons(buttons: ViewerButtons) {
  * unless there's exactly one.
  */
 internal fun videoCommentBar(holders: List<ClassDef>, buttons: Method): Method {
-    val row = buttons.definingClass
-    fun builds(method: Method) = method.implementation?.instructions?.any {
-        it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == row
-    } == true
-    val renders = holders.filter { holder -> holder.methods.any(::builds) }
+    val renders = videoCommentBarRenders(holders, buttons)
+    return renders.singleOrNull()
+        ?: refuse("expected one render naming \"$VIDEO_COMMENT_BAR\" in a class building ${buttons.definingClass}, found ${renders.size}")
+}
+
+/** Whether [method] makes an instance of [type]. */
+private fun makes(method: Method, type: String) = method.implementation?.instructions?.any {
+    it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == type
+} == true
+
+/** The candidates [videoCommentBar] picks from; none on 585, where the bar has no render of its own. */
+internal fun videoCommentBarRenders(holders: List<ClassDef>, buttons: Method): List<Method> =
+    holders.filter { holder -> holder.methods.any { makes(it, buttons.definingClass) } }
         .flatMap { methodsHolding(it, VIDEO_COMMENT_BAR) }
         .filter {
             it.name == buttons.name && it.returnType == buttons.returnType &&
                 it.parameterTypes.map(CharSequence::toString) == buttons.parameterTypes.map(CharSequence::toString)
         }
         .distinctBy { it.descriptor() }
-    return renders.singleOrNull()
-        ?: refuse("expected one render naming \"$VIDEO_COMMENT_BAR\" in a class building $row, found ${renders.size}")
+
+/**
+ * Where 585 builds the video viewer's comment bar inline: [render], the player chrome's method that
+ * builds it, [at], the one call the bar goes into alone, [bar], the register it sits in there, and
+ * [free], a register nothing reads there.
+ */
+internal class InlineCommentBar(val render: Method, val at: Int, val bar: Int, val free: Int)
+
+/**
+ * 585's video comment bar, from [holders], the classes loading [VIDEO_COMMENT_BAR]. The bar has no
+ * component of its own any more: a private method of the player chrome naming [VIDEO_COMMENT_BAR]
+ * (585 `LX/08gJ;->A0C` arm64, `LX/08gO;->A0C` armv7) builds it from a static row builder of the
+ * same class, the one making [buttons]' class (`A0D`), either bare or wrapped under that transition
+ * key in a container of the builder's own return type. Every way leaves it in one register, which
+ * holds a literal null where the player shows no bar, and that register goes alone into one call
+ * (`LX/01A2;->A12`, a list of what isn't null). So the bar's call is the one call of one register
+ * whose writers reaching it are a row builder's result, a literal null and new containers of that
+ * type, nothing else, and it takes null already. The hook goes in front of it, so nothing may jump
+ * there, and a local register other than the bar's must be free there. Refuses unless each holds.
+ */
+internal fun inlineCommentBar(holders: List<ClassDef>, buttons: Method): InlineCommentBar {
+    val row = buttons.definingClass
+    val found = holders.flatMap { holder ->
+        val builders = holder.methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) && makes(it, row) }
+            .associateBy { it.descriptor() }
+        if (builders.isEmpty()) return@flatMap emptyList()
+        methodsHolding(holder, VIDEO_COMMENT_BAR).flatMap { method -> barCalls(method, builders) }
+    }.distinctBy { "${it.render.descriptor()}@${it.at}" }
+    return found.singleOrNull() ?: refuse(
+        "expected one call taking alone the comment bar a method naming \"$VIDEO_COMMENT_BAR\" builds from a static " +
+            "builder of $row, or nothing, found ${found.size}",
+    )
+}
+
+/** In [method], each call [inlineCommentBar] could hook, given [builders], the bar row's static builders by descriptor. */
+private fun barCalls(method: Method, builders: Map<String, Method>): List<InlineCommentBar> {
+    val code = method.implementation?.instructions?.toList() ?: return emptyList()
+    fun Instruction.builder() = ((this as? ReferenceInstruction)?.reference as? MethodReference)?.let { builders[it.descriptor()] }
+    // The row builder's results, each the move-result-object right after a call to one.
+    val results = code.indices.filter { it > 0 && code[it].opcode == Opcode.MOVE_RESULT_OBJECT && code[it - 1].builder() != null }
+    if (results.isEmpty()) return emptyList()
+    val containers = results.mapNotNull { code[it - 1].builder()?.returnType }.toSet()
+    val where = method.descriptor()
+    return code.indices.mapNotNull { at ->
+        val call = code[at]
+        if ((call as? ReferenceInstruction)?.reference !is MethodReference) return@mapNotNull null
+        val registers = call.namedRegisters()
+        if (registers.size != 1) return@mapNotNull null
+        val bar = registers.single()
+        val writers = method.writersReaching(at, bar)
+        if (writers.none { it in results }) return@mapNotNull null
+        // A null reaching the call means it already takes one, so clearing the bar is a way it knows.
+        val nulls = writers.filter {
+            it >= 0 && code[it].opcode in setOf(Opcode.CONST_4, Opcode.CONST_16) && (code[it] as NarrowLiteralInstruction).narrowLiteral == 0
+        }
+        val wrapped = writers.filter {
+            it >= 0 && code[it].opcode == Opcode.NEW_INSTANCE && ((code[it] as ReferenceInstruction).reference as TypeReference).type in containers
+        }
+        if (nulls.isEmpty() || writers.any { it !in results && it !in nulls && it !in wrapped }) return@mapNotNull null
+
+        val flow = ControlFlow.of(method)
+        for (index in code.indices) {
+            for (next in flow.normal[index] + flow.exceptional[index]) {
+                if (next == at && index != at - 1) refuse("$where has a jump to instruction $at, where the comment bar's hook goes")
+            }
+        }
+        if (at == 0 || flow.normal[at - 1] != listOf(at)) refuse("$where doesn't run straight into instruction $at")
+        val live = RegisterLiveness.of(method).liveInto(at)
+        if (bar > 255) refuse("$where hands the comment bar over in v$bar, past what a const can clear")
+        val free = (0 until minOf(method.localRegisterCount(), 256)).firstOrNull { it !in live && it != bar }
+            ?: refuse("$where has no free local register at instruction $at")
+        InlineCommentBar(method, at, bar, free)
+    }
 }
 
 /**
@@ -1080,5 +1358,25 @@ internal fun MutableMethod.hideVideoCommentComposer() {
             return-object v0
         """,
         ExternalLabel("bar", getInstruction(0)),
+    )
+}
+
+/**
+ * Right before 585's player chrome hands its comment bar on: on a yes from the extension the bar's
+ * register is cleared, so the chrome goes on as it does when it shows no bar, and the Add a comment
+ * box under a full-screen video is gone with its outline (#213). The clear picks the form that
+ * reaches the bar's register.
+ */
+internal fun MutableMethod.hideInlineCommentBar(bar: InlineCommentBar) {
+    val clear = if (bar.bar < 16) "const/4 v${bar.bar}, 0x0" else "const/16 v${bar.bar}, 0x0"
+    addInstructionsWithLabels(
+        bar.at,
+        """
+            invoke-static {}, $HIDES_VIDEO_COMMENT_COMPOSER
+            move-result v${bar.free}
+            if-eqz v${bar.free}, :bar
+            $clear
+        """,
+        ExternalLabel("bar", getInstruction(bar.at)),
     )
 }

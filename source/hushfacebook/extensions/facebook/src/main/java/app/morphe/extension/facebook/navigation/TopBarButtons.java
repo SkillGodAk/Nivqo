@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.WeakHashMap;
 
+import app.morphe.extension.facebook.search.PictureSearch;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.Logger;
@@ -19,8 +20,8 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
 
 /**
  * The home top bar's optional hides: the Messenger button, the count on it and the Facebook logo
- * (#181), and the Create (+) button (#257). The patch calls each hook where Facebook builds the
- * thing it hides.
+ * (#181), the Create (+) button (#257) and the search button (#321). The patch calls each hook
+ * where Facebook builds the thing it hides.
  *
  * <ul>
  *   <li>{@link #messengerButton} runs right after the bar adds the Messenger button. With the
@@ -33,6 +34,10 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *       spot still opens Hushfacebook settings on a long press.
  *   <li>{@link #createButton} runs right after the bar adds the Create button, and sets it GONE
  *       like the Messenger button.
+ *   <li>{@link #searchButton} runs right after the bar adds the search button (#321), and
+ *       {@link #barSearchButton} right after the newer bar makes it, and on Home's bar they set it
+ *       GONE the same way. A kept button gets the Google Lens long press of {@link PictureSearch}
+ *       while that switch is on (#245).
  * </ul>
  *
  * <p>Some accounts get the newer bar instead, where every button is a glyph the bar makes from a
@@ -51,12 +56,16 @@ public final class TopBarButtons {
     static final String COUNT_HIDDEN = "Messenger count hidden";
     static final String LOGO_HIDDEN = "Facebook logo hidden";
     static final String CREATE_HIDDEN = "Create button hidden";
+    static final String SEARCH_HIDDEN = "Search button hidden";
 
     /** The newer bar's spec name for the Messenger button. */
     static final String MESSENGER_SPEC = "messenger";
 
     /** The newer bar's spec name for the Create button. */
     static final String CREATE_SPEC = "trep-composer-button";
+
+    /** The screen name the home feed's top bar gives the newer bar inside it. */
+    static final String HOME_BAR_SCREEN = "NewsFeedFragment";
 
     private static final String FAMILY = FamilyNames.BOTTOM_TAB_BAR;
 
@@ -123,6 +132,41 @@ public final class TopBarButtons {
         HookStatus.bound(FAMILY, "Create button");
         HookStatus.counted(FAMILY, CREATE_HIDDEN);
         Logger.printDebug(() -> "Top bar: hid the Create button");
+    }
+
+    /** Injection point, after the classic bar adds the search button. That bar is only ever Home's. */
+    public static void searchButton(View button) {
+        searchButton(button, true);
+    }
+
+    /**
+     * Injection point, after the newer bar makes its search button, with the name of the screen the
+     * bar is for. Marketplace and other screens build their top bars from the same class, and their
+     * search stays when Home's is hidden.
+     */
+    public static void barSearchButton(View button, String screen) {
+        searchButton(button, HOME_BAR_SCREEN.equals(screen));
+    }
+
+    /**
+     * Hides a search button of Home's bar, or with Search with a picture on gives any kept one the
+     * long press that opens Google Lens (#245). Never throws.
+     */
+    private static void searchButton(View button, boolean onHome) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (button == null || !Utils.settingsReady()) return;
+            if (!onHome || !Settings.HIDE_SEARCH_BUTTON.get()) {
+                if (Settings.SEARCH_WITH_PICTURE.get()) PictureSearch.attach(button);
+                return;
+            }
+            button.setVisibility(View.GONE);
+            HookStatus.bound(FAMILY, "Search button");
+            HookStatus.counted(FAMILY, SEARCH_HIDDEN);
+            Logger.printDebug(() -> "Top bar: hid the search button");
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "Search button", failure);
+        }
     }
 
     /**

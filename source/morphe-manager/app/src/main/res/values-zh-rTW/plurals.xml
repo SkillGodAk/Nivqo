@@ -37,6 +37,9 @@
     <plurals name="source_count">
         <item quantity="other">%s 個來源</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="other">%s 組</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="other">%s 個套件</item>
     </plurals>

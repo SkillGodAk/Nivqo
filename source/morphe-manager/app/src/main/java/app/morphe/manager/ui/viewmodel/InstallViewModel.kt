@@ -105,8 +105,7 @@ class InstallViewModel(
     private data class MountInstallInputs(
         val patchedInfo: PackageInfo,
         val installedInfo: PackageInfo?,
-        val inputCandidate: MountStockCandidate?,
-        val savedOriginalCandidate: MountStockCandidate?
+        val stockFiles: List<File>
     )
 
     var installState by mutableStateOf<InstallState>(InstallState.Ready)
@@ -193,22 +192,32 @@ class InstallViewModel(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to unregister receiver", e)
         }
-        externalInstallTimeoutJob?.cancel()
-        pendingExternalInstall?.let(installerManager::cleanup)
+        // A running monitor is left alone: it ends by itself, and revoking the external
+        // installer's access now would break the installation the user is still going through
     }
+
+    /**
+     * Launches install work that must outlive the screen. The system keeps installing after the
+     * user walks away, and a result left unrecorded shows the app as never patched.
+     */
+    private fun launchDetached(block: suspend CoroutineScope.() -> Unit): Job =
+        applicationScope.launch(Dispatchers.Main.immediate, block = block)
 
     /**
      * Start installation process using user's preferred installer or prompt for selection.
      *
      * @param allowSignatureMismatch Skips the signature pre-check and lets the platform decide,
      * for rooted devices where a module removes the signature verification.
+     * @param askInstaller Whether the installer prompt may come up, which an install started on
+     * its own after patching skips for the default installer.
      */
     fun install(
         outputFile: File,
         originalPackageName: String,
         onPersistApp: suspend (String, InstallType) -> Boolean,
         autoUninstallOnConflict: Boolean = false,
-        allowSignatureMismatch: Boolean = false
+        allowSignatureMismatch: Boolean = false,
+        askInstaller: Boolean = true
     ) {
         // A second tap lands before the first one's checks report Installing
         if (installState is InstallState.Installing || installStart?.isActive == true) return
@@ -221,14 +230,14 @@ class InstallViewModel(
         pendingAutoUninstallOnConflict = autoUninstallOnConflict
         pendingAllowSignatureMismatch = allowSignatureMismatch
 
-        installStart = viewModelScope.launch {
+        installStart = launchDetached {
             // Check if we should prompt for installer selection
-            val shouldPrompt = prefs.promptInstallerOnInstall.get()
+            val shouldPrompt = askInstaller && prefs.promptInstallerOnInstall.get()
 
             if (shouldPrompt && oneTimeInstallerToken == null) {
                 // Show installer selection dialog
                 showInstallerSelectionDialog = true
-                return@launch
+                return@launchDetached
             }
 
             installState = InstallState.Installing()
@@ -248,7 +257,7 @@ class InstallViewModel(
                     if (pm.getVersionCode(packageInfo) < pm.getVersionCode(existingInfo)) {
                         Log.i(TAG, "Version downgrade detected - showing conflict")
                         installState = InstallState.Conflict(targetPackageName)
-                        return@launch
+                        return@launchDetached
                     }
                     // Check signature mismatch before launching the installer - avoids
                     // INSTALL_FAILED_UPDATE_INCOMPATIBLE from the system PackageInstaller
@@ -260,7 +269,7 @@ class InstallViewModel(
                             if (!tryAutoUninstallSignatureConflict(targetPackageName)) {
                                 Log.i(TAG, "Signature mismatch detected for $targetPackageName - showing conflict")
                                 installState = signatureConflictState(targetPackageName)
-                                return@launch
+                                return@launchDetached
                             }
                         }
                     }
@@ -310,7 +319,7 @@ class InstallViewModel(
                             )
                             installState = InstallState.Ready
                             selectedInstallerToken = null
-                            return@launch
+                            return@launchDetached
                         }
                         InstallerManager.Token.AutoSaved,
                         InstallerManager.Token.RootPlayStore -> {
@@ -322,7 +331,7 @@ class InstallViewModel(
                             )
                             installState = InstallState.Ready
                             selectedInstallerToken = null
-                            return@launch
+                            return@launchDetached
                         }
                         else -> {
                             // For other installers, proceed with fallback
@@ -601,15 +610,15 @@ class InstallViewModel(
         }
 
         // Monitor for install completion
-        externalInstallTimeoutJob = viewModelScope.launch {
+        externalInstallTimeoutJob = launchDetached {
             val timeoutAt = System.currentTimeMillis() + EXTERNAL_INSTALL_TIMEOUT_MS
             while (true) {
-                if (pendingExternalInstall != plan) return@launch
+                if (pendingExternalInstall != plan) return@launchDetached
 
                 val info = withContext(Dispatchers.IO) { pm.getPackageInfo(plan.expectedPackage) }
                 if (info != null && isUpdatedSinceBaseline(info)) {
                     handleExternalInstallSuccess(plan.expectedPackage)
-                    return@launch
+                    return@launchDetached
                 }
 
                 if (System.currentTimeMillis() >= timeoutAt) break
@@ -679,14 +688,14 @@ class InstallViewModel(
             return
         }
 
-        externalInstallTimeoutJob = viewModelScope.launch {
+        externalInstallTimeoutJob = launchDetached {
             val timeoutAt = System.currentTimeMillis() + EXTERNAL_INSTALL_TIMEOUT_MS
             while (true) {
-                if (pendingIntentFallbackPackage == null) return@launch
+                if (pendingIntentFallbackPackage == null) return@launchDetached
                 val info = withContext(Dispatchers.IO) { pm.getPackageInfo(targetPackageName) }
                 if (info != null && isUpdatedSinceBaseline(info)) {
                     handleIntentFallbackSuccess(targetPackageName)
-                    return@launch
+                    return@launchDetached
                 }
                 if (System.currentTimeMillis() >= timeoutAt) break
                 delay(INSTALL_MONITOR_POLL_MS)
@@ -707,15 +716,17 @@ class InstallViewModel(
         externalInstallBaseline = null
         externalInstallStartTime = null
         externalPackageWasPresentAtStart = false
-        pendingPersistCallback?.let { callback ->
-            // Detached from viewModelScope: the broadcast may arrive after the VM is
-            // cleared, so persistence must run on a scope that outlives it
-            applicationScope.launch {
-                runCatching { callback(packageName, installType) }
-                    .onFailure { Log.e(TAG, "Failed to persist app data", it) }
-            }
-        }
+        persistInstall(packageName, installType)
         handleInstallSuccess(packageName)
+    }
+
+    /** Records an install that a package broadcast or a monitor saw finish. */
+    private fun persistInstall(packageName: String, installType: InstallType) {
+        val callback = pendingPersistCallback ?: return
+        launchDetached {
+            runCatching { callback(packageName, installType) }
+                .onFailure { Log.e(TAG, "Failed to persist app data", it) }
+        }
     }
 
     private fun isUpdatedSinceBaseline(info: PackageInfo): Boolean {
@@ -752,17 +763,7 @@ class InstallViewModel(
             InstallType.DEFAULT
         }
 
-        // Detached from viewModelScope: the broadcast may arrive after the VM is cleared
-        pendingPersistCallback?.let { callback ->
-            applicationScope.launch {
-                try {
-                    callback(packageName, installType)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to persist app data", e)
-                }
-            }
-        }
-
+        persistInstall(packageName, installType)
         handleInstallSuccess(packageName)
         messages.show(R.string.installer_external_success, plan.installerLabel)
         return true
@@ -781,9 +782,9 @@ class InstallViewModel(
     ) {
         if (installState is InstallState.Installing) return
 
-        // Detached from viewModelScope: leaving the screen must not stop the install between
-        // writing the module and recording it, or the app runs a build the record does not know
-        applicationScope.launch(Dispatchers.Main.immediate) {
+        // Leaving the screen must not stop the install between writing the module and
+        // recording it, or the app runs a build the record does not know
+        launchDetached {
             currentInstallType = InstallType.MOUNT
             installState = InstallState.Installing()
             var recordCreated = false
@@ -792,24 +793,12 @@ class InstallViewModel(
                 val inputs = withContext(Dispatchers.IO) {
                     val patchedInfo = pm.getPackageInfo(outputFile)
                         ?: throw Exception("Failed to load application info")
-                    val inputCandidate = inputFile
-                        ?.takeIf { it.exists() }
-                        ?.let { file ->
-                            pm.getPackageInfo(file)?.let { MountStockCandidate(file, it) }
-                        }
-                    val savedOriginalCandidate = originalApkRepository.get(packageName)
-                        ?.filePath
-                        ?.let(::File)
-                        ?.takeIf { it.exists() }
-                        ?.let { file ->
-                            pm.getPackageInfo(file)?.let { MountStockCandidate(file, it) }
-                        }
+                    val savedOriginal = originalApkRepository.get(packageName)?.filePath?.let(::File)
 
                     MountInstallInputs(
                         patchedInfo = patchedInfo,
                         installedInfo = pm.getPackageInfo(packageName),
-                        inputCandidate = inputCandidate,
-                        savedOriginalCandidate = savedOriginalCandidate
+                        stockFiles = listOfNotNull(inputFile, savedOriginal).filter { it.exists() }.distinct()
                     )
                 }
 
@@ -822,13 +811,16 @@ class InstallViewModel(
                 fun PackageInfo.matchesPatched() =
                     packageName == this.packageName &&
                             versionName == patchedVersion
-                fun MountStockCandidate.matchesPatched() =
-                    info.matchesPatched()
 
-                val restorableStock = listOfNotNull(
-                    inputs.inputCandidate,
-                    inputs.savedOriginalCandidate
-                ).firstOrNull { it.matchesPatched() }
+                // Either file can be a split archive, read through its base module, so they are
+                // only read when the installed app does not already match
+                val restorableStock = if (stockInfo?.matchesPatched() == true) null else withContext(Dispatchers.IO) {
+                    inputs.stockFiles.firstNotNullOfOrNull { file ->
+                        rootInstaller.readStockInfo(file)
+                            ?.takeIf { it.matchesPatched() }
+                            ?.let { MountStockCandidate(file, it) }
+                    }
+                }
 
                 // Only worth waiting for when nothing here can restore the stock app, since the
                 // install below reinstalls a matching one and waits for it on its own
@@ -853,14 +845,14 @@ class InstallViewModel(
                             stockVersion ?: "unknown"
                         )
                     )
-                    return@launch
+                    return@launchDetached
                 }
 
                 // Check for base APK - app must be installed for mount
                 if (stockInfo == null) {
                     if (stockCandidate == null || packageInfo.splitNames.isNotEmpty()) {
                         handleInstallError(app.getString(R.string.installer_hint_generic))
-                        return@launch
+                        return@launchDetached
                     }
                 }
 
@@ -893,15 +885,7 @@ class InstallViewModel(
 
             } catch (e: Exception) {
                 Log.e(TAG, "Mount install failed", e)
-                val message = if (e is StockAppInstallException) {
-                    app.getString(R.string.mount_stock_restore_failed_message)
-                } else {
-                    app.getString(
-                        R.string.install_app_fail,
-                        e.simpleMessage() ?: e.javaClass.simpleName
-                    )
-                }
-                handleInstallError(message)
+                handleInstallError(mountFailureMessage(e))
 
                 // Cleanup on failure
                 try {
@@ -924,6 +908,36 @@ class InstallViewModel(
     /**
      * Mount a saved patched APK, restoring the matching original APK first when Morphe has it.
      */
+    /**
+     * Puts a mount another version replaced back from the copies its root module keeps, for an app
+     * whose saved builds are gone, see [RootInstaller.restoreFromModule].
+     */
+    fun restoreMountFromModule(packageName: String, version: String) {
+        if (installState is InstallState.Installing) return
+
+        launchDetached {
+            currentInstallType = InstallType.MOUNT
+            installState = InstallState.Installing()
+            try {
+                rootInstaller.restoreFromModule(packageName, version) { installState = InstallState.Installing(it) }
+                installState = InstallState.Installing(MountStage.MOUNTING)
+                rootInstaller.mount(packageName)
+                handleInstallSuccess(packageName)
+            } catch (e: Exception) {
+                // The module is kept, as it holds the only copies to try again from
+                Log.e(TAG, "Mount restore failed", e)
+                handleInstallError(mountFailureMessage(e))
+            }
+        }
+    }
+
+    private fun mountFailureMessage(e: Exception): String =
+        if (e is StockAppInstallException) {
+            app.getString(R.string.mount_stock_restore_failed_message)
+        } else {
+            app.getString(R.string.install_app_fail, e.simpleMessage() ?: e.javaClass.simpleName)
+        }
+
     fun installSavedMount(
         outputFile: File,
         packageName: String,

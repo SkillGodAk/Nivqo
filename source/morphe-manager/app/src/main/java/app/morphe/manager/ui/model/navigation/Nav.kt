@@ -52,6 +52,8 @@ data object Patcher : ComplexParameter<Patcher.ViewModelParams> {
      * @param selectedApp The APK to patch and where it came from.
      * @param selectedPatches The patches to apply, per source.
      * @param options The values configured for those patches, per source.
+     * @param sourceScope The sources the run was offered. What is saved for the app afterwards
+     *   is replaced for these alone, so a source held back keeps what it had.
      * @param targetPackageName The install this run is aimed at when that is a clone rather than
      *   the app's own, which is not something [selectedApp] can say.
      * @param allowIncompatible Whether patches outside the APK's version were offered, kept so
@@ -64,6 +66,7 @@ data object Patcher : ComplexParameter<Patcher.ViewModelParams> {
         val selectedApp: SelectedApp,
         val selectedPatches: PatchSelection,
         val options: @RawValue Options,
+        val sourceScope: Set<Int>,
         val targetPackageName: String? = null,
         val allowIncompatible: Boolean = false,
         val useMount: Boolean = false

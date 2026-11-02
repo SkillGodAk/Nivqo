@@ -71,7 +71,7 @@ suspend fun PagerState.turnTo(page: MainPage) {
 fun MainPagerScaffold(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
-    navigationCovered: Boolean = false,
+    navigationCovered: () -> Boolean = { false },
     swipeEnabled: Boolean = true,
     settingsIcon: ImageVector = MainPage.SETTINGS.icon,
     settingsDescription: String? = null,
@@ -80,11 +80,13 @@ fun MainPagerScaffold(
     page: @Composable (page: MainPage, bottomBarHeight: Dp) -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val current = MainPage.entries[pagerState.currentPage]
+    // The page on screen is read only where it is shown, since reading it here would compose the
+    // pager and every page in it again each time a turn passes halfway
+    val current = { MainPage.entries[pagerState.currentPage] }
     val select: (MainPage) -> Unit = { target ->
         scope.launch { pagerState.turnTo(target) }
     }
-    BackHandler(enabled = current != MainPage.APPS) { select(MainPage.APPS) }
+    ReturnToAppsOnBack(current = current, onReturn = { select(MainPage.APPS) })
 
     val items = MainPage.entries.map { target ->
         MainNavItem(
@@ -97,7 +99,6 @@ fun MainPagerScaffold(
             } ?: Modifier
         )
     }
-    val userScrollEnabled = swipeEnabled && !navigationCovered
     val pager: @Composable (Modifier, FocusRequester?, Dp) -> Unit = { pagerModifier, startFocus, bottomBarHeight ->
         // A remote steps off a page onto the navigation beside it, if any, never into the next page
         val pageFocus = rememberPagerPageFocus(startFocus)
@@ -105,7 +106,7 @@ fun MainPagerScaffold(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
-                userScrollEnabled = userScrollEnabled,
+                userScrollEnabled = swipeEnabled && !navigationCovered(),
                 key = { index -> MainPage.entries[index] }
             ) { index ->
                 Box(modifier = Modifier.fillMaxSize().then(pageFocus)) { page(MainPage.entries[index], bottomBarHeight) }
@@ -135,10 +136,11 @@ fun MainPagerScaffold(
                 bottomBar = {
                     // Removed rather than faded, as the pill floats over the docked bars and would take their taps
                     AnimatedVisibility(
-                        visible = !navigationCovered,
+                        visible = !navigationCovered(),
                         enter = Animations.fadeIn,
                         exit = Animations.fadeOut
                     ) {
+                        val currentPage = current()
                         CompositionLocalProvider(LocalBackdropHaze provides barHaze) {
                             FloatingPillBar(
                                 items = items.map { item ->
@@ -146,7 +148,7 @@ fun MainPagerScaffold(
                                         icon = item.icon,
                                         label = item.label,
                                         onClick = { select(item.page) },
-                                        selected = item.page == current,
+                                        selected = item.page == currentPage,
                                         contentDescription = item.contentDescription,
                                         modifier = item.modifier
                                     )
@@ -161,6 +163,12 @@ fun MainPagerScaffold(
             }
         }
     }
+}
+
+/** Back on a side page returns to the apps. A scope of its own, so a page change recomposes only this. */
+@Composable
+private fun ReturnToAppsOnBack(current: () -> MainPage, onReturn: () -> Unit) {
+    BackHandler(enabled = current() != MainPage.APPS, onBack = onReturn)
 }
 
 /** One page's entry on the navigation, as the pill and the sidebar both draw it. */
@@ -180,7 +188,7 @@ private class MainNavItem(
 @Composable
 private fun MainNavigationSidebar(
     items: List<MainNavItem>,
-    current: MainPage,
+    current: () -> MainPage,
     onSelect: (MainPage) -> Unit,
     currentFocus: FocusRequester,
     modifier: Modifier = Modifier
@@ -192,16 +200,17 @@ private fun MainNavigationSidebar(
             .padding(horizontal = Defaults.SpaceMedium, vertical = Defaults.SpaceExtraLarge),
         verticalArrangement = Arrangement.spacedBy(Defaults.SpaceMedium, Alignment.CenterVertically)
     ) {
+        val currentPage = current()
         items.forEach { item ->
             GlassButton(
                 icon = item.icon,
                 label = item.label,
                 contentDescription = item.contentDescription,
-                selected = item.page == current,
+                selected = item.page == currentPage,
                 onClick = { onSelect(item.page) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .then(if (item.page == current) Modifier.focusRequester(currentFocus) else Modifier)
+                    .then(if (item.page == currentPage) Modifier.focusRequester(currentFocus) else Modifier)
                     .then(item.modifier),
                 hapticFeedback = true,
                 showLabel = true

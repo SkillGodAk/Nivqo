@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.morphe.manager.R
 import app.morphe.manager.domain.bundles.BundleSourceType
 import app.morphe.manager.domain.bundles.BundledAppTarget
+import app.morphe.manager.domain.bundles.JsonPatchBundle
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.bundleAvatarUrl
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.ownerAvatarUrl
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.sourceType
@@ -40,6 +41,7 @@ import app.morphe.manager.domain.repository.SourceMuteRepository
 import app.morphe.manager.patcher.patch.PatchBundleInfo
 import app.morphe.manager.patcher.patch.PatchInfo
 import app.morphe.manager.ui.model.HomeAppItem
+import app.morphe.manager.ui.model.NewSourceOptions
 import app.morphe.manager.ui.model.SourceScope
 import app.morphe.manager.ui.screen.patcher.UnusableOptionPathsDialog
 import app.morphe.manager.ui.screen.settings.SettingsNavigation
@@ -66,9 +68,7 @@ import org.koin.core.parameter.parametersOf
 fun HomeDialogs(
     homeViewModel: HomeViewModel,
     storagePickerLauncher: () -> Unit,
-    openBundlePicker: () -> Unit,
     patchesItem: MutableState<HomeAppItem?>,
-    onSourceAdded: () -> Unit,
     settingsNavigation: SettingsNavigation
 ) {
     val scope = rememberCoroutineScope()
@@ -98,30 +98,6 @@ fun HomeDialogs(
         }
     }
 
-    // Add bundle dialog
-    DialogHost(visible = homeViewModel.showAddSourceDialog) {
-        AddSourceDialog(
-            onDismiss = {
-                homeViewModel.showAddSourceDialog = false
-                homeViewModel.clearPickedBundles()
-            },
-            onRemoteSubmit = { urls, chooseApps ->
-                homeViewModel.showAddSourceDialog = false
-                homeViewModel.createRemoteSources(urls, chooseApps)
-                onSourceAdded()
-            },
-            onLocalSubmit = { chooseApps ->
-                homeViewModel.showAddSourceDialog = false
-                homeViewModel.importPickedBundles(chooseApps)
-                onSourceAdded()
-            },
-            onLocalPick = openBundlePicker,
-            onLocalRemove = homeViewModel::unpickBundle,
-            localFiles = homeViewModel.pickedBundleImports,
-            onCheckUrl = homeViewModel.patchBundleRepository::checkRemoteUrl
-        )
-    }
-
     // Deep link: Add source confirmation dialog
     DialogHost(target = homeViewModel.deepLinkPendingSource) { source ->
         val sourceMuteRepository: SourceMuteRepository = koinInject()
@@ -142,7 +118,7 @@ fun HomeDialogs(
             appGradientColors = app?.let { appMetadata[it.packageName]?.gradientColors },
             isAdded = existingUid != null,
             isAppLeftOut = app != null && existingUid != null && existingUid in keptFrom[app.packageName].orEmpty(),
-            onConfirm = { chooseApps -> homeViewModel.confirmDeepLinkSource(chooseApps) },
+            onConfirm = homeViewModel::confirmDeepLinkSource,
             onDismiss = { homeViewModel.dismissDeepLinkSource() }
         )
     }
@@ -153,7 +129,7 @@ fun HomeDialogs(
             manifest = pending.manifest,
             fileName = pending.fileName,
             check = pending.check,
-            onConfirm = { chooseApps -> homeViewModel.confirmMppImport(chooseApps) },
+            onConfirm = homeViewModel::confirmMppImport,
             onDismiss = { homeViewModel.dismissMppImport() }
         )
     }
@@ -226,12 +202,14 @@ fun HomeDialogs(
                 homeViewModel.getBundleDisplayName(uid) ?: uid.toString()
             }
         }
+        val launchPackage = remember(item) { homeViewModel.launchablePackage(item) }
         AppPatchesDialog(
             item = item,
             patchesByBundle = patchesByBundle.orEmpty(),
             bundleNames = bundleNames,
             isLoading = patchesByBundle == null,
-            onDismiss = { patchesItem.value = null }
+            onDismiss = { patchesItem.value = null },
+            onOpenApp = launchPackage?.let { { homeViewModel.openApp(it) } }
         )
     }
 }
@@ -323,16 +301,15 @@ private fun DialogHostScope.PatchFlowDialog(
         // Dialog 3: File picker prompt
         HomeDialog.FilePickerPrompt -> {
             session ?: return
-            val isOtherApps = session.packageName == null
 
             FilePickerPromptDialog(
                 appName = session.appName,
                 packageName = session.packageName,
-                isOtherApps = isOtherApps,
                 isLoadingInstalledApps = flow.loadingInstalledApps,
                 onDismiss = flow::backFromApkSource,
                 onOpenFilePicker = storagePickerLauncher,
-                onUseInstalledApp = if (isOtherApps) flow::loadInstalledAppsForPicker else null
+                // Only universal patches, with no package of their own, can take any installed app
+                onUseInstalledApp = if (session.packageName == null) flow::loadInstalledAppsForPicker else null
             )
         }
 
@@ -434,7 +411,6 @@ private fun DialogHostScope.PatchFlowDialog(
                         options = selection.options,
                         totalSelectedCount = selection.totalSelectedCount,
                         newPatches = selection.newPatches,
-                        savedPatches = selection.savedPatches,
                         lockStateOf = selection::lockState,
                         holdsUniversalPatches = selection::selectAllHoldsUniversal
                     ),
@@ -443,15 +419,13 @@ private fun DialogHostScope.PatchFlowDialog(
                         onPatchToggle = selection::toggle,
                         onSelectAll = selection::selectAll,
                         onDeselectAll = selection::deselectAll,
-                        onResetToDefault = selection::resetToDefault,
-                        onRestoreSaved = selection::restoreSaved,
-                        onCopyFromBundle = selection::openCopy,
                         onOptionChange = selection::updateOption,
                         onResetOptions = selection::resetOptions
                     ),
                     usesPrerelease = { homeViewModel.getPatchSource(it)?.usesPrerelease == true },
                     hiddenSourceCount = selection.hiddenSources,
                     onShowHiddenSources = selection::revealHiddenSources,
+                    selectionPanel = expertSelectionPanel(selection),
                     onDismiss = flow::dismissExpertMode,
                     onProceed = flow::proceedExpertMode
                 )
@@ -465,25 +439,6 @@ private fun DialogHostScope.PatchFlowDialog(
                         canClearPaths = true,
                         onClearPaths = flow::proceedExpertModeWithoutUnreadablePaths,
                         onDismiss = selection::dismissUnreadablePaths
-                    )
-                }
-
-                val copyTarget = selection.bundles
-                    .firstOrNull { it.uid == selection.copy.targetBundleUid }
-                    ?.let { targetBundle ->
-                        CopySelectionTarget(
-                            packageName = selectedApp.packageName,
-                            bundleUid = targetBundle.uid,
-                            bundleName = targetBundle.name,
-                            appDisplayName = targetBundle.displayName ?: selectedApp.packageName
-                        )
-                    }
-                DialogHost(target = copyTarget) { target ->
-                    CopySelectionFromBundleDialog(
-                        target = target,
-                        candidates = selection.copy.candidates,
-                        onConfirm = selection::applyCopy,
-                        onDismiss = selection.copy::close
                     )
                 }
             }
@@ -600,9 +555,10 @@ fun DialogHostScope.MeteredPatchingDialog(
  * a file opened in a file manager. Laid out like the result of a patching run: [icon] over
  * [heading] and the [question], then [details] on what would be added.
  *
- * [offersChooseApps] asks under the details whether to open the app list once the source has
- * loaded, for a source added whole. [warns] says to trust the source, which one already added was
- * trusted for. [confirmText] and [confirmIcon] name what confirming does, adding by default.
+ * Under the details it asks what the source is added with, [offersChooseApps] and
+ * [offersPrerelease] where each applies, see [NewSourceOptionsGroup]. [warns] says to trust the
+ * source, which one already added was trusted for. [confirmText] and [confirmIcon] name what
+ * confirming does, adding by default.
  */
 @Composable
 private fun DialogHostScope.AddSourceConfirmDialog(
@@ -612,21 +568,22 @@ private fun DialogHostScope.AddSourceConfirmDialog(
     icon: @Composable () -> Unit,
     details: (@Composable () -> Unit)?,
     offersChooseApps: Boolean,
+    offersPrerelease: Boolean,
     warns: Boolean,
-    onConfirm: (chooseApps: Boolean) -> Unit,
+    onConfirm: (NewSourceOptions) -> Unit,
     onDismiss: () -> Unit,
     confirmText: String = stringResource(R.string.add),
     confirmIcon: ImageVector = MaterialSymbols.Rounded.Extension,
     confirmEnabled: Boolean = true
 ) {
-    var chooseApps by rememberSaveable { mutableStateOf(false) }
+    var options by rememberSaveable { mutableStateOf(NewSourceOptions()) }
 
     AppDialog(
         onDismissRequest = onDismiss,
         footer = {
             AppDialogButtonRow(
                 primaryText = confirmText,
-                onPrimaryClick = { onConfirm(chooseApps) },
+                onPrimaryClick = { onConfirm(options) },
                 primaryIcon = confirmIcon,
                 primaryEnabled = confirmEnabled,
                 secondaryText = stringResource(android.R.string.cancel),
@@ -674,14 +631,13 @@ private fun DialogHostScope.AddSourceConfirmDialog(
 
             details?.invoke()
 
-            // A choice about what happens next, so it stays out of what is added
-            if (offersChooseApps) {
-                SelectionCheckRow(
-                    text = stringResource(R.string.sources_dialog_choose_apps_description),
-                    checked = chooseApps,
-                    onCheckedChange = { chooseApps = it }
-                )
-            }
+            // Choices about what happens next, so they stay out of what is added
+            NewSourceOptionsGroup(
+                options = options,
+                onOptionsChange = { options = it },
+                offersChooseApps = offersChooseApps,
+                offersPrerelease = offersPrerelease
+            )
 
             if (warns) {
                 // A line rather than a card, so it reads as a reminder and not as a second question
@@ -781,17 +737,16 @@ fun DialogHostScope.DeepLinkAddSourceDialog(
     appGradientColors: List<Color>?,
     isAdded: Boolean,
     isAppLeftOut: Boolean,
-    onConfirm: (chooseApps: Boolean) -> Unit,
+    onConfirm: (NewSourceOptions) -> Unit,
     onDismiss: () -> Unit
 ) {
     val bringsAppBack = scope is SourceScope.App && isAdded
     // Links reach here for a repository only, which reads as owner/repo
     val repository = remoteLinkTitle(url)
     val patchBundleRepository: PatchBundleRepository = koinInject()
+    val endpoint = remember(url) { runCatching { patchBundleRepository.normalizeRemoteBundleUrl(url) }.getOrNull() }
     // The picture a source ships beside its bundle, as an added source shows it
-    val bundlePicture = remember(url) {
-        runCatching { patchBundleRepository.normalizeRemoteBundleUrl(url) }.getOrNull()?.let(::bundleAvatarUrl)
-    }
+    val bundlePicture = endpoint?.let(::bundleAvatarUrl)
 
     AddSourceConfirmDialog(
         heading = name ?: repository.substringAfter('/'),
@@ -855,6 +810,8 @@ fun DialogHostScope.DeepLinkAddSourceDialog(
             }
         },
         offersChooseApps = scope == SourceScope.Whole,
+        // A source already added keeps the channel it is on
+        offersPrerelease = !isAdded && endpoint != null && JsonPatchBundle.supportsPrerelease(endpoint),
         warns = !bringsAppBack,
         onConfirm = onConfirm,
         onDismiss = onDismiss
@@ -884,7 +841,7 @@ private fun DeepLinkScopeRow(
  * Confirmation dialog shown when a .mpp file is opened from a file manager, headed by the name its
  * manifest gives, or the file's while it is read.
  *
- * As in the add source dialog, a file that [check] finds to be another version of a local source
+ * As in the add source panel, a file that [check] finds to be another version of a local source
  * updates it, and one already added has nothing to confirm.
  */
 @Composable
@@ -892,7 +849,7 @@ fun DialogHostScope.MppImportDialog(
     manifest: MppManifest?,
     fileName: String?,
     check: LocalFileCheck?,
-    onConfirm: (chooseApps: Boolean) -> Unit,
+    onConfirm: (NewSourceOptions) -> Unit,
     onDismiss: () -> Unit
 ) {
     val versionLabel = stringResource(R.string.version)
@@ -950,6 +907,8 @@ fun DialogHostScope.MppImportDialog(
         },
         // Shown while the file is read too, as most files opened add a source
         offersChooseApps = check == null || check is LocalFileCheck.New,
+        // A file has no branch to switch
+        offersPrerelease = false,
         warns = !isAdded,
         onConfirm = onConfirm,
         onDismiss = onDismiss,

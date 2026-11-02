@@ -30,6 +30,10 @@ import app.morphe.manager.data.room.selection.PatchSelection
 import app.morphe.manager.data.room.selection.SeenPatch
 import app.morphe.manager.data.room.selection.SelectedPatch
 import app.morphe.manager.data.room.selection.SelectionDao
+import app.morphe.manager.data.room.selection.SelectionSet
+import app.morphe.manager.data.room.selection.SelectionSetDao
+import app.morphe.manager.data.room.selection.SelectionSetOption
+import app.morphe.manager.data.room.selection.SelectionSetPatch
 import app.morphe.manager.data.room.selection.SourceAppList
 import app.morphe.manager.data.room.selection.SourceMuteDao
 import kotlin.random.Random
@@ -42,6 +46,9 @@ import kotlin.random.Random
         SeenPatch::class,
         AppSourceMute::class,
         SourceAppList::class,
+        SelectionSet::class,
+        SelectionSetPatch::class,
+        SelectionSetOption::class,
         InstalledApp::class,
         AppliedPatch::class,
         OptionGroup::class,
@@ -49,13 +56,14 @@ import kotlin.random.Random
         OriginalApk::class,
         ApkSignature::class
     ],
-    version = 18
+    version = 19
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun patchBundleDao(): PatchBundleDao
     abstract fun selectionDao(): SelectionDao
     abstract fun sourceMuteDao(): SourceMuteDao
+    abstract fun selectionSetDao(): SelectionSetDao
     abstract fun installedAppDao(): InstalledAppDao
     abstract fun optionDao(): OptionDao
     abstract fun originalApkDao(): OriginalApkDao

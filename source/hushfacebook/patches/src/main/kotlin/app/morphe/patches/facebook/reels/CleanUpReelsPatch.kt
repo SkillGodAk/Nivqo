@@ -30,6 +30,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val DECLUTTER = "$EXTENSION_PACKAGE/reels/ReelDeclutter;"
@@ -44,7 +45,8 @@ private const val PATCH = "Clean up Reels"
 
 /**
  * Takes three things off the Reels viewer, each behind its own switch, all on once the patch is in:
- * the chips under a reel that prompt you to make something or promote something, the Follow button
+ * the chips under a reel that prompt you to make something or promote something (and with them the
+ * "Made with Edits" line under the caption, #314, see ReelEditsLabel.kt), the Follow button
  * in the author row (with the Following button an author you already follow gets there), and the
  * comment and friends' reaction previews in the footer. A fourth switch, off until it's turned on,
  * takes the "Threads you might like" card out from between reels (see ReelMidCards.kt), a fifth,
@@ -63,7 +65,17 @@ private const val PATCH = "Clean up Reels"
  * the Reels tab draws it in on its own draw nothing (#200, see ReelAnchors.kt). A fourteenth, also
  * off, keeps a video that's slow to load from showing "This is taking a while. Try checking your
  * network connection." (#222, see ReelSlowConnection.kt). A fifteenth, also off, plays whole reels
- * in the feed's Reels row instead of the short clip each tile repeats (#228, see FeedReelPreviews.kt). With Debug
+ * in the feed's Reels row instead of the short clip each tile repeats (#228, see FeedReelPreviews.kt). A
+ * sixteenth, also off, keeps the sidebar's Comment button on a reel whose comments are turned off, so
+ * they can still be read (#299, see ReelCommentButton.kt). A seventeenth, also off, leaves the Subscribe
+ * pill some authors get in place of Follow out of a full-screen video's author row (#291, see
+ * ReelSubscribeButton.kt). An eighteenth, also off, takes Search and the button beside it off the
+ * top of a video or reel opened full screen (#311, see ViewerTopBar.kt). A nineteenth, Burn-in
+ * guard, also off, fades the buttons, caption and bars around a video filling the screen once
+ * they're left alone (#288). It has no hook here: the extension's BurnInGuard watches the activity
+ * in front from SettingsEntry while this patch is in. A twentieth, also off, shows when a reel or
+ * full-screen video was posted under its author, a line Facebook builds behind a server switch
+ * that's off for most accounts (#296, see ReelPostDate.kt). With Debug
  * logging on, it also reports whether a reel that ends
  * is on the player the Reels auto-advance controller holds (see ReelBinding.kt), with no switch.
  *
@@ -80,7 +92,7 @@ val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides clutter on reels, such as the Follow button, comment previews, Remix and Use template " +
         "buttons and Threads cards between reels, so more of the video shows, and can play each reel once " +
-        "instead of over and over, keep its original audio instead of a Meta AI dub, drop the search suggestions under the caption, over the comments and at the top of a profile's reels, or hide the like, comment and share counts, the Like, Comment, Share, Save or speaker button, or the line naming the reel's sound. It can also open a video you tap in the feed on its own, with no reels after it, stop the \"This is taking a while\" message when a video is slow to load, and play whole reels in the feed's Reels row instead of the same second over and over. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
+        "instead of over and over, keep its original audio instead of a Meta AI dub, drop the search suggestions under the caption, over the comments and at the top of a profile's reels, or hide the like, comment and share counts, the Like, Comment, Share, Save or speaker button, or the line naming the reel's sound. It can also open a video you tap in the feed on its own, with no reels after it, stop the \"This is taking a while\" message when a video is slow to load, and play whole reels in the feed's Reels row instead of the same second over and over, or keep the Comment button on reels with comments turned off so you can read them, and hide the one-tap Subscribe button some authors get instead of Follow, or Search and the button beside it at the top of a video you open, and show when a reel or video was posted. Its Burn-in guard can fade a reel's buttons, caption and bars when you leave them alone, so they don't burn into the screen. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
 ) {
     category("Reels")
     dependsOn(settingsPatch)
@@ -89,14 +101,20 @@ val cleanUpReelsPatch = bytecodePatch(
 
     execute {
         filterChips()
+        // #314: and "Made with Edits" under the caption, which isn't one of the chips.
+        hideEditsLabel()
         // #200: the Reels tab draws the audio line in a row of its own, past the chip list.
         hideReelsTabAudioLine()
         hideFollowButtons()
         skipFooterQueries()
         hideThreadsCards()
         startReelsInCleanMode()
+        // #304: and its button over a clean reel switches Clean mode off and back on.
+        toggleReelCleanMode()
         // #148: the audio language the player picks a video's sound by.
         hookOriginalAudio()
+        // #148: and the manifest parser's dubbing reads, which skip that language when Facebook's Languages menu is on.
+        hookOriginalAudioTracks()
         // #173: the search pill under a reel's caption.
         hideSearchPill()
         // #197: the same switch, for the search pill over a reel's comments.
@@ -107,6 +125,14 @@ val cleanUpReelsPatch = bytecodePatch(
         hideReelCounts()
         // #190, #243, #265: Like, Comment, Share, Save and the direct WhatsApp button, skipped as their icon types come up.
         hideReelSaveButton()
+        // #299: the Comment button on a reel whose comments are turned off.
+        showReelCommentButton()
+        // #296: the post date under a reel's author, behind a server switch.
+        showReelPostDate()
+        // #291: the Subscribe pill beside a video's author, in the viewer's row and wherever the shared builder's lands.
+        hideSubscribePill()
+        // #311: Search and the button beside it at the top of the full-screen player, by the bar's id.
+        hideViewerTopButtons()
         // #190: the speaker button under the sidebar, from whichever place a server flag picks:
         // the video controls, through Facebook's own check for it, or the footer, through its null check.
         hideReelSoundButton()
@@ -224,7 +250,7 @@ private fun BytecodePatchContext.hideFollowButtons() {
 
     val author = authorRow(readers, dumper)
         ?: throw PatchException("$PATCH: no single reader of the Follow getter holds \"$AUTHOR_COMPONENT\"")
-    val asked = followCheck(author) { call -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
+    val asked = followCheck(author) { call -> classDefByOrNull(call.definingClass)?.let { resolveCalled(it, call) } }
     val check = asked.check ?: throw PatchException("$PATCH: ${asked.problem}")
 
     val method = mutableClassDefByOrNull(getter.definingClass)?.methods?.singleOrNull {
@@ -240,24 +266,37 @@ private fun BytecodePatchContext.hideFollowButtons() {
  * lambda rather than one getter: each read answers true when the switch is on, and the author row,
  * the one method holding [AUTHOR_COMPONENT], asks the Follow check as before.
  */
-private fun BytecodePatchContext.hideFollowButtonsByFlags(flags: List<MethodReference>) {
+private fun BytecodePatchContext.hideFollowButtonsByFlags(flags: List<FollowFlag>) {
     val authors = classDefByStrings(AUTHOR_COMPONENT, StringComparisonType.EQUALS).flatMap { methodsHolding(it, AUTHOR_COMPONENT) }
     val author = authors.singleOrNull()
         ?: throw PatchException("$PATCH: expected one method holding \"$AUTHOR_COMPONENT\", found ${authors.size}")
-    val asked = followCheck(author) { call -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
+    val asked = followCheck(author) { call -> classDefByOrNull(call.definingClass)?.let { resolveCalled(it, call) } }
     val check = asked.check ?: throw PatchException("$PATCH: ${asked.problem}")
+    // Hooked in each lambda's invoke() by the flag's key, since 585 writes one flag's read into a switch with no method to hook.
     for (flag in flags) {
-        mutableClassDefBy(flag.definingClass).methods.first { it.sameSignatureAs(flag) }.returnTrueObjectWhen(HIDE_FOLLOWING_BUTTON)
+        val keyField = lambdaKeyField(classDefBy(flag.lambda))
+            ?: throw PatchException("$PATCH: ${flag.lambda}'s invoke() reads no key before its switch")
+        mutableClassDefBy(flag.lambda).methods.single {
+            it.name == "invoke" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/Object;" && it.implementation != null
+        }.returnTrueObjectForKeyWhen(keyField, flag.key, HIDE_FOLLOWING_BUTTON)
     }
     mutableClassDefBy(check.definingClass).methods.first { it.sameSignatureAs(check) }.returnFalseWhen(HIDE_FOLLOW_BUTTON)
 }
 
-/** Asks [hook] first thing and answers a boxed true when it says so. v0 is free there, as in [answerWhen]. */
-internal fun MutableMethod.returnTrueObjectWhen(hook: String) {
-    requireLocals(PATCH, 1)
+/**
+ * Asks [hook] first thing and answers a boxed true when this lambda was made with [key] and the hook
+ * says so; any other key, or a no, runs Facebook's own switch. v0 and v1 are free at the first
+ * instruction, and the lambda reaches v0 through a 16-bit move, since `this` may sit above v15.
+ */
+internal fun MutableMethod.returnTrueObjectForKeyWhen(keyField: FieldReference, key: Int, hook: String) {
+    requireLocals(PATCH, 2)
     addInstructionsWithLabels(
         0,
         """
+            move-object/from16 v0, p0
+            iget v0, v0, ${keyField.definingClass}->${keyField.name}:I
+            const v1, $key
+            if-ne v0, v1, :facebooks_answer
             invoke-static { }, $hook
             move-result v0
             if-eqz v0, :facebooks_answer

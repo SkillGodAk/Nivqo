@@ -33,12 +33,14 @@ import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.rounded.*
 import kotlinx.collections.immutable.ImmutableList
 import kotlin.math.roundToInt
+import kotlin.reflect.KClass
+import kotlin.reflect.KType
 
 /**
  * Represents the resolved UI kind of patch option.
  * Used to drive an exhaustive when-expression in [PatchOptionEditor].
  */
-private sealed interface OptionKind {
+internal sealed interface OptionKind {
     data object StringList      : OptionKind
     data object Color           : OptionKind
     data object PathWithPresets : OptionKind
@@ -72,7 +74,7 @@ private sealed interface OptionKind {
  * Resolves the [OptionKind] for a given [option] and its current [value].
  * All type-detection heuristics live here, keeping the UI when-expression clean and exhaustive.
  */
-private fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
+internal fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
     // Typed options dispatch to their dedicated picker Kind. Untyped string options
     // fall through to the heuristics below and render with the classic text field.
     option.explicitKind?.let { kind ->
@@ -92,13 +94,13 @@ private fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
         if (explicit != null) return explicit
     }
 
-    val t        = option.type.toString()
-    val isArray  = t.contains("Array")
-    val isString = t.contains("String") && !isArray
+    val type     = option.type
+    val isArray  = type.mentions { it.java.isArray }
+    val isString = type.mentions(String::class) && !isArray
 
     return when {
         // List<String> free-form comma-separated input
-        t.contains("List") && t.contains("String") -> OptionKind.StringList
+        type.mentions(List::class) && type.mentions(String::class) -> OptionKind.StringList
 
         // Color: string whose key/title hints "color" or value looks like a color literal
         isString && (
@@ -143,13 +145,13 @@ private fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
         isString -> OptionKind.StringText
 
         // Boolean toggle
-        t.contains("Boolean") -> OptionKind.BooleanToggle
+        type.mentions(Boolean::class) -> OptionKind.BooleanToggle
 
         // Integer / Long numeric input
-        (t.contains("Int") || t.contains("Long")) && !isArray -> OptionKind.IntLong
+        (type.mentions(Int::class) || type.mentions(Long::class)) && !isArray -> OptionKind.IntLong
 
         // Float / Double decimal input
-        (t.contains("Float") || t.contains("Double")) && !isArray -> OptionKind.FloatDouble
+        (type.mentions(Float::class) || type.mentions(Double::class)) && !isArray -> OptionKind.FloatDouble
 
         // Array: dropdown driven by presets
         isArray -> OptionKind.ArrayDropdown
@@ -158,6 +160,18 @@ private fun resolveOptionKind(option: Option<*>, value: Any?): OptionKind {
         else -> OptionKind.StringText
     }
 }
+
+/**
+ * Whether this type or one of its type arguments, at any depth, is a class [predicate] accepts.
+ * Asks the classifiers rather than the name of the type, which reads differently without full
+ * Kotlin reflection.
+ */
+private fun KType.mentions(predicate: (KClass<*>) -> Boolean): Boolean =
+    (classifier as? KClass<*>)?.let(predicate) == true ||
+            arguments.any { argument -> argument.type?.mentions(predicate) == true }
+
+/** Whether this type or one of its type arguments, at any depth, is [kClass]. */
+private fun KType.mentions(kClass: KClass<*>) = mentions { it == kClass }
 
 /**
  * A stored range option value read back as a range. Range options hold a two element list,

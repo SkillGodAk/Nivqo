@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import app.morphe.extension.facebook.navigation.MarketplaceFilterButton;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.facebook.settings.SettingsStatus;
@@ -21,6 +22,7 @@ import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.DiagnosticCategory;
 import app.morphe.extension.shared.diagnostics.FeedFilterCounters;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.HushfacebookPause;
 
 /**
  * What the Hide sponsored Marketplace listings patch does to the requests Marketplace's feed sends.
@@ -54,7 +56,9 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * query brings the ads back among the listings. So the answers of Marketplace's search queries are
  * read on their way back, where the module's Tigon callbacks hand the text to JavaScript ({@link
  * #responsePiece}, {@link #responseWhole}, and {@link #responseEnd} for what still waits when an
- * answer in pieces ends), and {@link MarketplaceSearchAds} takes the ads out.
+ * answer in pieces ends), and {@link MarketplaceSearchAds} takes the ads out. A listing page's
+ * answer goes through the same hooks to {@link MarketplaceListingAge}, which says when the listing
+ * went up.
  *
  * <p>It fails open: with the patch not in the build, the switch off, Hushfacebook paused, the
  * settings not ready yet, a body it can't read, or any failure in here, the request is Facebook's
@@ -131,8 +135,14 @@ public final class MarketplaceAdFilter {
     /** Where the response hooks report under the patch's family. */
     static final String SEARCH_ANSWER = "Marketplace search answer";
 
+    /** Where the listing date reports under the patch's family. */
+    static final String LISTING_DATE = "Marketplace listing date";
+
     /** Search answers being read, by the Networking module's record of their request. */
     private static final Map<Object, MarketplaceSearchAds.Answer> answers = new WeakHashMap<>();
+
+    /** Listing page answers being read, the same way; null for one that goes on unread. */
+    private static final Map<Object, MarketplaceListingAge.Answer> listingAnswers = new WeakHashMap<>();
 
     /** A body longer than this is sent as it is, unread. Relay's are a few kilobytes. */
     static final int MAX_BODY_CHARS = 512 * 1024;
@@ -202,6 +212,18 @@ public final class MarketplaceAdFilter {
                 log("held back " + query + ", " + heldBack + ".");
                 return null;
             }
+            if (searchQuery(RELAY + query) != null) {
+                // Every search query has its text rewritten alike, so none of them tells Facebook a
+                // text the others don't. Only a page of results puts the button up.
+                if (advancedSearch()) {
+                    body = MarketplaceSearchSyntax.request(query, body);
+                    if (resultsQuery(query) && Settings.MARKETPLACE_FILTERS_BUTTON.get()) {
+                        MarketplaceFilterButton.searchSeen();
+                    }
+                }
+            } else if (listingQuery(query)) {
+                MarketplaceFilterButton.listingSeen();
+            }
             Rewrite rewrite = skipAds(body, on);
             if (rewrite.body != body) FeedFilterCounters.removed(ROUTE, 1, SKIPPED);
             log(query + " " + rewrite.note);
@@ -250,6 +272,7 @@ public final class MarketplaceAdFilter {
         try {
             if (piece == null || request == null || !inBuild()) return piece;
             MarketplaceResponseDiagnostics.piece(piece, trackingName, request);
+            if (MarketplaceListingAge.listingPage(trackingName)) return listingPiece(piece, request);
             String query = searchQuery(trackingName);
             if (query == null) return piece;
             synchronized (answers) {
@@ -275,6 +298,14 @@ public final class MarketplaceAdFilter {
         try {
             if (text == null || !inBuild()) return text;
             MarketplaceResponseDiagnostics.whole(text, trackingName);
+            if (MarketplaceListingAge.listingPage(trackingName)) {
+                MarketplaceListingAge.Answer dated = newListingAnswer();
+                if (dated == null) return text;
+                Logger.printDebug(() -> "Listing date: reading a listing page's answer whole");
+                String read = dated.read(text);
+                String rest = dated.end();
+                return rest == null ? read : read + rest;
+            }
             String query = searchQuery(trackingName);
             if (query == null) return text;
             MarketplaceSearchAds.Answer answer = newAnswer(query);
@@ -283,6 +314,7 @@ public final class MarketplaceAdFilter {
             return rest.isEmpty() ? read : read + rest;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SPONSORED_MARKETPLACE, SEARCH_ANSWER, failure);
+            Logger.printDebug(() -> "Marketplace answer: reading it threw " + failure.getClass().getName());
             return text;
         }
     }
@@ -298,6 +330,11 @@ public final class MarketplaceAdFilter {
         try {
             if (request == null) return null;
             MarketplaceResponseDiagnostics.end(request);
+            MarketplaceListingAge.Answer dated;
+            synchronized (listingAnswers) {
+                dated = listingAnswers.remove(request);
+            }
+            if (dated != null) return dated.end();
             MarketplaceSearchAds.Answer answer;
             synchronized (answers) {
                 answer = answers.remove(request);
@@ -306,6 +343,58 @@ public final class MarketplaceAdFilter {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SPONSORED_MARKETPLACE, SEARCH_ANSWER, failure);
             return null;
+        }
+    }
+
+    /**
+     * [piece] of a listing page's answer, with its listings dated by the reading kept for [request].
+     * A failure passes on what waited and the piece as they came, and the rest of the answer unread.
+     */
+    private static String listingPiece(String piece, Object request) {
+        MarketplaceListingAge.Answer dated = null;
+        try {
+            synchronized (listingAnswers) {
+                if (listingAnswers.containsKey(request)) {
+                    dated = listingAnswers.get(request);
+                } else {
+                    dated = newListingAnswer();
+                    listingAnswers.put(request, dated);
+                    if (dated != null) Logger.printDebug(() -> "Listing date: reading a listing page's answer in pieces");
+                }
+            }
+            return dated == null ? piece : dated.read(piece);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SPONSORED_MARKETPLACE, LISTING_DATE, failure);
+            Logger.printDebug(() -> "Listing date: reading the answer threw " + failure.getClass().getName());
+            synchronized (listingAnswers) {
+                listingAnswers.put(request, null);
+            }
+            String rest = dated == null ? null : dated.end();
+            return rest == null ? piece : rest + piece;
+        }
+    }
+
+    /** A listing page answer's reading, or null when the listing date is switched off. */
+    @Nullable
+    private static MarketplaceListingAge.Answer newListingAnswer() {
+        HookStatus.invoked(FamilyNames.SPONSORED_MARKETPLACE);
+        RuntimeException failure = failNextForTests;
+        if (failure != null) {
+            failNextForTests = null;
+            throw failure;
+        }
+        if (!listingDate()) return null;
+        HookStatus.bound(FamilyNames.SPONSORED_MARKETPLACE, LISTING_DATE);
+        return new MarketplaceListingAge.Answer(System.currentTimeMillis());
+    }
+
+    /** Whether a listing's page says when it was listed. Out while paused or before the settings are ready. */
+    private static boolean listingDate() {
+        try {
+            return Utils.settingsReady() && !HushfacebookPause.isPaused() && Settings.MARKETPLACE_LISTING_DATE.get();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SPONSORED_MARKETPLACE, "listing date read", failure);
+            return false;
         }
     }
 
@@ -318,7 +407,22 @@ public final class MarketplaceAdFilter {
             throw failure;
         }
         HookStatus.bound(FamilyNames.SPONSORED_MARKETPLACE, SEARCH_ANSWER);
-        return new MarketplaceSearchAds.Answer(query, switchedOn());
+        return new MarketplaceSearchAds.Answer(query, switchedOn(),
+                advancedSearch() ? MarketplaceSearchSyntax.active() : null);
+    }
+
+    /**
+     * Whether Marketplace search reads its advanced syntax (see {@link MarketplaceSearchSyntax}).
+     * It has no switch of its own, since a search without quotes or minus words is left alone, but
+     * it stays out while Hushfacebook is paused or its settings aren't ready.
+     */
+    private static boolean advancedSearch() {
+        try {
+            return Utils.settingsReady() && !HushfacebookPause.isPaused() && Settings.MARKETPLACE_ADVANCED_SEARCH.get();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SPONSORED_MARKETPLACE, "advanced search read", failure);
+            return false;
+        }
     }
 
     /**
@@ -331,6 +435,20 @@ public final class MarketplaceAdFilter {
         String query = marketplaceQuery(trackingName);
         if (query == null || !query.contains(SEARCH) || query.contains(TYPEAHEAD) || query.endsWith(MUTATION)) return null;
         return query;
+    }
+
+    /**
+     * Whether [query] fetches a page of search results: the head of the results feed or its next
+     * page. Facebook also fetches these while a search is still being typed, so the button checks
+     * for the keyboard itself before it shows.
+     */
+    static boolean resultsQuery(String query) {
+        return searchQuery(RELAY + query) != null && query.contains("SearchFeed");
+    }
+
+    /** Whether [query] is one a listing's own page sends for its listing, which takes the Filters button down. */
+    static boolean listingQuery(String query) {
+        return query.startsWith("MarketplacePDP") || query.startsWith("MarketplaceProductDetailsPage");
     }
 
     /** The query's name when [trackingName] is a Relay query of Marketplace's, else null. */
@@ -655,9 +773,13 @@ public final class MarketplaceAdFilter {
     static void forget() {
         lines.set(0);
         MarketplaceSearchAds.forget();
+        MarketplaceSearchSyntax.forget();
         MarketplaceResponseDiagnostics.forget();
         synchronized (answers) {
             answers.clear();
+        }
+        synchronized (listingAnswers) {
+            listingAnswers.clear();
         }
     }
 }

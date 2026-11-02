@@ -16,7 +16,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderColors
@@ -254,23 +253,19 @@ fun ScaleSliderRow(
 @Composable
 fun RowScope.SliderResetAction(
     visible: Boolean,
-    contentDescription: String?,
+    contentDescription: String,
     onReset: () -> Unit
 ) {
     AnimatedVisibility(visible = visible) {
         Row {
             Spacer(Modifier.width(Defaults.SpaceSmall))
-            IconButton(
+            TooltipIconButton(
                 onClick = onReset,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = MaterialSymbols.Rounded.Restart_alt,
-                    contentDescription = contentDescription,
-                    modifier = Modifier.size(24.dp),
-                    tint = dialogTextColor()
-                )
-            }
+                icon = MaterialSymbols.Rounded.Restart_alt,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(40.dp),
+                tint = dialogTextColor()
+            )
         }
     }
 }

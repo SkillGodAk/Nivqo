@@ -1,8 +1,180 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s нөхцөл</item>
+        <item quantity="other">%s нөхцөл</item>
+    </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s сан</item>
+        <item quantity="other">%s сан</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s нөхцөлийн сонголт</item>
+        <item quantity="other">%s нөхцөлийн сонголт</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s элемент</item>
+        <item quantity="other">%s элемент</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%s файл сонгох</item>
+        <item quantity="other">%s файл сонгох</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%s эх сурвалж нэмэх</item>
+        <item quantity="other">%s эх сурвалж нэмэх</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">%s апп-ын патчийн эх сурвалж</item>
+        <item quantity="other">%s апп-ын патчийн эх сурвалж</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Энэ апп-ын %s эх сурвалж нуугдсан байна. Apps таб дээр апп-аа сонгоод Patch sources-ийг нээж буцаан сэргээгээрэй</item>
+        <item quantity="other">Энэ апп-ын %s эх сурвалж нуугдсан байна. Apps таб дээр апп-аа сонгоод Patch sources-ийг нээж буцаан сэргээгээрэй</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s эх сурвалж нуугдсан. Харахын тулд дарна уу</item>
+        <item quantity="other">%s эх сурвалж нуугдсан. Харахын тулд дарна уу</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s тохирох патч</item>
+        <item quantity="other">%s тохирох патч</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s эх сурвалж</item>
+        <item quantity="other">%s эх сурвалж</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s багц</item>
+        <item quantity="other">%s багц</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s багц</item>
+        <item quantity="other">%s багц</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s патч гүйцэтгэсэн</item>
+        <item quantity="other">%s патч гүйцэтгэсэн</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK файл</item>
+        <item quantity="other">%s APK файл</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s апп суулгасан</item>
+        <item quantity="other">%s апп суулгасан</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s апп холбогдлоо</item>
+        <item quantity="other">%s апп холбогдлоо</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s апп дахин суулгасан</item>
+        <item quantity="other">%s апп дахин суулгасан</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s апп устгасан</item>
+        <item quantity="other">%s апп устгасан</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s апп-ыг устгах уу?</item>
+        <item quantity="other">%s апп-ыг устгах уу?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s апп патлах бэлэн боллоо</item>
+        <item quantity="other">%s апп патлах бэлэн боллоо</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s апп нөөцлөлтөд байна</item>
+        <item quantity="other">%s апп нөөцлөлтөд байна</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s нууцлагдсан мэдэгдэл, харахын тулд дарна уу</item>
+        <item quantity="other">%s нууцлагдсан мэдэгдэл, харахын тулд дарна уу</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s апп-ыг дахин патлах боломжтой</item>
+        <item quantity="other">%s апп-ыг дахин патлах боломжтой</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s апп алгасав</item>
+        <item quantity="other">%s апп алгасав</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">Хадгалагдсан сонголтоос %s хуучирсан патчийг устгалаа</item>
+        <item quantity="other">Хадгалагдсан сонголтоос %s хуучирсан патчуудыг устгалаа</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s эх сурвалж суурилуулагдсан</item>
+        <item quantity="other">%s эх сурвалжууд суурилуулагдсан</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s апп нуугдсан</item>
+        <item quantity="other">%s аппууд нуугдсан</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s апп харагдаж байна</item>
+        <item quantity="other">%s аппууд харагдаж байна</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">%s апп-ыг ил гаргах уу?</item>
+        <item quantity="other">%s апп-ыг харуулах уу?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s нууцлагдсан апп</item>
+        <item quantity="other">%s нууцлагдсан аппууд</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s апп</item>
+        <item quantity="other">%s апп</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s сонгогдсон</item>
+        <item quantity="other">%s сонгогдсон</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Сонгосон багцаас %s патчийг хууллаа</item>
+        <item quantity="other">Сонгосон багцаас %s патчийг хууллаа</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s цөм</item>
+        <item quantity="other">%s цөм</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s функц</item>
+        <item quantity="other">%s функцүүд</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s засвар</item>
+        <item quantity="other">%s засвар</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s оновчлол</item>
+        <item quantity="other">%s оновчлолууд</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s өөрчлөлт</item>
+        <item quantity="other">%s өөрчлөлт</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d шинэ</item>
+        <item quantity="other">%1$s · %2$d шинэ</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s шинэ хувилбар</item>
+        <item quantity="other">%s шинэ хувилбар</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d холбоос идэвхжсэн</item>
+        <item quantity="other">%d холбоос идэвхжсэн</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d баталгаажаагүй холбоос</item>
+        <item quantity="other">%d баталгаажаагүй холбоос</item>
+    </plurals>
 </resources>

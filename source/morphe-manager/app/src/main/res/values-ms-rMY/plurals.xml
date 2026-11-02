@@ -4,14 +4,41 @@
         <item quantity="other">%s tampalan</item>
     </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="other">%s perpustakaan</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="other">%s pilihan tampalan</item>
     </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="other">%s item</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="other">Pilih %s fail</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="other">Tambah %s sumber</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="other">Sumber tampalan untuk %s aplikasi</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="other">%s sumber tersembunyi untuk aplikasi ini. Pilih aplikasi pada tab Aplikasi dan buka Sumber Tampalan untuk mengembalikannya</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="other">%s sumber tersembunyi. Ketik untuk tunjukkan</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="other">%s tampalan sepadan</item>
+    </plurals>
     <plurals name="source_count">
         <item quantity="other">%s sumber</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="other">%s set</item>
     </plurals>
     <plurals name="package_count">
         <item quantity="other">%s pakej</item>
@@ -22,14 +49,89 @@
     <plurals name="settings_system_apks_count">
         <item quantity="other">%s fail APK</item>
     </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="other">%s aplikasi dipasang</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="other">%s aplikasi dipasang</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="other">%s aplikasi dipasang semula</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="other">%s aplikasi dinyahpasang</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="other">Nyahpasang %s aplikasi?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="other">%s aplikasi sedia untuk ditampal</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="other">%s aplikasi dalam giliran untuk ditampal</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="other">%s pemberitahuan tersembunyi, ketik untuk menunjukkannya</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="other">%s aplikasi boleh ditampal semula</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="other">%s aplikasi dilangkau</item>
+    </plurals>
     <plurals name="home_app_info_repatch_cleaned_invalid_data">
         <item quantity="other">Keluarkan %s tampalan lapuk daripada pilihan yang disimpan</item>
     </plurals>
     <plurals name="sources_management_subtitle">
         <item quantity="other">%s sumber dipasang</item>
     </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="other">%s aplikasi disorokkan</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="other">%s aplikasi dipaparkan</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="other">Paparkan semula %s aplikasi?</item>
+    </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="other">%s aplikasi tersorok</item>
     </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="other">%s aplikasi</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="other">%s dipilih</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="other">%s tampalan disalin daripada bundle terpilih</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="other">%s teras</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="other">%s ciri</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="other">%s pembetulan</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="other">%s pengoptimuman</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="other">%s perubahan</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="other">%1$s · %2$d baharu</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="other">%s keluaran baharu</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="other">%d pautan didayakan</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="other">%d pautan tidak disahkan</item>
+    </plurals>
 </resources>

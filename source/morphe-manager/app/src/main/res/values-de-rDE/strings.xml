@@ -99,8 +99,10 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="home_category_name">Kategoriename</string>
     <string name="home_category_move_to">In Kategorie verschieben</string>
     <string name="home_category_move_selected_title">Ausgewählte Apps verschieben</string>
-    <string name="home_category_delete_confirm_title">Kategorie löschen</string>
-    <string name="home_category_delete_confirm_message">Kategorie &lt;b&gt;%1$s&lt;/b&gt; löschen? Apps darin werden nach &lt;b&gt;%2$s&lt;/b&gt; verschoben</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">%s löschen?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Die Apps werden zu &lt;b&gt;%s&lt;/b&gt; zurückverschoben</string>
     <string name="home_category_actions_unavailable">Keine Optionen für diese Kategorie verfügbar</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Welche App möchten Sie patchen?</string>
@@ -197,10 +199,14 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="sources_management_prerelease_toggle_description">Erhalten Sie frühzeitigen Zugriff auf neue experimentelle Patch-Versionen</string>
     <string name="sources_prerelease_warning_title">Vorabversions-Patches aktivieren?</string>
     <string name="sources_prerelease_warning_message">Vorabversionen befinden sich noch in der Entwicklung. Patches können fehlschlagen oder die App beschädigen, und Funktionen können sich ohne Vorwarnung ändern.</string>
-    <string name="expert_mode_prerelease_notice">Diese Quelle enthält Vorabversionen von Patches. Das Patchen kann fehlschlagen oder unerwartetes Verhalten verursachen.</string>
-    <string name="expert_mode_experimental_version_notice">Diese Quelle bietet nur experimentelle Unterstützung für diese App-Version. Ihre Patches können instabil oder unvollständig sein</string>
+    <string name="expert_mode_unstable_notice">Pre-Release- oder experimentelle Patches können instabil sein</string>
     <string name="sources_management_experimental_versions_toggle">Experimentelle App-Versionen</string>
     <string name="sources_management_experimental_versions_toggle_description">Zeigt experimentelle App-Ziele an und patcht sie</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Vorabversions-Patches aktivieren</string>
+    <string name="sources_management_prerelease_disable">Vorabversions-Patches deaktivieren</string>
+    <string name="sources_management_experimental_versions_enable">Experimentelle App-Versionen aktivieren</string>
+    <string name="sources_management_experimental_versions_disable">Experimentelle App-Versionen deaktivieren</string>
     <string name="sources_management_already_exists">Diese Quelle wurde bereits hinzugefügt</string>
     <string name="sources_management_invalid_url">Ungültige Quell-URL. Bitte überprüfen Sie die Adresse und versuchen Sie es erneut</string>
     <string name="sources_management_blocked">Diese Patchquelle ist blockiert und kann nicht hinzugefügt werden</string>
@@ -208,16 +214,21 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="sources_management_metadata_unavailable">Metadaten nicht verfügbar</string>
     <string name="sources_management_metadata_unavailable_hint">Die Metadaten des Remote-Servers sind nicht verfügbar. Das Patchen mit dem installierten Paket funktioniert weiterhin, die automatische Aktualisierung ist jedoch für diese Quelle deaktiviert</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Das Patch-Bundle konnte nicht heruntergeladen werden. Die Quell-URL ist möglicherweise falsch oder die Datei existiert nicht.</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">Das Patch-Bundle konnte nicht heruntergeladen werden. Die Quell-URL ist möglicherweise falsch oder die Datei existiert nicht. Tippen Sie hier, um sie zu ändern</string>
     <string name="sources_management_outdated_manager_badge">Nivqo aktualisieren</string>
     <string name="sources_management_outdated_manager_hint">Diese Quelle ist für die Patcher-Version %1$s erstellt, aber Morphe %2$s enthält die Version %3$s. Aktualisieren Sie Morphe, um diese zu verwenden.</string>
     <string name="sources_management_held_back_badge">Abgestürzt</string>
     <string name="sources_management_held_back_hint">Diese Quelle hat Morphe beim Laden zum Absturz gebracht und wird daher übersprungen. Aktualisiere sie oder importiere sie erneut, um es noch einmal zu versuchen.</string>
+    <string name="sources_management_signed_by">Unterzeichnet von</string>
+    <string name="sources_management_signing_key_changed_badge">Schlüssel geändert</string>
+    <string name="sources_management_signing_key_changed_hint">Die neueste Version wurde nicht mit dem Schlüssel unterzeichnet, den diese Quelle zuvor verwendet hat, und konnte daher nicht installiert werden. Zum Überprüfen tippen</string>
     <string name="sources_management_source_enabled">Quelle aktiviert</string>
     <string name="sources_management_source_disabled">Quelle deaktiviert</string>
     <string name="sources_management_source_updating">Quellen werden aktualisiert</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Anzeigename</string>
     <string name="sources_dialog_rename">Patch-Quelle umbenennen</string>
+    <string name="sources_dialog_change_url">Ändern Sie den Download-Ort der Patch-Quelle</string>
     <string name="sources_dialog_duplicate_name_error">Eine Patch-Quelle mit diesem Namen existiert bereits</string>
     <string name="sources_dialog_missing_error">Fehler beim Aktualisieren dieser Patch-Quelle</string>
     <string name="sources_dialog_add_source">Patch-Quelle hinzufügen</string>
@@ -228,9 +239,6 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="sources_dialog_paste_no_links">Keine Links in der Zwischenablage gefunden.</string>
     <string name="sources_dialog_local">Lokal</string>
     <string name="sources_dialog_local_files">Patch-Quelldateien auswählen</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">Weitere Dateien hinzufügen</string>
-    <string name="sources_dialog_local_file_tap_hint">Tippen Sie, um den Speicher zu durchsuchen</string>
     <string name="sources_dialog_local_invalid_extension">Die Datei muss die Erweiterung .mpp haben</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">Updates für %s</string>
@@ -238,6 +246,7 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="sources_dialog_url_invalid">Die URL muss auf ein GitHub-/GitLab-Repository oder eine .json Datei verweisen</string>
     <string name="sources_dialog_preinstalled">Vorinstalliert</string>
     <string name="sources_dialog_community">Community-Patches</string>
+    <string name="sources_dialog_choose_apps">Apps auswählen</string>
     <string name="sources_dialog_choose_apps_description">Wähle aus, welche ihrer Apps du behalten möchtest, sobald die Quelle geladen wurde.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Patch-Quellen von Drittanbietern</string>
@@ -247,18 +256,25 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="sources_download_fail">Fehler beim Herunterladen der Quellen: %s</string>
     <string name="sources_download_fail_named">\'%s\' konnte nicht aktualisiert werden. Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut</string>
     <string name="sources_download_endpoint_not_found">\'%s\': Patch-Metadaten nicht gefunden</string>
+    <string name="sources_signing_key_changed_named">\'%s\' wurde nicht aktualisiert, da die neueste Version nicht mit dem zuvor verwendeten Schlüssel unterzeichnet wurde</string>
+    <string name="sources_signing_key_changed_local">Die Datei ist nicht mit dem Schlüssel signiert, den diese Quelle zuvor verwendet hat. Um ihr zu vertrauen, löschen Sie die Quelle und fügen Sie die Datei erneut hinzu</string>
+    <string name="sources_signing_key_trust_title">Dem neuen Schlüssel vertrauen?</string>
+    <string name="sources_signing_key_trust_message">Das neueste Release ist mit einem anderen Schlüssel signiert. Entweder hat der Entwickler seinen Schlüssel ersetzt oder jemand anderes hat dieses Release veröffentlicht. Vertrauen Sie ihm nur, wenn der Entwickler einen neuen Schlüssel angekündigt hat</string>
+    <string name="sources_signing_key_trust_message_unsigned">Das neueste Release ist nicht signiert. Entweder hat der Entwickler aufgehört, Releases zu signieren, oder jemand anderes hat dieses Release veröffentlicht. Vertrauen Sie ihm nur, wenn der Entwickler dies angekündigt hat</string>
+    <string name="sources_signing_key_trusted">Vertrauenswürdiger Schlüssel</string>
+    <string name="sources_signing_key_new">Neuer Schlüssel</string>
     <string name="sources_patch_expert_badge">Experte</string>
     <string name="sources_patch_expert_badge_tooltip">Expertenmodus in den Einstellungen aktivieren, um diesen Patch manuell einzuschließen</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">Brauchst du Hilfe bei der Suche nach einer originalen, ungepatchten APK-Datei?</string>
+    <string name="home_apk_availability_title">Hilfe beim Finden der APK benötigt?</string>
     <string name="home_apk_availability_dialog_simple">Um &lt;b&gt;%s&lt;/b&gt; zu patchen, benötigst du die ungepatchte APK-Version:</string>
     <string name="home_apk_availability_dialog_expert">Um &lt;b&gt;%s&lt;/b&gt; zu patchen, benötigen Sie eine nicht gepatchte APK der Versionen:</string>
     <string name="home_apk_availability_recommended_label">Empfohlen</string>
     <string name="home_apk_availability_unpatched_label">Nicht gepatcht</string>
     <string name="home_apk_availability_incompatible_label">Inkompatibel</string>
     <string name="home_apk_availability_installed_version">Auf diesem Gerät installiert: %s</string>
-    <string name="home_apk_availability_yes">Ja, hilf mir eine APK zu finden</string>
-    <string name="home_apk_availability_no">Nein, ich habe bereits eine APK</string>
+    <string name="home_apk_availability_find">Ja, hilf mir, sie zu finden</string>
+    <string name="home_apk_availability_have">Nein, ich habe sie bereits</string>
     <string name="home_apk_helper_download">Eine Hilfs-App verwenden</string>
     <string name="home_apk_helper_untrusted">Eine Hilfs-App ist installiert, wurde aber noch nicht vertraut, daher wird sie hier nicht angeboten</string>
     <string name="home_apk_helper_untrusted_action">Hilfs-Apps überprüfen</string>
@@ -274,8 +290,8 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="home_apk_helper_wrong_package">Die Hilfs-App hat eine andere App zurückgegeben als jene, die gepatcht wird</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo konnte die installierte App nicht verwenden</string>
     <string name="home_apk_helper_installed_incompatible">Die installierte Version kann nicht gepatcht werden</string>
-    <string name="home_apk_use_saved">Gespeicherte APK verwenden</string>
-    <string name="home_apk_use_installed">Installierte APK verwenden</string>
+    <string name="home_apk_use_saved_copy">Gespeicherte Kopie verwenden</string>
+    <string name="home_apk_use_installed_app">Installierte App verwenden</string>
     <string name="home_apk_use_saved_unsupported">Die Patches unterstützen diese gespeicherte Kopie nicht. Das Patchen wird dich zur Bestätigung auffordern, oder wähle eine andere APK</string>
     <string name="home_apk_use_installed_unverified">Die Signatur der installierten App konnte nicht verifiziert werden. Sie ist möglicherweise bereits gepatcht.</string>
     <string name="home_unverified">Unbestätigt</string>
@@ -311,14 +327,19 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="home_download_instructions_copy_link">Link kopieren</string>
     <string name="home_download_instructions_link_copied">Link kopiert</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">Heruntergeladene APK-Datei auswählen</string>
-    <string name="home_file_picker_prompt_description">Wählen Sie die &lt;b&gt;%s&lt;/b&gt; APK-Datei aus, die Sie gerade heruntergeladen haben</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">Wählen Sie die %s APK aus</string>
+    <string name="home_file_picker_prompt_where">Browser speichern diese normalerweise im Download-Ordner</string>
     <string name="home_file_picker_prompt_open_apk">APK-Datei öffnen</string>
     <string name="home_recommended_version">Empfohlene Version</string>
     <string name="home_selected_version">Ausgewählte Version</string>
     <string name="home_select_apk_title">APK auswählen</string>
-    <string name="home_select_any_apk_description">Wählen Sie eine APK-Datei einer beliebigen App aus oder wählen Sie eine App, die bereits auf diesem Gerät installiert ist</string>
+    <string name="home_select_apk_description">"Universelle Patches funktionieren mit jeder App
+
+Wähle aus, woher die APK bezogen werden soll"</string>
     <string name="home_use_installed_app">Installierte App verwenden</string>
+    <string name="home_use_installed_app_description">Wähle eine App aus, die sich bereits auf diesem Gerät befindet</string>
+    <string name="home_open_apk_file_description">Wähle eine APK-, APKM-, APKS- oder XAPK-Datei aus dem Speicher aus</string>
     <string name="home_installed_app_picker_title">Installierte Apps</string>
     <string name="home_installed_app_picker_empty">Keine Apps gefunden</string>
     <string name="home_installed_app_picker_filter_user">Nur Benutzer-Apps</string>
@@ -331,19 +352,18 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">Suche nach Patches</string>
     <string name="expert_mode_disable_all">Deaktiviere alle</string>
-    <string name="expert_mode_disable_all_done">Alle Patches deaktiviert</string>
     <string name="expert_mode_enable_all">Alle aktivieren</string>
-    <string name="expert_mode_enable_all_done">Alle Patches aktiviert</string>
     <string name="expert_mode_enable_all_universal_pending">Tippe erneut für universelle Patches</string>
     <string name="expert_mode_universal_all_warning_title">Alle universellen Patches aktivieren?</string>
     <string name="expert_mode_universal_all_warning_message">Universelle Patches werden nicht gemeinsam getestet. Wenn sie alle auf einmal aktiviert werden, kann dies zu Konflikten, fehlgeschlagenen Patches oder Abstürzen führen.</string>
-    <string name="expert_mode_reset_to_default">Empfohlene Patches aktivieren</string>
+    <string name="expert_mode_recommended">Empfohlene Patches</string>
     <string name="expert_mode_reset_to_default_done">Empfohlene Patches angewendet</string>
-    <string name="expert_mode_restore_saved">Gespeicherte Auswahl wiederherstellen</string>
+    <string name="expert_mode_selected_count">%1$s von %2$s ausgewählt</string>
+    <string name="expert_mode_saved_selection">Gespeicherte Auswahl</string>
     <string name="expert_mode_restore_saved_done">Gespeicherte Auswahl wiederhergestellt</string>
-    <string name="expert_mode_copy_from_bundle">Auswahl von einem anderen Paket kopieren</string>
     <string name="expert_mode_copy_from_bundle_no_patches">Keine übereinstimmenden Patches in diesem Bundle</string>
     <string name="expert_mode_no_results">Keine Patches gefunden</string>
+    <string name="expert_mode_selected_only">Nur ausgewählte Patches</string>
     <string name="expert_mode_selected_only_on">Nur ausgewählte Patches anzeigen</string>
     <string name="expert_mode_selected_only_off">Alle Patches anzeigen</string>
     <string name="expert_mode_universal_patches">Universelle Patches</string>
@@ -352,9 +372,7 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="expert_mode_patch_required_by_installer">Für das ausgewählte Installationsziel erforderlich</string>
     <string name="expert_mode_patch_unavailable_for_installer">Nicht verfügbar für das ausgewählte Installationsziel</string>
     <string name="expert_mode_multiple_sources_warning_title">Mehrere Patch-Quellen ausgewählt</string>
-    <string name="expert_mode_multiple_sources_warning_message">"Du hast Patches aus mehreren Quellen ausgewählt. Dies kann zu Kompatibilitätsproblemen oder unerwartetem Verhalten führen.
-
-Möchtest du trotzdem fortfahren?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Patches aus verschiedenen Quellen sind nicht dafür ausgelegt, zusammenzuarbeiten, und können zu Konflikten führen oder die App beschädigen</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">Unverifizierte APK</string>
     <string name="home_invalid_signature_message">Die ausgewählte APK für &lt;b&gt;%s&lt;/b&gt; passt nicht zu dem erwarteten Signaturzertifikat. Möglicherweise wurde sie modifiziert oder stammt aus einer nicht vertrauenswürdigen Quelle</string>
@@ -368,7 +386,9 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="home_dialog_unsupported_version_experimental_label">Experimentell</string>
     <string name="home_dialog_unsupported_version_experimental_description">Diese Version bietet experimentelle Funktionen und ist möglicherweise instabil oder unvollständig</string>
     <string name="morphe_experimental_app_version_dialog_title">Hast du Lust zu experimentieren? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">Diese Version von &lt;b&gt;%s&lt;/b&gt; befindet sich in einer frühen Testphase mit experimentellen Funktionen&lt;br/&gt;&lt;br/&gt;🔧 Rechne mit ungewöhnlichem App-Verhalten oder unbekannten Fehlern, da die Patches für diese App-Version noch optimiert werden</string>
+    <string name="morphe_experimental_app_version_dialog_message">"Diese Version von &lt;b&gt;%s&lt;/b&gt; befindet sich in einer frühen Testphase mit experimentellen Funktionen.
+
+🔧 Rechne mit ungewöhnlichem App-Verhalten oder unbekannten Fehlern, da die Patches für diese App-Version noch optimiert werden"</string>
     <string name="home_dialog_unsupported_version_dialog_title">Nicht unterstützte Version</string>
     <string name="home_dialog_unsupported_version_dialog_description">Diese APK-Version wird nicht empfohlen. Fortfahren kann zu einer nicht funktionierenden App führen.</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -505,7 +525,8 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="shortcut_check_updates_long">Nach Patch-Updates suchen</string>
     <string name="shortcut_patch_app">%s patchen</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">Sind Sie sicher, dass Sie diese App deinstallieren möchten?</string>
+    <string name="home_app_info_uninstall_title">Diese App deinstallieren?</string>
+    <string name="home_app_info_uninstall_removes_data">Die App und ihre Daten werden von diesem Gerät entfernt</string>
     <string name="batch_uninstall_confirm_body">Die ausgewählten Apps werden dauerhaft von Ihrem Gerät entfernt.</string>
     <string name="home_app_info_remove_app_warning">Dies löscht dauerhaft:</string>
     <string name="home_app_info_delete_item_database">Datenbankeintrag</string>
@@ -645,12 +666,15 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="patcher_storage_permission_open_settings">Speichereinstellungen öffnen</string>
     <string name="patcher_storage_badge_denied">Berechtigung abgelehnt</string>
     <string name="patcher_storage_badge_missing">Nicht gefunden</string>
+    <string name="patcher_storage_badge_rejected">Nicht verwendbar</string>
     <string name="batch_patch_option_paths_skipped">Patch-Optionsdateien fehlen und werden übersprungen: %1$s</string>
     <string name="patcher_missing_patches_title">Einige Patches sind nicht mehr vorhanden</string>
     <string name="patcher_missing_patches_description">Die gespeicherte Auswahl für diese App benennt Patches, die keine aktive Quelle mehr bietet. Fortsetzen patcht die App ohne sie</string>
     <string name="patcher_missing_patches_label">Nicht mehr angeboten</string>
     <string name="patcher_option_paths_gone_title">Dateien der Patch-Optionen fehlen</string>
     <string name="patcher_option_paths_gone_description">Eine oder mehrere Patch-Optionen verweisen auf Dateien, die nicht mehr vorhanden sind. Entfernen Sie die Pfade, um ohne sie zu patchen, oder legen Sie die Dateien zurück und versuchen Sie es erneut.</string>
+    <string name="patcher_option_paths_rejected_title">Patch-Optiondateien können nicht verwendet werden</string>
+    <string name="patcher_option_paths_rejected_description">Eine oder mehrere Patch-Optionen verweisen auf Dateien, die fehlen oder nicht die vom Patch geforderten Inhalte aufweisen. Entfernen Sie die Pfade, um ohne sie zu patchen, oder korrigieren Sie die Dateien gemäß den Anweisungen der Option und versuchen Sie es erneut</string>
     <string name="patcher_option_paths_clear">Pfade entfernen und fortfahren</string>
     <string name="patcher_storage_permission_hint">Tipp: Verschiebe Dateien nach /Android/data/app.morphe.manager/files/ - keine zusätzlichen Berechtigungen erforderlich</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -668,8 +692,10 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Patch-Vorgang läuft…</string>
     <string name="patcher_notification_text">Zum Patcher zurückkehren</string>
-    <string name="patcher_stop_confirm_title">Patcher stoppen</string>
-    <string name="patcher_stop_confirm_description">Möchtest du den Patch-Vorgang wirklich stoppen?</string>
+    <string name="patcher_stop_title">Patchen stoppen?</string>
+    <string name="patcher_stop_discards">Der bisherige Fortschritt wird verworfen und es wird nichts installiert</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Weiter patchen</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">Wir verwandeln Ihre App in etwas Großartiges… 🏆</string>
     <string name="patcher_message_2">Wir bringen alten Apps neue Tricks bei… 🎩</string>
@@ -813,19 +839,19 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="settings_appearance_more_apps_card_description">Zeigt unter den Apps eine Karte an, die zu Community-Patches führt</string>
     <string name="settings_appearance_app_card_colors">Farben der App-Karten</string>
     <string name="settings_appearance_app_card_colors_default">Standard</string>
-    <string name="settings_appearance_app_card_colors_default_description">Jeder App die Farbe ihres eigenen Bundles zuweisen</string>
+    <string name="settings_appearance_app_card_colors_default_description">Weise jeder App und Quelle eine eigene Farbe zu</string>
     <string name="settings_appearance_app_card_colors_accent">Akzentfarbe</string>
-    <string name="settings_appearance_app_card_colors_accent_description">Verwende die App-Akzentfarbe für Home-App-Karten</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Verwende die App-Akzentfarbe für App- und Quellenkarten</string>
     <string name="settings_appearance_app_card_colors_gradient">Farbverlauf</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">Verwende einen benutzerdefinierten Farbverlauf für Home-App-Karten.</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Verwende einen benutzerdefinierten Farbverlauf für App-Karten, der für Quellenkarten in eine Farbe übergeht</string>
     <string name="settings_appearance_app_card_colors_solid">Einfarbig</string>
-    <string name="settings_appearance_app_card_colors_solid_description">Verwende eine benutzerdefinierte Farbe für Home-App-Karten.</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Verwende eine benutzerdefinierte Farbe für App- und Quellenkarten</string>
     <string name="settings_appearance_app_card_colors_start">Anfangsfarbe</string>
     <string name="settings_appearance_app_card_colors_middle">Mittlere Farbe</string>
     <string name="settings_appearance_app_card_colors_end">Endfarbe</string>
     <string name="settings_appearance_app_card_colors_solid_color">Farbe</string>
     <string name="settings_appearance_app_card_colors_bundle">Farben des App-Bundles</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">Hier wird die Farbe der jeweiligen App verwendet, die automatisch angepasst wird, um zu passen</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Verwende hier die eigene Farbe jeder App oder Quelle, die automatisch an den Hintergrund angepasst wird</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">App-Icon</string>
     <string name="settings_appearance_app_icon_selector_description">Wie Morphe auf deinem Startbildschirm und in der App-Schublade aussieht.</string>
@@ -851,7 +877,8 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="settings_appearance_app_icon_mark_white">Weiß</string>
     <string name="settings_appearance_app_icon_mark_black">Schwarz</string>
     <string name="settings_appearance_app_icon_change_dialog_title">App-Icon ändern?</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">Zu &lt;b&gt;%s&lt;/b&gt; ändern und neu starten?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe startet neu, um zu &lt;b&gt;%s&lt;/b&gt; zu wechseln</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Icon ändern</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1038,6 +1065,8 @@ Die Bildgrößen müssen wie folgt sein:
     <string name="installer_play_store_warning_continue">Ich verstehe, fortfahren</string>
     <string name="installer_play_store_mode">Als Play Store installieren</string>
     <string name="installer_play_store_mode_description">Markiert den Google Play Store als Installationsquelle</string>
+    <string name="settings_nomount_only">Nur NoMount</string>
+    <string name="settings_nomount_only_description">Mountet Apps nur mit NoMount und greift niemals auf einen Bind-Mount zurück, sodass sie ohne NoMount unmounted bleiben</string>
     <string name="settings_prompt_installer_on_install">Auswahlaufforderung für den Installer</string>
     <string name="settings_prompt_installer_on_install_description">Fragt, wie jede App installiert wird: mit Root vor dem Poching, sonst danach</string>
     <string name="settings_auto_install_with_shizuku">Automatische Installation nach dem Patchen</string>
@@ -1207,12 +1236,22 @@ Details: %2$s"</string>
     <string name="settings_system_import_source_data_success">Quelldaten erfolgreich importiert</string>
     <string name="settings_system_selected_patches_section">Ausgewählte Patches</string>
     <string name="settings_system_no_patches_or_options">Keine Patches oder Optionen gespeichert</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">Auswahl von… kopieren</string>
-    <string name="copy_selection_confirm_with_count">%s kopieren</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Auswahlen</string>
+    <string name="selection_panel_copy_into">Kopieren nach %s</string>
+    <string name="selection_sets_title">Sets</string>
+    <string name="selection_set_name">Set-Name</string>
+    <string name="selection_set_save">Als Set speichern</string>
+    <string name="selection_set_replace">Set ersetzen</string>
+    <string name="selection_set_saved">Gespeichert als %s</string>
+    <string name="selection_set_applied">Gewechselt zu %s</string>
+    <string name="selection_set_deleted">%s gelöscht</string>
+    <string name="selection_set_renamed">Umbenannt in %s</string>
+    <string name="selection_set_rename_title">Set umbenennen</string>
+    <string name="selection_set_delete_title">Set löschen?</string>
+    <string name="selection_set_delete_message">Dies löscht das Set %s dauerhaft</string>
     <string name="copy_selection_empty">Es gibt keine weiteren gespeicherten Auswahlen zum Kopieren</string>
     <string name="copy_selection_available_format">%1$s von %2$s verfügbar</string>
-    <string name="copy_selection_same_source">Gleiche Quelle</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Benutzerdefinierter Dateiauswahldialog</string>
     <string name="settings_system_custom_file_picker_description">Verwendet den integrierten Dateiauswahldialog von Morphe anstelle des Systemdialogs</string>
@@ -1221,7 +1260,6 @@ Details: %2$s"</string>
     <string name="settings_system_apk_download_helper_trusted_count">Vertraut: %1$d von %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Hilfs-Apps können Original-APKs für dich herunterladen. Nur die, denen du hier vertraust, werden in den Download-Anleitungen angeboten.</string>
     <string name="settings_system_apk_download_helper_trust_title">Diesem Assistenten vertrauen?</string>
-    <string name="settings_system_apk_download_helper_trust">Vertrauen</string>
     <string name="settings_system_apk_download_helper_warning">Die APK stammt von der Hilfs-App, also vertraue nur Apps, die du kennst. Morphe prüft weiterhin das Paket, die Version und die Signatur jeder Datei, bevor sie gepatcht wird.</string>
     <string name="settings_system_apk_download_helper_installed_by">Installiert von %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Unbekannter Installateur</string>
@@ -1233,7 +1271,10 @@ Details: %2$s"</string>
     <string name="file_picker_internal_storage">Interner Speicher</string>
     <string name="file_picker_sd_card">SD-Karte</string>
     <string name="file_picker_root">Stammverzeichnis (/)</string>
+    <string name="file_picker_storage_access_unavailable">Dieses Gerät verfügt über keinen Bildschirm, um den Zugriff auf alle Dateien zu erlauben. Erlauben Sie dies über ADB mit: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">Speicherorte</string>
+    <string name="file_saver_downloads_failed">Die Datei konnte nicht in Downloads erstellt werden</string>
+    <string name="file_saver_saving_to_downloads">Dieses Gerät verfügt über keinen Speicherbildschirm, daher wird die Datei als %1$s in Downloads gespeichert</string>
     <string name="file_picker_sort_name_asc">Name (A–Z)</string>
     <string name="file_picker_sort_name_desc">Name (Z–A)</string>
     <string name="file_picker_sort_size_desc">Größe (größte zuerst)</string>
@@ -1316,6 +1357,7 @@ Details: %2$s"</string>
     <string name="include">Einschließen</string>
     <string name="disable">Deaktivieren</string>
     <string name="enable">Aktivieren</string>
+    <string name="trust">Vertrauen</string>
     <string name="loading">Lädt…</string>
     <string name="creating">Erstelle…</string>
     <string name="processing_apk">APK wird verarbeitet…</string>
@@ -1337,6 +1379,8 @@ Details: %2$s"</string>
     <string name="reorder_done">Reihenfolge gespeichert</string>
     <string name="reset_order">Reihenfolge zurücksetzen</string>
     <string name="reset_order_done">Bestellung zurückgesetzt</string>
+    <string name="reset_order_confirm_title">Bestellung zurücksetzen?</string>
+    <string name="reset_order_confirm_message">Die Liste wird auf die Standardreihenfolge zurückgesetzt und die manuell verschobene Reihenfolge geht verloren</string>
     <string name="accessibility_select_app">App auswählen</string>
     <string name="accessibility_select_source">Quelle auswählen</string>
     <string name="accessibility_move_up">Nach oben verschieben</string>
@@ -1344,6 +1388,7 @@ Details: %2$s"</string>
     <string name="accessibility_app_moved_announcement">%1$s wurde an Position %2$s von %3$s verschoben</string>
     <string name="accessibility_scroll_to_top">Zum Anfang der Liste scrollen</string>
     <string name="rename">Umbenennen</string>
+    <string name="more_options">Weitere Optionen</string>
     <string name="import_">Importieren</string>
     <string name="export">Exportieren</string>
     <string name="copy">Kopieren</string>
@@ -1388,6 +1433,7 @@ Details: %2$s"</string>
     <string name="show_all">Alle anzeigen</string>
     <string name="ignore">Ignorieren</string>
     <string name="stop_ignoring">Nicht mehr ignorieren</string>
+    <string name="stop">Stoppen</string>
     <string name="logs">Protokolle</string>
     <string name="sources">Quellen</string>
     <string name="installing_ellipsis">Wird installiert…</string>
@@ -1474,14 +1520,43 @@ Wollen Sie trotzdem fortfahren?"</string>
     <string name="onboarding_restart_title">Feature-Tour</string>
     <string name="onboarding_restart_desc">Eine geführte Tour durch die wichtigsten Funktionen.</string>
 
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <!-- Preserved Nivqo localization -->
+    <string name="home_category_delete_confirm_title">Kategorie löschen</string>
+    <string name="home_category_delete_confirm_message">Kategorie &lt;b&gt;%1$s&lt;/b&gt; löschen? Apps darin werden nach &lt;b&gt;%2$s&lt;/b&gt; verschoben</string>
+    <string name="expert_mode_prerelease_notice">Diese Quelle enthält Vorabversionen von Patches. Das Patchen kann fehlschlagen oder unerwartetes Verhalten verursachen.</string>
+    <string name="expert_mode_experimental_version_notice">Diese Quelle bietet nur experimentelle Unterstützung für diese App-Version. Ihre Patches können instabil oder unvollständig sein</string>
+    <string name="sources_dialog_local_add_more">Weitere Dateien hinzufügen</string>
+    <string name="sources_dialog_local_file_tap_hint">Tippen Sie, um den Speicher zu durchsuchen</string>
+    <string name="home_apk_availability_dialog_title">Brauchst du Hilfe bei der Suche nach einer originalen, ungepatchten APK-Datei?</string>
+    <string name="home_apk_availability_yes">Ja, hilf mir eine APK zu finden</string>
+    <string name="home_apk_availability_no">Nein, ich habe bereits eine APK</string>
+    <string name="home_apk_use_saved">Gespeicherte APK verwenden</string>
+    <string name="home_apk_use_installed">Installierte APK verwenden</string>
+    <string name="home_file_picker_prompt_title">Heruntergeladene APK-Datei auswählen</string>
+    <string name="home_file_picker_prompt_description">Wählen Sie die &lt;b&gt;%s&lt;/b&gt; APK-Datei aus, die Sie gerade heruntergeladen haben</string>
+    <string name="home_select_any_apk_description">Wählen Sie eine APK-Datei einer beliebigen App aus oder wählen Sie eine App, die bereits auf diesem Gerät installiert ist</string>
+    <string name="expert_mode_disable_all_done">Alle Patches deaktiviert</string>
+    <string name="expert_mode_enable_all_done">Alle Patches aktiviert</string>
+    <string name="expert_mode_reset_to_default">Empfohlene Patches aktivieren</string>
+    <string name="expert_mode_restore_saved">Gespeicherte Auswahl wiederherstellen</string>
+    <string name="expert_mode_copy_from_bundle">Auswahl von einem anderen Paket kopieren</string>
+    <string name="expert_mode_multiple_sources_warning_message">"Du hast Patches aus mehreren Quellen ausgewählt. Dies kann zu Kompatibilitätsproblemen oder unerwartetem Verhalten führen.
+
+Möchtest du trotzdem fortfahren?"</string>
+    <string name="home_app_info_uninstall_app_confirmation">Sind Sie sicher, dass Sie diese App deinstallieren möchten?</string>
+    <string name="patcher_stop_confirm_title">Patcher stoppen</string>
+    <string name="patcher_stop_confirm_description">Möchtest du den Patch-Vorgang wirklich stoppen?</string>
+    <string name="settings_appearance_app_icon_change_dialog_message">Zu &lt;b&gt;%s&lt;/b&gt; ändern und neu starten?</string>
+    <string name="copy_selection_title">Auswahl von… kopieren</string>
+    <string name="copy_selection_confirm_with_count">%s kopieren</string>
+    <string name="copy_selection_same_source">Gleiche Quelle</string>
+    <string name="settings_system_apk_download_helper_trust">Vertrauen</string>
     <string name="home_app_list_options_title">Sortieren und Filtern</string>
     <string name="home_app_list_options_state_description">Sortiert nach %1$s, gefiltert nach %2$s</string>
     <string name="sources_sort_title">Patch-Quellen sortieren</string>
     <string name="sources_apps_leave_out">Ausschließen</string>
     <string name="sources_apps_leave_out_done">Ausgeschlossen</string>
     <string name="sources_apps_bring_back">Wieder aufnehmen</string>
-    <string name="sources_dialog_choose_apps">Apps auswählen</string>
     <string name="hex_color">Hex-Farbcode</string>
     <string name="patcher_memory_adjustment_title">Nicht genügend Speicher</string>
     <string name="patcher_memory_adjustment_description">Der Patcher wurde vom System beendet, während er mit einem Speicherlimit von %1$d MB ausgeführt wurde. Das Senken des Limits auf %2$d MB macht den Patcher zu einem kleineren Ziel und kann dafür sorgen, dass der Lauf abgeschlossen wird.</string>

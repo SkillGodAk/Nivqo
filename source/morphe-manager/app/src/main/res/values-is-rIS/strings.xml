@@ -98,8 +98,10 @@
     <string name="home_category_name">Flokksnafn</string>
     <string name="home_category_move_to">Færa í flokk</string>
     <string name="home_category_move_selected_title">Færa valda forrita</string>
-    <string name="home_category_delete_confirm_title">Eyða flokki</string>
-    <string name="home_category_delete_confirm_message">Eyða flokki &lt;b&gt;%1$s&lt;/b&gt;? Forrit í honum munu færa aftur til &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">Eyða %s?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Appin flytjast aftur í &lt;b&gt;%s&lt;/b&gt;</string>
     <string name="home_category_actions_unavailable">Ekki hægt að framkvæma aðgerðir fyrir þennan flokk</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Hvaða app viltu breyta?</string>
@@ -196,10 +198,14 @@
     <string name="sources_management_prerelease_toggle_description">Fáðu snemma aðgang að nýjum tilraunabreytingar útgáfum</string>
     <string name="sources_prerelease_warning_title">Tilkynna vandamál</string>
     <string name="sources_prerelease_warning_message">Virkja forútgáfuplástra?</string>
-    <string name="expert_mode_prerelease_notice">Þessi uppspretta er með forútgáfuplástra. Plástrun getur mistekist eða hegðað sér óvænt.</string>
-    <string name="expert_mode_experimental_version_notice">Þessi uppspretta hefur aðeins tilraunastöðu fyrir þessa útgáfu af forritinu. Pötsunir hennar gætu verið óstöðugar eða ófullkomnar</string>
+    <string name="expert_mode_unstable_notice">Forútgáfu- eða tilraunauppfærslur gætu verið óstöðugar</string>
     <string name="sources_management_experimental_versions_toggle">Tilrauna app úgáfur</string>
     <string name="sources_management_experimental_versions_toggle_description">Sýnir og lagar tilraunamarkmið forrita</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Virkja fyrirframútgáfu-leiðréttingar</string>
+    <string name="sources_management_prerelease_disable">Óvirkja fyrirframútgáfu-leiðréttingar</string>
+    <string name="sources_management_experimental_versions_enable">Virkja tilraununarútgáfur forrita</string>
+    <string name="sources_management_experimental_versions_disable">Óvirkja tilraununarútgáfur forrita</string>
     <string name="sources_management_already_exists">Þessi heimild hefur þegar verið bætt við</string>
     <string name="sources_management_invalid_url">Ógild URL uppspretta. Vinsamlegast skoðaðu netfangið og reyndu aftur</string>
     <string name="sources_management_blocked">Þessi uppfærslujafi er blokkaður og ekki er hægt að bæta við honum</string>
@@ -207,16 +213,21 @@
     <string name="sources_management_metadata_unavailable">Metadata N/A</string>
     <string name="sources_management_metadata_unavailable_hint">Fjarlæg metadata skráin er ófær. Pökkun með uppsetta pakkann virkar enn, en sjálfvirk uppfærsla er óvirkjuð fyrir þessa uppsprettu</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Ekki tókst að sækja pakkann. URL uppsprettan gæti verið röng eða skráin er ekki til</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">Gat ekki sótt uppfærsluguðja. Uppruna-URL gæti verið rangt eða skráin sé ekki til. Ýttu til að breyta því</string>
     <string name="sources_management_outdated_manager_badge">Uppféra Nivqo</string>
     <string name="sources_management_outdated_manager_hint">Ðetta uppspretta er á byggð fyrir flík %1$s, en Morphe %2$s inniheldur flík %3$s. Uppféra Morphe til að nota éð.</string>
     <string name="sources_management_held_back_badge">Hrundi</string>
     <string name="sources_management_held_back_hint">Þessi uppspretta olli því að Morphe hrundi við hleðslu, og er henni því sleppt. Uppfærðu hana eða flyttu hana aftur inn til að reyna aftur</string>
+    <string name="sources_management_signed_by">Undirritað af</string>
+    <string name="sources_management_signing_key_changed_badge">Lykill breytt</string>
+    <string name="sources_management_signing_key_changed_hint">Nýjasta útgáfan er ekki undirrituð með lykilnum sem þessi uppspretta notaði áður, svo hún var ekki sett upp. Ýttu til að skoða hana</string>
     <string name="sources_management_source_enabled">Heimild virkjuð</string>
     <string name="sources_management_source_disabled">Heimild óvirkjuð</string>
     <string name="sources_management_source_updating">Uppfæra heimild</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Nafn</string>
     <string name="sources_dialog_rename">Endurnefna heimild breytistillinga</string>
+    <string name="sources_dialog_change_url">Breyttu stað þar sem uppfærsluguðja eru sýndir frá</string>
     <string name="sources_dialog_duplicate_name_error">Heimild breytistillinga með þessu nafn er þegar til</string>
     <string name="sources_dialog_missing_error">Ekki tókst að uppfæra þessa pakkagjafa</string>
     <string name="sources_dialog_add_source">Bæta við heimild breytistillingum</string>
@@ -227,9 +238,6 @@
     <string name="sources_dialog_paste_no_links">Engir tenglar fundust á klippiborðinu</string>
     <string name="sources_dialog_local">Staðbundinn</string>
     <string name="sources_dialog_local_files">Veldu plástrauppsprettuskrár</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">Bæta við fleiri skrám</string>
-    <string name="sources_dialog_local_file_tap_hint">Tappaðu til að skoða geymslu</string>
     <string name="sources_dialog_local_invalid_extension">Skrá verður að hafa .mpp endingu</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">Uppfærir %s</string>
@@ -237,6 +245,7 @@
     <string name="sources_dialog_url_invalid">URL verður að benda á GitHub/GitLab repository eða .json skrá</string>
     <string name="sources_dialog_preinstalled">Foruppsett</string>
     <string name="sources_dialog_community">Samfélagsplástrar</string>
+    <string name="sources_dialog_choose_apps">Veldu forrit</string>
     <string name="sources_dialog_choose_apps_description">Veldu hver forrita upprunans sem þú vilt halda þegar hann hefur hlaðist.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Þriðja aðila plástrauppsprettur</string>
@@ -246,18 +255,25 @@
     <string name="sources_download_fail">Ekki tókst að sækja heimildir: %s</string>
     <string name="sources_download_fail_named">\"%s\" gat ekki verið uppfært. Athyglið nettenginguna og reyndu aftur</string>
     <string name="sources_download_endpoint_not_found">\"%s\": breytingar metadata fundust ekki</string>
+    <string name="sources_signing_key_changed_named">\'%s\' var ekki uppfært því nýjasta útgáfan er ekki undirrituð með lykilnum sem hún notaði áður</string>
+    <string name="sources_signing_key_changed_local">Skráin er ekki undirrituð með lyklnum sem þessi uppspretta notaði áður. Til að treysta henni, eyðu uppsprettunni og bættu skránni aftur</string>
+    <string name="sources_signing_key_trust_title">Treysta nýjum lykli?</string>
+    <string name="sources_signing_key_trust_message">Nýjasta útgáfan er undirrituð með öðrum lykli. Antan hafi þróunarmaðurinn skipt lykilanum út, eða einhver annar gefið út þessa útgáfu. Treysta henni aðeins ef þróunarmaðurinn tilkynnti nýjan lykil</string>
+    <string name="sources_signing_key_trust_message_unsigned">Nýjasta útgáfan er ekki undirrituð. Antan vera þróunarmaðurinn hættur við að undirrita útgáfur, eða einhver annar gaf út þessa útgáfu. Treysta henni aðeins ef þróunarmaðurinn tilkynnti það</string>
+    <string name="sources_signing_key_trusted">Treystur lykill</string>
+    <string name="sources_signing_key_new">Nýr lykill</string>
     <string name="sources_patch_expert_badge">Sérfærni</string>
     <string name="sources_patch_expert_badge_tooltip">Virkja sérfærni stillingu til að bæta við þessari breytingu handvirkt</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">Þarftu hjálp til að finna upprunalega fallegri APK?</string>
+    <string name="home_apk_availability_title">Þarfðu hjálp við að finna APK-skrána?</string>
     <string name="home_apk_availability_dialog_simple">Til að pakka &lt;b&gt;%s&lt;/b&gt;, þarf unguðan APK útgáfa:</string>
     <string name="home_apk_availability_dialog_expert">Til að pakka &lt;b&gt;%s&lt;/b&gt;, þarf ánunguðan APK útgáfur:</string>
     <string name="home_apk_availability_recommended_label">Mælt með</string>
     <string name="home_apk_availability_unpatched_label">Ekki pattað</string>
     <string name="home_apk_availability_incompatible_label">Ósamhæft</string>
     <string name="home_apk_availability_installed_version">Uppsett á þessu tæki: %s</string>
-    <string name="home_apk_availability_yes">Já, hjálpaðu mér að finna APK</string>
-    <string name="home_apk_availability_no">Nei, ég á nú þegar APK</string>
+    <string name="home_apk_availability_find">Já, hjálpaðu mér að finna hana</string>
+    <string name="home_apk_availability_have">Nei, ég er þegar með hana</string>
     <string name="home_apk_helper_download">Notaðu hjálparforrit</string>
     <string name="home_apk_helper_untrusted">Hjálpforrit er uppsett en ekki enn traust, svo það er ekki boðið hér</string>
     <string name="home_apk_helper_untrusted_action">Yfirfara hjálpforrit</string>
@@ -273,8 +289,8 @@
     <string name="home_apk_helper_wrong_package">Hjálparaforritið skilaði öðru forriti en því sem verið er að laga.세럼. 어？ я越界了。 I\'ll fix that. Only Icelandic. So: \"Hjálparaforritið skilaði öðru forriti en því sem verið er að laga.\" But I accidentally included Chinese. Let me correct in final output. I\'ll write clean JSON.```json[JSON as array]``````json[{</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo gat ekki notað uppsetta forritið</string>
     <string name="home_apk_helper_installed_incompatible">Ekki er hægt að plástra uppsettu útgáfuna</string>
-    <string name="home_apk_use_saved">Nota vistað APK</string>
-    <string name="home_apk_use_installed">Nota upphætt APK</string>
+    <string name="home_apk_use_saved_copy">Notaðu vistuðu afrit</string>
+    <string name="home_apk_use_installed_app">Notaðu uppsetta forrit</string>
     <string name="home_apk_use_saved_unsupported">Plástrarnir styðja ekki þetta vistaða afrit. Að setja plástra á það mun biðja þig um staðfestingu, eða veldu aðra APK</string>
     <string name="home_apk_use_installed_unverified">Gat ekki staðfest undirskrift uppsetts forrits, þannig að það gæti þegar verið lagað</string>
     <string name="home_unverified">Óstaðfest</string>
@@ -310,14 +326,19 @@
     <string name="home_download_instructions_copy_link">Afrita tengil</string>
     <string name="home_download_instructions_link_copied">Tengill afritaður</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">Velja skrá</string>
-    <string name="home_file_picker_prompt_description">Veldu &lt;b&gt;%s&lt;/b&gt; APK skrána sem þú hlaðið niður</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">Veldu %s APK-skrána</string>
+    <string name="home_file_picker_prompt_where">Vefarbrowsarar vista hana yfirleitt í niðurfarandamöppuna</string>
     <string name="home_file_picker_prompt_open_apk">Opna APK skrá</string>
     <string name="home_recommended_version">Ráðlegt forrit</string>
     <string name="home_selected_version">Valin útgáfa</string>
     <string name="home_select_apk_title">Veldu APK</string>
-    <string name="home_select_any_apk_description">Veldu APK skrá af hvaða forriti sem er, eða veldu forrit sem er þegar uppsett á þessari tæki</string>
+    <string name="home_select_apk_description">"Almennir patchar virka með hvaða appi sem er
+
+Veldu hvaðan skal sækja APK þess"</string>
     <string name="home_use_installed_app">Nota uppsett forrit</string>
+    <string name="home_use_installed_app_description">Veldu app sem er þegar á þessu tæki</string>
+    <string name="home_open_apk_file_description">Veldu APK, APKM, APKS eða XAPK skrá úr geymslu</string>
     <string name="home_installed_app_picker_title">Uppsett forrit</string>
     <string name="home_installed_app_picker_empty">Engin forrit fundust</string>
     <string name="home_installed_app_picker_filter_user">Aðeins notendaförrit</string>
@@ -330,19 +351,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">Leita breytistillinga</string>
     <string name="expert_mode_disable_all">Gerðu allt óvirkt</string>
-    <string name="expert_mode_disable_all_done">Allar breytingar gerða óvirkar</string>
     <string name="expert_mode_enable_all">Gerðu allt virkt</string>
-    <string name="expert_mode_enable_all_done">Allar breytingar virkar</string>
     <string name="expert_mode_enable_all_universal_pending">Ýttu aftur til að fá algilda plástra</string>
     <string name="expert_mode_universal_all_warning_title">Virkja alla alhliða plástra?</string>
     <string name="expert_mode_universal_all_warning_message">Alhliða plástrar eru ekki prófaðir saman. Að virkja alla í einu getur valdið árekstrum, mistekinni plástrun eða hruni.</string>
-    <string name="expert_mode_reset_to_default">Virkja mæltu breytingar</string>
+    <string name="expert_mode_recommended">Tillögur við bætingar</string>
     <string name="expert_mode_reset_to_default_done">Mæltu breytingarnar notaðar</string>
-    <string name="expert_mode_restore_saved">Endurheimta valda</string>
+    <string name="expert_mode_selected_count">%1$s af %2$s valdir</string>
+    <string name="expert_mode_saved_selection">Vistað val</string>
     <string name="expert_mode_restore_saved_done">Geymt val endurheimt</string>
-    <string name="expert_mode_copy_from_bundle">Afrita val frá öðrum pakka</string>
     <string name="expert_mode_copy_from_bundle_no_patches">Engar samsvarandi breytingar í þessum pakka</string>
     <string name="expert_mode_no_results">Engar breytistillingar fundust</string>
+    <string name="expert_mode_selected_only">Aðeins valdar plástrar</string>
     <string name="expert_mode_selected_only_on">Sýni aðeins valda plástra</string>
     <string name="expert_mode_selected_only_off">Sýni alla plástra</string>
     <string name="expert_mode_universal_patches">Alhliða breytingar</string>
@@ -351,8 +371,7 @@
     <string name="expert_mode_patch_required_by_installer">Þetta er nauðsynlegt fyrir valið uppsetningarmark</string>
     <string name="expert_mode_patch_unavailable_for_installer">Ekki í boði fyrir valið uppsetningarmark</string>
     <string name="expert_mode_multiple_sources_warning_title">Fleiri pakkningagjafar valdar</string>
-    <string name="expert_mode_multiple_sources_warning_message">"Þú hefur valið patta úr fleiri pakkningagjöfum. Þetta gæti leitt til samhæfni vandamála eða óvæntra atvika.
-Ertu viss um að þú viljir halda áfram?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Pölar frá mismunandi uppsprettum eru ekki hannaðir til að vinna saman og gætu valdið átakum eða skemmt forritið</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">Óstaðfest APK</string>
     <string name="home_invalid_signature_message">Þetta APK sem þú valdir fyrir &lt;b&gt;%s&lt;/b&gt; samsvarar ekki væntri undirskriftarvottorði. Það gæti verið breytt eða frá óáreiðanlegri uppruna</string>
@@ -366,7 +385,9 @@ Fyrir bestu niðurstöður mælt er með því að breyta &lt;b&gt;fullu APK&lt;
     <string name="home_dialog_unsupported_version_experimental_label">Tilraunastill</string>
     <string name="home_dialog_unsupported_version_experimental_description">Þessi útgáfa hefur tilraunastuðning og gæti verið óstöðug eða ófullkomin</string>
     <string name="morphe_experimental_app_version_dialog_title">Viltu prófa? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">Þessi útgáfa af &lt;b&gt;%s&lt;/b&gt; hefur snemma tilraunastuðning&lt;br/&gt;&lt;br/&gt;🔧 Búðu þig undir skrýtnar breytingar eða óþekktan galla þegar breytingarnar eru fínstilltar fyrir þessa útgáfu</string>
+    <string name="morphe_experimental_app_version_dialog_message">"Þessi útgáfa af &lt;b&gt;%s&lt;/b&gt; hefur fyrirsótt tilraunastöðu.
+
+🔧 Væntu óvenjulegs hegðunar appsins eða óþekktra villa á meðan plásturinn er fínstilltur fyrir þessa útgáfu appsins"</string>
     <string name="home_dialog_unsupported_version_dialog_title">Óstudug útgáfa</string>
     <string name="home_dialog_unsupported_version_dialog_description">Þessi APK er ekki mælt með útgáfa af appi. Halda áfram gæti leitt til óvirkni app</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -503,7 +524,8 @@ Fyrir bestu niðurstöður mælt er með því að breyta &lt;b&gt;fullu APK&lt;
     <string name="shortcut_check_updates_long">Leita að breytingum</string>
     <string name="shortcut_patch_app">Breyta %s</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">Ertu viss um að þú viljir afinstallera þetta app?</string>
+    <string name="home_app_info_uninstall_title">Afuppsetja þetta forrit?</string>
+    <string name="home_app_info_uninstall_removes_data">Forappið og gögn þess eru fjarlægð frá þessu tæki</string>
     <string name="batch_uninstall_confirm_body">Appsín sem hafa verið valið verð permanentlega fjarlægt af tækjunum þínum.</string>
     <string name="home_app_info_remove_app_warning">Þetta mun varanlega eyða:</string>
     <string name="home_app_info_delete_item_database">Gagnagrunnsfærslu</string>
@@ -642,12 +664,15 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="patcher_storage_permission_open_settings">Opna geymslustillingar</string>
     <string name="patcher_storage_badge_denied">Umsókn afneitt</string>
     <string name="patcher_storage_badge_missing">Ekki fundist</string>
+    <string name="patcher_storage_badge_rejected">Ekki hægt að nota</string>
     <string name="batch_patch_option_paths_skipped">Skrár fyrir plástursvalkosti vantar og þeim verður sleppt: %1$s</string>
     <string name="patcher_missing_patches_title">Sumir plástrar eru horfnir</string>
     <string name="patcher_missing_patches_description">Viðvarandi valið fyrir þetta forrit nefnir flika sem enginn virkur uppruni býður upp á lengur. Að halda áfram breytir forritinu án þeirra</string>
     <string name="patcher_missing_patches_label">Skrár plásturvalkosta vantar.</string>
     <string name="patcher_option_paths_gone_title">Fjarlægðu slóðirnar og haltu áfram.</string>
     <string name="patcher_option_paths_gone_description">Forritstákn.</string>
+    <string name="patcher_option_paths_rejected_title">Hægt er ekki að nota valskrár fyrir váð</string>
+    <string name="patcher_option_paths_rejected_description">Ein eða fleiri valkostir fyrir váð vísa til skráa sem vantar eða innihalda ekki það sem váðið krefst. Fjarlæg slíkar leiðir til að váða án þeirra, eða leiðréttu skránar eins og lýst er í leiðbeiningum valkostsins og reyndu aftur</string>
     <string name="patcher_option_paths_clear">Fjarlægja slóðirnar og halda áfram</string>
     <string name="patcher_storage_permission_hint">Ábending: Hreyfðu skráar til /Android/data/app.morphe.manager/files/ - þurfir ekki auka heimildir</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -665,8 +690,10 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Breytistilling í gangi…</string>
     <string name="patcher_notification_text">Tappaðu til að snúa aftur á breytistillinguna</string>
-    <string name="patcher_stop_confirm_title">Stöðva breytistillinguna</string>
-    <string name="patcher_stop_confirm_description">Ertu viss um að þú viljir stöðva breytistillinguna?</string>
+    <string name="patcher_stop_title">Stöðva uppfærslu?</string>
+    <string name="patcher_stop_discards">Framförum fram til núna er eytt og ekkert er sett upp</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Halda áfram með uppfærslu</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">Breytum appinu þínu yfir í eitthvað frábært… 🏆</string>
     <string name="patcher_message_2">Kennum gömlum appum nýja trikki… 🎩</string>
@@ -808,21 +835,21 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="settings_appearance_repatch_notice_description">Sýnir borða þegar forrit sem bryggst má brygja aftur</string>
     <string name="settings_appearance_more_apps_card">Kort yfir fleiri forrit</string>
     <string name="settings_appearance_more_apps_card_description">Sýnir kort undir forritum sem leiðir til samfélagsbótanna</string>
-    <string name="settings_appearance_app_card_colors">Litir á app kortum</string>
+    <string name="settings_appearance_app_card_colors">Litir kortanna</string>
     <string name="settings_appearance_app_card_colors_default">Sjálfgefið</string>
-    <string name="settings_appearance_app_card_colors_default_description">Nota litinn á pakkann fyrir hvert app</string>
+    <string name="settings_appearance_app_card_colors_default_description">Gefðu hverjum forriti og uppspretta eigin lit</string>
     <string name="settings_appearance_app_card_colors_accent">Áhersla</string>
-    <string name="settings_appearance_app_card_colors_accent_description">Nota áherslu lit forritsins fyrir kort á heimaskjá</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Notaðu accent-lit appins fyrir app- og uppsprettukort</string>
     <string name="settings_appearance_app_card_colors_gradient">Halla</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">Nota einn sérsniðin halla fyrir kort á heimaskjá</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Notaðu einn sérsniðinn gradient fyrir app-kort, sem blandast í einn lit fyrir uppsprettukort</string>
     <string name="settings_appearance_app_card_colors_solid">Einföldur</string>
-    <string name="settings_appearance_app_card_colors_solid_description">Nota einn sérsniðin lit fyrir kort á heimaskjá</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Notaðu einn sérsniðinn lit fyrir app- og uppsprettukort</string>
     <string name="settings_appearance_app_card_colors_start">Byrjunarlitur</string>
     <string name="settings_appearance_app_card_colors_middle">Miðlitur</string>
     <string name="settings_appearance_app_card_colors_end">Loklitur</string>
     <string name="settings_appearance_app_card_colors_solid_color">Einföldur litur</string>
     <string name="settings_appearance_app_card_colors_bundle">Lit app búnt</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">Nota lit hvers apps hér, sem er sjálfkrafa gerður dimmari til að passa</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Notaðu eigin lit hvers apps eða uppsprettu hér, sjálfkrafa skuggað til að passa</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">App tákn</string>
     <string name="settings_appearance_app_icon_selector_description">Hvernig Morphe lítur út á heimaskjánum þínum og í appaskúffunni</string>
@@ -848,7 +875,8 @@ Afnaman eyðir varanlega öllum forritsgögnum"</string>
     <string name="settings_appearance_app_icon_mark_white">Hvítur</string>
     <string name="settings_appearance_app_icon_mark_black">Svartur</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Breyta tákn</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">Breytir til &lt;b&gt;%s&lt;/b&gt; og endurræsir?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe endurræsir til að skipta yfir í &lt;b&gt;%s&lt;/b&gt;</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Staðfestu táknbreytingu</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1032,6 +1060,8 @@ Myndastærðin verður að vera sem hér segir:
     <string name="installer_play_store_warning_continue">Ég skil, halda áfram</string>
     <string name="installer_play_store_mode">Installera sem Play Store</string>
     <string name="installer_play_store_mode_description">Merkir Google Play Store sem uppsetningaruppspretta</string>
+    <string name="settings_nomount_only">Aðeins NoMount</string>
+    <string name="settings_nomount_only_description">Settar upp forrit að sameiginlega með NoMount og fellur aldrei til baka á bind mount, svo þau halda sér ósettum án þess</string>
     <string name="settings_prompt_installer_on_install">Bestaður heimildurum í hverjum breyttu app installu</string>
     <string name="settings_prompt_installer_on_install_description">Biður um hvernig á að setja upp hver forrit: með root-veitingum áður en pökkuð er, annars eftir það</string>
     <string name="settings_auto_install_with_shizuku">Sjálfvirkt uppsetning eftir breytingar</string>
@@ -1201,12 +1231,22 @@ Nánari upplýsingar: %2$s"</string>
     <string name="settings_system_import_source_data_success">Gagnagögn frá gjafa flutt inn vel</string>
     <string name="settings_system_selected_patches_section">Valdir brekkur</string>
     <string name="settings_system_no_patches_or_options">Engar pattaðar valkostir eða valkostir geymdar</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">Afrita val frá…</string>
-    <string name="copy_selection_confirm_with_count">Afrita %s</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Val</string>
+    <string name="selection_panel_copy_into">Afrita í %s</string>
+    <string name="selection_sets_title">Sett</string>
+    <string name="selection_set_name">Hefna setts</string>
+    <string name="selection_set_save">Vista sem sett</string>
+    <string name="selection_set_replace">Skipta um sett</string>
+    <string name="selection_set_saved">Vistað sem %s</string>
+    <string name="selection_set_applied">Skipt yfir í %s</string>
+    <string name="selection_set_deleted">%s eytt</string>
+    <string name="selection_set_renamed">Hefnt í %s</string>
+    <string name="selection_set_rename_title">Hefna sett</string>
+    <string name="selection_set_delete_title">Eyða setti?</string>
+    <string name="selection_set_delete_message">Þetta eyðir setinu %s varanlega</string>
     <string name="copy_selection_empty">Engin önnur vistað val til að afrita frá</string>
     <string name="copy_selection_available_format">%1$s af %2$s í boði</string>
-    <string name="copy_selection_same_source">Sama heimild</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Sérsniðin skráaraðjari</string>
     <string name="settings_system_custom_file_picker_description">Notar innbyggjan skráaveljanda Morphe í stað kerfisins</string>
@@ -1215,7 +1255,6 @@ Nánari upplýsingar: %2$s"</string>
     <string name="settings_system_apk_download_helper_trusted_count">Treyst: %1$d af %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Hjálparforrit geta sótt upprunalegar APK-skrár fyrir þig. Aðeins þau sem þú treystir hér eru boðin í niðurhalsleiðbeiningunum.</string>
     <string name="settings_system_apk_download_helper_trust_title">Treysta þessum aðstoðara?</string>
-    <string name="settings_system_apk_download_helper_trust">Treysta</string>
     <string name="settings_system_apk_download_helper_warning">APK-skráin kemur frá hjálparaforritinu, svo treystu aðeins forritum sem þú þekkir. Morphe athugar samt pakkann, útgáfuna og undirskrift hverrar skráar áður en það plástrar.</string>
     <string name="settings_system_apk_download_helper_installed_by">Sett upp af %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Óþekktur uppsetningaraðili</string>
@@ -1227,7 +1266,10 @@ Nánari upplýsingar: %2$s"</string>
     <string name="file_picker_internal_storage">Innri geymsla</string>
     <string name="file_picker_sd_card">SD kort</string>
     <string name="file_picker_root">Root (/)</string>
+    <string name="file_picker_storage_access_unavailable">Þetta tæki hefur ingenan skjá til að leyfa aðgang að öllum skráum. Leyfðu það yfir ADB með: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">Geymslur</string>
+    <string name="file_saver_downloads_failed">Gat ekki búið til skrána í Sókknum</string>
+    <string name="file_saver_saving_to_downloads">Þetta tæki hefur engan vistunarskjá, svo skráin fer í Sókkinn sem %1$s</string>
     <string name="file_picker_sort_name_asc">Nafn (A–Ö)</string>
     <string name="file_picker_sort_name_desc">Nafn (Ö–A)</string>
     <string name="file_picker_sort_size_desc">Stærð (störra fyrst)</string>
@@ -1310,6 +1352,7 @@ Nánari upplýsingar: %2$s"</string>
     <string name="include">Taka með</string>
     <string name="disable">Gerðu óvirkt</string>
     <string name="enable">Gerðu virkt</string>
+    <string name="trust">Treysta</string>
     <string name="loading">Hlaða…</string>
     <string name="creating">Búa til…</string>
     <string name="processing_apk">Vinnsla við APK…</string>
@@ -1331,6 +1374,8 @@ Nánari upplýsingar: %2$s"</string>
     <string name="reorder_done">Röð vistuð</string>
     <string name="reset_order">Endurstilla röð</string>
     <string name="reset_order_done">Pöntun endurstillt</string>
+    <string name="reset_order_confirm_title">Endurstilla röðun?</string>
+    <string name="reset_order_confirm_message">Listinn snýr aftur í upphaflegu röð og handvirk röðun glatast</string>
     <string name="accessibility_select_app">Veldu app</string>
     <string name="accessibility_select_source">Veldu uppruna</string>
     <string name="accessibility_move_up">Færa upp</string>
@@ -1338,6 +1383,7 @@ Nánari upplýsingar: %2$s"</string>
     <string name="accessibility_app_moved_announcement">%1$s flutt til staðar %2$s af %3$s</string>
     <string name="accessibility_scroll_to_top">Skrúllaðu efst á lista</string>
     <string name="rename">Endurnefna</string>
+    <string name="more_options">Fleiri valkostir</string>
     <string name="import_">Flytja</string>
     <string name="export">Flytja út</string>
     <string name="copy">Afrita</string>
@@ -1382,6 +1428,7 @@ Nánari upplýsingar: %2$s"</string>
     <string name="show_all">Sýna allt</string>
     <string name="ignore">Hunsa</string>
     <string name="stop_ignoring">Hættu að hunsa</string>
+    <string name="stop">Stöðva</string>
     <string name="logs">Logs</string>
     <string name="sources">Heimildir</string>
     <string name="installing_ellipsis">Sæti…</string>
@@ -1468,14 +1515,42 @@ Haltu samt sem áður?"</string>
     <string name="onboarding_restart_title">Ferðaleið</string>
     <string name="onboarding_restart_desc">Kynningarferð um helstu eiginleika</string>
 
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <!-- Preserved Nivqo localization -->
+    <string name="home_category_delete_confirm_title">Eyða flokki</string>
+    <string name="home_category_delete_confirm_message">Eyða flokki &lt;b&gt;%1$s&lt;/b&gt;? Forrit í honum munu færa aftur til &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <string name="expert_mode_prerelease_notice">Þessi uppspretta er með forútgáfuplástra. Plástrun getur mistekist eða hegðað sér óvænt.</string>
+    <string name="expert_mode_experimental_version_notice">Þessi uppspretta hefur aðeins tilraunastöðu fyrir þessa útgáfu af forritinu. Pötsunir hennar gætu verið óstöðugar eða ófullkomnar</string>
+    <string name="sources_dialog_local_add_more">Bæta við fleiri skrám</string>
+    <string name="sources_dialog_local_file_tap_hint">Tappaðu til að skoða geymslu</string>
+    <string name="home_apk_availability_dialog_title">Þarftu hjálp til að finna upprunalega fallegri APK?</string>
+    <string name="home_apk_availability_yes">Já, hjálpaðu mér að finna APK</string>
+    <string name="home_apk_availability_no">Nei, ég á nú þegar APK</string>
+    <string name="home_apk_use_saved">Nota vistað APK</string>
+    <string name="home_apk_use_installed">Nota upphætt APK</string>
+    <string name="home_file_picker_prompt_title">Velja skrá</string>
+    <string name="home_file_picker_prompt_description">Veldu &lt;b&gt;%s&lt;/b&gt; APK skrána sem þú hlaðið niður</string>
+    <string name="home_select_any_apk_description">Veldu APK skrá af hvaða forriti sem er, eða veldu forrit sem er þegar uppsett á þessari tæki</string>
+    <string name="expert_mode_disable_all_done">Allar breytingar gerða óvirkar</string>
+    <string name="expert_mode_enable_all_done">Allar breytingar virkar</string>
+    <string name="expert_mode_reset_to_default">Virkja mæltu breytingar</string>
+    <string name="expert_mode_restore_saved">Endurheimta valda</string>
+    <string name="expert_mode_copy_from_bundle">Afrita val frá öðrum pakka</string>
+    <string name="expert_mode_multiple_sources_warning_message">"Þú hefur valið patta úr fleiri pakkningagjöfum. Þetta gæti leitt til samhæfni vandamála eða óvæntra atvika.
+Ertu viss um að þú viljir halda áfram?"</string>
+    <string name="home_app_info_uninstall_app_confirmation">Ertu viss um að þú viljir afinstallera þetta app?</string>
+    <string name="patcher_stop_confirm_title">Stöðva breytistillinguna</string>
+    <string name="patcher_stop_confirm_description">Ertu viss um að þú viljir stöðva breytistillinguna?</string>
+    <string name="settings_appearance_app_icon_change_dialog_message">Breytir til &lt;b&gt;%s&lt;/b&gt; og endurræsir?</string>
+    <string name="copy_selection_title">Afrita val frá…</string>
+    <string name="copy_selection_confirm_with_count">Afrita %s</string>
+    <string name="copy_selection_same_source">Sama heimild</string>
+    <string name="settings_system_apk_download_helper_trust">Treysta</string>
     <string name="home_app_list_options_title">Raða og sía</string>
     <string name="home_app_list_options_state_description">Raðað eftir %1$s, síað eftir %2$s</string>
     <string name="sources_sort_title">Flokka uppfærslujöfn</string>
     <string name="sources_apps_leave_out">Undanskilja</string>
     <string name="sources_apps_leave_out_done">Undanskilið</string>
     <string name="sources_apps_bring_back">Færa aftur inn</string>
-    <string name="sources_dialog_choose_apps">Veldu forrit</string>
     <string name="hex_color">Hex litur</string>
     <string name="patcher_memory_adjustment_title">Ekki nóg minni</string>
     <string name="patcher_memory_adjustment_description">Patcher var stöðvaður af kerfinu á meðan hann keyrði með %1$d MB minnismörk. Lækkun minnismarkanna í %2$d MB gerir hann að minna skotmarki og getur leyft keyrslunni að ljúka.</string>

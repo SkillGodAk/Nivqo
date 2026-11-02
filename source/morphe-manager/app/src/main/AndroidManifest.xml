@@ -95,6 +95,7 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboard|keyboardHidden"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.MorpheManager">
 
             <intent-filter>
@@ -159,8 +160,13 @@
         <!-- Hosts the run, in a process of its own that ends with it -->
         <service
             android:name="app.morphe.manager.patcher.runtime.PatcherService"
+            android:foregroundServiceType="specialUse"
             android:exported="false"
-            android:process=":patcher" />
+            android:process=":patcher">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="patching" />
+        </service>
 
         <provider
             android:name="app.morphe.manager.domain.installer.InstallerFileProvider"

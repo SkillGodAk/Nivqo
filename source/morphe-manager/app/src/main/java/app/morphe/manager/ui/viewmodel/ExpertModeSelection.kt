@@ -8,6 +8,7 @@ package app.morphe.manager.ui.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.morphe.manager.domain.repository.SelectionSetSummary
 import app.morphe.manager.domain.repository.withoutMutedSources
 import app.morphe.manager.patcher.patch.*
 import app.morphe.manager.ui.model.SelectedApp
@@ -29,12 +30,13 @@ import kotlinx.coroutines.launch
  * The patches and options of a run picked by hand in the expert dialog, for the APK the run starts
  * from. [PatchFlow] opens it once the APK is known and patches with what it holds on proceeding.
  *
- * @param copy Picker behind the copy-from-another-bundle action of the dialog.
+ * @param panel State of the panel the dialog docks under its list, with the sets kept for the app
+ * and the selections a source can be copied from.
  */
 class ExpertModeSelection(
     private val scope: CoroutineScope,
-    val copy: CopySelectionController
-) {
+    override val panel: SelectionPanelController
+) : SelectionPanelHost {
     /** The APK the selection is for, null while the dialog is closed. */
     var app by mutableStateOf<SelectedApp?>(null)
         private set
@@ -60,9 +62,10 @@ class ExpertModeSelection(
 
     private var patches by mutableStateOf<PatchSelection>(emptyMap())
 
-    /** The selection as the dialog opened, which "Restore saved" goes back to. */
-    var savedPatches by mutableStateOf<PatchSelection>(emptyMap())
-        private set
+    // The selection and options as the dialog opened, which restoring the saved selection goes
+    // back to. Options too, as switching to a set replaces them
+    private var savedPatches by mutableStateOf<PatchSelection>(emptyMap())
+    private var savedOptions: Options = emptyMap()
 
     var options by mutableStateOf<Options>(emptyMap())
         private set
@@ -116,6 +119,7 @@ class ExpertModeSelection(
         applyMutes()
         this.patches = patches
         savedPatches = patches
+        savedOptions = options
         this.options = options
         this.newPatches = newPatches
         this.allowIncompatible = allowIncompatible
@@ -132,12 +136,13 @@ class ExpertModeSelection(
         leadingBundleUid = null
         patches = emptyMap()
         savedPatches = emptyMap()
+        savedOptions = emptyMap()
         options = emptyMap()
         newPatches = emptyMap()
         universalArmedFor = null
         allowIncompatible = false
         unreadablePaths = emptyList()
-        copy.close()
+        panel.close()
     }
 
     /**
@@ -249,21 +254,23 @@ class ExpertModeSelection(
      * started with: the dialog lists patches declaring other app versions so they can be enabled
      * by hand, but they are no more part of the defaults here than they were on first open.
      */
-    fun resetToDefault(bundleUid: Int) {
+    override fun resetToDefault(bundleUid: Int) {
         val bundle = bundles.firstOrNull { it.uid == bundleUid } ?: return
         val defaults = bundle.patchSequence(allowIncompatible)
             .filter(target::defaultSelected)
             .mapTo(mutableSetOf()) { it.name }
         update(patches.withBundle(bundleUid, defaults))
+        panel.defaultsApplied()
     }
 
-    /**
-     * Restores the DB-persisted patch selection for a bundle.
-     * No-op if there is no saved selection for the given bundle.
-     */
-    fun restoreSaved(bundleUid: Int) {
-        val savedForBundle = savedPatches[bundleUid] ?: return
-        update(patches.withBundle(bundleUid, savedForBundle))
+    override val setsPackageName get() = app?.packageName.orEmpty()
+
+    override val hasSavedSelection get() = savedPatches.values.any { it.isNotEmpty() }
+
+    override fun restoreSaved() {
+        update(savedPatches)
+        options = savedOptions
+        panel.restored()
     }
 
     fun updateOption(bundleUid: Int, patchName: String, optionKey: String, value: Any?) {
@@ -293,10 +300,9 @@ class ExpertModeSelection(
         bundles = allBundles.withoutMutedSources(mutedSources) { it.uid }
     }
 
-    /** Opens the copy-from-another-bundle picker for [targetBundleUid]. */
-    fun openCopy(targetBundleUid: Int) {
+    override fun loadCopyCandidates(targetBundleUid: Int) {
         val selectedApp = app ?: return
-        copy.open(
+        panel.loadCandidates(
             scope = scope,
             targetPackageName = selectedApp.packageName,
             targetBundleUid = targetBundleUid,
@@ -304,28 +310,53 @@ class ExpertModeSelection(
         )
     }
 
-    /**
-     * Applies a picked [candidate] to the in-memory selection. Changes reach the database only
-     * when the user proceeds to patching.
-     */
-    fun applyCopy(candidate: CopySelectionCandidate) {
+    /** Changes reach the database only when the user proceeds to patching. */
+    override fun applyCopy(candidate: CopySelectionCandidate) {
         val forApp = app ?: return
-        val targetBundleUid = copy.targetBundleUid ?: return
+        val targetBundleUid = panel.copyTargetUid ?: return
 
         scope.launch {
-            val copied = copy.resolve(
+            val copied = panel.resolveCopy(
                 candidate = candidate,
                 targetPatches = bundlePatches(targetBundleUid)
             ) ?: return@launch
             // The dialog may have closed or moved to another app while the copy was read
-            if (app !== forApp || copy.targetBundleUid != targetBundleUid) return@launch
+            if (app !== forApp) return@launch
 
             // The copy comes from a run that may have targeted another installer
             update(patches.withBundle(targetBundleUid, copied.patches))
             options = options.mergeBundleOptions(targetBundleUid, copied.options)
 
-            copy.finish(copied.patches.size)
+            panel.copied(copied.patches.size)
         }
+    }
+
+    /** Covers every source the app has patches in, the hidden ones included. */
+    override fun applySet(set: SelectionSetSummary) {
+        val forApp = app ?: return
+
+        scope.launch {
+            val snapshot = panel.resolveSet(set, allBundles)
+            if (app !== forApp) return@launch
+
+            update(snapshot.patches)
+            options = snapshot.options
+            panel.applied(set)
+        }
+    }
+
+    /** Keeps what the run would patch with, so a source held back is left out of the set. */
+    override fun saveSet(name: String) {
+        val selectedApp = app ?: return
+        panel.saveSet(scope, selectedApp.packageName, name, runSelection, options)
+    }
+
+    override fun deleteSet(set: SelectionSetSummary) {
+        panel.deleteSet(scope, set)
+    }
+
+    override fun renameSet(set: SelectionSetSummary, name: String) {
+        panel.renameSet(scope, set, name)
     }
 
     /** Raises [failures] over the dialog, for the user to fix or drop before the run goes on. */

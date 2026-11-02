@@ -41,6 +41,9 @@ import kotlin.time.TimeSource
  *             end of a pipe the app reads [HostEvent]s from.
  */
 fun main(args: Array<String>) {
+    // Patches tell Android from a desktop host by java.vendor, which ART sets to this and the
+    // embedded OpenJDK build leaves as N/A
+    System.setProperty("java.vendor", "The Android Project")
     val (commandsFile, eventsFile) = args
     val collectors = ManagementFactory.getGarbageCollectorMXBeans()
     serveRun(commandsFile, eventsFile, { collectors.sumOf { it.collectionTime } }) { loadPatchesFromJar(setOf(it)) }

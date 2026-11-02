@@ -156,7 +156,9 @@ object ActionPillColors {
 }
 
 /**
- * Pill-shaped action button with an icon, optional text label, and optional long-press tooltip.
+ * Pill-shaped action button with an icon and an optional text label. Without the label it is
+ * named in an [IconTooltip] by [contentDescription], or by [tooltip] where that says more than
+ * a short name should.
  *
  * A [destructive] pill draws its content and edge in red over a veil, see [neutralVeil], so it
  * stays apart on a card whose own color is a red.
@@ -168,7 +170,6 @@ object ActionPillColors {
  * A press rounds the corners of [shape] down, and in an [ActionPillRow] also widens the pill at
  * the expense of its neighbors.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActionPillButton(
     onClick: () -> Unit,
@@ -261,27 +262,16 @@ fun ActionPillButton(
         }
     }
 
-    // A row reads its layout hints (weight, emphasis) off its direct child, and TooltipBox nests
-    // the modifier it is given inside a Box of its own, so the pill supplies that child itself.
-    // That Box also drops the minimum width a row stretches the pill to, so the width is settled
-    // here, from the pill's own content but no narrower than asked, and the pill fills it
-    Box(
+    // A row reads its layout hints (weight, emphasis) off its direct child, the one the tooltip
+    // carries the modifier on. The width is settled there too, from the pill's own content but no
+    // narrower than a row stretches it to, and the pill fills it
+    IconTooltip(
+        text = (tooltip ?: contentDescription).takeIf { label == null },
         modifier = modifier
             .then(PillRowDataElement(playback.emphasis, labeled = label != null, press = pressAmount))
             .width(IntrinsicSize.Max),
-        propagateMinConstraints = true
-    ) {
-        if (tooltip != null) {
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                tooltip = { PlainTooltip { Text(tooltip) } },
-                state = rememberTooltipState(),
-                content = pill
-            )
-        } else {
-            pill()
-        }
-    }
+        content = pill
+    )
 }
 
 @Composable

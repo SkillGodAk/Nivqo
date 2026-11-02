@@ -48,6 +48,10 @@
         <item quantity="one">%s manba</item>
         <item quantity="other">%s manbalar</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s to\'plam</item>
+        <item quantity="other">%s to\'plam</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s paket</item>
         <item quantity="other">%s paketlar</item>

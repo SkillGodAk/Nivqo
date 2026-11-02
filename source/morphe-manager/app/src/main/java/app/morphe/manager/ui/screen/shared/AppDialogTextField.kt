@@ -86,62 +86,50 @@ fun AppDialogTextField(
                     ) {
                         // Password visibility toggle
                         if (isPassword) {
-                            IconButton(
+                            TooltipIconButton(
                                 onClick = { passwordVisible = !passwordVisible },
+                                icon = if (passwordVisible) {
+                                    MaterialSymbols.Rounded.Visibility_off
+                                } else {
+                                    MaterialSymbols.Rounded.Visibility
+                                },
+                                contentDescription = if (passwordVisible) {
+                                    stringResource(R.string.settings_system_hide_password_field)
+                                } else {
+                                    stringResource(R.string.settings_system_show_password_field)
+                                },
                                 modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (passwordVisible) {
-                                        MaterialSymbols.Rounded.Visibility_off
-                                    } else {
-                                        MaterialSymbols.Rounded.Visibility
-                                    },
-                                    contentDescription = if (passwordVisible) {
-                                        stringResource(R.string.settings_system_hide_password_field)
-                                    } else {
-                                        stringResource(R.string.settings_system_show_password_field)
-                                    }
-                                )
-                            }
+                            )
                         }
 
                         // Clear button
                         if (showClearButton && value.isNotBlank()) {
-                            IconButton(
+                            TooltipIconButton(
                                 onClick = { onValueChange("") },
+                                icon = MaterialSymbols.Rounded.Close,
+                                contentDescription = stringResource(R.string.clear),
                                 modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = MaterialSymbols.Rounded.Close,
-                                    contentDescription = stringResource(R.string.clear)
-                                )
-                            }
+                            )
                         }
 
                         // Folder picker button
                         if (onFolderPickerClick != null) {
-                            IconButton(
+                            TooltipIconButton(
                                 onClick = onFolderPickerClick,
+                                icon = MaterialSymbols.Rounded.Folder_open,
+                                contentDescription = stringResource(R.string.select_folder),
                                 modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = MaterialSymbols.Rounded.Folder_open,
-                                    contentDescription = stringResource(R.string.select_folder)
-                                )
-                            }
+                            )
                         }
 
                         // File picker button
                         if (onFilePickerClick != null) {
-                            IconButton(
+                            TooltipIconButton(
                                 onClick = onFilePickerClick,
+                                icon = MaterialSymbols.Rounded.Draft.autoMirrored,
+                                contentDescription = stringResource(R.string.select_file),
                                 modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = MaterialSymbols.Rounded.Draft.autoMirrored,
-                                    contentDescription = stringResource(R.string.select_file)
-                                )
-                            }
+                            )
                         }
                     }
                 } else {
@@ -242,28 +230,22 @@ fun AppDialogDropdownTextField(
                     ) {
                         // Folder picker button
                         if (onFolderPickerClick != null) {
-                            IconButton(
+                            TooltipIconButton(
                                 onClick = onFolderPickerClick,
+                                icon = MaterialSymbols.Rounded.Folder_open,
+                                contentDescription = stringResource(R.string.select_folder),
                                 modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = MaterialSymbols.Rounded.Folder_open,
-                                    contentDescription = stringResource(R.string.select_folder)
-                                )
-                            }
+                            )
                         }
 
                         // Clear button, hidden while the field already shows nothing
                         if (showClearButton && displayValue.isNotBlank()) {
-                            IconButton(
+                            TooltipIconButton(
                                 onClick = { changeInput("") },
+                                icon = MaterialSymbols.Rounded.Close,
+                                contentDescription = stringResource(R.string.clear),
                                 modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = MaterialSymbols.Rounded.Close,
-                                    contentDescription = stringResource(R.string.clear)
-                                )
-                            }
+                            )
                         }
 
                         // Dropdown arrow. On an editable field it is the only anchor, so opening the

@@ -100,6 +100,10 @@ class InstalledAppInfoViewModel(
     var hasOriginalApk by mutableStateOf(false)
         private set
 
+    /** Whether a replaced mount can be put back from its root module, see [RootInstaller.restoreFromModule]. */
+    var canRestoreFromModule by mutableStateOf(false)
+        private set
+
     /** Web links of the installed app, null while nothing is installed under its package. */
     var appLinksStatus: AppLinksStatus? by mutableStateOf(null)
         private set
@@ -351,6 +355,9 @@ class InstalledAppInfoViewModel(
         isReplacedByPlayStore = isInstallStateNotPatched &&
                 pm.getInstallerPackageName(app.currentPackageName) == PLAY_STORE_INSTALLER_PACKAGE
         isInstallStateUnknown = trackedPresentation.isUnknown
+        // Asked only of a mount another version replaced, the one case it is restored for
+        canRestoreFromModule = app.installType == InstallType.MOUNT && isInstallStateNotPatched &&
+                rootInstaller.hasModuleCopies(app.currentPackageName)
 
         canRemoveRecord = canRemoveTrackedRecord(app.installType, trackedPatchState, hasSavedCopy)
 

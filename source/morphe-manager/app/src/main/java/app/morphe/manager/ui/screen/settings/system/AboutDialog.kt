@@ -189,20 +189,22 @@ private fun SocialIconButton(
     textColor: Color
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.size(52.dp),
-        shape = rememberPressShape(interactionSource, Defaults.PillShape),
-        color = textColor.copy(alpha = 0.1f),
-        interactionSource = interactionSource
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = textColor.copy(alpha = 0.8f),
-                modifier = Modifier.size(26.dp)
-            )
+    IconTooltip(text = contentDescription) {
+        Surface(
+            onClick = onClick,
+            modifier = Modifier.size(52.dp),
+            shape = rememberPressShape(interactionSource, Defaults.PillShape),
+            color = textColor.copy(alpha = 0.1f),
+            interactionSource = interactionSource
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = contentDescription,
+                    tint = textColor.copy(alpha = 0.8f),
+                    modifier = Modifier.size(26.dp)
+                )
+            }
         }
     }
 }

@@ -195,7 +195,7 @@ public class SettingsDialogTest {
     }
 
     @Test public void aLongLogBuildsItsCardsAPageAtATimeAsItScrolls() throws Exception {
-        int page = SettingsActivity.MESSAGE_LOG_PAGE, count = 3 * page + 5;
+        int page = MessageLogSheet.MESSAGE_LOG_PAGE, count = 3 * page + 5;
         long now = System.currentTimeMillis();
         List<MessageLog.Entry> entries = new ArrayList<>();
         for (int i = 0; i < count; i++) entries.add(new MessageLog.Entry(now - (count - i) * 1000L, "t", "Message " + i));
@@ -226,8 +226,35 @@ public class SettingsDialogTest {
         }
     }
 
+    @Test public void unsentMessagesAreMarkedAndCanBeShownOnTheirOwn() throws Exception {
+        long now = System.currentTimeMillis();
+        MessageLog.write(Settings.appContext, List.of(
+            new MessageLog.Entry(now - 3000, "t", "kept one"),
+            new MessageLog.Entry(now - 2000, "t", "taken back", "Ana", "", "mid.1", true),
+            new MessageLog.Entry(now - 1000, "t", "still here")));
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            SettingsText text = new SettingsText(screen.get());
+            screen.get().getWindow().getDecorView().findViewWithTag("message_log_view").performClick();
+            View root = ShadowDialog.getLatestDialog().getWindow().getDecorView();
+            awaitText(root, "taken back");
+            TextView badge = root.findViewWithTag("message_log_unsent_badge");
+            assertEquals(text.get("message_log_unsent"), badge.getText().toString());
+            assertNotNull(findText(root, "kept one"));
+            TextView filter = root.findViewWithTag("message_log_unsent_only");
+            assertEquals(text.get("message_log_unsent_only"), filter.getText().toString());
+            filter.performClick();
+            awaitText(root, text.get("message_log_show_all"));
+            assertNotNull(findText(root, "taken back"));
+            assertNull(findText(root, "kept one"));
+            assertNull(findText(root, "still here"));
+            ((TextView) root.findViewWithTag("message_log_unsent_only")).performClick();
+            awaitText(root, "still here");
+            assertNotNull(findText(root, "kept one"));
+        }
+    }
+
     @Test public void aClearedLogNeverBuildsThePageItHadWaiting() throws Exception {
-        int page = SettingsActivity.MESSAGE_LOG_PAGE, count = 2 * page + 3;
+        int page = MessageLogSheet.MESSAGE_LOG_PAGE, count = 2 * page + 3;
         long now = System.currentTimeMillis();
         List<MessageLog.Entry> entries = new ArrayList<>();
         for (int i = 0; i < count; i++) entries.add(new MessageLog.Entry(now - (count - i) * 1000L, "t", "Message " + i));
@@ -269,7 +296,7 @@ public class SettingsDialogTest {
     }
 
     @Test public void aWindowTallerThanAPageFillsWithoutAScroll() throws Exception {
-        int page = SettingsActivity.MESSAGE_LOG_PAGE, count = 10 * page;
+        int page = MessageLogSheet.MESSAGE_LOG_PAGE, count = 10 * page;
         long now = System.currentTimeMillis();
         List<MessageLog.Entry> entries = new ArrayList<>();
         for (int i = 0; i < count; i++) entries.add(new MessageLog.Entry(now - (count - i) * 1000L, "t", "Message " + i));
@@ -301,7 +328,7 @@ public class SettingsDialogTest {
     }
 
     @Test public void aPageAskedForJustBeforeTheLogClosesIsNotBuilt() throws Exception {
-        int page = SettingsActivity.MESSAGE_LOG_PAGE, count = 2 * page + 3;
+        int page = MessageLogSheet.MESSAGE_LOG_PAGE, count = 2 * page + 3;
         long now = System.currentTimeMillis();
         List<MessageLog.Entry> entries = new ArrayList<>();
         for (int i = 0; i < count; i++) entries.add(new MessageLog.Entry(now - (count - i) * 1000L, "t", "Message " + i));

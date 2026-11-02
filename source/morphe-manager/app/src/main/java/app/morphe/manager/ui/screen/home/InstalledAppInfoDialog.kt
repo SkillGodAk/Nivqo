@@ -367,8 +367,8 @@ fun DialogHostScope.InstalledAppInfoDialog(
 
         DialogHost(visible = showUninstallConfirm.value) {
             ConfirmDialog(
-                title = stringResource(R.string.uninstall),
-                message = stringResource(R.string.home_app_info_uninstall_app_confirmation),
+                title = stringResource(R.string.home_app_info_uninstall_title),
+                message = stringResource(R.string.home_app_info_uninstall_removes_data),
                 primaryText = stringResource(R.string.uninstall),
                 subject = { AppConfirmSubject() },
                 onConfirm = {
@@ -514,20 +514,25 @@ fun DialogHostScope.InstalledAppInfoDialog(
     }
 
     // Offered only once another version, usually a store update, replaced the mount. An unmounted
-    // app still at its patched version is mounted again instead
+    // app still at its patched version is mounted again instead. The builds Morphe saved come
+    // first, and the copies the root module keeps stand in where they are gone
     val installedVersion = appInfo?.versionName
+    val restoresSavedBuilds = viewModel.hasSavedCopy && viewModel.hasOriginalApk
     val mountRestore = if (
         loadedApp != null &&
         viewModel.isInstallStateNotPatched &&
         loadedApp.installType == InstallType.MOUNT &&
-        viewModel.hasSavedCopy && viewModel.hasOriginalApk &&
+        (restoresSavedBuilds || viewModel.canRestoreFromModule) &&
         installedVersion != null && installedVersion != loadedApp.version
     ) {
         MountRestore(
             versions = installedVersion.withVersionPrefix() to loadedApp.version.withVersionPrefix(),
             label = mountStageLabel,
             isRunning = isInstalling,
-            onRestore = { reinstallSavedMount(loadedApp) },
+            onRestore = {
+                if (restoresSavedBuilds) reinstallSavedMount(loadedApp)
+                else installViewModel.restoreMountFromModule(loadedApp.currentPackageName, loadedApp.version)
+            },
             onOpenPlayStore = if (viewModel.isReplacedByPlayStore) {
                 { context.openPlayStorePage(loadedApp.currentPackageName) }
             } else null
@@ -1551,7 +1556,6 @@ private fun ActionGroup(actions: List<ActionItem>, modifier: Modifier = Modifier
 }
 
 /** One action of an [ActionGroup], fading in unless the group was [settled] without it. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GroupedAction(
     action: ActionItem,
@@ -1580,7 +1584,8 @@ private fun GroupedAction(
             }
         ) {
             val iconOnly = inRow && action.iconOnly
-            val button = @Composable {
+            // Named by a tooltip once its label is left out, and only then, so the two never repeat
+            IconTooltip(text = action.text.takeIf { iconOnly }) {
                 TileActionButton(
                     action = action,
                     shape = shape,
@@ -1588,17 +1593,6 @@ private fun GroupedAction(
                     iconOnly = iconOnly,
                     interactionSource = interactionSource
                 )
-            }
-            // Named by a tooltip once its label is left out, and only then, so the two never repeat
-            if (iconOnly) {
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
-                    tooltip = { PlainTooltip { Text(action.text) } },
-                    state = rememberTooltipState(),
-                    content = button
-                )
-            } else {
-                button()
             }
         }
     }

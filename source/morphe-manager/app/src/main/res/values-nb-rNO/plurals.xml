@@ -48,6 +48,10 @@
         <item quantity="one">%s kilde</item>
         <item quantity="other">%s kilder</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s sett</item>
+        <item quantity="other">%s sett</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pakke</item>
         <item quantity="other">%s pakker</item>

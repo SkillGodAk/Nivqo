@@ -80,8 +80,8 @@ fun RowScope.SelectionMark(
     SwappedSlot(showsMark = selected != null, mark = mark, idle = idle, modifier = modifier)
 }
 
-/** Size of the circle [SelectionCheckIndicator] draws. */
-private val SelectionMarkSize = 28.dp
+/** Size of the circle [SelectionCheckIndicator] draws, and of the slot a [SelectionMark] holds. */
+internal val SelectionMarkSize = 28.dp
 
 /** One place [mark] and [idle] pop in and out of in turn, without one moving the other aside. */
 @Composable

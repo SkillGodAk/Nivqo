@@ -8,11 +8,17 @@
     <string name="home_unpatched_badge">Nehatiye patchkirin</string>
     <string name="home_no_patches_available">Paqijî ne hebin.</string>
     <string name="home_app_hide_title">Epp şifre bike?</string>
+    <string name="home_more_apps_title">Zêde sepan</string>
+    <string name="home_more_apps_hide_title">Vê kartê veşêrî?</string>
+    <string name="home_more_apps_hide_message">Hûn dikarin di her wextî de li Settings &gt; Appearance &gt; Home screen ve bînin</string>
     <string name="home_app_hide_message">Evê app wê ji dîroka sereke ve bê neşînîn. Hûn dikarin paşê wê ji appên veşartî vegerînin bişkoika li jorî navnîşê re.</string>
     <string name="home_app_will_be_hidden">Epp şifre be</string>
+    <string name="home_app_hidden_named">%s veşartî</string>
+    <string name="home_app_shown_named">%s hatî nîşandan</string>
     <string name="home_app_no_hidden">Appên veşartiye tune</string>
     <string name="home_app_hidden_apps_title">Appên veşartiye</string>
     <string name="home_app_hidden_apps_hint">İ kilavê rê bifikin</string>
+    <string name="home_apps_unhide_message">Appên ku hatin veyarkirin vedigerin ekranê sereke</string>
     <string name="home_app_patch_sources_description">Çavkaniyên ku bê nîşankirin mane dema van sepanan têne patchkirin nayên pêşkêşkirin, û patchên wan bi serê xwe tu carî nabin beşek ji hilbijartinê. Her çavkanî ji bo her sepana din çalak dimîne.</string>
     <string name="home_app_patch_sources_mixed">Ji %1$s ji %2$s-an re tê pêşkêşkirin</string>
     <string name="home_app_patch_sources_covers">Ji bo %1$s ji %2$s-an patch hene.</string>
@@ -23,9 +29,14 @@
     <string name="deep_link_add_source_message">Ma tu wê çavkaniya vê pakê ji Morphe zêde bike?</string>
     <string name="deep_link_add_source_warning">Têkilîyên ku bawerî li wan hebin zêde bike</string>
     <!-- Shown under the app a link was opened for -->
+    <string name="deep_link_add_source_only_app">Tenê ev app hat zêdekirin. Tu dikarî appên din ji lîsteya appên çavkaniyê zêde bikî</string>
     <!-- Shown when the link was opened for the universal patches of a source, which no app is added with -->
+    <string name="deep_link_add_source_only_universal">Tenê patchên universal hatin zêdekirin. Tu dikarî appan ji lîsteya appên çavkaniyê zêde bikî</string>
     <!-- Asked when the link names an app of a source that is already added -->
+    <string name="deep_link_add_source_app_back">Ev çavkanî jixwe hat zêdekirin. Vê appê ji çavkaniya heyî zêde bikî?</string>
     <!-- Asked when a .mpp file opened from a file manager is another version of a local source, %s being its name -->
+    <string name="mpp_import_update_message">Ev guhertoyeke nû ya %s e. Ma hûn dixwazin wê nû bikin?</string>
+    <string name="mpp_import_unreadable">Ev fîle nayê xwendin</string>
     <!-- Home Screen - Update Notifications -->
     <string name="home_update_available">Nûvekirina Nivqo heye</string>
     <string name="home_update_available_subtitle">Nûvekirin amade ye ku were sazkirin</string>
@@ -49,6 +60,8 @@
     <string name="home_update_success_subtitle">Kanalan we nû kirin</string>
     <string name="home_sources_are_loading">Kanalan ketin, ji kerema xwe bibeku</string>
     <string name="home_search_apps">İlave avakurîn</string>
+    <string name="list_options_title">Rêzkirin û filtrekirin</string>
+    <string name="list_options_state_description">Li gorî %1$s hatine rêzkirin, li gorî %2$s hatine filtrekirin</string>
     <string name="home_app_filter_all_description">Her sepana li ser ekrana sereke</string>
     <string name="home_app_filter_patched_description">Sepanên ku we bi Morphe pîne kirine an jî tomar kirine</string>
     <string name="home_app_filter_not_patched_description">Sepanên ku we hê di Nivqo de pîne nekirine</string>
@@ -57,6 +70,9 @@
     <string name="home_app_filter_clones">Klon</string>
     <string name="home_app_filter_clones_description">Serlêdanên ku bi navekî pakêtê yê taybet hatine çêkirin, li kêleka orîjînal têne sazkirin</string>
     <string name="home_app_grouping_none">Netû</string>
+    <string name="home_app_grouping_all_apps_description">Lîstek bi her appekê re</string>
+    <string name="home_app_grouping_sources_description">AppNameên bin çavkaniya patchê ya ku wan peyda dike</string>
+    <string name="home_app_grouping_custom_description">AppNameên di kategoriyên ku te çêkirine de</string>
     <string name="home_app_sort_manual_description">Sepana dirêj bike, paşê bişîne ser butona rijandinê</string>
     <string name="home_app_sort_recommended">Rêza pêşniyarkirî</string>
     <string name="home_app_sort_recommended_description">Sepanên saz kirî û têxîkirî pêşî</string>
@@ -82,8 +98,10 @@
     <string name="home_category_name">Navê kategoriyê</string>
     <string name="home_category_move_to">Biguhezîne kategoriyê</string>
     <string name="home_category_move_selected_title">Biguhezîne sepanên hilbijartî</string>
-    <string name="home_category_delete_confirm_title">Kategoriya terikîne</string>
-    <string name="home_category_delete_confirm_message">Kategoriya &lt;b&gt;%1$s&lt;/b&gt; terikîne? Sepan di nav de vegerin &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">%s jêbire?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Appên wê vegerin &lt;b&gt;%s&lt;/b&gt;</string>
     <string name="home_category_actions_unavailable">Çalakiyên ji bo vê kategoriyê nayên destêrkirin</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Kudu ezîtekora kodê ji xwerêzê we yê çawa îdeal bike?</string>
@@ -150,6 +168,11 @@
     <string name="sources_management_title">Kanalan saz bike</string>
     <string name="sources_search">Çavkanî û patchan bigere</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
+    <string name="sources_filter_all_description">Her çavkanî</string>
+    <string name="sources_filter_enabled_description">Çavkaniyên ku patch lêvegirêdin</string>
+    <string name="sources_filter_disabled_description">Çavkaniyên vekirandî</string>
+    <string name="sources_filter_issues">Pêdiviya bi baldarbûnê heye</string>
+    <string name="sources_filter_issues_description">Çavkaniyên ku hatine blokkirin, nekarîn bên barkirin an pêdiviya wan bi Morpheyeke nûtir heye</string>
     <string name="sources_sort_manual">Fermanê destî</string>
     <string name="sources_sort_manual_hint">Çavdêriyeke dirêj li ser çavkaniyê bike da ku rêzê guhezîne</string>
     <string name="sources_sort_last_updated">Daxwazkirina herî dawî</string>
@@ -161,18 +184,27 @@
     <string name="sources_management_report_issue">Pirsgirêkek rapor bike</string>
     <string name="sources_management_failed_to_open_url">Serokê URL nefirote</string>
     <string name="sources_apps">Sepan</string>
+    <string name="sources_apps_description">Appên nîşanî ji vê çavkaniyê ne. Li appekê bitikîne da ku wê derxe an jî vegere. Appek ji ekrana sereke diçe gava tu çavkanî wê nanîne, mêger te patch kiriye</string>
     <string name="sources_apps_brought">Ji aliyê vê çavkaniyê ve tê</string>
     <string name="sources_apps_left_out">Ji vê çavkaniyê hatiye derxistin</string>
     <!-- Under an app left out of a source that keeps its home screen card because the user has patched it -->
+    <string name="sources_apps_stays_patched">Weke patchwork hatî parastin</string>
     <!-- Marks an app (not a patch) the source started supporting since its app list was last opened -->
+    <string name="sources_apps_new">Nû</string>
+    <string name="sources_apps_new_apps">Appên nû bîne</string>
     <!-- Under the Bring new apps switch in a source's app list, whichever way it is set. "It" is the patch source -->
+    <string name="sources_apps_new_apps_description">Applîkasyonên ku piştre zêde dike li ser ekrana bingehîn xuya dibin</string>
     <string name="sources_management_prerelease_toggle">Patch-ên pêş-bernameyê</string>
     <string name="sources_management_prerelease_toggle_description">Bi destê pêşîn bigihîje guhertoyên nû yên ceribandinê</string>
     <string name="sources_prerelease_warning_title">Patchên pêş-berdanê çalak bike?</string>
     <string name="sources_prerelease_warning_message">Nusxeyên pêş-berdanê hê jî di pêşveçûnê de ne. Patch dibe ku têk biçin an sepanê bişkînin, û taybetmendî dikarin bê hişyarî biguherin.</string>
-    <string name="expert_mode_prerelease_notice">Ev çavkanî li ser patchên pêş-berdanê ye. Patchkirin dibe ku têk biçe an bi awayekî neçaverêkirî tevbigere.</string>
     <string name="sources_management_experimental_versions_toggle">Werzîyonên sepanê yên eksperîmental</string>
     <string name="sources_management_experimental_versions_toggle_description">Armancên sepanê yên ceribandinî nîşan dide û patch dike</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Patchên berê-weşandinê çalak bike</string>
+    <string name="sources_management_prerelease_disable">Patchên berê-weşandinê raguherîne</string>
+    <string name="sources_management_experimental_versions_enable">Versiyonên eksperîmental ên appê çalak bike</string>
+    <string name="sources_management_experimental_versions_disable">Versiyonên eksperîmental ên appê raguherîne</string>
     <string name="sources_management_already_exists">Evîn pêştirîye, berê zêdekirine.</string>
     <string name="sources_management_invalid_url">URL-a çavkaniyê nebaş e. Ji kerema xwe navnîşanê kontrol bikin û dîsa biceribîn</string>
     <string name="sources_management_blocked">Çavkaniya vê pelikê blok kirî ye û nikare were zêdekirin</string>
@@ -184,6 +216,9 @@
     <string name="sources_management_outdated_manager_hint">Ev çavkanî ji bo patcher %1$s hatî çêkirin, lê Morphe %2$s patcher %3$s vedihewîne. Morphe nûve bike da ku wê bikar bîne</string>
     <string name="sources_management_held_back_badge">Rûxî</string>
     <string name="sources_management_held_back_hint">Ev çavkanî dema barkirinê Morphe xiste xwarê, lewra tê derbaskirin. Ji bo ku dîsa biceribînî, wê nû bike an jî ji nû ve îthal bike.</string>
+    <string name="sources_management_signed_by">Ji hêla ... hatî îmzekirin</string>
+    <string name="sources_management_signing_key_changed_badge">Kîlî hat guhertin</string>
+    <string name="sources_management_signing_key_changed_hint">Îsdara herî dawî bi kîlîya ku vê çavkaniyê berê bikar anî nehatî îmzekirin, lewma nehatî sazkirin. Ji bo wê rave bike</string>
     <string name="sources_management_source_enabled">Çavkanî aktîv kirin</string>
     <string name="sources_management_source_disabled">Çavkanî ne aktîv kirin</string>
     <string name="sources_management_source_updating">Çavkanî nûkirin</string>
@@ -200,9 +235,6 @@
     <string name="sources_dialog_paste_no_links">Di klîpbordê de tu girêdan nehat dîtin.</string>
     <string name="sources_dialog_local">Nêzîk</string>
     <string name="sources_dialog_local_files">Pelên çavkaniya patchê hilbijêre.</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">Zêdetir pelan lê zêde bike.</string>
-    <string name="sources_dialog_local_file_tap_hint">Bikîne da ku hilanînê bikola</string>
     <string name="sources_dialog_local_invalid_extension">Pel divê pêveka .mpp hebe</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">%s nûve dike</string>
@@ -210,27 +242,38 @@
     <string name="sources_dialog_url_invalid">URL gihub/gitlab depoyê an pelê .json\'yê nîşan bide</string>
     <string name="sources_dialog_preinstalled">Destekî çêkirî</string>
     <string name="sources_dialog_community">Patchên civakê</string>
+    <string name="sources_dialog_choose_apps">Appan hilbijêre</string>
     <string name="sources_dialog_choose_apps_description">Gava çavkanî hat barkirin, hilbijêre ku kîjan sepanên wê biparêzî.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Çavkaniyên patch ên partiya sêyem</string>
+    <string name="sources_dialog_community_notice_message">"Çavkaniyên patchên civakê ji hêla nivîskarên wan ve hatine çêkirin û têne parastin. Morphe patchên third-party nayê kontrolkirin an piştrastkirin, û berpirsiyarê naveroka wan an jî tiştên ku li ser amûra we dikin nîne"</string>
     <string name="sources_update_success">Nûvekirin serketî</string>
     <string name="sources_update_unavailable">Nûvekirin peyda nebûye</string>
     <string name="sources_download_fail">Nêzîk davêtin: %s</string>
     <string name="sources_download_fail_named">\'%s\' nabe ji dîrok kirin. Têkeza serî pêvehiya internetê ya we kontrol bikin û dîsa biceribin.</string>
     <string name="sources_download_endpoint_not_found">\'%s\': metadata ya pelikê nîn e.</string>
+    <string name="sources_signing_key_changed_named">\'%s\' nehat nûkirin ji ber ku îsdara wê ya herî dawî bi kîlîya ku wê berê bikar anî nehatî îmzekirin</string>
+    <string name="sources_signing_key_changed_local">Pel bi kîlîya ku vê çavkaniyê berê bikar anî nehatî îmzekirin. Ji bo baweriyê pê bînî, çavkaniyê jêbide û pelê dîsa zêde bike</string>
+    <string name="sources_signing_key_trust_title">Bawerî bi kîlîya nû bike?</string>
+    <string name="sources_signing_key_trust_message">Îsdara herî dawî bi kîlîyekî din hatî îmzekirin. An pêşdevekereyî kîlîya xwe guhertiye, an kesekî din vê îsdarê weşarkiriye. Tenê heger pêşdevekereyî kîlîyek nû ragihandibe, bawerî pê bike</string>
+    <string name="sources_signing_key_trust_message_unsigned">Îsdara herî dawî nehatî îmzekirin. An pêşdevekereyî îmzekirina îsdaran rawestandiye, an kesekî din vê îsdarê weşarkiriye. Tenê heger pêşdevekereyî ragihandibe, bawerî pê bike</string>
+    <string name="sources_signing_key_trusted">Kîlîya bawer</string>
+    <string name="sources_signing_key_new">Kîla nû</string>
     <string name="sources_patch_expert_badge">Ekspert</string>
     <string name="sources_patch_expert_badge_tooltip">Ji bo kuşandina vê patch\'ê bi destê, moda Ekspertê di Nastîran de çêbike</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">Alîkarê dîtina APK-ya orîjînal, nebixwe ji nû ve?</string>
+    <string name="home_apk_availability_title">Alîkariyê ji bo dîtina APK pîdivî ye?</string>
     <string name="home_apk_availability_dialog_simple">Ji bo dirûtîna &lt;b&gt;%s&lt;/b&gt;, hûn pêdiviya APK-ya nebixwe hebin:</string>
     <string name="home_apk_availability_dialog_expert">Ji bo dirûtîna &lt;b&gt;%s&lt;/b&gt;, hûn pêdiviya APK-yên nebixwe hebin:</string>
     <string name="home_apk_availability_recommended_label">Pisporîn</string>
     <string name="home_apk_availability_unpatched_label">Neçapandî</string>
     <string name="home_apk_availability_incompatible_label">Nakamkirê</string>
     <string name="home_apk_availability_installed_version">Li ser vê cîhazê sazkirî: %s</string>
-    <string name="home_apk_availability_yes">Ew, min alîkarê dîtina APK-yê bikîn</string>
-    <string name="home_apk_availability_no">Na, ez APK-yek heznikim</string>
+    <string name="home_apk_availability_find">Erê, alîkariya min bike ku ez wê bibînim</string>
+    <string name="home_apk_availability_have">Na, min jixwe hêsî kirye</string>
     <string name="home_apk_helper_download">Serlêdanê arîkar bikar bînin</string>
+    <string name="home_apk_helper_untrusted">Appek alîkar hatî sazkirin lê hîn bawerî pê nehatiye, lewma li vir nayê pêşniyarkirin</string>
+    <string name="home_apk_helper_untrusted_action">Alîkaran kontrol bike</string>
     <string name="home_apk_helper_title">Bi serlêdanek arîkar dakêşin</string>
     <string name="home_apk_helper_description">Morphe ji serlêdanê arîkarê jêrîn wê bigire ku APK-ya orjînal dakêşîne û pelê paş de bide</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -243,8 +286,8 @@
     <string name="home_apk_helper_wrong_package">Appa alîkar appek cuda vegerand ji ya ku tê patchkirin</string>
     <string name="home_apk_helper_installed_unavailable">Morphe nekarî appa sazkirî bikar bîne</string>
     <string name="home_apk_helper_installed_incompatible">Guhertoya sazkirî nayê patchkirin</string>
-    <string name="home_apk_use_saved">APK ya saved bikar bîne</string>
-    <string name="home_apk_use_installed">APK ya sazkirî bikar bîne</string>
+    <string name="home_apk_use_saved_copy">Kopiya saved bikar bîne</string>
+    <string name="home_apk_use_installed_app">Appa installation bikar bîne</string>
     <string name="home_apk_use_saved_unsupported">Patchên vê kopiya tomarkirî piştgirî nakin. Patchkirina wê dê ji te bipirse ku piştrast bikî, an APK-ya din hilbijêre.</string>
     <string name="home_apk_use_installed_unverified">Nezêrbû ku îmzaya sepanê yê ku hatî saz kirin bê xeml kirin, lew re dibe ku jî berê hatî guhertin</string>
     <string name="home_unverified">Neverastkirî</string>
@@ -280,14 +323,19 @@
     <string name="home_download_instructions_copy_link">Girêdanê kopî bike</string>
     <string name="home_download_instructions_link_copied">Girêdan hate kopîkirin</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">APKê daxistî hilbijêre</string>
-    <string name="home_file_picker_prompt_description">Pelê APK ya &lt;b&gt;%s&lt;/b&gt; ya hûn niha dakêşandî hilbijêrin.</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">APKya %s hilbijêre</string>
+    <string name="home_file_picker_prompt_where">Browser bi gelemperî wê di foldera Download de save dikin</string>
     <string name="home_file_picker_prompt_open_apk">Dosya APK veqêşin</string>
     <string name="home_recommended_version">Versyona ku tê pêşniyar kirin</string>
     <string name="home_selected_version">Versiyona hilbijartî</string>
     <string name="home_select_apk_title">APK safînak</string>
-    <string name="home_select_any_apk_description">Hilbijartina dosyeyekê APK yê ji her programê, yan jî programa ku berê li ser vê cîhazê hatiye saz kirin hilbijartin</string>
+    <string name="home_select_apk_description">"Patchên universal bi her appê re dixebitin
+
+Hilbijêre ku APK ya wê ji ku derê bê"</string>
     <string name="home_use_installed_app">Programa saz kirî bikar bîne</string>
+    <string name="home_use_installed_app_description">Appekê hilbijêre ku jixwe li ser vê amûrê ye</string>
+    <string name="home_open_apk_file_description">Peleke APK, APKM, APKS an XAPK ji jêbirîna daneyan hilbijêre</string>
     <string name="home_installed_app_picker_title">Sepanên sazkirî</string>
     <string name="home_installed_app_picker_empty">Çêbî app nayê dîtin</string>
     <string name="home_installed_app_picker_filter_user">Tenê app\'ên bikarîner</string>
@@ -300,19 +348,16 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">Paqejî bîne lêgeran</string>
     <string name="expert_mode_disable_all">Hemû çêbake</string>
-    <string name="expert_mode_disable_all_done">Hemû pelikên guherînê neçalak hatin kirin</string>
     <string name="expert_mode_enable_all">Hemû çêbakîne</string>
-    <string name="expert_mode_enable_all_done">Hemû pelikên guherînê aktîv hatin kirin</string>
     <string name="expert_mode_enable_all_universal_pending">Dîsa bikirtîne ji bo pêçekên gerdûnî</string>
     <string name="expert_mode_universal_all_warning_title">Hemû patchên gerdûnî çalak bike?</string>
     <string name="expert_mode_universal_all_warning_message">Patchên gerdûnî bi hev re nehatine ceribandin. Çalakkirina hemûyan bi carekê dikare bibe sedema nakokî, patchkirina têkçûyî, an jî hilweşînan.</string>
-    <string name="expert_mode_reset_to_default">Pêşdixeşinên pêşniyar kirî çêbêje</string>
     <string name="expert_mode_reset_to_default_done">Pelîkên ku hatine pêşniyar kirin hatin çêkirin</string>
-    <string name="expert_mode_restore_saved">Şêvikî serdest vegerîne</string>
+    <string name="expert_mode_selected_count">%1$s ji %2$s hatin hilbijartin</string>
     <string name="expert_mode_restore_saved_done">Hilbijartina ku hatî parastin</string>
-    <string name="expert_mode_copy_from_bundle">Hilbijarkirina ji pakêtek din kopye bike</string>
     <string name="expert_mode_copy_from_bundle_no_patches">Di vê pakêtê de tu parçe nehatine dîtin</string>
     <string name="expert_mode_no_results">Paqejiyê ne hebin</string>
+    <string name="expert_mode_selected_only">Tenê veçarkirinên hatine hilbijartin</string>
     <string name="expert_mode_selected_only_on">Tenê patchên hilbijartî têne nîşandan</string>
     <string name="expert_mode_selected_only_off">Hemû patch têne nîşandan</string>
     <string name="expert_mode_universal_patches">Pêtên hevpar.</string>
@@ -321,7 +366,7 @@
     <string name="expert_mode_patch_required_by_installer">Ji bo hedefê ku hatî hilbijartîn hewce ye</string>
     <string name="expert_mode_patch_unavailable_for_installer">Ji bo hedefê ku hatî hilbijartîn peyda nabe</string>
     <string name="expert_mode_multiple_sources_warning_title">Berî çend seyarên bejna tê</string>
-    <string name="expert_mode_multiple_sources_warning_message">"Hûn bejna seyarê berî çendan bejna kirin. Gûma serdebaza pêşçuna bêgîri azre be."</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Patchên ji çavkaniyên cuda ne ji bo xebata bi hev re hatine çêkirin û dibe ku li dijî hev bin an appê xira bikin</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">APK-ya pêşbîn nekirî</string>
     <string name="home_invalid_signature_message">APK-ya ku hîşyarîdê bo &lt;b&gt;%s&lt;/b&gt; hilbijart, bi gîrêdanî ya ceribandinê ya pêwist nayê. Ew dikare guherîye an ji çavê nedastî be</string>
@@ -335,7 +380,9 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="home_dialog_unsupported_version_experimental_label">Sernişan</string>
     <string name="home_dialog_unsupported_version_experimental_description">Ev guhertin piştgirîa ceribandiyê heye û dikare neyêbawer an jî bikêmam be</string>
     <string name="morphe_experimental_app_version_dialog_title">Ma tu dixwazî ku eksperîmentî bikî? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">Ev guhertina &lt;b&gt;%s&lt;/b&gt; piştgirîa serdest ceribandiyê heye&lt;br/&gt;&lt;br/&gt;🔧 Tiştekî neyênbawer an kêmasî derdikeve, di nav de kêmasî ji bo vê guhertina sepanê têne serastkirin.</string>
+    <string name="morphe_experimental_app_version_dialog_message">"Ev versiyona &lt;b&gt;%s&lt;/b&gt; piştgiriyeke destpêkê ya eksperîmental heye.
+
+🔧 Li benda tevgera appê ya xerîb an bugên nasnekirî be, ji ber ku patch hatin refinements kirin ji bo vê versiyona appê"</string>
     <string name="home_dialog_unsupported_version_dialog_title">Versiyona nedastî</string>
     <string name="home_dialog_unsupported_version_dialog_description">Ev APK nu jibo versîyona serpiraftî ne. Diriftîn dikare bi bandora kêmtir a seranser a sepanê bibe</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -387,17 +434,27 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="image_load_failed">Ev wêne nekarî were barkirin.</string>
     <!-- Card of the adaptive icon creator where the picture is placed on the icon -->
     <string name="adaptive_icon_launcher">Îkona destpêker</string>
+    <string name="adaptive_icon_gesture_hint">Ji bo bicihêkirinê bikişîne, ji bo guhertina mezinahiyê bikişîne</string>
     <!-- Card of the adaptive icon creator showing the icons as the device draws them -->
+    <string name="adaptive_icon_preview">Pêşbirî</string>
     <!-- Caption under the launcher icon in its own colors -->
+    <string name="adaptive_icon_standard">Standard</string>
     <!-- Caption under the launcher icon recolored by the system theme -->
+    <string name="adaptive_icon_themed">Bi temayê</string>
     <string name="adaptive_icon_background_color">Reng paşîn</string>
     <string name="adaptive_icon_reset_transform">Pozisyon û qiyasê sererast bike</string>
+    <string name="adaptive_icon_no_transparency_warning">Ev wêne tu pîkselên şefaf tune ne, lewma îkonên temayê û agahdariyê logo ya Morphe diparêzin</string>
     <string name="adaptive_icon_created_success">Îkona adaptîv bi serketinê sererast dibe</string>
     <string name="adaptive_icon_creation_failed">Ji sererastkirina îkonaya adaptîv neçîbe</string>
     <string name="adaptive_icon_guide">Rêbernameya çêkirina îkonê</string>
     <string name="adaptive_icon_guide_png_title">PNG-yek bi paşnaveya şeffaf bikar bîne</string>
+    <string name="adaptive_icon_guide_png_body">Logoyek li serleya paşbingehek şefaf herî baş dixebite, ku rengê paşbingehê li jêr tê hilbijartin. Wêneyek bêyî şefafiyê li şûma wê hemû îkonê tije dike, û piştî wê îkonên temayê û agahdariyê logo ya Morphe diparêzin.</string>
     <string name="adaptive_icon_guide_safe_zones_title">Herêmên ewle</string>
+    <string name="adaptive_icon_guide_safe_zones_body">Xetê derve şêweyê îkona launcherê ya we nîşan dide, û her tiştê derve ji wê tê birîn. Launcherên din şêweyên din bikar tînin, lewma hûrguliyên girîng di nav xwerêya xêzkirî de bihêlin, ku her şêweyeke îkonê wê nîşan dide.</string>
     <string name="adaptive_icon_guide_notification_title">Îkona notîfîkasyonê</string>
+    <string name="adaptive_icon_guide_notification_body">Ji beşa xuya wêneyî bibe û wekî îkonên din ên stûra rewşê mezin bike, bêyî girîngiyê dane marjên dosyayê. Bi sliderê ya bin pêşnêrînê rast bike. Android wê bi rengekî tenê nîşan dide.</string>
+    <string name="adaptive_icon_guide_monochrome_title">Îkona tematik</string>
+    <string name="adaptive_icon_guide_monochrome_body">Ji wêneyî bi heman pozîsyon û mezinahiyê wek îkona launcher bibe. Li ser Android 13 û paşê, launcherên ku îkonên tematik lê vekirî ne, rengê wê ji wallpaperê digirin.</string>
     <string name="notification_icon_preview">Notîfîkasyon</string>
     <!-- Header Creator -->
     <string name="header_creator_create">Serdestin xwerû çêkîn</string>
@@ -407,14 +464,17 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="header_creator_failed">Serivsê serdestin çêkirin domaniya</string>
     <string name="header_creator_guide">Rêbernameya çêkirina sernihêrê</string>
     <string name="header_creator_guide_image_title">Pêdiviyên wêne</string>
+    <string name="header_creator_guide_image_body">PNGek bi paşbingehê şefaf xwe tevliqdikeve nav app barê. Marjên li dora logo ya di dosyayê de tên paşguhkirin, lewma ew bi mezinahî û cihê logoya stok dest pê dike.</string>
     <string name="header_creator_guide_themes_title">Tema hêsîn û tarî</string>
     <string name="header_creator_guide_themes_body">Piraniya sepanan wêneyên cihêreng ji bo temayên hêsîn û tarî hewce ne. Hinek sepanan (wek YouTube Music) tenê tema tarî bikar tînin, ji ber vê yekê tenê wê beşa wê tê nîşandan.</string>
     <string name="header_creator_guide_positioning_title">Cîkirin û mezînkirin</string>
+    <string name="header_creator_guide_positioning_body">Wêneyî di editorê de bikişîne û bi tiliyên xwe biçikîne/mezin bike, an jî bi sliderê mezinahiyê bidê. Sindoqa xêzên nivîşan nîşan dide ku logoya stok li ku derê ye, û rehber derdikevin gava wêneyî bi wê re li hev dikeve.</string>
     <!-- Batch patching -->
     <string name="batch_patch_action">Hilbijartî pê ve girêdayî</string>
     <string name="batch_patch_title">Girêdayîna porê</string>
     <string name="batch_patch_planning">Lîstikê tê amadekirin…</string>
     <string name="batch_patch_preparing_next">Serlêdanê din tê amadekirin…</string>
+    <string name="batch_patch_progress_counter">Patchkirina %1$s ji %2$s</string>
     <string name="batch_patch_summary">%1$s hat serkirin, %2$s têkçû, %3$s hat derbas kirin</string>
     <string name="batch_patch_saved_hint">Sepandina sepanên patchkirî hatin tomar kirin. Naha wan saz bikin, an paşê ji lîsteya APKyên patchkirî di settingsan de</string>
     <string name="batch_patch_multiple_sources">Hinek sepanan patchên ji çavkaniyên cuda bi hev re hevdîtin, ku dikare pevçûn çê bike</string>
@@ -428,26 +488,39 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="batch_patch_force_version">Bi her halî patch bike</string>
     <string name="batch_patch_force_version_done">Dîsa jî hate rêzkirin, dibe ku sepan xera bibe.</string>
     <string name="batch_patch_accept_signature_done">Dîsa jî hate rêzkirin, APK nehat verastkirin.</string>
+    <string name="batch_patch_apk_selected">APK hat hilbijartin</string>
     <string name="batch_patch_edit_patches">Patchan hilbijêre</string>
     <string name="batch_patch_state_no_apk">APK ne heye</string>
     <string name="batch_patch_state_no_patches">Patch ne hene</string>
+    <string name="batch_patch_state_no_selection">Hîç yek nayê hilbijartin</string>
+    <string name="batch_patch_no_selection">Hîç yek ji paçeyên berdest nayê hilbijartin</string>
     <string name="batch_patch_policy_install">Piştî qedibûna hemûyan saz bike</string>
     <string name="batch_patch_policy_install_description">Her sepa patchkirî piştî qedibûna rêzê rasterast saz dike. Vêalî APKan ji bo paşê dîsa dijîtine</string>
+    <string name="batch_patch_policy_mount">Gava bi dawî bû mount bike</string>
+    <string name="batch_patch_policy_mount_description">Gava rêz bi dawî dibe, her appekî patchkirî mount dike. \'Off\' APKyan ji bo paşê diparêze</string>
+    <string name="batch_patch_policy_install_mount">Gava bi dawî bû sazkirin an mount bike</string>
+    <string name="batch_patch_policy_install_mount_description">Gava rêz bi dawî dibe, her appekî patchkirî sazkirin an mount dike. \'Off\' APKyan ji bo paşê diparêze</string>
     <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_start">Destpêk</string>
     <string name="batch_patch_stop_title">Êdî patchkirina batchê rawestîne?</string>
+    <string name="batch_patch_stop_description">Appa ku niha tê patchkirin û her tiştê ku hîşta di rêzê de ye dê bênebatkirin</string>
     <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="batch_patch_install_all">Hemûyan saz bike</string>
     <string name="batch_patch_install_failed">Sazkirin têk çû</string>
     <string name="batch_patch_in_progress">Patchkirina batchê niha dimeşe</string>
     <string name="batch_patch_nothing_outdated">Her sepa patchkirî nûhatî ne</string>
+    <string name="batch_queue_add_action">Zêde bikeye rêzê</string>
+    <string name="batch_queue_pending_subtitle">Ji bo reviewkirin û destpêkirin lê bide</string>
+    <string name="batch_queue_clear_title">Rêzê paqij bike?</string>
+    <string name="batch_queue_clear_description">Hemû app dê ji rêza bendawarîyê bên jêbirin</string>
     <string name="shortcut_repatch_short">Dîsa patch bike</string>
     <string name="shortcut_repatch_long">Sepayên kevn nû bike</string>
     <string name="shortcut_check_updates_short">Nûvekirinan kontrol bike</string>
     <string name="shortcut_check_updates_long">Li nûvekirinên patchê kontrol bike</string>
     <string name="shortcut_patch_app">%s patch bike</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">Ma hûn pê ewaz in ku ev sepan paqij bikin?</string>
+    <string name="home_app_info_uninstall_title">Vê appê jê bibe?</string>
+    <string name="home_app_info_uninstall_removes_data">App û daneyên wê ji vî ampirî tên jêbirin</string>
     <string name="batch_uninstall_confirm_body">Serîlêdanên ku hatine hilbijartîn êdî ji cîhazê we yê nehere dê bên neqewirandin.</string>
     <string name="home_app_info_remove_app_warning">Ev dê bi dawîbûna domdar:</string>
     <string name="home_app_info_delete_item_database">Qeyda databazeyê</string>
@@ -473,9 +546,12 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="home_app_info_app_update_available_description">Çavkaniyên patchê guhertoyek nûtir a vê sepanê piştgirî dikin. Dîsa patch bike ku biçe wê guhertoyê.</string>
     <string name="home_app_info_newest_supported_version">Nûtirîn piştgirîkirî</string>
     <string name="home_app_info_version_move">Sazkirî %1$s, nûtirîn piştgirîkirî %2$s</string>
+    <string name="home_app_info_version_restore">%1$s hatî sazkirin, %2$s hat patchworkkirin</string>
     <string name="home_app_info_app_deleted_warning">App hate laşkirin</string>
     <string name="home_app_info_app_deleted_description">Epp li derve ji Morphe hate laşkirin. Serpêş pêlavînê da serê ku serê bi sist ki.</string>
     <string name="home_app_info_not_patched_description">Versiyoneka ne-patchkirî ya vê aplikasyonê hatîn sazkirin. Nivqo hîna tomarê patchê yê berê yê xweye</string>
+    <string name="home_app_info_mount_replaced_description">Guherînek din nivîsana appê ya mountkirî guhert, lewma patch êdî nayê sepandin. Restore guherîna patched vedigere</string>
+    <string name="home_app_info_mount_replaced_by_play_store_description">Google Play nivîsana appê ya mountkirî nû kir, lewma patch êdî nayê sepandin. Restore guherîna patched vedigere. Ji bo ku patched bimîne, auto-update ji bo wê di Google Play de veguherîne</string>
     <string name="app_links_title">Girêdanên webê yên piştgirîkirî</string>
     <string name="app_links_description">Li ser Android 12+, girêdanên domainên piştgirîkirî bi xweragiriyê di geroka te de vedibin heya ku neyên pejirandin.</string>
     <string name="app_links_unverified_banner_title">Girêdanên webê nehatine verastkirin</string>
@@ -500,8 +576,10 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="root_pre_patch_installer_description">Cihaza te gihîştina root heye. Hilbijêre ku ev serîlêdan ji bo çîna root were pelkirin an sazkirina standard</string>
     <string name="root_pre_patch_installer_mount_title">Moda çîna root</string>
     <string name="root_pre_patch_installer_mount_description">Pelikên ji bo çîna root, paşê APKê li ser serîlêdana stokê yê hevdîtinî çêbike. Pêdivî bi GmsCore nîn e</string>
+    <string name="root_mount_module_unmount_warning">Heke di KernelSU de \"Unmount modules by default\" vekirî be, KernelSU &gt; Superuser &gt; appa ku te mount kir &gt; Profile &gt; Custom veke û \"Unmount modules\" bigire. Di neyî de, dibe ku APKya patched a mountkirî nekaribe bikeve borî, her çend Morphe wê wekî mountkirî nîşan bide jî</string>
     <string name="root_pre_patch_installer_standard_title">Moda sazkirina standard</string>
     <string name="root_pre_patch_installer_standard_description">Pêçekan wekî APK\'yeke normal bi piştgiriya GmsCore. Rêgeziya sazkirina we piştî pêçekirinê tê bikar anîn</string>
+    <string name="root_pre_patch_installer_hint">Dema ku Settings &gt; Patching &gt; Installation &gt; Installer selection prompt vekirî ye tê pirsîn. Piştî patching-ê, şêwaza patchê nayê guhertin</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Xetalî bi mêjiyê kopî kirin</string>
     <string name="patcher_error_log">Log xistina</string>
@@ -513,6 +591,7 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <!-- Field labels, shown in a column beside their values. Keep them short, a long one is cut off rather than wrapped -->
     <string name="patcher_field_app">Sepan</string>
     <string name="patcher_field_package">Pakêt</string>
+    <string name="patcher_field_failed_patch">Patch neserkeft</string>
     <string name="patcher_field_source">Çavkanî</string>
     <string name="patcher_field_split">APK-ya parçekirî</string>
     <string name="patcher_field_manager">Rêvebir</string>
@@ -546,6 +625,7 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
     <string name="patcher_installing_subtitle">Nêzîk e ku hûn şêwaz bin! 🎸</string>
     <string name="patcher_success_title">Temam bû! 🎉</string>
     <string name="patcher_success_subtitle">Sepîka we tê saxkirin û saz bike!</string>
+    <string name="patcher_mounted_subtitle">App-a te hat patchkirin û mountkirin!</string>
     <string name="patcher_complete_title">Patchkirin temam bû! ✨</string>
     <string name="patcher_failed_title">Ooops! Tiştek çêû.</string>
     <string name="patcher_failed_dialog_title">Patchkirin têk çû</string>
@@ -564,6 +644,7 @@ Ji bo mezgînî, ev sepan pêşniyar dike ku paketek &lt;b&gt;full APK&lt;/b&gt;
 
 Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</string>
     <string name="patcher_install_error_title">Xetalî sazkirinê</string>
+    <string name="patcher_mount_error_title">Xletaya mountkirinê</string>
     <string name="patcher_install_error_subtitle">Heke hewce bike, saz bike û dîsa saz bike</string>
     <string name="patcher_ready_to_mount_subtitle">Ji bo avakirinê ser duxwe bikşînin</string>
     <string name="patcher_patches_excluded_for_installer">Ji bo rêbazê ku hatî hilbijartîn peyda nabe û tê derxistin: %s</string>
@@ -578,11 +659,15 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="patcher_storage_permission_open_settings">Rêyên wergirtina separe veke</string>
     <string name="patcher_storage_badge_denied">Îznaye inkar kirin</string>
     <string name="patcher_storage_badge_missing">Nabe dîtin</string>
+    <string name="patcher_storage_badge_rejected">Nabe bikaranîn</string>
     <string name="batch_patch_option_paths_skipped">Pelên vebijarkên patchê winda ne û dê bên derbaskirin: %1$s</string>
     <string name="patcher_missing_patches_title">Hin patch winda bûne</string>
+    <string name="patcher_missing_patches_description">Hilbijartina savekirî ji bo vê appê, navê patchan dibêje ku êdî tu çavkaniyên aktîf pêşkêş nakin. Bi berdewamkirinê, app bêyî wan tê patchkirin</string>
     <string name="patcher_missing_patches_label">Êdî nayên pêşkêşkirin</string>
     <string name="patcher_option_paths_gone_title">Pelên vebijarkên patchê winda ne</string>
     <string name="patcher_option_paths_gone_description">Yek an jî çend vebijarkên patchê nîşanî pelan didin ku êdî li wir nînin. Rêyan jê bike ku bêyî wan patch bike, an jî pelan vegerîne û dîsa biceribîne.</string>
+    <string name="patcher_option_paths_rejected_title">Dosyên veçarkirina opsiyonan nabe bikaranîn</string>
+    <string name="patcher_option_paths_rejected_description">Yek an zêdetir ji opsiyonên veçarkirinê berev dosyeyên winda ne yan jî tiştê ku veçarkirin daxwaz dike lê nîn e. Rêyên veçarkirinê bêyî wan jêbibe, yan jî dosyeyan wekî ku di naverên opsiyonan de hatî ravekirin çareser bike û careke din biceribîne</string>
     <string name="patcher_option_paths_clear">Rêyan jê bike û berdewam bike.</string>
     <string name="patcher_storage_permission_hint">Îşar: Pelan biçike /Android/data/app.morphe.manager/files/ - îznayên separe zîde heta jinavê.</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -600,8 +685,10 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Patch kirin di pêşbaziyê de ye…</string>
     <string name="patcher_notification_text">Hêla bimeşin ser patcher</string>
-    <string name="patcher_stop_confirm_title">Patcher rawêstinê</string>
-    <string name="patcher_stop_confirm_description">Ma hûn pê ewle bûne ku hûn pêvajoya patch kirinê rawêstîn?</string>
+    <string name="patcher_stop_title">Patchkirinê rawestîne?</string>
+    <string name="patcher_stop_discards">Pêşkeftina heta niha tê avêtin û tiştek nayê sazkirin</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Patchkirinê berdewam bike</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">Sepîka we çêtir dike... 🏆</string>
     <string name="patcher_message_2">Xurekî kevnên sepanê veşartin... 🎩</string>
@@ -638,7 +725,10 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="failed_to_execute_patch">Şeva pek dabeşin %s</string>
     <string name="patched_app_save_failed_toast">Hate parastina sepeya patch kirî</string>
     <string name="plugin_activity_dialog_body">Bixweştana mêz rêk û pê dei bilinge da pêşbaziyê bi zaniye vê plugin you bo lazmî bîye se</string>
+    <string name="patcher_process_killed_message">Sîstemê patcher\'î berî ku biqedand rawêstand, bi gelemperî ji bo valakirina bîryariyê. Appên din bigire û careke din ceribîne</string>
+    <string name="patcher_process_crashed_message">Patcher berî ku biqedand crash bû. Ger ev dîsa pêk bê, \"Use embedded VM\" di mîhengên de veguherîne û pirsgirêkê bi logê re rapor bike</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
+    <string name="patcher_out_of_memory_message">Bîryariya patcher\'î bi heap\'ek %1$s MB xelas bû. Ev app ji bo paçeyên hatine hilbijartin pir mezin e. Bi kêm çavkaniyên paçeyê ceribîne, an paçeyên kêmtir hilbijêre</string>
     <string name="install_app_success">Bi ser ketin</string>
     <string name="install_app_fail">Serketina kuştina sepanê: %s</string>
     <string name="install_ignore_signature">Dîsa jî saz bike</string>
@@ -706,6 +796,8 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <!-- %1$s is a holiday background name, such as Halloween. %2$s is a date, such as November 1 -->
     <string name="settings_appearance_seasonal_background_notice">Dema ku mijarên demsalî çalak in, paşxaneya %1$s heta %2$s çalak e.</string>
     <!-- Settings - Appearance Tab - Theme -->
+    <string name="settings_appearance_display">Nîşandan</string>
+    <string name="settings_appearance_effects">Bandor</string>
     <string name="settings_appearance_theme">Tema</string>
     <string name="settings_appearance_theme_mode">Modê tema</string>
     <string name="settings_appearance_system">Sistem</string>
@@ -718,33 +810,41 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="settings_appearance_pure_black">Rewşê veşer</string>
     <string name="settings_appearance_pure_black_description">Bêjeya paşnavê reş ê rastîn bikar bîne</string>
     <string name="settings_appearance_color_accents">Rengên sepan û çavkaniyan</string>
+    <string name="settings_appearance_color_accents_description">Li şûna rengê bingehîn, rengê her applîkasyon û çavkaniyê bi kar tîne</string>
     <string name="settings_appearance_outlines">Xêzên derveyî</string>
     <string name="settings_appearance_outlines_description">Li dora kart, panel û bişkojan keviyek zirav dikişîne.</string>
+    <string name="settings_appearance_blur">Têliya blur</string>
+    <string name="settings_appearance_blur_description">Tiştên ku di bin sernavên, şirîtan û panelan de diherikin tîr dike</string>
     <!-- Settings - Appearance Tab - Language Selector -->
     <string name="settings_appearance_app_language">Zimanê sepanê</string>
     <string name="settings_appearance_app_language_current">Zimana niha</string>
+    <string name="settings_appearance_translate">Alîkarî bike ku Morphe were wergerandin</string>
     <string name="settings_appearance_translations_info_title">Wergerandin ji bo hin zimanên kêmtir an jî ne tamkirin</string>
     <!-- Settings - Appearance Tab - Interface Scale -->
     <string name="settings_appearance_ui_scale">Pîvana navrû</string>
     <!-- Settings - Appearance Tab - Home Screen Section -->
     <string name="settings_appearance_home_screen">Mîna malê</string>
     <string name="settings_appearance_greeting_phrases">Frazey şahê</string>
+    <string name="settings_appearance_greeting_phrases_subtitle">Payameke silavê nîşan dide</string>
     <string name="settings_appearance_repatch_notice">Agahdariya ji nû ve patchkirinê</string>
-    <string name="settings_appearance_app_card_colors">Rengên karta sepanê</string>
+    <string name="settings_appearance_repatch_notice_description">Gava applîkasyonên patchwork dikarin dîsa patchwork bên kirin, banerekê nîşan dide</string>
+    <string name="settings_appearance_more_apps_card">Karta app-ên zêdetir</string>
+    <string name="settings_appearance_more_apps_card_description">Karteke bin aplikasyonan nîşan dide ku bi patchên civakê ve girêdayî ye</string>
+    <string name="settings_appearance_app_card_colors">Rengên kartan</string>
     <string name="settings_appearance_app_card_colors_default">Bixweber</string>
-    <string name="settings_appearance_app_card_colors_default_description">Bi her sepanê rengê paketa wê bidin</string>
+    <string name="settings_appearance_app_card_colors_default_description">Ji bo her aplikasyon û çavkaniyê rengê xwe yê taybet bide</string>
     <string name="settings_appearance_app_card_colors_accent">Accent</string>
-    <string name="settings_appearance_app_card_colors_accent_description">Rengê dinamiya sepanê ji bo kartên sepanê yên malê bikar bîne</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Ji bo kartên aplikasyon û çavkaniyê rengê accent ê aplikasyonê bikar bîne</string>
     <string name="settings_appearance_app_card_colors_gradient">Gradient</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">Ji bo kartên sepanê yên malê yek gradientê xwerû bikar bîne</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Ji bo kartên aplikasyonan gradientekî taybet, û ji bo kartên çavkaniyê rengê yekbêr bikar bîne</string>
     <string name="settings_appearance_app_card_colors_solid">Solid</string>
-    <string name="settings_appearance_app_card_colors_solid_description">Ji bo kartên sepanê yên malê yek rengê xwerû bikar bîne</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Ji bo kartên aplikasyon û çavkaniyê rengê yekî taybet bikar bîne</string>
     <string name="settings_appearance_app_card_colors_start">Rengê destpêkê</string>
     <string name="settings_appearance_app_card_colors_middle">Rengê navîn</string>
     <string name="settings_appearance_app_card_colors_end">Rengê dawî</string>
     <string name="settings_appearance_app_card_colors_solid_color">Rengê yekreng</string>
     <string name="settings_appearance_app_card_colors_bundle">Rengê pakêtê app</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">Li vir, rengê her serlêdanê bi xwe bikar bîne, ku bi otomatîkî ji bo ku li ser çêbibe, tijîkirinê bike.</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Li vir rengê her aplikasyon an çavkaniyê bikar bîne, ku bi awayekî otomatîk li gorî şêweyê wê tê guhertin</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Îkonê sepanê</string>
     <string name="settings_appearance_app_icon_selector_description">Morphe li ser ekrana te ya malê û di dolaba sepanan de çawa xuya dike.</string>
@@ -770,7 +870,8 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
     <string name="settings_appearance_app_icon_mark_white">Spî</string>
     <string name="settings_appearance_app_icon_mark_black">Reş</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Ma hûn dixwast îkona sepanê biguhêrin?</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">Li &lt;b&gt;%s&lt;/b&gt; biguherin û dest pê bike?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe ji bo guherîna bi &lt;b&gt;%s&lt;/b&gt; dubare destpiştî dibe</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Guhêrîna îkonê</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -783,13 +884,20 @@ Neqişandin dê hemî daneyên serîlêdanê bi awayê daîmî tune bike"</strin
 
 Patch ne bandor in: ji bo her çavkaniyê di lîsteya çavkaniyên patch de patchên pêş-weşanê çalak bike."</string>
     <string name="settings_advanced_updates_allow_metered">Nûvekirinên daneya mobîl</string>
+    <string name="settings_advanced_updates_allow_metered_description">Morphe û nûvekirinên patchwork bi daneyên mobaylê daxînê</string>
     <string name="settings_advanced_updates_background_notifications">Ragahdaniyên nûvekirina paşînê</string>
     <string name="settings_advanced_updates_background_notifications_description">Ji bo melêstirkirina nûvekirinên paşîn baldarê de bibe û dema ku zafinan debedo bike.</string>
     <string name="settings_advanced_updates_background_notifications_description_fcm">Agahiyên pêşniyarî ji bo nûvekirinên nû, tewra hekî app tê girtin</string>
     <string name="settings_system_notifications_categories">Kategorîyên agahdariyan</string>
     <string name="settings_system_notifications_categories_description">Di mîhengên pergalê de hilbijêre ku kîjan nûvekirin agahdarî bidin te.</string>
     <string name="settings_advanced_update_interval">Rêjeya kontrolê</string>
+    <string name="settings_advanced_update_interval_hourly">Her saetekî</string>
+    <string name="settings_advanced_update_interval_daily">Her rojê</string>
+    <string name="settings_advanced_update_interval_weekly">Her hefteyê</string>
+    <string name="settings_advanced_update_interval_monthly">Her mehê</string>
+    <string name="settings_advanced_update_interval_battery_warning">Li ser amûrên ku aplikasyonên li piştperdeyê sînordar dikin, wek Xiaomi, Huawei, Samsung û OnePlus, kontrolên piştperde dibe ku bi awayekî bawer kirî neçin</string>
     <string name="settings_advanced_external_batch_patch">Têkirina ji derve bidê dest</string>
+    <string name="settings_advanced_external_batch_patch_description">Rê dide applîkasyonên otomasyonê ku patchworkên komî dest pê bikin</string>
     <string name="external_batch_patch_title">Dest bi patchkirina batchê bike?</string>
     <string name="external_batch_patch_description">%s dixwaze Morphe sepanan patch bike û saz bike</string>
     <string name="external_batch_patch_trust_caller">Her gav bidê vê sepayê</string>
@@ -806,15 +914,29 @@ Patch ne bandor in: ji bo her çavkaniyê di lîsteya çavkaniyên patch de patc
     <string name="notification_channel_patch_updates">Nûvekirinên patchan</string>
     <string name="notification_channel_patch_updates_description">Agahdariyên derbarê guhertoyên nû yên patchan de</string>
     <string name="notification_channel_patcher_description">Di dema ku Nivqo bernameyekê di rewşê de çêdike</string>
+    <string name="notification_channel_mounted_apps">Appên mountkirî</string>
+    <string name="notification_channel_mounted_apps_description">Dema ku guherînek din nivîsana appekê ya mountkirî guhert û patchê wê êdî nayê sepandin</string>
+    <string name="notification_mount_replaced_title">%1$s êdî nayê patchkirin</string>
+    <string name="notification_mount_replaced_text">v%1$s şûna v%2$s a patched girt. Morphe veke da ku wê vedigere</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <string name="settings_advanced_expert_mode">Mode ekspert</string>
+    <string name="settings_advanced_expert_mode_description">Destûr dide sazkirina vegirêtinên Nivqo’yê ên pêşkeftî u hilbijartinên xwerû</string>
     <string name="settings_advanced_expert_mode_dialog_title">Modeka pispor çêbike?</string>
     <string name="settings_advanced_expert_mode_dialog_message">Moda pispor kontrola zêdetir ser bernameyên ku meriv pêdike, lê çêkirina bêreng di moda pispor de dikare bibe sedem ku sepan bibe nekar.</string>
     <string name="settings_advanced_strip_unused_libs">Ji arîkek cihazê ve saz bike</string>
+    <string name="settings_advanced_strip_unused_libs_description">Pêşgeşên xwerûyên û splitên APK yên nayên bikaranîn radike</string>
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
+    <string name="settings_advanced_github_pat_summary">Çavkaniyên daxwaza kişandinê û depozîtoyên taybet vedike</string>
+    <string name="settings_advanced_github_pat_description">Ji bo çavkaniyên daxwaza kişandinê, depozîtoyên taybet û sînorê rêteya GitHub a bilindtir</string>
     <string name="settings_advanced_github_pat_configured">Token sazkirin</string>
+    <string name="settings_advanced_github_pat_create">Tokenekê li ser GitHub çêbike</string>
     <!-- "%s" is the GitHub scope name, keep it as is -->
+    <string name="settings_advanced_github_pat_create_description">GitHub vedike ku qada %s jixwe hatiye hilbijartin</string>
+    <string name="settings_advanced_github_pat_checking">Li GitHub tê lêkolîn...</string>
     <!-- "%s" is the GitHub account name -->
+    <string name="settings_advanced_github_pat_account">Weke %s tê GitHub</string>
+    <string name="settings_advanced_github_pat_rejected">GitHub vê tokenê red kir. Dibêje ku wextê wê qediya yan jî hatibû betalkirin</string>
+    <string name="settings_advanced_github_pat_unreachable">Ji bo kontrolkirina vê tokenê nekarîn bigihîjin GitHub</string>
     <string name="settings_advanced_github_pat_export_include_label">Di qeyrek sazî de zêde bike</string>
     <!-- "PAT" is a GitHub Personal Access Token, keep it in English because GitHub has no localized UI -->
     <string name="settings_advanced_github_pat_export_include_supporting">Ev PAT bi danan Nivqo sazkirina xwe vekirî</string>
@@ -835,6 +957,7 @@ Patch ne bandor in: ji bo her çavkaniyê di lîsteya çavkaniyên patch de patc
     <string name="settings_advanced_patch_options_custom_branding_app_name_hint">Navê xwerûst dafîne</string>
     <string name="settings_advanced_patch_options_path_gone">Ev peldank êdî nayê xwendin. Dîsa hilbijêre an jî paqij bike, wekî din patchkirin dê bisekine û li ser wê bipirse.</string>
     <string name="settings_advanced_patch_options_custom_branding_app_icon">Îkona sepanê</string>
+    <string name="settings_advanced_patch_options_custom_branding_app_icon_description">Îkona ku app pê tê patchkirin, her wiha li wan deran tê bikaranîn ku piştre nayê guhertin, wek Android Auto</string>
     <string name="settings_advanced_patch_options_custom_branding_app_icon_needs_folder">Îkona sepanê ya xwerû hewceyî peldankek bi wêneyên îkonan e.</string>
     <string name="settings_advanced_patch_options_custom_branding_custom_icon">Îkon xwerûst</string>
     <string name="settings_advanced_patch_options_custom_branding_custom_icon_instruction">"Folder ku wêneyan hene ku wekî ikonê bikaribin serdest bikin.
@@ -897,6 +1020,7 @@ Qasîyên wêneyan divê wiha bin:
     <!-- Settings - System Tab - Installer Section -->
     <string name="installer">Saçik</string>
     <string name="installer_settings_title">Saşkirina standard</string>
+    <string name="settings_installation">Sazkirin</string>
     <string name="installer_title">Sazkerê hilbijêre</string>
     <string name="installer_internal_description">Sazkera pakketa Android’ê bikar bîne</string>
     <string name="installer_play_store_description">Seta pêşnişazê sîstemê bikar tîne û Google Play Store wekî çavkaniya saetkirinê destnîşîn dike</string>
@@ -927,14 +1051,23 @@ Qasîyên wêneyan divê wiha bin:
     <string name="installer_unavailable_title">%s nedîtî</string>
     <string name="installer_unavailable_message">Îstalatorek wezîr (%s) niha ne berê. Probleme bejirin û dîsa bejnê, an ji îstalatorek standart bejnê</string>
     <string name="installer_unavailable_shizuku_hint">Ew bigihine Şizuku xela, be ew ragihina ito sepanê dest pê ke</string>
+    <string name="installer_choose_another">Sazkerek din hilbijêre</string>
     <string name="installer_play_store_warning_title">Sa zkirin wekî Play Store?</string>
     <string name="installer_play_store_warning_message">Aplikasyona hatî guhartin wekî ku ji Google Play Store hatî saz kirin, wê were tomarkirin. Ew dikare alîkariya xizmetên wekî Android Auto bike ku wê wekî aplikasyonek Play Store nas bike, lê ne ji bo her aplikasyon an cîhazê garantî ye. Çalakbûna dikare li gorî guhertoya Android, ROM, marqeya cîhazê û kontrolên taybet ên aplikasyonê cûda be.</string>
     <string name="installer_play_store_warning_risk">Dibe ku Play Store nûvekirinên ji bo aplikasyona guhertoyî pêşkêş bike. Sa zkirina wê nûvekirinê dê APK-ya guhertoyî bi guhertoya orjînal ferz bike û guhertoyînan rake. Ger ji we re nûvekirin were pirsîn, li ser menuya sê nuqtan li ser rûpelê yê Play Store ya aplikasyonê bikirin û \"Veberhêrkirina nûvekirinan\" hilbijêrin</string>
     <string name="installer_play_store_warning_continue">Min fêhm kir, bidomînin</string>
     <string name="installer_play_store_mode">Sazkirin wek Play Store</string>
+    <string name="installer_play_store_mode_description">Google Play Store wek çavkaniya sazkirinê nîşan dide</string>
+    <string name="settings_nomount_only">Tenê NoMount</string>
+    <string name="settings_nomount_only_description">Tenê aplikasyonan bi NoMount mount dike û qet navere gihîştine bind mount, lewma bêyî wê dimînin bê-mountkirin</string>
     <string name="settings_prompt_installer_on_install">Dîyaloga hilbijartina sazkirî</string>
+    <string name="settings_prompt_installer_on_install_description">Ji bo her app-ê dipirse ka çawa bêne sazkirin: bi root beriya patching-ê, an jî piştî wê</string>
     <string name="settings_auto_install_with_shizuku">Têxînekî otomatîkî piştî paqijkirinê</string>
+    <string name="settings_auto_install_with_shizuku_description">Piştî ku patching bi dawî dibe, APK-ya patched hemen sazkirî yan mount dike</string>
     <string name="settings_auto_uninstall_with_shizuku">Lêgerîna otomatîkî li ser derengî</string>
+    <string name="settings_auto_uninstall_with_shizuku_description">Di rewşa pevçûna îmzayê de appa heyî radike. Ev dikare daneyên appê jê bibe</string>
+    <string name="settings_ignore_install_target_rules">Pêdiviyên armanca sazkirinê paşguh bike</string>
+    <string name="settings_ignore_install_target_rules_description">Rêwîyê dide ku patchên ku armanca sazkirinê dixwaze bên guhertin û ewên ku red dike bên vekirin. Dibêr ku appa patchkirî nekarî bixebite</string>
     <string name="settings_auto_uninstall_warning_title">Destûrê dayî lêgerîna otomatîkî?</string>
     <string name="settings_auto_uninstall_warning_message">Eger Android di dema saz kirina otomatîkî ya Shizuku de rapor bide ku kêşek heye, Nivqo dê berî saz kirina APKya guhartî aplikasyona heyî rake.</string>
     <string name="settings_auto_uninstall_warning_risk">Ew dikare daneyên aplikasyonê jê bike. Ger APK ya guhartî piştî rakirina sazkirinê têk bibe, dibe ku aplikasyona berê jû dest nebe.</string>
@@ -963,10 +1096,15 @@ Detay: %2$s"</string>
     <!-- Settings - System Tab - Performance Section -->
     <string name="settings_system_battery_optimization">Serûşê bateriyê</string>
     <string name="settings_system_battery_optimization_description">Dema ku app hatî biçikînîn, sazkirîn bidomîne</string>
+    <string name="settings_system_process_runtime">Runtime\'ê patcher\'î</string>
+    <string name="settings_system_jvm_runtime_enable">VM\'a entegre bikar bîne</string>
+    <string name="settings_system_jvm_runtime_description">Patch dike di Java VM a Morphe de, ku dikare bêtir bîramorê bikar bîne. Ji bo bikaranîna runtime a Android veguherîne</string>
+    <string name="settings_system_jvm_runtime_unavailable">Pêdiviya bi amûreke ARM an x86-bit 64 heye</string>
     <string name="settings_system_patcher_completion_sound">Dengê qedandina</string>
     <string name="settings_system_patcher_completion_sound_description">Dengê taybet lêdanê ji bo serkeftinê an têkçûnê dema qedandina patchkirinê</string>
     <!-- Settings - System Tab - Notifications Section -->
     <string name="settings_system_notifications">Agahîyan</string>
+    <string name="settings_system_notifications_description">Ka Morphe çawa we agahdar dike</string>
     <string name="settings_system_notifications_success_sound">Dengê serketinê</string>
     <string name="settings_system_notifications_error_sound">Dengê xeletê</string>
     <string name="settings_system_notifications_sound_default">Bixweber</string>
@@ -977,6 +1115,7 @@ Detay: %2$s"</string>
     <string name="settings_system_notifications_ringtone_picker_title">Toneyek hilbijêre</string>
     <!-- Settings - System Tab - Import and Export Section -->
     <string name="settings_system_signing_key">Mifteya îmzekirinê</string>
+    <string name="settings_system_signing_key_description">Kela ku appên patched îmze dike backup dike an jî vedigerîne</string>
     <string name="settings_system_signing_key_dialog_description">Her sepana ku Morphe patch dike bi vê mifteyê tê îmzekirin. Kopiyekê bigire: bêyî wê, sepanên patchkirî tenê piştî rakirina wan dikarin bên nûvekirin.</string>
     <string name="settings_system_signing_key_missing">Morphe bi patchê te yê yekem re yekê çêdike.</string>
     <string name="settings_system_signing_key_created">Hatiye çêkirin %s</string>
@@ -1031,7 +1170,11 @@ Detay: %2$s"</string>
     <string name="settings_system_apks_export_zip_failed">Derxistina APK-yên hilbijartî têk çû</string>
     <!-- Settings - System Tab - Storage Management screen -->
     <string name="settings_system_storage_management_title">Rêveberiya hêsînê</string>
+    <string name="settings_system_storage_management_description">Bikaranîna dîskê nîşan dide û faylên cache paqij dike</string>
     <!-- Shown under how much Morphe takes up. "%1$s" is the space still available on the device, already formatted with its unit. "Free" as in unused, not as in free of charge. -->
+    <string name="settings_system_storage_free">%1$s vala</string>
+    <string name="settings_system_storage_saved_apks">APKyên hatine savekirin</string>
+    <string name="settings_system_storage_caches">Cache</string>
     <string name="settings_system_storage_keystore_title">Keystore-a îmzeyê</string>
     <string name="settings_system_storage_app_data_title">Daneyên sepanê</string>
     <string name="settings_system_storage_patch_bundles_title">Pêkvekirinên paçê</string>
@@ -1047,6 +1190,8 @@ Detay: %2$s"</string>
     <string name="settings_system_storage_clear_all_description">Hemû cîhê kêşeyê yê ku tê dîtinê tê paqijkirin</string>
     <string name="settings_system_storage_clear_all_confirm">Ev kêşeyên bersivên torê, pelên sazkerê ên hatine sahnekirin, û pelên demkî paqijkirine. Pelên APK-yê orjînal û guhêrkirî têne girtin</string>
     <string name="settings_system_storage_cleared">%s azad kir</string>
+    <string name="settings_system_storage_patch_running_warning">Paçekek dixebite û van faylan bikar tîne. Paqijkirina wan niha dibe sedema têkçûnê</string>
+    <string name="settings_system_storage_clear_anyway">Her wiha paqij bike</string>
     <string name="settings_system_storage_nothing_to_clear">Tu tiştek tune ku were paqijkirin</string>
     <string name="settings_system_storage_open_app_info_title">Veke hilanîna depoya serîşîn a Android</string>
     <string name="settings_system_storage_open_app_info_description">Rêvebirin an paqijkirina hemû daneyê Morphe ji riya mîhengên sîstemê</string>
@@ -1084,28 +1229,45 @@ Detay: %2$s"</string>
     <string name="settings_system_import_source_data_success">Dane seyarê serketine</string>
     <string name="settings_system_selected_patches_section">Patchên hilbijartî</string>
     <string name="settings_system_no_patches_or_options">Ke tu bejna yâ bejna diteya ne</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">Hilbijarkirina ji… kopye bike</string>
-    <string name="copy_selection_confirm_with_count">%s kopye bike</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Hilbijartin</string>
+    <string name="selection_panel_copy_into">Kopî bike nav %s</string>
+    <string name="selection_sets_title">Set</string>
+    <string name="selection_set_name">Navê setê</string>
+    <string name="selection_set_save">Wekî setê save bike</string>
+    <string name="selection_set_replace">Seta biguherîne</string>
+    <string name="selection_set_saved">Wekî %s hat save kirin</string>
+    <string name="selection_set_applied">Hat guhertin bo %s</string>
+    <string name="selection_set_deleted">%s hat jêbirin</string>
+    <string name="selection_set_renamed">Hat guhertin bo %s</string>
+    <string name="selection_set_rename_title">Navê setê biguherîne</string>
+    <string name="selection_set_delete_title">Setê jêbibire?</string>
+    <string name="selection_set_delete_message">Ev yek seta %s bi temamî jêdibe</string>
     <string name="copy_selection_empty">Tu hilbijarkirinên din ên ku hatine tomarkirin ji bo kopyekirinê hene</string>
     <string name="copy_selection_available_format">%1$s ji %2$s peyda</string>
-    <string name="copy_selection_same_source">Çavkaniya heman</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Hilbijêrkê pelan yê xwerû</string>
+    <string name="settings_system_custom_file_picker_description">Li şûna ya sîstemê, hilbijêrê faylan ê hundirîn ê Morphe bikar dike</string>
     <!-- Settings - System Tab - APK download helper -->
     <string name="settings_system_apk_download_helper">Arîkareka dakêşina APK-yê</string>
     <string name="settings_system_apk_download_helper_trusted_count">Pêbawer: %1$d ji %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Sepanên alîkar dikarin APK-yên orjînal ji bo te daxînin. Tenê yên ku te li vir pêbawer dîtine di rêbernameya daxistinê de têne pêşkêşkirin.</string>
+    <string name="settings_system_apk_download_helper_trust_title">Bawerî bi vê alîkarê bike?</string>
     <string name="settings_system_apk_download_helper_warning">APK ji sepana alîkar tê, lewra tenê bi sepanên ku tu nas dikî bawer bike. Morphe hê jî berî patchkirinê pakêt, guherto û îmzeya her pelê kontrol dike.</string>
     <string name="settings_system_apk_download_helper_installed_by">Ji aliyê %s ve hatiye sazkirin</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Sazker nenas</string>
+    <string name="settings_system_apk_download_helper_open_directly">Yarîkerê yekser veke</string>
+    <string name="settings_system_apk_download_helper_open_directly_description">Rênimayên daxistinê derbas dike û yarîkerê bawer kirî vekê</string>
     <!-- File Picker -->
     <string name="file_picker_no_files">Li vir pel nehatine dîtin</string>
     <string name="file_picker_read_error">Dibeje vê peldankê dixîne</string>
     <string name="file_picker_internal_storage">Hêlîna navî</string>
     <string name="file_picker_sd_card">Kartê SD</string>
     <string name="file_picker_root">Koka (/)</string>
+    <string name="file_picker_storage_access_unavailable">Ev ampir ekranekê nîne ku destûrê bide gihîştina hemû faylan. Bi ADB rê bide: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">Cîhên hilanînê</string>
+    <string name="file_saver_downloads_failed">Nebûya fayla di Downloads de were çêkirin</string>
+    <string name="file_saver_saving_to_downloads">Ev ampir ekrana savekirinê nîne, lewma pel wek %1$s diçe Downloads</string>
     <string name="file_picker_sort_name_asc">Nav (A–Z)</string>
     <string name="file_picker_sort_name_desc">Nav (Z–A)</string>
     <string name="file_picker_sort_size_desc">Mezinahî (ji mezintir heta biçiktir)</string>
@@ -1117,9 +1279,13 @@ Detay: %2$s"</string>
     <string name="settings_system_about">Derbarê</string>
     <string name="settings_system_manager_description">Projektek ferman-çavkanî ji bo nûjenkirin, sazkirina bingeş an sepanên popûler ên Android, bi bandora vegerandinên dîmen û ji bo beşdarîyên civakê ve girêdayî ye.</string>
     <string name="credits">Kredît</string>
+    <string name="credits_description">Kesên li pişt Morphe</string>
+    <string name="settings_about_section_project">Proje</string>
+    <string name="settings_about_section_help">Alîkarî</string>
     <string name="credits_current_development">Gelişîna heyî</string>
     <string name="credits_prior_development">Gelişîna berê</string>
     <string name="opensource_licenses">Lîsansên çavkaniyê vekirî</string>
+    <string name="opensource_licenses_description">Kutubxaneyên ku Morphe li ser hatiye avakirin</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Vebijarkek</string>
     <string name="easter_egg_pill_message">Heba şîn bixwe û reklam tam li cihê xwe dimînin. Heba sor bixwe û bibîne ka bytecode çiqas kûr diçe.</string>
@@ -1138,11 +1304,25 @@ Detay: %2$s"</string>
     <string name="patches">Saxkirin</string>
     <string name="home">Mal</string>
     <string name="settings">Sazî</string>
+    <string name="apps">App</string>
     <!-- Sections the settings page lists, each opening a page of its own. A summary names what the section holds -->
+    <string name="settings_section_patcher">Patcher</string>
+    <string name="settings_section_updates">Nûkirin</string>
+    <string name="settings_section_patching">Patchkirin</string>
+    <string name="settings_section_appearance_summary">Ka Morphe çawa xuya dike</string>
+    <string name="settings_section_patch_options_summary">Moda hêsan bi çi appan patch dike</string>
+    <string name="settings_section_general">Giştî</string>
+    <string name="settings_section_patcher_summary">Ka app li ser vê amûrê çawa tên patchkirin</string>
+    <string name="settings_section_help_info">Alîkarî &amp; agahî</string>
+    <string name="settings_section_about_summary">Zêdetir li ser Morphe û girtina alîkariyê</string>
+    <string name="settings_section_local_files">Dosya</string>
+    <string name="settings_section_backup">Backup</string>
+    <string name="settings_search">Lêgerîna mîhengên</string>
     <string name="yes">Bêlî</string>
     <string name="no">Na</string>
     <string name="all">Hemû</string>
     <string name="filter">Filtir</string>
+    <string name="group">Koma</string>
     <string name="reset">Sazerdin</string>
     <string name="reset_all">Hemû bejnan vebeje</string>
     <string name="apply">Bicîbîne</string>
@@ -1150,6 +1330,7 @@ Detay: %2$s"</string>
     <string name="warning">Îşar</string>
     <string name="error_">Xeṭ</string>
     <string name="failed">Têk çû</string>
+    <string name="canceled">Hatnebatkirin</string>
     <string name="ready">Amade</string>
     <string name="retry">Dilo</string>
     <string name="refresh">Nûvekirin</string>
@@ -1169,6 +1350,7 @@ Detay: %2$s"</string>
     <string name="include">Tevlîkirin</string>
     <string name="disable">Neçêbigîne</string>
     <string name="enable">Çêbigîne</string>
+    <string name="trust">Bawer bike</string>
     <string name="loading">Bar kirin…</string>
     <string name="creating">Çêkirin…</string>
     <string name="processing_apk">APK-ê pêş de çêdike…</string>
@@ -1181,6 +1363,8 @@ Detay: %2$s"</string>
     <string name="any_version">Her</string>
     <string name="enabled">Destûrxast kirin</string>
     <string name="disabled">Ne destûrxast kirin</string>
+    <string name="state_selected">Hatî hilbijartin</string>
+    <string name="state_not_selected">Nexwe hatî hilbijartin</string>
     <string name="select_all">Hemûyan hilbijêre</string>
     <string name="deselect_all">Hemûyan hilbijêre</string>
     <string name="reorder_list">Lîsteyê dîsa rêzekirin</string>
@@ -1188,12 +1372,16 @@ Detay: %2$s"</string>
     <string name="reorder_done">Rêzê hat xêzkirin</string>
     <string name="reset_order">Rêzê dîsa serî hildin</string>
     <string name="reset_order_done">Fermanê sîparîşê nûkirin</string>
+    <string name="reset_order_confirm_title">Rêzbikeftin vegere ser seretê?</string>
+    <string name="reset_order_confirm_message">Lîste vegere ser rêzbikeftina xwe ya default û rêzbikeftina ku bi dest hatibû guhertin winda dibe</string>
     <string name="accessibility_select_app">Sepa hilbijêre</string>
+    <string name="accessibility_select_source">Çavkaniyê hilbijêre</string>
     <string name="accessibility_move_up">Bilindabin</string>
     <string name="accessibility_move_down">Bilindabîn</string>
     <string name="accessibility_app_moved_announcement">\"%1$s\" pozîsyona %2$s\'ê ya %3$s\'ê veguhezt</string>
     <string name="accessibility_scroll_to_top">Lista serê hilkişîne</string>
     <string name="rename">Navê nû bigere</string>
+    <string name="more_options">Bêhên zêdetir</string>
     <string name="import_">Hez kirin</string>
     <string name="export">Dernake</string>
     <string name="copy">Copî bike</string>
@@ -1207,7 +1395,9 @@ Detay: %2$s"</string>
     <string name="continue_">Domîne</string>
     <string name="version">Versiyon</string>
     <!-- Who made a patch source, as a field label -->
+    <string name="author">Nivîskar</string>
     <!-- A file a patch source is added from, as a field label -->
+    <string name="file">Dosya</string>
     <string name="clone">Klon</string>
     <!-- Button that starts patching the selected app. A verb, as in "patch this app" -->
     <string name="patch">Dîrok</string>
@@ -1219,6 +1409,7 @@ Detay: %2$s"</string>
     <string name="unmount">Dikeşîne</string>
     <string name="unmounted">Nebûyîne çêkirî</string>
     <string name="remount">Nûve bike</string>
+    <string name="restore">Restore</string>
     <string name="share">Parvekirin</string>
     <string name="install">Bîne ser de</string>
     <string name="installed">Ferqandiye</string>
@@ -1232,12 +1423,16 @@ Detay: %2$s"</string>
     <string name="hide">Vêşêrîn</string>
     <string name="hidden">Veşartî</string>
     <string name="unhide">Neveşartîne</string>
+    <string name="show_all">Hemû nîşan bide</string>
     <string name="ignore">Paşguh bike</string>
     <string name="stop_ignoring">Êdî paşguh neke</string>
+    <string name="stop">Rawestîne</string>
     <string name="logs">Log</string>
     <string name="sources">Çavkanî</string>
     <string name="installing_ellipsis">Dikuştin…</string>
     <string name="mounting_ellipsis">Çêkirin…</string>
+    <string name="mount_stage_restoring_stock">Original vedigerîne…</string>
+    <string name="mount_stage_copying">Kopykirin…</string>
     <string name="unmounting_ellipsis">Sererastkirin…</string>
     <string name="importing_ellipsis">Gihîştin…</string>
     <string name="imported_successfully">Sergûha xweş</string>
@@ -1295,11 +1490,15 @@ Ma hûn hê jî dixwazin dom bikevin?"</string>
     <!-- %1$s = current step number, %2$s = total number of steps (e.g. "3 of 13") -->
     <string name="onboarding_step_of">%1$s ji %2$s</string>
     <string name="onboarding_sources_desc">Çavkaniyên patchên xwe birêve bike. Her çavkanî patchên ku dikarin li ser sepanên we werin bikaranîn peyda dike</string>
+    <string name="onboarding_other_apps_desc">Appekî ku di lîsteyê de nîne, ji peleke APK an jî ji appekî ku li ser amûrê hatî sazkirin patch bike</string>
+    <string name="onboarding_add_source_desc">Çavkaniyeke patchê ji linkekî an jî ji peleke bundle a patchê zêde bike</string>
+    <string name="onboarding_signing_key_desc">Kîla ku appên te yên patchkirî îmze dike back up bike. Bêyî wê, ew tenê piştî ku hatin jêbarkirin dikarin werin nûkirin</string>
     <string name="onboarding_swipe_title">Hestên swîpê</string>
     <string name="onboarding_swipe_desc">Ji bo dîtina patchên berdest li ser kartê pêşî biçipe. Ji bo veşartina kartê ji ekranê biçîpe çepê</string>
     <string name="onboarding_settings_desc">Nivqo xweş bike: xuya, vebijarkên pêşkeftî, û amûrên sîstemê</string>
     <string name="onboarding_sources_patches_desc">Têke bin ku hemû patchên ji vê çavkaniyê bibînin</string>
     <string name="onboarding_sources_version_desc">Têke bin serî de dîtina guhertoyên vê çavkaniyê</string>
+    <string name="onboarding_sources_apps_desc">Bitapîne da ku appên ku ev çavkanî patch dike bibînî û bijêre ka ji kîjanên wan re patchan pêşkêş dike</string>
     <string name="onboarding_sources_prerelease_desc">Vê yekê çalak bike da ku wergîrî patchên berbelav ên vê çavkaniyê bike</string>
     <string name="onboarding_appearance_tab_desc">Xuyahiya sepan xweş bike: tema, rengê din, û paşnav</string>
     <string name="onboarding_expert_mode_desc">Moda Pêşiyan çalak bike da ku vebijarkên patchê, vebijarkên xwerû, û taybetmendiyên pêşkeftî veke</string>
@@ -1314,24 +1513,40 @@ Ma hûn hê jî dixwazin dom bikevin?"</string>
     <string name="onboarding_restart_title">Gerîşka taybetmendiyan</string>
     <string name="onboarding_restart_desc">Gerek rêberî ya taybetmendiyên sereke</string>
 
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <!-- Preserved Nivqo localization -->
+    <string name="home_category_delete_confirm_title">Kategoriya terikîne</string>
+    <string name="home_category_delete_confirm_message">Kategoriya &lt;b&gt;%1$s&lt;/b&gt; terikîne? Sepan di nav de vegerin &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <string name="expert_mode_prerelease_notice">Ev çavkanî li ser patchên pêş-berdanê ye. Patchkirin dibe ku têk biçe an bi awayekî neçaverêkirî tevbigere.</string>
+    <string name="sources_dialog_local_add_more">Zêdetir pelan lê zêde bike.</string>
+    <string name="sources_dialog_local_file_tap_hint">Bikîne da ku hilanînê bikola</string>
+    <string name="home_apk_availability_dialog_title">Alîkarê dîtina APK-ya orîjînal, nebixwe ji nû ve?</string>
+    <string name="home_apk_availability_yes">Ew, min alîkarê dîtina APK-yê bikîn</string>
+    <string name="home_apk_availability_no">Na, ez APK-yek heznikim</string>
+    <string name="home_apk_use_saved">APK ya saved bikar bîne</string>
+    <string name="home_apk_use_installed">APK ya sazkirî bikar bîne</string>
+    <string name="home_file_picker_prompt_title">APKê daxistî hilbijêre</string>
+    <string name="home_file_picker_prompt_description">Pelê APK ya &lt;b&gt;%s&lt;/b&gt; ya hûn niha dakêşandî hilbijêrin.</string>
+    <string name="home_select_any_apk_description">Hilbijartina dosyeyekê APK yê ji her programê, yan jî programa ku berê li ser vê cîhazê hatiye saz kirin hilbijartin</string>
+    <string name="expert_mode_disable_all_done">Hemû pelikên guherînê neçalak hatin kirin</string>
+    <string name="expert_mode_enable_all_done">Hemû pelikên guherînê aktîv hatin kirin</string>
+    <string name="expert_mode_reset_to_default">Pêşdixeşinên pêşniyar kirî çêbêje</string>
+    <string name="expert_mode_restore_saved">Şêvikî serdest vegerîne</string>
+    <string name="expert_mode_copy_from_bundle">Hilbijarkirina ji pakêtek din kopye bike</string>
+    <string name="expert_mode_multiple_sources_warning_message">"Hûn bejna seyarê berî çendan bejna kirin. Gûma serdebaza pêşçuna bêgîri azre be."</string>
+    <string name="home_app_info_uninstall_app_confirmation">Ma hûn pê ewaz in ku ev sepan paqij bikin?</string>
+    <string name="patcher_stop_confirm_title">Patcher rawêstinê</string>
+    <string name="patcher_stop_confirm_description">Ma hûn pê ewle bûne ku hûn pêvajoya patch kirinê rawêstîn?</string>
+    <string name="settings_appearance_app_icon_change_dialog_message">Li &lt;b&gt;%s&lt;/b&gt; biguherin û dest pê bike?</string>
+    <string name="copy_selection_title">Hilbijarkirina ji… kopye bike</string>
+    <string name="copy_selection_confirm_with_count">%s kopye bike</string>
+    <string name="copy_selection_same_source">Çavkaniya heman</string>
     <string name="home_app_list_options_title">Rêzkirin û fîltrekirin</string>
     <string name="home_app_list_options_state_description">Rêzkirî li gorî %1$s, fîltrekirî li gorî %2$s</string>
     <string name="sources_sort_title">Sort kirina çavkaniyên patchê</string>
-    <string name="sources_apps_description">Bitekle ser sepanekê ku wê ji vê çavkaniyê derxîne an jî vegerîne, an jî çapemeniya dirêj bike ku çendê hilbijêrî. Dema ku tu çavkanî sepanekê neyne, ew ji ekrana malê derdikeve.</string>
     <string name="sources_apps_leave_out">Derxe</string>
     <string name="sources_apps_leave_out_done">Derxistî</string>
     <string name="sources_apps_bring_back">Vegerîne</string>
-    <string name="sources_dialog_choose_apps">Sepanan hilbijêre</string>
-    <string name="sources_dialog_community_notice_message">"Çavkaniyên patch ên civakê ji aliyê nivîskarên xwe ve têne çêkirin û têne parastin. Morphe patchên partiya sêyem nirx nake û verast nake, û ji naveroka wan an ji tiştê ku ew li ser cîhaza we dikin berpirsiyar nabe.
-
-Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."</string>
     <string name="hex_color">Rengê hex</string>
-    <string name="batch_patch_progress_counter">%1$s ê %2$s hat serkirin</string>
-    <string name="batch_patch_stop_description">Sepa ku niha tê patchkirin û her tiştê ku dîsa hatî plan kirin, hatî betal kirin</string>
-    <string name="root_mount_module_unmount_warning">Heke KernelSU bi modûlên Dis-mount\'ê bi piranî vekirî heye, KernelSU &gt; Superuser &gt; app\'a ku te li ser wê çêkirî &gt; Profile &gt; Custom veke û modûlên Dis-mount\'ê neçêkire. Wekî din, APK\'a paşguhkirî ya ku li ser wê çêkirî heye, dikare bandordike, heke Morphe wê wekî çêkirî nîşan bide.</string>
-    <string name="root_pre_patch_installer_hint">Ev moda pêçekirinê ji Rêgeziya > Pergal > Sazkirinê cûda ye û paşê de nikare bê guhertin</string>
-    <string name="patcher_missing_patches_description">Hilbijartina tomarkirî ya vê sepanê patchan nav dike ku êdî tu çavkaniya çalak pêşkêş nake. Berdewamkirin dê sepanê bêyî wan patch bike.</string>
     <string name="patcher_memory_adjustment_title">Bîra têra nake</string>
     <string name="patcher_memory_adjustment_description">Patcher ji aliyê pergalê ve hate rawestandin dema ku bi sînorê bîrê %1$d MB dixebitî. Daxistina sînorî bo %2$d MB patcherê dike hedefeke piçûktir û dikare xebatê biqedîne.</string>
     <string name="patcher_memory_adjustment_description_at_minimum">Patcher ji aliyê pergalê ve hate rawestandin dema ku bi sînorê bîrê %1$d MB dixebitî, ku ev jixwe kêmtirîn sînorê berdest e. Hewl bidin ku bi çavkaniyên patchê yên kêmtir patch bikin, an jî patchên kêmtir hilbijêrin.</string>
@@ -1341,7 +1556,6 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <string name="patcher_heap_exhausted_message">Bîra patcherê bi heapê %1$d MB jî têr nekir. Ev sepan ji bo patchên hilbijartî pir mezin e. Hewl bidin ku bi çavkaniyên patchan ên kêmtir patch bikin, an patchên kêmtir hilbijêrin.</string>
     <string name="advanced">Zor</string>
     <string name="settings_appearance_colors">Reng</string>
-    <string name="settings_appearance_color_accents_description">Li şûna rengê akcent, rengê her sepan û çavkaniyê bi kar tîne.</string>
     <string name="settings_appearance_language_and_display">Ziman &amp; dîmen</string>
     <string name="settings_appearance_translations_info_text">"Zî de nava zimanên nû wergerandin an pêşkeftina wergerên heyî, biçîn
 %s"</string>
@@ -1349,41 +1563,23 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <string name="settings_appearance_ui_scale_description">Hemû tiştên di sepanê de pîvan dike, li gel zoomê ekrana pergalê û mezinahiya tîpan.</string>
     <string name="settings_appearance_ui_scale_preview_title">Mîhenga nimûne</string>
     <string name="settings_appearance_ui_scale_preview_subtitle">Nivîs û kontrol li vê pîvanê</string>
-    <string name="settings_appearance_greeting_phrases_subtitle">Nîşanekê bi xêrhatinê li ser mîna malê nîşan bide</string>
     <string name="settings_appearance_app_grouping">Komkirina sepanan</string>
     <string name="settings_appearance_app_grouping_description">Guhêrkekê nîşan bide ku sepanan li gorî çavkanî an kategoriyê kom dike.</string>
-    <string name="settings_appearance_repatch_notice_description">Dema ku sepanên patchkirî dikarin dîsa bên patchkirin, banerekê nîşan bide.</string>
     <string name="settings_appearance_sort_button">Bişkoka rêzkirin û parzûnkirinê</string>
     <string name="settings_appearance_sort_button_description">Bişkoka rêzkirin û parzûnkirinê li ser ekrana malê nîşan bide</string>
     <string name="settings_advanced_updates">Nûvekirin</string>
     <string name="settings_advanced_patcher">Patchker</string>
-    <string name="settings_advanced_updates_allow_metered_description">Destûrê dide Morphe\'yê u nûvekirinên qeyikan da ku li ser danebîna mobîlê biçin</string>
     <string name="settings_advanced_update_interval_dialog_title">Kontrolê ji bo nûvekirinê</string>
-    <string name="settings_advanced_update_interval_hourly">Her kîsatekê</string>
-    <string name="settings_advanced_update_interval_daily">Her roj</string>
-    <string name="settings_advanced_update_interval_weekly">Her heftiyê</string>
-    <string name="settings_advanced_update_interval_monthly">Her meh</string>
     <string name="settings_advanced_update_interval_chip_subtitle">Rêjeya kontrolê paşîn</string>
-    <string name="settings_advanced_update_interval_battery_warning">Kontrolên paşîn dibin sedem ku hin alavkêm nekar in. Hilberîneran weke Xiaomi, Huawei, Samsung, û OnePlus gelek caran pêvajeyên paşîn ji bo parastina bataryayê asteng dikin.</string>
-    <string name="settings_advanced_external_batch_patch_description">Dihele sepanên otomasyonê bi riya intentê dest bi patchkirina komî bikin.</string>
     <string name="settings_advanced_expert">Saziyên pispor</string>
-    <string name="settings_advanced_expert_mode_description">Destûr dide sazkirina vegirêtinên Nivqo’yê ên pêşkeftî u hilbijartinên xwerû</string>
-    <string name="settings_advanced_strip_unused_libs_description">Lîbêrên mîmarîya CPU’yê yên ne-heqî u modûlên APK’êyê yên parvekirî qedide bike</string>
-    <string name="settings_advanced_github_pat_description">Ragrapha qebul, pêvir be jibo seyarê ber dom</string>
     <string name="settings_advanced_github_pat_how_to_get">Meriv token çawa bidestxistin</string>
     <string name="settings_advanced_github_pat_dialog_title">%s saz bike</string>
     <string name="settings_advanced_github_pat_dialog_description">"%3$s saz bike da ku karibî pull request-an wekî çavkaniyên derveyî lê zêde bikî. Li ser
 %1$s PAT-ek bi qada %2$s çêbike."</string>
     <string name="settings_advanced_patch_options_youtube_description">Vebijarkên branding û sernivîsê</string>
-    <string name="settings_advanced_patch_options_custom_branding_app_icon_description">Îkona ku sepan pê tê patchkirin. Ew di heman demê de tê bikaranîn li cihê ku sepan nikare paşê wê biguherîne, wekî Android Auto û lîsteya sepanan a mîhengên pergalê.</string>
     <string name="settings_advanced_patch_options_hide_shorts_features">Taybetmendiyên Shorts vegire</string>
     <string name="installer_use_standard">Standard bikarîne</string>
-    <string name="installer_play_store_mode_description">Play Store wekî çavkaniya sazkirinê ji bo vê rêbazê qeyd bike</string>
-    <string name="settings_prompt_installer_on_install_description">Hîşyarî her carî dema ku app’a girêtî hatî sazkirin, dîyaloga hilbijartina sazkirî nîşan bide</string>
-    <string name="settings_auto_install_with_shizuku_description">APK-ya patchkirî di cih de piştî qedandina patchkirinê saz dike.</string>
-    <string name="settings_auto_uninstall_with_shizuku_description">Dema ku bi Shizuku saz kirin, eger Android rapor bide ku kêşekê qebûl kir, berê aplikasyona heyî ya ku heye rake. Ew dikare daneyên aplikasyonê jê der bike.</string>
     <string name="settings_system_background">Binêre</string>
-    <string name="settings_system_process_runtime">Rayedîna pêroje</string>
     <string name="settings_system_process_runtime_description">Qeyik kirina cuda ji bo aramiya çêtirîn birêve bibe</string>
     <string name="settings_system_process_runtime_memory_limit_description">Sînorên bilindtir her çûk qeyik kirinê li ser cîhazan qewimîn bike</string>
     <string name="settings_system_process_runtime_enable">Rayekirina pêroje</string>
@@ -1394,17 +1590,13 @@ Her tiştê ku hûn ji vê malperê zêde dikin bi xetereya we tê bikaranîn."<
     <string name="settings_system_process_runtime_enabled_description">Sînor %s MB</string>
     <string name="settings_system_process_runtime_disabled_description">Li konfigurasyonê biklik</string>
     <string name="settings_system_process_runtime_description_not_available">Ev taybetmendî Android 11 yan zêdetir tê hewîn</string>
-    <string name="settings_system_notifications_description">Konfîgurekirina agahiyên paşnavê û dengên qedandina</string>
     <string name="settings_system_import_export">Import &amp; export</string>
-    <string name="settings_system_signing_key_description">Mifteya ku sepanên te yên patchkirî pê têne îmzekirin yedek dike û vedigerîne.</string>
     <string name="settings_system_files">Pelên &amp; hilanîn</string>
-    <string name="settings_system_storage_management_description">Lêkolîna karanîna dîskê û paqijkirina pelên neyînî</string>
     <string name="settings_system_patched_apks_description">Pelên programa girêtî yên tomarî birêve bibe</string>
     <string name="settings_system_original_apks_description">Mîhenga pêşîn ji bo qeyik kirina dîsa vekirin bên parastin. Tenê yek guhertoyek ji bo her app\'ê tê parastin</string>
     <string name="settings_system_patch_selection_reset_package_confirm_title">Bejnê pakêtên vebejin?</string>
     <string name="settings_system_patch_selection_patches_in_sources_format">%1$s hera %2$s</string>
     <string name="settings_system_patch_selection_reset_package_warning">Evê ê hemû hilbijartinên paqijkirinê yên ku hatine tomarkirin ji bo &lt;b&gt;%s&lt;/b&gt; li ser hemû çavkaniyan bi temamî were tarandin.</string>
-    <string name="settings_system_custom_file_picker_description">Li şûna hilbijêrkê pelan yê serî yê sîstemê, hilbijêrkê pelan yê têne çêkirin yê Morphe bikar bîne</string>
     <string name="cancelled">Betal kirin</string>
     <string name="selected">Hilbijartin</string>
     <string name="not_selected">Ne hilbijartin</string>

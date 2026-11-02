@@ -201,8 +201,9 @@ fun BatchPatcherScreen(
         ConfirmDialog(
             title = stringResource(R.string.batch_patch_stop_title),
             message = stringResource(R.string.batch_patch_stop_description),
-            primaryText = stringResource(R.string.yes),
-            secondaryText = stringResource(R.string.no),
+            primaryText = stringResource(R.string.stop),
+            // Cancel would read as cancelling the queue itself
+            secondaryText = stringResource(R.string.patcher_keep_patching),
             onConfirm = {
                 showCancelDialog = false
                 // A stopped queue must not wait for the round
@@ -217,8 +218,7 @@ fun BatchPatcherScreen(
         ConfirmDialog(
             title = stringResource(R.string.batch_queue_clear_title),
             message = stringResource(R.string.batch_queue_clear_description),
-            primaryText = stringResource(R.string.yes),
-            secondaryText = stringResource(R.string.no),
+            primaryText = stringResource(R.string.clear),
             onConfirm = {
                 showClearDialog = false
                 viewModel.clear()
@@ -331,7 +331,6 @@ fun BatchPatcherScreen(
                     FilePickerPromptDialog(
                         appName = item.appName,
                         packageName = item.packageName,
-                        isOtherApps = false,
                         isLoadingInstalledApps = false,
                         onDismiss = viewModel::dismissAttachPrompt,
                         onOpenFilePicker = {
@@ -355,7 +354,6 @@ fun BatchPatcherScreen(
                             options = edit.options,
                             totalSelectedCount = edit.totalSelectedCount,
                             newPatches = edit.newPatches,
-                            savedPatches = edit.savedSelection,
                             lockStateOf = edit::lockStateOf,
                             holdsUniversalPatches = edit::selectAllHoldsUniversal
                         ),
@@ -364,9 +362,6 @@ fun BatchPatcherScreen(
                             onPatchToggle = edit::togglePatch,
                             onSelectAll = edit::selectAll,
                             onDeselectAll = edit::deselectAll,
-                            onResetToDefault = edit::resetToDefault,
-                            onRestoreSaved = edit::restoreSaved,
-                            onCopyFromBundle = viewModel::openEditCopyDialog,
                             onOptionChange = edit::updateOption,
                             onResetOptions = edit::resetOptions
                         ),
@@ -374,28 +369,10 @@ fun BatchPatcherScreen(
                         proceedText = stringResource(R.string.save),
                         // The queue combines sources by design, and the tabs make it plain enough
                         warnOnMultipleBundles = false,
+                        selectionPanel = expertSelectionPanel(edit),
                         onDismiss = viewModel::cancelEdit,
                         onProceed = viewModel::applyEdit
                     )
-
-                    val copyTarget = edit.bundles
-                        .firstOrNull { it.uid == viewModel.editCopy.targetBundleUid }
-                        ?.let { bundle ->
-                            CopySelectionTarget(
-                                packageName = edit.configurationKey,
-                                bundleUid = bundle.uid,
-                                bundleName = bundle.name,
-                                appDisplayName = edit.appName
-                            )
-                        }
-                    DialogHost(target = copyTarget) { target ->
-                        CopySelectionFromBundleDialog(
-                            target = target,
-                            candidates = viewModel.editCopy.candidates,
-                            onConfirm = viewModel::applyEditCopy,
-                            onDismiss = viewModel.editCopy::close
-                        )
-                    }
                 }
             }
         }
@@ -953,8 +930,7 @@ private fun BatchItemCard(
                         ActionPillButton(
                             onClick = onSelectApk,
                             icon = MaterialSymbols.Rounded.File_open,
-                            contentDescription = selectApkLabel,
-                            tooltip = selectApkLabel
+                            contentDescription = selectApkLabel
                         )
 
                         if (onChooseTarget != null) {
@@ -966,8 +942,7 @@ private fun BatchItemCard(
                                 } else {
                                     MaterialSymbols.Rounded.Install_mobile
                                 },
-                                contentDescription = targetLabel,
-                                tooltip = targetLabel
+                                contentDescription = targetLabel
                             )
                         }
 
@@ -976,8 +951,7 @@ private fun BatchItemCard(
                             ActionPillButton(
                                 onClick = onEditPatches,
                                 icon = MaterialSymbols.Rounded.Tune,
-                                contentDescription = editLabel,
-                                tooltip = editLabel
+                                contentDescription = editLabel
                             )
                         }
 
@@ -987,7 +961,6 @@ private fun BatchItemCard(
                                 onClick = onForceVersion,
                                 icon = MaterialSymbols.Rounded.Warning,
                                 contentDescription = forceLabel,
-                                tooltip = forceLabel,
                                 colors = ActionPillColors.warning()
                             )
                         }
@@ -1000,7 +973,6 @@ private fun BatchItemCard(
                                 onClick = onAcceptSignature,
                                 icon = MaterialSymbols.Rounded.Gpp_bad,
                                 contentDescription = acceptLabel,
-                                tooltip = acceptLabel,
                                 colors = ActionPillColors.warning()
                             )
                         }
@@ -1012,7 +984,6 @@ private fun BatchItemCard(
                             onClick = onToggleExcluded,
                             icon = if (excluded) MaterialSymbols.Rounded.Add_circle else MaterialSymbols.Rounded.Do_not_disturb_on,
                             contentDescription = toggleLabel,
-                            tooltip = toggleLabel,
                             destructive = !excluded
                         )
                     }
@@ -1034,7 +1005,6 @@ private fun BatchItemCard(
                                 onClick = onShowError,
                                 icon = MaterialSymbols.Rounded.Error,
                                 contentDescription = errorLabel,
-                                tooltip = errorLabel,
                                 destructive = true
                             )
                         }
@@ -1045,7 +1015,6 @@ private fun BatchItemCard(
                                 onClick = onInstall,
                                 icon = MaterialSymbols.Rounded.Install_mobile,
                                 contentDescription = installLabel,
-                                tooltip = installLabel,
                                 colors = ActionPillColors.primary()
                             )
                         }
@@ -1055,8 +1024,7 @@ private fun BatchItemCard(
                             ActionPillButton(
                                 onClick = onExport,
                                 icon = MaterialSymbols.Rounded.Download,
-                                contentDescription = exportLabel,
-                                tooltip = exportLabel
+                                contentDescription = exportLabel
                             )
                         }
 
@@ -1065,8 +1033,7 @@ private fun BatchItemCard(
                             ActionPillButton(
                                 onClick = onShare,
                                 icon = MaterialSymbols.Rounded.Share,
-                                contentDescription = shareLabel,
-                                tooltip = shareLabel
+                                contentDescription = shareLabel
                             )
                         }
 
@@ -1075,8 +1042,7 @@ private fun BatchItemCard(
                             ActionPillButton(
                                 onClick = onOpen,
                                 icon = MaterialSymbols.Rounded.Open_in_new.autoMirrored,
-                                contentDescription = openLabel,
-                                tooltip = openLabel
+                                contentDescription = openLabel
                             )
                         }
                     }

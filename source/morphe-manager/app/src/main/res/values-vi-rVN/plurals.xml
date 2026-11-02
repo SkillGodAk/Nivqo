@@ -37,6 +37,9 @@
     <plurals name="source_count">
         <item quantity="other">%s nguồn</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="other">%s bộ</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="other">%s gói</item>
     </plurals>

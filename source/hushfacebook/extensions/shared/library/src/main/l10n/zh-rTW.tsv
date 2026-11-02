@@ -11,8 +11,12 @@
 %1$d lines were left out. A phrase needs %2$d to %3$d characters, but a single emoji or Chinese, Japanese or Korean character is enough. One given twice counts once.	%1$d線條被忽略。需要一個短語%2$d改為:%3$d字元,但是一個單一的emoji或中文、日文或韓文字元就夠了。一個給定了兩次數。
 %1$d more	%1$d更多( E)
 %1$d of %2$d people, Pages or sites. The list fills %3$d%% of its room.	%1$d / %2$d 個人物、粉絲專頁或網站，已使用清單容量的 %3$d%%。
+%1$d other	其他 %1$d 項
+%1$d others	其他 %1$d 項
 %1$d people, Pages or sites.	%1$d人,頁或網站。
 %1$d person, Page or site.	%1$d個人,網頁或網站。
+%1$d post or card: %2$s	%1$d 則貼文或卡片：%2$s
+%1$d posts and cards: %2$s	%1$d 則貼文和卡片：%2$s
 %1$d setting found	找到 %1$d 個設定
 %1$d settings found	找到 %1$d 個設定
 %1$d switch starts off now	%1$d關機了
@@ -23,6 +27,7 @@
 %1$d were already in the list.	%1$d已經列入清單。
 %1$d word or phrase.	%1$d 個單字或片語。
 %1$d words or phrases.	%1$d 個單字或片語。
+%1$s (%2$d)	%1$s（%2$d）
 %1$s a second	每秒 %1$s
 %1$s becomes the date and time of the save, %2$s the photo's number on Facebook, %3$s who posted it, %4$s their profile's number on Facebook and %5$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %6$s.	%1$s成為拯救的日期和時間,%2$s照片在臉書上的號碼,%3$s是誰貼的?%4$s他們的檔案號碼在臉書和%5$s。儲存的未知內容被忽略,沒有這些名稱的名稱會被新增日期。當名稱已經放在資料夾中時,儲存的時間會到尾端。無效字元會變成下劃線。使用預設值時,請留空白。%6$s。 。 。 。
 %1$s becomes the date and time of the save, %2$s the video's number on Facebook, %3$s who posted it, %4$s their profile's number on Facebook and %5$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %6$s.	%1$s 會替換為儲存日期與時間，%2$s 為影片在 Facebook 上的編號，%3$s 為發佈者名稱，%4$s 為其 Facebook 個人檔案或粉絲專頁編號，%5$s 為發佈日期。儲存時無法取得的資訊會略過；若檔名不含上述任何資訊，會附加日期。若資料夾中已有同名檔案，會在結尾附加儲存時間。無效字元會改成底線。留白則使用預設名稱 %6$s。
@@ -42,26 +47,36 @@
 %1$s reactions	%1$s反應
 %1$s so far	目前 %1$s
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s。這是在套用補丁時設定的，因此暫停功能無法將它關閉。若要排除它，請重新套用補丁並不要選擇該補丁。
+%1$s. Tapping the video and double-tapping it to like don't count as a touch, so the buttons stay faded.	%1$s。點擊影片與雙擊按讚不算觸碰操作，因此按鈕會維持淡化。
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s。這些是在套用補丁時設定的，因此暫停功能無法將它們關閉。若要排除其中一項，請重新套用補丁並不要選擇其後方括號內的補丁。
 1 day	1天(以千美元計)
 1 hour	1小時
 1 minute	1分鐘
+10 minutes	10 分鐘
+10 seconds	10 秒
 15 minutes	15分鐘
 3 days	3天時間
 30 days	30天 時間
+30 minutes	30 分鐘
+45 minutes	45 分鐘
 5 minutes	5分鐘
+5 seconds	5 秒
 7 days	7天時間
+90 days	90 天
 A GIF comment gets Save GIF when you long-press it.	長按 GIF 留言時，會顯示「儲存 GIF」。
+A break starts after %1$s of Home, Feeds, Video and Reels.	在首頁、動態消息、影片和 Reels 上用滿 %1$s 後開始休息。
 A change here applies after Facebook restarts.	這裡的變更會在重新啟動 Facebook 後套用。
 A change shows the next time you pull down to refresh.	下次下拉重新整理時就會套用變更。
 A color code (#RRGGBB) for dark mode's backgrounds, like #0D1117. Grays up to about %1$s work. Leave it blank for %2$s, the color Hushfacebook was patched with.	深色模式背景的色碼（#RRGGBB），例如 #0D1117。灰色約可使用至 %1$s。留白則使用 %2$s，也就是修補 Hushfacebook 時指定的顏色。
 A color code (#RRGGBB) for light mode's backgrounds in place of white, like #FFF8E7. Grays down to about %1$s work, and text gets darker where it needs to. Leave it blank for Facebook's own white.	以色碼（#RRGGBB）取代淺色模式的白色背景，例如 #FFF8E7。灰色約可深至 %1$s，必要時文字會隨之加深。留白則使用 Facebook 原有的白色。
 A color code (#RRGGBB) for the Facebook logo at the top of Home, like #2ECC71. Leave it blank for Facebook's blue.	首頁頂端 Facebook 標誌的色碼（#RRGGBB），例如 #2ECC71。留白則使用 Facebook 的藍色。
 A color code (#RRGGBB) for the count badges on the tabs, like #2ECC71. Leave it blank for Facebook's red.	分頁上數字徽章的色碼（#RRGGBB），例如 #2ECC71。留白則使用 Facebook 的紅色。
+A color code (#RRGGBB) for the selected tab's icon and the line over it in the tab bar, like #2ECC71. Leave it blank for Facebook's own.	分頁列中已選取分頁的圖示及其上方線條的色碼（#RRGGBB），例如 #2ECC71。留白則使用 Facebook 的顏色。
 A diagnostic report is already being exported.	診斷報告正在匯出中。
 A diagnostic report is already being saved.	診斷報告已正在儲存。
 A double tap on a reel opens its comments instead of liking it. Turn off double tap to like still wins when it's on. Off by default, since it hasn't been tried on a real account yet.	雙擊 Reels 時開啟留言，而非按讚。若已啟用「停用雙擊按讚」，仍以該設定為優先。預設停用，因為尚未使用真實帳號測試。
 A double tap on a reel or video no longer likes it or shows a heart. A single tap and the Like button work as before.	雙擊 Reels 或影片時不再按讚，也不會顯示愛心。單擊與「讚」按鈕仍照原本方式運作。
+A double tap on a reel, a video or a photo in the feed no longer likes it or shows a heart. A single tap and the Like button work as before.	雙擊 Reels、影片或動態消息中的相片不再按讚或顯示愛心。單次點按與「讚」按鈕照常運作。
 A double tap on the left or right edge of a reel or video skips back or forward 10 seconds, or 5 on one under 30 seconds. A double tap in the middle works as before.	雙擊 Reels 或影片的左側或右側邊緣，可後退或前進 10 秒；長度不足 30 秒時則為 5 秒。雙擊中央的功能不變。
 A few seconds after you leave Facebook, it closes all the way and leaves your recent apps, so it isn't running in the background. It waits for uploads and saves to finish first. Notifications may come late, or not until you open Facebook again.	離開 Facebook 幾秒後，會完全關閉並從最近使用的應用程式移除，不再於背景執行。會先等待上傳與儲存完成。通知可能延遲，或直到再次開啟 Facebook 才會送達。
 A file named %1$s in %2$s paused Hushfacebook.	%2$s 中名為 %1$s 的檔案已讓 Hushfacebook 暫停。
@@ -70,6 +85,8 @@ A group post's comments end without the Related groups list and its Join buttons
 A line between slashes, like /gr[ae]y/, is a pattern that can match several spellings (a regular expression). A list holds up to %1$d, each up to %2$d characters.	鞭打之間的線條,如/gr[ae]y/,是一種可以匹配多個拼寫(正規表示式)的圖案。%1$d,每個最多%2$d字元鍵。
 A list holds up to %1$d patterns, and this one has more. Remove some, then save again.	名單最多%1$d模式,而這個模式還有。去掉一些,然後再次儲存。
 A list holds up to %1$d phrases, and this one has more. Remove some, then save again.	每個清單最多可包含 %1$d 個詞句，目前已超出上限。請刪除部分內容後再儲存。
+A listing's page says how long ago it was listed and the date, next to its place. Facebook only shows it for new listings.	商品頁面會在地點旁顯示刊登多久以及刊登日期。Facebook 只會對新商品顯示這些。
+A live video that has ended gets Playback speed in its gear menu, like other videos. Videos that are still live, and ads, keep Facebook's menu.	已結束的直播影片會像其他影片一樣，在齒輪選單中提供播放速度。仍在直播的影片和廣告保留 Facebook 的選單。
 A long press on Like doesn't open the reactions. A tap still likes.	長長的媒體不會開啟反應,水龍頭還是喜歡的
 A long press on the Facebook logo at the top of the home feed opens these settings. Off, the long press goes back to Facebook.	長按動態消息首頁頂端的 Facebook 標誌可開啟這些設定。停用後，長按操作會恢復由 Facebook 處理。
 A playback speed you pick in a reel's menu stays for the next reels until you pick another or Facebook restarts. Off, every reel starts at normal speed.	在 Reels 選單中選擇的播放速度會套用到後續 Reels，直到你選擇其他速度或重新啟動 Facebook。關閉時，每則 Reels 都會以正常速度開始播放。
@@ -83,6 +100,7 @@ A post with this text would stay. Nothing on either list matches it.	含這段�
 A post you open from a notification ends without the "More from your friends" list Facebook adds under it, which can carry ads.	從通知開啟的貼文不再顯示 Facebook 附加的「更多好友貼文」清單，減少可能的廣告。
 A post you've scrolled past stays out of the feed for %1$s.	你滾動過往的一篇文章,沒有被輸入%1$s。 。 。 。
 A post's comments open with %1$s picked in their sort menu, where the post offers it.	若該貼文支援此排序，留言會以排序選單中的 %1$s 開啟。
+A profile's Reels tab lists its most viewed reels first instead of the newest. Off keeps Facebook's order. Only the reels the tab has loaded are sorted, and a reel with no view count stays after the rest.	個人檔案的 Reels 分頁會先列出觀看次數最多的 Reels，而不是最新的。關閉時維持 Facebook 的順序。只會排序分頁已載入的 Reels，沒有觀看次數的 Reels 會排在其餘之後。
 A reel stops on its last frame instead of starting over. Tap it to watch again, or swipe to the next one. Feed videos and stories aren't changed. Off by default, since it hasn't been tried on a real account yet.	Reels 播完後停在最後一格而不循環。點一下重播或滑到下一部；動態影片及限時動態不受影響。尚未在實際帳號測試，預設關閉。
 A reel stops on its last frame instead of starting over. Tap it to watch again, or swipe to the next one. Feed videos and stories aren't changed. Untested on a real account, so it starts off.	膠捲停止在最後一幀上, 而不是重新開始。 拍下它再看一次,或者刷到下一幀。 種子影片和故事沒有改變 。 未經測試的真實賬戶,所以它開始 。
 A reel stops while you read its comments and plays on from the same spot when you close them.	閱讀 Reels 的留言時它會暫停，關閉留言後從原處繼續播放。
@@ -93,7 +111,9 @@ A tablet or an unfolded phone gets the layout Facebook uses on a phone, so the t
 A tablet or an unfolded phone gets the layout Facebook uses on a phone, so the tab bar switches above work on the big screen too. Facebook's wider big screen layout goes away. Off by default, since it hasn't been tried on a big screen yet. Restart Facebook to see the change.	平板與展開的摺疊手機改用手機版排版，讓分頁列設定也能作用於大螢幕，但會停用原本的大螢幕版面。尚未實機測試，預設關閉；重新啟動後生效。
 A tap on a playing reel shows its controls while it keeps playing, and a second tap hides them. The button in the middle still pauses.	點按播放中的 Reels 可顯示控制項，影片仍會繼續播放；再次點按可隱藏控制項。中央按鈕仍可暫停。
 A thin gray line between posts in the feed, so posts without photos don't run together on the black page.	在動態消息的貼文之間顯示細灰線，避免沒有相片的貼文在黑色頁面上連成一片。
+A video comment gets Save video when you long-press it.	長按影片留言時，會顯示「儲存影片」。
 A video you tap in the feed opens full screen by itself, with no reels to swipe to after it. The Reels tab keeps scrolling. Off by default, since it hasn't been tried on a real account yet.	點按動態消息中的影片後，會單獨以全螢幕開啟，結束後沒有可滑動切換的 Reels。Reels 分頁仍可持續捲動。預設停用，因為尚未使用真實帳號測試。
+AI posts	AI 貼文
 AMOLED black theme	AMOLED 純黑主題
 About	關於
 Accent color	星座顏色
@@ -101,6 +121,7 @@ Active. Events, Notifications and Profile/Menu stay. Find Hushfacebook settings 
 Active. Marketplace, Notifications and Profile/Menu stay. Find Hushfacebook settings in Menu, under Settings and privacy.	已啟用。保留 Marketplace、通知及個人檔案／功能表。Hushfacebook 設定位於功能表的「設定和隱私」中。
 Ad tracking	跟蹤
 Ad tracking blocked	已阻擋廣告追蹤
+Add	新增
 Add Download to phone to feed and Watch video menus. Uses the quality below. Off or paused, Facebook's menu returns.	在動態消息與 Watch 影片選單加入「下載到手機」。使用下方設定的畫質。關閉或暫停時會恢復 Facebook 原本的選單。
 Add Save to every story menu, using your download quality. Off or paused, Facebook only saves your own stories.	在所有限時動態選單加入「儲存」，並使用你設定的下載畫質。關閉或暫停時，Facebook 只會儲存你自己的限時動態。
 Add a Download button to reels, using your download quality. Off or paused, Facebook's own buttons return.	在 Reels 加入「下載」按鈕，並使用你設定的下載畫質。關閉或暫停時會恢復 Facebook 原本的按鈕。
@@ -117,13 +138,17 @@ Adds Open in another app to feed and Watch video menus. It hands the video to a 
 Adds Save photo to any story that carries a picture beside its video, like a photo story with music that Facebook didn't mark as one. On a video story it saves the cover picture. Off by default, since it hasn't been tried on a real account yet.	對同時包含影片與圖片的限時動態加入「儲存照片」，例如 Facebook 未識別的配樂照片動態；影片動態則儲存封面。尚未在實際帳號測試，預設關閉。
 Adds Saved to the menu you get by holding Facebook's icon, if there's room, and a Saved row in Settings and privacy. Existing shortcuts stay.	在選單中添加了儲存的,如果有空間的話,通過持有 Facebook 圖示,並在設定和隱私中添加了儲存的行。現有的快捷鍵將保留 。
 Adds Saved to the menu you get by holding Facebook's icon, if there's room. Existing shortcuts stay.	如果有空間, 將儲存到選單中。 現有的快捷鍵會保留 。
+Adds See who shared to a post's menu. It opens Facebook's list of the people who shared it.	在貼文選單中加入「查看誰分享了」，開啟 Facebook 上分享這則貼文的使用者清單。
 Adds Watch history, the videos and reels you've watched, to the menu you get by holding Facebook's icon, if there's room, and a Watch history row in Settings and privacy. Existing shortcuts stay.	將監視歷史、影片和錄影新增到您持有Facebook圖示時獲得的選單中,如果有空間的話,並在設定和隱私中新增監視歷史行。現有的快捷鍵將保留。
 Adds Watch history, the videos and reels you've watched, to the menu you get by holding Facebook's icon, if there's room. Existing shortcuts stay.	將監視歷史、影片和錄影新增到選單中,如果有空間,則通過持有Facebook圖示獲得。現有的快捷鍵將保留下來。
 Adds a Download button under posts with a video or photos. It saves the video, the photo, or every photo of an album, using the Downloads settings.	在含有影片或相片的貼文下方加入下載按鈕。它會依照下載設定儲存影片、相片或相簿中的每張相片。
 Adds a Hushfacebook settings row at the end of Settings and privacy in Facebook's Menu. Off, the row leaves the Menu.	在 Facebook 選單的「設定和隱私」結尾新增 Hushfacebook 設定項目。停用後會從選單移除。
 Adds a View profile button to every seller's Marketplace page, opening their Facebook profile. Facebook only shows it to some accounts.	在每個銷售商的 Marketplace 頁面中新增一個 View 配置按鈕, 開啟他們的 Facebook 配置 。 Facebook只向一些賬戶顯示 。
 Adds a cast button to feed videos. It hands the video to a casting app you have, such as Web Video Caster, which sends it to your TV. Facebook has no casting of its own anymore.	為動態中的影片加入投放按鈕。它會把影片交給你已安裝的投放應用程式（例如 Web Video Caster），由它傳送到電視。Facebook 已不再內建投放功能。
+Adds a cast button to reels, under Download. It hands the reel to a casting app you have, such as Web Video Caster, which sends it to your TV.	在 Reels 的「下載」按鈕下方加入投放按鈕。它會把 Reel 交給你已安裝的投放應用程式（例如 Web Video Caster），由它傳送到電視。
 Adds a play/pause button to feed videos. Tap the video itself to open it full screen. Live videos and ads keep their own controls.	在動態消息影片上加入播放或暫停按鈕。輕觸影片本身仍會以全螢幕開啟。直播影片和廣告保留原有控制項。
+Adds a play/pause button to feed videos. Tap the video itself to open it full screen. Live videos and ads keep their own controls. With Tap to play on too, Facebook's own Autoplay setting stays as you set it so the button can show, and videos still wait for your tap.	在動態消息影片上加入播放或暫停按鈕。輕觸影片本身仍會以全螢幕開啟。直播影片和廣告保留原有控制項。同時開啟「點按播放」時，Facebook 本身的自動播放設定會維持你的選擇，按鈕才能顯示，影片仍會等你點按。
+Adds an Adv. Filters button under Marketplace's Filters on search results. It opens lists of words to keep, words to hide and places, and writes the rules into the search for you.	在搜尋結果中 Marketplace 的「篩選」下方加入「進階篩選」按鈕。它會開啟要保留的詞語、要隱藏的詞語和地點的清單，並幫你把規則寫進搜尋。
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	在您匿名檢視時, 在每個故事的頂部新增一個眼睛按鈕。 點選它可以在該故事的檢視者列表上顯示。其他故事會隱藏 。
 Ads and suggestions	廣告和建議
 Ads aren't downloaded in advance	不再預先下載廣告
@@ -136,6 +161,14 @@ Ads in search results	搜尋結果中的廣告
 Ads in the feed	在種子中的廣告
 Ads on profiles	簡介的廣告
 Ads, suggestions and word filters	廣告、推薦與文字篩選
+Adv. Filters	進階篩選
+Adv. Filters (%1$d)	進階篩選 (%1$d)
+Adv. Filters button	進階篩選按鈕
+Advanced Marketplace filters	Marketplace 進階篩選
+Advanced Marketplace filters, %1$d on	Marketplace 進階篩選，已開啟 %1$d 項
+Advanced Marketplace search	Marketplace 進階搜尋
+After %1$d seconds	%1$d 秒後
+After the time you pick on Home, Feeds, Video and Reels, they're covered for a break. Chats, your profile and the Menu still work, and time away as long as a break counts as one.	在首頁、動態消息、影片和 Reels 上用滿你選的時間後，它們會被遮住，讓你休息一下。聊天、你的個人檔案和選單仍可使用，離開時間達到一次休息也算作休息。
 After this update, a switch you had on may be off now. Tap to see which.	更新後,你開的開關可能關機了,要看哪個
 Alerts about places near you and about the weather stop.	停止顯示附近地點及天氣相關通知。
 All	全部
@@ -163,6 +196,7 @@ Appearance	外觀
 As Facebook has it	就像Facebook一樣
 As soon as you leave	你一離開就走
 Asks GitHub for the newest release right now, even with the switch above off.	立即向 GitHub 查詢最新版本，即使上方開關為關閉也會執行。
+At once	立即
 At the bottom	在底部
 At the top	在頂端
 Audience Network off	已關閉 Audience Network
@@ -170,6 +204,7 @@ Auto	自動
 Autoplay and resume	自動播放和繼續播放
 Autoplay, quality and sound	自動播放、畫質和聲音
 Back	返回
+Back leaves Home where it is	返回鍵不改變首頁位置
 Back to defaults	恢復預設設定
 Back to your phone's font. Restart Facebook to see it.	已恢復手機系統字型。重新啟動 Facebook 後生效。
 Background color	背景顏色
@@ -179,10 +214,12 @@ Badges keep Facebook's red. Type a color code to change it.	徽章維持 Faceboo
 Best	最佳
 Birthdays	生日
 Black cards	黑色卡片
+Block	封鎖
 Block "People you may know"	封鎖「你可能認識的人」
 Block Instant Games ads	阻擋 Instant Games 廣告
 Block account setup reminders	阻擋帳號設定提醒
 Block birthday notifications	封鎖生日通知
+Block button on comments	留言上的封鎖按鈕
 Block event invites	B. 活動邀請
 Block group activity notifications	B. 組群活動通知
 Block group and Page highlights	封鎖社團與粉絲專頁精選通知
@@ -195,12 +232,19 @@ Block trending video notifications	封鎖熱門影片通知
 Blocked since you patched. There's no switch for it.	你補補後就被封鎖了沒有開關了
 Both lists together fill %1$d%% of the room they share.	兩個清單合計已使用共用空間的 %1$d%%。
 Both lists together would fill %1$d%% of the room they share. Remove or shorten some phrases, then save again.	兩個清單合計將使用共用空間的 %1$d%%。請刪除或縮短部分詞句後再儲存。
+Break after	多久後休息
+Break length	休息時長
+Break settings	休息設定
 Browse settings	瀏覽設定
 Build %1$s	組建 %1$s
 Build %1$s (modified)	組建 %1$s（已修改）
 Build %1$s (source known)	組建 %1$s（來源已知）
 Build %1$s (source unknown)	組建 %1$s（來源未知）
 Built-in changes	內建變更
+Burn-in guard	防烙印保護
+Burn-in guard will be set to %1$s.	防烙印保護將設為 %1$s。
+Burn-in guard will dim the Reels screen after %1$d seconds without a touch.	防烙印保護會在 %1$d 秒未觸碰後淡化 Reels 畫面。
+Burn-in guard will dim the Reels screen as soon as you stop touching it.	停止觸碰後，防烙印保護會立即淡化 Reels 畫面。
 Buy me a coffee on Ko-fi	幫我買點高菲咖啡
 Cancel	取消
 Cancel saving this photo	取消儲存這張照片
@@ -208,6 +252,7 @@ Cancel saving this video	取消儲存這段影片
 Caption copied	已複製說明文字
 Cards and menus take the page's own color instead of the near black that sets them apart. Buttons and search fields keep a dark gray fill, so you can still see them. Restart Facebook to see the change.	卡片與選單使用頁面本身的顏色，取代原本用於區隔的近黑色。按鈕與搜尋框仍保留深灰色底色，方便辨識。重新啟動 Facebook 後生效。
 Cast button on feed videos	動態影片上的投放按鈕
+Cast button on reels	Reels 上的投放按鈕
 Cast this video	投放這部影片
 Celebrity gossip	名人流傳
 Changed %1$d setting	已變更 %1$d 項設定
@@ -215,6 +260,7 @@ Changed %1$d settings	已變更 %1$d 項設定
 Changing these	將變更以下項目
 Chats	聊天室
 Chats and Messenger	聊天和 Messenger
+Chats, your profile and the Menu still work.	聊天、你的個人檔案和選單仍可使用。
 Check for new Hushfacebook releases	檢查 Hushfacebook 新版本
 Check now	立即檢查
 Checking GitHub now.	正在檢查 GitHub。
@@ -228,8 +274,11 @@ Choose where Facebook opens from its icon. Notifications and links still open th
 Choose which links open here	選擇在此開啟的連結
 Cleaner reels and video controls	Reels 清理與影片控制
 Clear	清除
+Clear all	全部清除
 Clear diagnostic data	清除診斷資料
 Clear search	清除搜尋
+Close	關閉
+Close Facebook	關閉 Facebook
 Close Facebook when you leave it	離開時關閉 Facebook
 Collapsed	已收合
 Colors and theme	顏色和主題
@@ -237,9 +286,11 @@ Comment order	留言排序
 Comments	留言
 Comments and writing	留言和撰寫
 Comments open in the order Facebook picks, which is usually Most relevant.	留言會依 Facebook 選擇的排序開啟，通常為「最相關」。
+Comments open oldest first, on every post. Facebook's sort menu then shows All comments.	每則貼文的留言都從最早的開始顯示。Facebook 的排序選單這時會顯示「所有留言」。
 Comments open on a sheet that fills the screen instead of stopping part way up. On reels and videos, Comment opens that sheet in place of the split view with the video on top.	留言會在填滿螢幕的面板中開啟，不再停留於部分高度。在 Reels 與影片中，點按「留言」會開啟此面板，取代上方顯示影片的分割畫面。
 Comments show their replies right away, so there's no View replies to tap.	評論立即顯示他們的答覆,因此沒有Video的迴音來呼叫.
 Comments will open in the order Facebook picks.	留言將依 Facebook 選擇的順序開啟。
+Comments will open oldest first.	留言將從最早的開始顯示。
 Comments will open with %1$s picked in their sort menu.	留言將以排序選單中的 %1$s 開啟。
 Content filters	內容篩選
 Controls and picture-in-picture	控制項和子母畫面
@@ -263,12 +314,14 @@ Couldn't find this video's link	找不到這部影片的連結
 Couldn't go back to your phone's font. Try again.	無法恢復手機系統字型。請再試一次。
 Couldn't import the settings, and couldn't put back the ones you had. Check the switches on this screen.	無法匯入設定，也無法還原原本的設定。請檢查此畫面上的開關。
 Couldn't import the settings. Nothing was changed.	無法匯入設定。未做任何變更。
+Couldn't open Block for this comment.	無法為這則留言開啟封鎖。
 Couldn't open an app for this link	找不到可開啟此連結的應用程式
 Couldn't open or share that saved file. Try again.	無法開啟或分享該已儲存檔案，請再試一次。
 Couldn't open that file. Nothing was changed.	無法開啟該檔案。未做任何變更。
 Couldn't open that file. The top of Home didn't change.	無法開啟該檔案。首頁頂端未變更。
 Couldn't open that file. Your font didn't change.	無法開啟該檔案。字型沒有變更。
 Couldn't open the file picker. Try again.	無法開啟檔案選擇器。請再試一次。
+Couldn't open the list of shares.	無法開啟分享清單。
 Couldn't put back the diagnostic data. Try again.	無法還原診斷資料。請再試一次。
 Couldn't reach GitHub. Try again later.	無法連線至 GitHub。請稍後再試。
 Couldn't remove the header picture. Try again.	無法移除標題圖片。請再試一次。
@@ -303,8 +356,13 @@ Diagnostic report copied to the clipboard.	診斷報告已複製到剪貼簿。
 Diagnostic report copied.	已複製診斷報告。
 Diagnostic report saved.	已儲存診斷報告。
 Digests of what's going on in groups, Pages and creators you follow stop. Comments, replies and mentions still come through.	停止顯示你追蹤的社團、粉絲專頁與創作者動態摘要。留言、回覆與提及通知仍會正常送達。
+Digits only, up to 10. Your own profile shows this number on this phone. Leave it blank for Facebook's real one.	只能輸入數字，最多 10 位。你自己的檔案會在這支手機上顯示這個數字。留空則顯示 Facebook 的真實數字。
+Dim after	淡化延遲
+Dim when idle	閒置時淡化
+Dim when idle and shift	閒置時淡化並位移
 Don't save search history	不儲存搜尋紀錄
 Don't send reel watch history	不要傳送 Reel 觀看紀錄
+Done	完成
 Dots and counts	圓點和計數
 Double tap opens comments	雙擊開啟留言
 Double tap to skip	雙擊跳轉
@@ -321,6 +379,7 @@ Download to phone	下載到手機
 Downloading	正在下載
 Downloads	下載
 Draws Facebook's text in your phone's font, or in a font file you choose below. Restart Facebook to see the change.	在您的手機字型中或下面選擇的字型檔案中繪製 Facebook 的文本。 重新啟動 Facebook 以檢視更改 。
+Draws the stories row on Home as round pictures, like Instagram. Applies the next time Home loads its stories.	把首頁頂端的限時動態列顯示為圓形圖片，類似 Instagram。下次首頁載入限時動態時生效。
 Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.	每部影片會以 %1$s 或最接近且較低的畫質儲存。若沒有那麼低的畫質，則使用最接近且較高的畫質。
 Each video saves at its lowest quality, for the smallest file.	每部影片都以最低畫質儲存，以取得最小檔案。
 Each video saves at the best quality the player streams.	每部影片都以播放器串流提供的最佳畫質儲存。
@@ -377,6 +436,7 @@ Facebook's logo stays at the top of Home. Type your own words to show them there
 Facebook's on-phone learning jobs stop too, and a change applies after Facebook restarts.	Facebook的手機學習工作也停止了,在 Facebook重啟後,一個變更適用.
 Facebook's own screen for security testing. It can make Facebook trust security certificates you installed, or send its data through a proxy (a go-between server). Hushfacebook doesn't change anything there.	Facebook 自己的螢幕用於安全測試。它可以讓 Facebook 信任您安裝的安全證書,或者通過代理伺服器傳送資料 。 Hushfacebook 在那裡不會改變任何東西 。
 Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next to Reels, which some accounts call Video. If neither is listed, choose the %1$s patch in Morphe Manager and patch again.	Facebook 本身的設定可以隱藏它。開啟「設定」→「分頁列」→「自訂分頁列」，在 Reels（部分帳號顯示為「影片」）旁選擇「隱藏」。如果清單中沒有，請在 Morphe Manager 選取 %1$s 補丁後重新套用。
+Facebook's real number shows. Type digits to show your own.	顯示 Facebook 的真實數字。輸入數字即可顯示你自己的數字。
 Facebook's server didn't send the file. Try again in a moment.	Facebook 伺服器未傳送檔案，請稍後重試。
 Facebook's settings didn't open. You'll find Reaction preferences in its Settings, under Preferences.	Facebook的設定沒有開啟。您可以在它的設定中找到反應偏好, 屬於首選項 。
 Facebook's text is %1$s of the size your phone's font size setting gives it. Restart Facebook to see the change.	臉書的簡訊是%1$s的字型大小設定。重新啟動 Facebook 以檢視變化。
@@ -388,17 +448,21 @@ Facebook's web addresses open here now.	Facebook 的網址現在會由這裡開�
 Favorites	最愛
 Feed layout	動態消息版面
 Feed posts stop showing a few comments under their buttons. Tap Comment to read them all.	動態消息中的貼文不再於按鈕下方顯示留言。點一下「留言」即可查看全部。
+Feed types to hide	要隱藏的動態類型
 Feeds	動態消息
 Feeds opens on	「動態消息」開啟於
 File name	檔案名稱
 File name set to %1$s.	檔案名稱已設為 %1$s。
 Finds	好物特搜
+Fix washed-out video colors	修正影片顏色泛白
 Fixes saved videos that play without sound in WhatsApp, video editors such as CapCut and InShot, or some galleries and players. May lower quality.	Fixs在WhatsApp,CapCut和InShot等影片編輯器或一些畫廊和玩家中儲存了沒有聲音播放的影片,可能質量降低.
 Folder name	資料夾名稱
 Folder set to %1$s.	資料夾已設為 %1$s。
 Follow Facebook	跟隨 Facebook
 Follow system	跟隨系統
+Followers shown	顯示的粉絲數
 Following feed on Home	在家庭的種子後跟蹤
+Following shown	顯示的追蹤數
 Font file	字型檔
 Font file cleared. Restart Facebook to apply the font change.	已清除字型檔案。重新啟動 Facebook 才會套用字型變更。
 Font set to %1$s. Restart Facebook to see it.	字型已設為 %1$s。重新啟動 Facebook 後生效。
@@ -411,6 +475,7 @@ Free stuff isn't available in this build.	此建置版本無法使用「免費�
 Free stuff shortcut	免費物品捷徑
 Friend suggestions stop showing up in your notifications. Friend requests still come through.	停止顯示好友推薦通知。交友邀請仍會正常送達。
 Friends	朋友
+Friends shown	顯示的朋友數
 Full report saved to %1$s	完整報告已儲存至 %1$s
 Fundraisers	募款活動
 Games you play in Facebook show no ads. A game that asks for one is told there's none, so rewarded ads give no reward.	你在 Facebook上玩的遊戲沒有廣告,一個要一個的遊戲被告知沒有廣告,所以獎勵的廣告沒有獎賞.
@@ -418,7 +483,9 @@ Gaming	遊戲
 GitHub is limiting requests from this network right now. Try again later.	GitHub 正在限制來自這個網路的請求。 稍後再試 。
 GitHub sent a reply Hushfacebook couldn't understand. Try again later.	GitHub 發來回覆 Hushfacebook 無法理解,稍後再試.
 Giveaways and engagement bait	贈與和訂婚誘餌
+Go	搜尋
 Go straight to one group of settings. Back returns to where you were.	直接前往某一組設定。按返回會回到原本位置。
+Go to the Menu	前往選單
 Green	綠色
 Groups	社團
 HDR videos and photos stay at your screen's usual brightness instead of turning it up to full. They keep their resolution.	HDR 影片與照片維持螢幕原本亮度，不再自動拉到最高亮度；解析度不變。
@@ -427,6 +494,7 @@ Help and restart	說明和重新啟動
 Help and support: %s	使用說明和支援：%s
 Hid %1$d post since Facebook started.	Facebook 啟動後已隱藏 %1$d 篇貼文。
 Hid %1$d posts since Facebook started.	Facebook 啟動後已隱藏 %1$d 篇貼文。
+Hidden since Facebook started	自 Facebook 啟動以來已隱藏
 Hidden. Tap to show it again.	目前已隱藏。點一下即可重新顯示。
 Hidden: %s	隱藏 :%s
 Hide "Find friends from contacts"	隱藏「從聯絡人尋找朋友」
@@ -445,6 +513,7 @@ Hide Edits promotions	隱藏編輯升遷
 Hide For you in search	隱藏搜尋中的為你推薦
 Hide GIF and sticker buttons	隱藏 GIF 和標籤按鈕
 Hide Help and support	隱藏使用說明和支援
+Hide Like on comments	隱藏留言的讚按鈕
 Hide Like on reels	隱藏 Reels 讚按鈕
 Hide Like under posts	隱藏貼文下方的讚
 Hide Memories in the feed	在種子中隱藏記憶
@@ -504,12 +573,14 @@ Hide read receipts	隱藏讀取的收據
 Hide reel interest prompts	隱藏 Reels 興趣提示
 Hide related groups	隱藏相關組
 Hide reposts	隱藏轉發貼文
+Hide seen stories	隱藏已看過的限時動態
 Hide sponsored Marketplace listings	隱藏 Marketplace 贊助刊登
 Hide sponsored posts	隱藏贊助貼文
 Hide sponsored profile posts	隱藏個人檔案中的贊助貼文
 Hide sponsored reels	隱藏贊助 Reels
 Hide sponsored search results	隱藏贊助搜尋結果
 Hide sponsored stories	隱藏贊助限時動態
+Hide stories from Pages	隱藏粉絲專頁的限時動態
 Hide story prompts	隱藏限時動態提示
 Hide suggested groups	隱藏建議社團
 Hide suggested stories	隱藏建議限時動態
@@ -549,19 +620,25 @@ Hide the Reels tab	隱藏 Reels 分頁
 Hide the Reels tab dot	隱藏 Reels 分頁提示點
 Hide the Saved tab	隱藏已儲存的標籤
 Hide the Stories tray	隱藏限時動態列
+Hide the Subscribe button on videos	隱藏影片的訂閱按鈕
 Hide the app icon count	隱藏應用程式圖示計數
 Hide the audio line on reels	隱藏 Reels 音訊列
 Hide the composer row	隱藏編曲行
+Hide the emoji row on comments	隱藏留言的表情符號列
 Hide the new comments pop-up	隱藏新留言彈出提示
 Hide the notes and active now row	隱藏音符並激活現在的行
+Hide the pull down to lock hint	隱藏「下拉鎖定」提示
 Hide the reaction preview on comments	隱藏留言上的心情預覽
 Hide the reaction preview on posts	隱藏貼文上的心情預覽
+Hide the search button	隱藏搜尋按鈕
 Hide the search pill on reels	隱藏 Reels 搜尋提示
 Hide the slow connection message	隱藏連線緩慢訊息
 Hide the speaker button on reels	隱藏 Reels 喇叭按鈕
 Hide the status bar	隱藏狀態列
 Hide the tab bar while scrolling	滾動時隱藏分頁列
+Hide the top right buttons on opened videos	隱藏已開啟影片右上角的按鈕
 Hide the video comment box	隱藏影片留言框
+Hide titles with	隱藏標題含有
 Hide typing in chats	在聊天中隱藏打字
 Hide typing in comments	在批註中隱藏打字
 Hide video posts	隱藏影片文章
@@ -591,6 +668,7 @@ Hides posts by people or Pages on your list below, or linking to sites on it, in
 Hides posts containing a word or phrase from your list below. Words that keep a post win over it. Your words stay on this phone unless you export them.	從下面的列表中隱藏包含一個單詞或片語的帖子。 使一個帖子勝過它的話。您的單詞會留在手機上,除非您匯出它們 。
 Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI Studio. Off by default, since it hasn't been tried on a real feed yet.	隱藏含有 Meta AI Studio 所建立 AI 角色／聊天機器人的貼文。尚未在實際動態消息測試，預設關閉。
 Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI Studio. Untested on a real feed, so it starts off.	隱藏以Meta的AI字元為主角的帖子,聊天人與Meta AI Studio一起製作的聊天人.未在真實的種子上測試,所以開始.
+Hides posts from groups you haven't joined, like a friend's post in a public group, and a group post a friend commented on or shared. Posts from your groups stay.	隱藏你尚未加入社團的貼文，例如朋友在公開社團中的貼文，以及朋友留言或分享過的社團貼文。你已加入社團的貼文仍會保留。
 Hides posts from groups you haven't joined, like a friend's post in a public group. Posts from your groups and a friend's share of a group post stay.	隱藏你尚未加入社團的貼文，例如朋友在公開社團中的貼文。你已加入社團的貼文，以及朋友分享的社團貼文仍會保留。
 Hides posts that Facebook's own detection marks as made with AI. Posts only their creator labeled stay. Off by default, since it hasn't been tried on a real feed yet.	隱藏 Facebook 自動判定為 AI 製作的貼文；僅由作者自行標示 AI 的貼文仍保留。尚未在實際動態消息測試，預設關閉。
 Hides posts that Facebook's own detection marks as made with AI. Posts only their creator labeled stay. Untested on a real feed, so it starts off.	隱藏 Facebook 自己用 AI 製作的檢測標記。 僅張貼其建立者的標籤。未在真實的種子上測試過,所以它開始 。
@@ -639,8 +717,10 @@ Hold a feed video for 2x	長按動態消息影片以 2 倍速播放
 Hold a reel for 2x	長按 Reels 以 2 倍速播放
 Hold back analytics uploads	阻止分析資料上傳
 Hold back camera roll processing	將相機卷軸處理工作拖後
+Holding a post's text still copies all of it, and also opens the text in a box where you can select just the part you want and copy that.	長按貼文文字仍會複製全部內容，同時會在一個方塊中開啟這段文字，你可以只選取想要的部分再複製。
 Holding a reel opens its comments instead of Facebook's long-press menu or the 2x hold. The reel's more button still opens that menu. Holding a feed post's photo or the line with its name opens that post's comments, and holding its text or a profile picture works as before. Off by default, since it hasn't been tried on a real account yet.	長按 Reels 時開啟留言，取代 Facebook 的長按選單或長按 2 倍速播放。仍可使用 Reels 的更多按鈕開啟該選單。長按動態消息貼文的相片或名稱列可開啟該貼文的留言；長按文字或個人檔案相片則維持原有功能。預設停用，因為尚未使用真實帳號測試。
 Holding a reel plays it at double speed until you let go, in place of Facebook's long-press menu. The reel's more button still opens that menu.	長按 Reels 時會以 2 倍速播放，放開後恢復，並取代 Facebook 原本的長按選單。Reels 的「更多」按鈕仍可開啟該選單。
+Holding a video for 2x shows the plain 2x pill, without the "Pull down to lock 2x speed" hint. Pulling down still locks it. It works without the switches above.	長按影片以 2 倍速播放時只顯示一般的 2x 標籤，不顯示「下拉鎖定 2 倍速」提示。下拉仍可鎖定。不必啟用上方的開關即可使用。
 Holding a video in the feed or in Watch plays it at double speed until you let go. It works without the switches above.	長按動態消息或 Watch 中的影片時，會以兩倍速度播放，放開後恢復。不必啟用上方的開關即可使用。
 Holds back usage reports and camera roll scans, removes link tracking, and hides your typing and screenshots.	減少使用情形回報與相簿掃描，移除連結追蹤，並隱藏輸入狀態及截圖活動。
 Home	首頁
@@ -652,6 +732,11 @@ Home shows the newest posts from friends, groups and Pages you follow, like All 
 Home shows the newest posts from friends, groups and Pages you follow, like All in the Feeds tab. The Feeds tab's filters don't change.	主頁顯示您所跟蹤的朋友、 組和頁面的最新文章,如 Feeds 標籤中的所有文章。 Feeds 標籤的過濾器不會改變 。
 Home shows the same posts as %1$s in the Feeds tab. If Facebook doesn't have that feed, Home shows All.	首頁會顯示「動態消息」分頁中 %1$s 的相同貼文；若無法使用該動態消息，則顯示「全部」。
 Home shows the same posts as All in the Feeds tab.	首頁會顯示與「動態消息」分頁的「全部」相同的貼文。
+Home, Feeds, Video and Reels open again in %1$d minute.	首頁、動態消息、影片和 Reels 將在 %1$d 分鐘後重新開放。
+Home, Feeds, Video and Reels open again in %1$d minutes.	首頁、動態消息、影片和 Reels 將在 %1$d 分鐘後重新開放。
+Home, Feeds, Video and Reels open again in under a minute.	首頁、動態消息、影片和 Reels 將在一分鐘內重新開放。
+Home, Feeds, Video and Reels stay covered for %1$s.	首頁、動態消息、影片和 Reels 會被遮住 %1$s。
+How Adv. Filters works	進階篩選的用法
 How far a photo or video you're saving has got, with a button to cancel it	顯示正在儲存的相片或影片進度，並提供取消按鈕
 How to block Reels	如何封鎖 Reels
 Hushfacebook %1$s is out. Update it in Morphe Manager.	Hushfacebook %1$s 已發布。請在 Morphe Manager 中更新。
@@ -672,6 +757,8 @@ If your patched Facebook includes Badge and logo colors, badges will be %1$s.	�
 If your patched Facebook includes Badge and logo colors, badges will be Facebook's red.	如果你修補的 Facebook 包含「徽章和標誌顏色」，徽章將使用 Facebook 的紅色。
 If your patched Facebook includes Badge and logo colors, the logo will be %1$s.	如果你修補的 Facebook 包含「徽章和標誌顏色」，標誌將為 %1$s。
 If your patched Facebook includes Badge and logo colors, the logo will be Facebook's blue.	如果你修補的 Facebook 包含「徽章和標誌顏色」，標誌將使用 Facebook 的藍色。
+If your patched Facebook includes Badge and logo colors, the selected tab will be %1$s.	如果你修補的 Facebook 包含「徽章和標誌顏色」，已選取分頁將為 %1$s。
+If your patched Facebook includes Badge and logo colors, the selected tab will be Facebook's color.	如果你修補的 Facebook 包含「徽章和標誌顏色」，已選取分頁將使用 Facebook 的顏色。
 If your patched Facebook includes Home header text, the top of Home will say %1$s.	若修補後的 Facebook 包含「首頁標題文字」，首頁頂端將顯示 %1$s。
 If your patched Facebook includes the AMOLED black theme, dark mode's backgrounds will be %1$s.	若修補後的 Facebook 包含「AMOLED 純黑主題」，深色模式背景將使用 %1$s。
 If your patched Facebook includes the AMOLED black theme, dark mode's backgrounds will be the color it was patched with.	若修補後的 Facebook 包含「AMOLED 純黑主題」，深色模式背景將使用修補時指定的顏色。
@@ -693,6 +780,7 @@ Instagram's settings didn't open. Open App info from Instagram's icon, then Open
 Interface language	介面語言
 Invites to events stop showing up in your notifications.	請不要在通知中出現。
 It targets Facebook %1$s.	適用於 Facebook %1$s。
+It wasn't put back. It was watched again since, or its time on the list is up.	未能復原。之後又看過一次，或它在清單中的時間已到。
 Its switch is %1$s, in %2$s.	它的開關是%1$s時,在%2$s。 。 。 。
 Jobs	工作機會
 Joining the picture and sound	正在合併影像與聲音
@@ -703,6 +791,7 @@ Keep feed position on return	返回時保留動態消息位置
 Keep feed videos muted	保持動態消息影片靜音
 Keep post dates	保留貼文日期
 Keep seen posts hidden for	已看過的貼文隱藏時間
+Keep the name and buttons while seeking	跳轉時保留名稱與按鈕
 Keep the original audio	保留原始音訊
 Keep the progress bar	保留進度欄
 Keep the reel speed	保留 Reels 播放速度
@@ -710,8 +799,10 @@ Keep the tab bar on screen	捲動時固定底部分頁列
 Keep the top bar on screen	捲動時固定頂部導覽列
 Keep the video speed	保持影片速度
 Keep them hidden for	把它們藏起來
+Keep watched entries for	觀看紀錄保留時間
 Keeps Facebook dark no matter its own setting. Meant for tablets where Facebook has no Dark mode switch. Restart Facebook to see the change.	保持 Facebook 黑暗,不管它自己的設定如何。 平板電腦 , Facebook沒有 Dark 模式開關 。 重新啟動 Facebook 來檢視變化 。
 Keeps a list on this phone of the reels, videos and stories you watch, so you can find one again after the feed refreshes. Nothing leaves your phone.	在這支手機上保留你看過的 Reels、影片與限時動態清單，方便動態消息重新整理後再次尋找。資料不會傳出手機。
+Keeps the Comment button on reels whose comments are turned off, so you can still read the ones already there. A change shows from the next reel.	在關閉留言的 Reels 上保留留言按鈕，讓你仍能閱讀已有的留言。從下一個 Reel 開始生效。
 Keeps the Messenger button but drops the unread count on it.	保留 Messenger 按鈕，但移除上面的未讀計數。
 Last save	上次儲存
 Leave calls and chats to Messenger	讓 Messenger 處理來電與聊天通知
@@ -721,6 +812,7 @@ Lets you pick the app icons Facebook keeps for Facebook Plus on its App icon pag
 Lets you pick the app icons Facebook keeps for Facebook Plus, on Facebook's App icon page. The Pick an app icon row opens that page. Your pick also replaces the Facebook wordmark at the top of Home. Your pick stays if you turn this off, so pick the blue one first to go back.	可在 Facebook 的「應用程式圖示」頁面選擇 Facebook Plus 預留的圖示；「選擇應用程式圖示」會開啟該頁，選擇也會套用到首頁頂部標誌。關閉此選項不會還原圖示，請先選回藍色原版。
 Lets you pick the app icons Facebook keeps for Facebook Plus, on Facebook's App icon page. The Pick an app icon row opens that page. Your pick stays if you turn this off, so pick the blue one first to go back.	可在 Facebook 的「應用程式圖示」頁面中選擇 Facebook Plus 保留的圖示。點選「選擇應用程式圖示」會開啟該頁；即使停用此功能，選擇仍會保留。若要恢復，請先選回藍色圖示。
 Lets you take screenshots and screen recordings on pages where Facebook blocks them. Reopen a page that's already open.	讓您在 Facebook 遮蔽其內容的頁面上 進行截圖和螢幕記錄。 重新開啟一個已經開啟的頁面 。
+Lets you type rules into Marketplace search. Put a word in quotes, like "word", to keep only titles with it, put a minus in front, like -word, to hide titles with it, and add in:place to keep listings in that place.	讓你在 Marketplace 搜尋中輸入規則。為詞語加上引號，例如 "詞語"，只保留標題含有它的商品；在前面加減號，例如 -詞語，隱藏標題含有它的商品；加上 in:地點，只保留位於該地點的商品。
 Licenses	授權條款
 Light background color	淺色背景顏色
 Light mode's backgrounds use %1$s. Restart Facebook to see the change.	淺色模式背景使用 %1$s。重新啟動 Facebook 後生效。
@@ -740,7 +832,9 @@ Links, buttons, switches and the selected tab keep Facebook's blue.	連結,按�
 Links, buttons, switches and the selected tab use %1$s instead of Facebook's blue. Restart Facebook to see the change.	連結、按鈕、開關與已選取分頁使用 %1$s，取代 Facebook 原有的藍色。重新啟動 Facebook 後生效。
 Links, buttons, switches and the selected tab use %1$s instead of Facebook's blue. Restart Facebook to see the change. If the Material You theme is added, it takes over.	連結、按鈕、開關和選定的標籤使用%1$s而不是臉書的藍色。 重新啟動臉書以檢視變化。如果添加了主題,它將接管 。
 List cleared	已清除清單
+Listed %1$s (%2$s)	%1$s刊登（%2$s）
 Load whole reply threads	持續載入完整留言回覆
+Local profile counts	自訂個人檔案數字
 Lock Facebook	鎖定 Facebook
 Lock after	鎖定後
 Logo color	標誌顏色
@@ -774,6 +868,7 @@ Material You theme is in this build and picks Facebook's colors, so this has no 
 Material You uses %1$s in place of your wallpaper's accent. Restart Facebook to see the change.	Material You 使用 %1$s 取代桌布的強調色。重新啟動 Facebook 後生效。
 Material You uses your wallpaper's accent. Pick a color to use it instead.	Material You 使用桌布的強調色。選擇一種顏色即可改用該顏色。
 Memories	回顧
+Memories and other cards	回顧和其他卡片
 Menu	功能表
 Menu tiles to hide	要隱藏的選單方塊
 Messages, friend requests, comments, mentions, calls, login alerts and any kind not listed above always arrive. Android's notification settings for Facebook can block more.	信件、朋友請求、評論、提及、電話、登入提醒和任何未列出的種類的提醒總是會到達。Android的Facebook通知設定可以阻擋更多的資訊。
@@ -789,10 +884,12 @@ Meta's other products	Meta的其他產品
 More settings	更多設定
 Most liked	最多心情
 Most relevant	最相關
+Most viewed on profile Reels	個人檔案 Reels 依觀看次數排序
 Moves Download to phone and Save photo from the end of a post's three-dot menu to the start of its options list. Facebook's own top rows stay above them (on photo posts the list is the More options page). A post with nothing to save gets neither.	將「下載到手機」與「儲存相片」從貼文三點選單的選項清單結尾移至開頭。Facebook 原有的頂端項目仍位於其上方（相片貼文的清單位於「更多選項」頁面）。沒有可儲存內容的貼文不會顯示這兩項。
 Moves Facebook's tab bar to the bottom, within thumb reach, on accounts that show it at the top. Restart Facebook to see the change.	將 Facebook 原本位於頂端的分頁列移至底部，方便單手操作。變更後請重新啟動 Facebook。
 Moves Facebook's tab bar to the top, under the search row, as older Facebook had it. Restart Facebook to see the change.	將 Facebook 分頁列移到頂部搜尋列下方，恢復舊版位置；重新啟動後生效。
 Movies and Pictures	Movies 與 Pictures
+Mute stories	限時動態靜音
 New	新
 Newest	最新
 Newest reels first	優先播放最新 Reels
@@ -802,6 +899,7 @@ No Facebook ads in other apps	其他應用程式不顯示 Facebook 廣告
 No Meta Verified offer after you post, and no Meta Verified label under the names on posts. Posting works as usual.	帖子之後沒有Meta 校驗報價, 帖子上的名字下也沒有Meta 校驗標籤。 帖子照常工作 。
 No ad tracking	不追蹤廣告
 No ads downloaded in advance	不預先下載廣告
+No app on this phone can open Google Lens	這支手機上沒有應用程式可開啟 Google Lens
 No app on this phone can open the link. The address is %1$s.	此手機沒有 App 可以開啟該連結。網址為 %1$s。
 No app on this phone can open this video	這支手機上沒有應用程式可開啟此影片
 No dot or count on Feeds, Gaming, Events and the other tabs not listed here. The Reels tab has its own switch.	沒有點或數到 Feeds 、 Gaming 、 Evolutions 和其他未在此列出的標籤。 Reels 標籤有自己的開關 。
@@ -816,20 +914,24 @@ No signed-in account to test with. Sign in to Facebook and try again.	沒有註�
 No thanks	不用了,謝謝
 No time limit	無時間限制
 No toast when a save starts, finishes or is canceled. A save that fails still says why.	儲存開始、完成或取消時不顯示提示；儲存失敗仍會說明原因。
+No types seen yet. Scroll Home and come back.	還沒有看到任何類型。先滑一下首頁再回來看看。
 No words yet, so no post is hidden.	尚未設定任何文字，因此不會隱藏貼文。
 No words yet.	尚未設定任何文字。
 Nobody listed yet, so no post is hidden.	還沒有人列出,所以沒有隱藏的帖子。
 None chosen, so your phone's font is used. Choose a .ttf or .otf font file of up to %1$d MB.	沒有選擇,因此您使用的是手機的字型。請選擇一個 .ttf 或. otf 字型檔案 。%1$dMB(英語:MB).
 None of Facebook's web addresses are selected for this app, so their links open elsewhere. Tap to select them in Android's settings.	沒有任何 Facebook 網址選給此應用程式，因此這些連結會在其他地方開啟。點一下可在 Android 設定中選取。
 None picked yet.	尚未選取任何項目。
+None picked. Hides posts and cards by Facebook's own type name, as Debug logging records it.	尚未選擇任何項目。依 Facebook 自己的類型名稱隱藏貼文和卡片，名稱以偵錯記錄記下的為準。
 None. The share sheet shows everything Facebook offers.	沒有,共享表顯示Facebook提供的一切。
 Not enough free space to save this. Free some up and try again.	儲存空間不足。請清出空間後再試。
+Not in this build, so dark mode stays Facebook's dark gray. Morphe Manager doesn't pick it by default. Turn on Expert mode in Manager, choose the %1$s patch and patch again.	此建置版本未包含，所以深色模式仍是 Facebook 的深灰色。Morphe Manager 預設不會選取。請在 Manager 開啟專家模式，選取 %1$s 修補項目並重新修補。
 Not in this build. To block this, choose the %1$s patch in Morphe Manager and patch again.	此建置未包含。若要封鎖這項內容，請在 Morphe Manager 選擇 %1$s 補丁並重新套用補丁。
 Not in this build: %1$s. Morphe Manager selects it by default. Patch again with it selected to get what it does.	此版本未包含：%1$s。Morphe Manager 預設會選取此補丁。請重新套用並選取它，以取得其功能。
 Not in this build: %1$s. Morphe Manager selects them by default. Patch again with them selected to get what they do.	此版本未包含：%1$s。Morphe Manager 預設會選取這些補丁。請重新套用並選取它們，以取得其功能。
 Not saved: that isn't a Facebook photo or video	未儲存：這不是 Facebook 相片或影片
 Not saved: the file is over 512 MB	未儲存：檔案超過 512 MB
 Nothing here yet. With Remember what you watch on, the reels, videos and stories you watch show up here.	目前沒有內容。啟用「記住觀看內容」後，你看過的 Reels、影片與限時動態會顯示在這裡。
+Nothing hidden yet. Scroll Home and come back.	還沒有隱藏任何內容。先滑一下首頁再回來看看。
 Nothing of this kind yet.	目前沒有此類內容。
 Notifications	通知
 Notifications about new activity in your groups stop. Comments, replies and mentions in groups still come through.	有關你們團體新活動的通知停止了,仍然收到評論、答覆和團體的提及。
@@ -840,14 +942,19 @@ OK	確定
 Of the reels Facebook has loaded, the newest posted play first.	在 Facebook 已載入的 Reels 中，發布時間最新的會優先播放。
 Of the reels Facebook has loaded, the ones with the most reactions play first.	在 Facebook 已載入的 Reels 中，心情最多的會優先播放。
 Off	關閉
+Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	已關閉。可在未觸碰畫面時淡化 Reel 按鈕，避免 OLED 螢幕烙印。
 Off. Turn on to open Events and hide the feed and other social tabs after restarting Facebook.	目前關閉；開啟並重新啟動 Facebook 後，將從活動分頁開始並隱藏動態消息及其他社交分頁。
 Off. Turn on to open Marketplace and hide the feed and other social tabs after restarting Facebook.	目前關閉。開啟後，重新啟動 Facebook 將直接進入 Marketplace，並隱藏動態消息及其他社交分頁。
 Offer to download copied links	提議下載複製的連結
+Oldest	最早
 On	開啟
 On a patched Facebook, profiles, photos, posts and some Settings pages wouldn't open. This fixes that.	在一個補丁的Facebook上,配置檔案、照片、文章和一些設定頁面不會開啟。這可以修復。
 On carriers with Facebook Flex, hides the Data mode bar under the top bar and its button to buy mobile data.	在提供 Facebook Flex 的電信業者網路下，隱藏頂部的數據模式橫幅及購買流量按鈕。
 On carriers with Facebook Flex, hides the purple Free mode bar. That bar is also how you go back to Data mode, so turn this off when you want to switch.	在 Facebook Flex 網路下隱藏紫色免費模式橫幅。該橫幅也可切回數據模式；需要切換時請關閉此功能。
 On reels and videos	在 Reels 和影片上
+On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.	在 Reels 畫面中，未操作的按鈕、說明文字與列會淡化，畫面也會每兩分鐘位移一次。觸碰其中一項即可恢復顯示。
+On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.	在 Reels 畫面中，未操作的按鈕、說明文字與列會淡化。觸碰其中一項即可恢復顯示。
+Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	防烙印保護淡化按鈕後，無論在 Reels 點擊或滑動什麼，按鈕都會維持淡化，下一則 Reel 也一樣。按鈕仍可操作，離開 Reels 後會恢復顯示。
 Once a day, when Facebook starts, checks GitHub for a newer Hushfacebook and tells you at the top of this page. Nothing downloads on its own.	每天,當Facebook開始時,檢查 GitHub 是否有新的 Hushfacebook , 並在本頁面的頂端告訴你。 任何下載都無法自行進行 。
 One name, ID or site per line	每行輸入一個名稱、ID 或網站
 One name, id or site per line	每行一個名稱、 ID 或站點
@@ -856,6 +963,7 @@ One word or phrase per line	每行一個單字或片語
 One word or phrase per line, up to %1$d lines, each %2$d to %3$d characters long. A single emoji or Chinese, Japanese or Korean character is enough on its own. Capital letters don't matter, and a phrase matches anywhere in a post's text, even inside longer words.	每行1個字或短語,最多%1$d線條,每行%2$d改為:%3$d字元長。一個單一的emoji或中文、日文或韓文字元本身就足夠了。大寫字母不重要,一個短語在文章的文本中任何地方都吻合,甚至在更長的文字中也是如此。
 Only from a reel's More menu	僅從 Reels 更多選單開啟
 Only on the right edge	只在右邊
+Only show listings in	只顯示位於以下地點的商品
 Only some of Facebook's web addresses are selected for this app, and links to the rest open elsewhere. Tap to select them in Android's settings.	只有部分 Facebook 網址選給此應用程式，其餘連結會在其他地方開啟。點一下可在 Android 設定中選取。
 Only the first %1$d characters were checked.	只檢查了前 %1$d 個字元。
 Only the first reel waits	只有第一部電影等著
@@ -864,7 +972,10 @@ Open comments at full height	以全螢幕高度開啟留言
 Open every reply thread	開啟每個回覆線索
 Open feed videos on their own	單獨開啟動態消息影片
 Open in another app	在其他應用程式開啟
+Open it, or close it and do something else.	開啟它，或關掉它去做點別的事。
 Open links in your browser	使用瀏覽器開啟連結
+Open now	立即開啟
+Open now works after %1$s.	「立即開啟」在 %1$s後可用。
 Open on a chosen tab	從指定分頁開啟
 Open settings from the logo	從標誌開啟設定
 Open the Messenger app	開啟 Messenger 應用程式
@@ -873,6 +984,8 @@ Open the video with	選擇開啟影片的應用程式
 Open videos in another app	在其他應用程式開啟影片
 Open web links in your browser. Facebook's own pages stay in the app.	在瀏覽器中開啟網頁連結。Facebook 自己的頁面仍留在 App 內開啟。
 Opening Facebook	開啟 Facebook
+Opening Facebook from its icon shows a short countdown first, so you can change your mind. Links, notifications and shares open it straight away, and so does coming back within a minute.	從圖示開啟 Facebook 時，會先顯示簡短的倒數計時，讓你有機會改變主意。連結、通知和分享會直接開啟，一分鐘內返回也一樣。
+Opening pause	開啟前暫停
 Opening supported links is off for this app in Android's settings. Tap to turn it on.	此應用程式的「開啟支援的連結」已在 Android 設定中關閉。點一下可開啟。
 Opening the video to save it	開啟影片儲存它
 Opens Facebook's App icon page, even on accounts where Facebook doesn't list it in Settings and privacy.	開啟 Facebook 的「應用程式圖示」頁面，即使帳號的「設定和隱私」沒有列出該頁面也能使用。
@@ -887,6 +1000,7 @@ Patch again with %1$s selected. A patched Facebook needs it to open profiles, ph
 Pause	暫停
 Pause Hushfacebook	暫停 Hushfacebook
 Pause feed video	暫停動態消息影片
+Pause length	暫停長度
 Pause reels while comments are open	開啟留言時暫停 Reels
 Pause, backup and diagnostics	暫停、備份與診斷
 Paused with Hushfacebook. Your Events choice stays saved. Tabs already hidden return after a restart while paused.	Hushfacebook 已暫停；活動模式設定會保留。暫停期間重新啟動可恢復先前隱藏的分頁。
@@ -905,6 +1019,7 @@ Photos go to %1$s.	照片轉到%1$s。 。 。 。
 Photos will go in a subfolder named %1$s.	照片會用一個子資料夾顯示 。%1$s。 。 。 。
 Photos will go in the save folder itself.	照片會放在儲存資料夾中 。
 Pick an app icon	選擇應用程式圖示
+Picking a type Home needs can leave it empty.	選擇首頁需要的類型，可能會讓首頁變成空白。
 Picture-in-picture	子母畫面
 Picture-in-picture button	子母畫面按鈕
 Pinch a story or a photo on someone's profile to zoom in. It goes back when you let go.	以雙指縮放限時動態或他人個人檔案上的相片。放開後會恢復原狀。
@@ -924,6 +1039,10 @@ Posts in the feed show all of their text, so there's no See more to tap.	動態�
 Posts stay however many reactions they have.	崗位上總是有太多的反應。
 Posts you've scrolled past stay out of the feed when it loads again. The list stays on this phone. Turning this off empties it.	您已滾動過往的帖子,當它再次載入時, 遠離種子。 列表會留在這個手機上。 關閉它 。@info: whatsthis
 Posts you've seen will stay hidden for %1$s.	你見過的職位會一直藏著%1$s。 。 。 。
+Press Back again to go to the top	再按一次返回鍵回到頂端
+Press and hold the search button to open Google Lens, then point the camera at something or pick a picture to find out what it is. The picture goes to Google, not Facebook. Restart Facebook to see the change.	長按搜尋按鈕即可開啟 Google Lens，再將相機對準某樣東西或選擇一張圖片，就能知道那是什麼。圖片會傳送給 Google，而不是 Facebook。重新啟動 Facebook 後生效。
+Pressing Back on a scrolled Home no longer jumps to the top and reloads the feed. Press Back again within two seconds to do that.	在已向下捲動的首頁按返回鍵，不會再跳到頂端並重新載入動態消息。兩秒內再按一次返回鍵即可這麼做。
+Pressing a reel's progress bar leaves the name, caption and buttons on screen. Off, Facebook clears them until you let go.	按住 Reels 進度列時，名稱、說明與按鈕仍會顯示在畫面上。停用時，Facebook 會隱藏它們，直到你放開。
 Privacy	隱私
 Profiles and posts work again	簡介和員額工作
 Profiles, photos and posts won't open	配置檔案、照片和帖子不會開啟
@@ -947,6 +1066,8 @@ Quiet saves	靜默儲存
 Quiet social notifications	靜音社交通知
 Reading the settings file	正在讀取設定檔
 Recently watched	最近觀看
+Recently watched will keep entries for %1$s.	最近觀看將保留紀錄 %1$s。
+Recently watched will keep entries until you clear them.	最近觀看將保留紀錄，直到你清除。
 Records what the patches do and shows error messages, to help with a bug report. Leave it off for everyday use.	記錄補丁的操作並顯示錯誤訊息, 幫助編寫錯誤報告。 留待日常使用 。
 Red	紅色
 Reel	Reels
@@ -970,12 +1091,16 @@ Reels tab and ads	Reels 分頁和廣告
 Reels that play by themselves	會自動播放的 Reels
 Reels will play at the same quality as other videos.	里爾斯會以與其他影片一樣的質量播放.
 Reels you've already seen may come back.	你見過的里爾斯可能會回來的
+Reels, videos and stories leave the list %1$s after you watch them.	Reels、影片與限時動態會在你觀看後 %1$s 從清單中移除。
 Reels, videos and stories save to this phone.	Reels、影片與限時動態都會儲存到此手機。
+Reels, videos and stories stay on the list until you clear it.	Reels、影片與限時動態會一直留在清單中，直到你清除。
 Reels, videos and stories you watched, newest first. Tap one to open it again.	你看過的 Reels、影片與限時動態，依時間由新到舊排列。點按可再次開啟。
 Remember what you watch	記住觀看內容
 Reminders to finish setting up a Facebook account stop. Login and security alerts still come through.	停止「完成 Facebook 帳號設定」之類的提醒；登入與安全性警示仍會正常顯示。
+Remove %1$s	移除 %1$s
 Remove the header picture	移除標題圖片
 Remove tracking from shared links	移除分享連結中的追蹤參數
+Removed %1$s	已移除 %1$s
 Removes Muse, Meta's AI agent app, when you share something. All other ways to share stay, in the same order.	分享內容時移除 Meta 的 AI 助理應用程式 Muse，其餘分享方式及排序不變。
 Removes the Meta AI button beside the search box in Chats, at the top of the list and on the search screen. The search box stays, and so do your chats with Meta AI.	移除聊天列表頂部與搜尋畫面中搜尋框旁的 Meta AI 按鈕；保留搜尋框和既有 Meta AI 對話。
 Removes the Reels tab, called Video on some accounts, from the tab bar. Reels in the feed and reel links still open. Restart Facebook to see the change.	從分頁列中刪除一些賬戶上稱為Video的 Reels 標籤。 種子欄和影片連結中的 Reels 仍然開放。 重新啟用 Facebook 以檢視更改 。
@@ -1000,6 +1125,9 @@ Resume long videos	續播長影片
 Retry	重試
 Return to regular Facebook	恢復一般 Facebook
 Returning to Facebook within ten minutes, or switching back to Home, keeps your place. Pull to refresh still works.	在10分鐘內返回Facebook,或者切換回家, 保持你的位置。拉來重新整理工作。
+Round picture size	圓形圖片大小
+Round pictures are %1$s dp wide.	圓形圖片寬 %1$s dp。
+Round stories tray	圓形限時動態列
 SD card that isn't in the phone	不在手機中的 SD 卡
 Same as Playback quality	與播放畫質相同
 Same as default	與預設相同
@@ -1053,16 +1181,23 @@ Saving...	正在儲存…
 Saving... To cancel, open Downloads in Hushfacebook settings.	要取消,在 Hushfacebook 設定中開啟下載 。
 Screen and motion	螢幕和動態效果
 Search	搜尋
+Search box not found. Type the search again.	找不到搜尋框。請重新輸入搜尋內容。
+Search date range	搜尋日期範圍
 Search no longer shows Meta AI answers or Ask Meta AI prompts, or sends your search to Meta AI. Results for people, groups, pages and posts stay.	搜尋不再顯示 Meta AI 答案或詢問 Meta AI 提示,或將您的搜尋傳送給 Meta AI. results for people, group, pages and postsstay.
 Search settings	搜尋設定
+Search with a picture	用圖片搜尋
+See who shared	查看誰分享了
 See-through bars	半透明導覽列
 Seen posts forgotten.	被遺忘的帖子。
+Select part of a post's text	選取貼文文字的一部分
+Select text	選取文字
 Selected %1$s. Font changes apply after restarting Facebook.	已選擇 %1$s。重新啟動 Facebook 後套用字型變更。
 Selected %1$s. It shows at the top of Home in place of your words and Facebook's logo.	已選擇 %1$s。將在首頁頂端顯示，取代自訂文字與 Facebook 標誌。
 Selected %1$s. Restart Facebook to apply the font change.	已選擇 %1$s。重新啟動 Facebook 以套用字型變更。
 Selected %1$s. Restart Facebook to see it at the top of Home.	已選擇 %1$s。重新啟動 Facebook 後，即可在首頁頂端看到。
 Selected %1$s. Turn on Use the system font and restart Facebook to use it.	已選擇 %1$s。啟用「使用系統字型」並重新啟動 Facebook 才會使用該字型。
 Selected %1$s. Use the system font is off. Turn it on and restart Facebook to use this file.	已選擇 %1$s。「使用系統字型」目前關閉，請啟用並重新啟動 Facebook 以使用此檔案。
+Selected tab color	已選取分頁顏色
 Send in Messenger	傳送信使
 Send photos and videos at original quality	以原始質量傳送照片和影片
 Send the link to	將連結傳送至
@@ -1093,16 +1228,22 @@ Share the post's own link	分享該帖子的連結
 Share to a Page	共享到頁面
 Share to a group	共享到一個組
 Share to your story	分享你的故事
+Show Comment when comments are off	留言關閉時仍顯示留言按鈕
 Show View profile on Marketplace sellers	Marketplace 賣家顯示「查看個人檔案」
 Show a reel's time	顯示膠捲的時間
 Show full post text	顯示完整貼文文字
+Show the post date on reels	在 Reels 上顯示發佈日期
+Show when listings went up	顯示商品刊登時間
 Shown. Tap to hide it.	目前顯示中。點一下即可隱藏。
 Shows Save photo on every photo you open, even where saving is turned off, and saves the biggest size. Off or paused, Facebook decides again.	在所有相片檢視頁面顯示「儲存相片」，即使原本禁止儲存也可嘗試下載最大尺寸。關閉或暫停此功能後，恢復 Facebook 原本的限制。
 Shows a small button at the left edge of a reel or video that has the window ready. Tap it to open the window right away. Works with Picture-in-picture on.	在已準備好小視窗的 Reels 或影片左側邊緣顯示小按鈕，點按即可立即開啟視窗。需啟用「子母畫面」。
 Shows only friends and followed Pages in the Stories tray. Applies when Facebook next loads the tray.	在故事托盤中只顯示朋友並跟隨Pages。當 Facebook 下一次裝入托盤時, 應用 。
+Shows only people's stories in the Stories tray, without the Pages you follow. Applies when Facebook next loads the tray.	限時動態橫幅只顯示個人的限時動態，不含你追蹤的粉絲專頁。從 Facebook 下次載入橫幅起生效。
 Shows the Feeds tab straight on its posts, without the title row or the filters. Restart Facebook to see the change.	直接顯示 Feeds 標籤在其帖子上,不顯示標題行或過濾器。 重新啟動 Facebook 以檢視更改 。
 Shows the app icon you picked at the top of Home instead of the Facebook wordmark. Needs Unlock app icons and a pick other than the blue one. Restart Facebook to see the change.	在首頁頂端顯示你選擇的應用程式圖示，取代 Facebook 文字標誌。需要啟用「解鎖應用程式圖示」並選擇藍色以外的圖示。重新啟動 Facebook 後生效。
+Shows the friends, followers and following numbers you type below on your own profile, on this phone only. Other profiles and Facebook's real numbers aren't touched. Applies the next time you open your profile.	在你自己的個人檔案上顯示你在下方輸入的朋友、粉絲和追蹤數量，只在這支手機上生效。其他人的檔案和 Facebook 的真實數字不會改變。下次開啟你的檔案時生效。
 Shows the post's date under the poster's name instead of Facebook's rotating details, which can go blank on some phones.	以海報名下顯示該帖日期,而不是Facebook的旋轉細節,這些細節在一些手機上可以空白.
+Shows when a reel or a video you open full screen was posted, under the name of who posted it. A change shows from the next reel.	在發佈者的名字下方顯示 Reel 或全螢幕開啟的影片是什麼時候發佈的。從下一個 Reel 開始生效。
 Shows your phone's own emoji instead of Facebook's. Reactions and stickers don't change. Restart Facebook to see the change.	使用手機系統的 Emoji 取代 Facebook 內建 Emoji，表情反應與貼圖不變。變更後請重新啟動 Facebook。
 Silent parts play in this video	此影片會播放無聲片段
 Skip feed preloading	略過動態消息預載
@@ -1116,11 +1257,14 @@ Sort loaded reels	排序已載入的 Reels
 Sorting, replies and reactions	排序、回覆與心情
 Sound	聲音
 Source code and issues	原始碼與問題回報
+Speed on finished live videos	已結束直播影片的播放速度
 Sports	體育
 Start-up fix for x86 phones	x86 手機啟動修正
+Stay dim when I tap	點擊時保持淡化
 Stay zoomed	保持縮放
 Stays in while paused	暫停時仍保持啟用
 Stays on screen	一直顯示
+Still want to open Facebook?	還想打開 Facebook 嗎？
 Stop Story auto-advance	停止限時動態自動切換
 Stop link history in Facebook's browser	停止在 Facebook 瀏覽器中連結歷史
 Stop update prompts	停止更新提示
@@ -1134,6 +1278,8 @@ Stops using the font file and goes back to your phone's font.	停止使用字型
 Stories	限時動態
 Stories quality	故事質量
 Stories quality will be set to %1$s.	故事質量將設定為%1$s。 。 。 。
+Stories start with the sound off every time you open Facebook. Tap a speaker or press volume up to hear them, and they stay on until you mute again.	每次開啟 Facebook 時，限時動態都會以靜音播放。點按喇叭或按下音量增加鍵即可聽到聲音，聲音會保持開啟，直到你再次靜音。
+Stories you've already watched leave the Stories tray until there's a new one. Applies when Facebook next loads the tray.	你已看過的限時動態會從橫幅中消失，直到有新的限時動態。從 Facebook 下次載入橫幅起生效。
 Story	限時動態
 Suggestions, saving, auto-advance and viewing anonymously	建議、儲存、自動播放下一則與匿名查看
 Support	說明與支援
@@ -1152,6 +1298,9 @@ Tabs to hide	要隱藏的分頁
 Tabs, the Menu and screens that open over Facebook appear at once instead of sliding in. Swiping between tabs still works.	Tabs 、在 Facebook 上開啟的選單和螢幕同時出現, 而不是滑入。在標籤之間移動仍然有效 。
 Tabs, the Menu, photos and screens that open over Facebook appear at once instead of sliding or zooming in. Swiping between tabs still works.	分頁、選單、相片與疊加在 Facebook 上的畫面會立即顯示，不再滑入或縮放。仍可滑動切換分頁。
 Tag suggestions only after @	只有輸入 @ 後才顯示標註建議
+Take breaks	定時休息
+Takes Like off the row under comments. Reply and the reaction count stay.	移除留言下方那一列的讚。回覆和心情數量保留。
+Takes Search and the button next to it off the top of a video or reel you open. Back stays, and so does More at the bottom of the side buttons, where Download is.	移除你開啟的影片或 Reels 上方的搜尋和旁邊的按鈕。返回按鈕會保留，側邊按鈕最下方放著下載的更多按鈕也會保留。
 Takes away Send to group when you pick two or more people, and the share sheet's own ways to start a new group, so nothing you share makes a group chat by accident. Send separately stays.	選擇兩個或兩個以上的人時傳送到組中, 並且共享表是自己啟動新組的方法,所以任何共享都無法意外讓組內聊天。 單獨傳送 。
 Takes away the line that says someone is typing a comment. Your own typing is a separate switch under Privacy.	移除顯示他人正在輸入留言的提示列。你自己的輸入狀態可由「隱私」中的獨立開關控制。
 Takes the + button for making a post, reel or story out of the top bar. Restart Facebook to see the change.	從頂端列移除用來建立貼文、Reels 和限時動態的 + 按鈕。重新啟動 Facebook 後生效。
@@ -1162,12 +1311,14 @@ Takes the numbers away from under a reel's Like, Comment and Share icons. The ic
 Takes the numbers off the Like, Comment and Share buttons under posts, so each shows just its word. The buttons stay where they are. A change shows on the posts drawn after it.	移除貼文下方「讚」、「留言」與「分享」按鈕上的數字，只保留文字。按鈕位置不變。變更後繪製的貼文才會生效。
 Takes the phone's status bar, with the time and battery, off Facebook's main screen, so the app gets the whole screen. Swipe down from the top edge to see it for a moment.	從 Facebook 主畫面移除顯示時間與電量的手機狀態列，讓應用程式使用整個螢幕。從頂端邊緣向下滑動可暫時顯示。
 Takes the row of profile pictures off the share sheet, the people Facebook suggests sending a post to. The search box and the other ways to share stay.	移除分享面板中的個人檔案相片橫列，也就是 Facebook 建議傳送貼文的對象。搜尋框與其他分享方式仍會保留。
+Takes the search button out of the top bar. Restart Facebook to see the change.	從頂端列移除搜尋按鈕。重新啟動 Facebook 後生效。
 Takes the speaker button off the bottom of the side of reels. A change shows from the next reel.	移除 Reels 側邊底部的喇叭按鈕。從下一則 Reels 起生效。
 Takes the thumbs-down off comments. Like and Reply stay.	移除留言旁的倒讚按鈕。讚和回覆保留。
 Takes this button off the side of reels. The buttons above it move down. A change shows from the next reel.	從 Reels 側邊移除這個按鈕。上方的按鈕會往下移。從下一個 Reel 開始生效。
 Takes this button out of the row under posts in the feed. The other buttons stay, and a post with all of its buttons hidden shows no row.	從動態消息中貼文下方的按鈕列移除這個按鈕。其他按鈕保留，所有按鈕都隱藏的貼文不顯示按鈕列。
 Tap Resume, then restart Facebook.	點一下「繼續」，然後重新啟動 Facebook。
 Tap Save to keep the list.	磁碟儲存列表 。
+Tap a reel above its comments	點按留言上方的 Reels
 Tap anywhere on View more replies	點按查看更多回覆整列皆可展開
 Tap anywhere on a reel's or video's progress bar to jump there, instead of dragging the dot.	點擊 Reels 或影片進度條的任意位置即可跳轉播放，而不必拖曳圓點。
 Tap shows the controls	點按顯示控制項
@@ -1178,6 +1329,7 @@ Tap to see which.	點擊查看有哪些。
 Tap to turn it back on.	點一下即可重新啟用。
 Tapping Download on a reel or video will send its link to an app.	點選 Reel 或影片的「下載」時，會把其連結傳送到指定應用程式。
 Tapping the Messenger icon at the top of Facebook opens the Messenger app instead of Chats. Without Messenger, Chats opens as before.	在臉書頂端抓取信使圖示會開啟信使應用, 而不是聊天。沒有信使, 聊天會像以前一樣開啟 。
+Tapping the reel above its comments plays or pauses it, and the comments stay open. Works while comments open part way up, not at full height.	點按留言上方的 Reels 可暫停或繼續播放，留言保持開啟。僅在留言未以全螢幕高度開啟時有效。
 Teal	提爾
 Test the Messenger link	測試 Messenger 連結
 Text and emoji	文字和表情符號
@@ -1198,6 +1350,7 @@ That settings file was written by a newer Hushfacebook than this one. Nothing wa
 The "new comments" bubble no longer pops up while you read comments. New comments still show in the list.	閱讀留言時不再彈出「新留言」泡泡。新留言仍會顯示在清單中。
 The Add a comment box under a full-screen video goes away. Comment boxes on posts stay.	移除全螢幕影片下方的「新增留言」框。貼文上的留言框仍會保留。
 The Also from Meta section leaves Facebook's Menu, with its links to Meta's other apps and its ads for Meta's devices. Your own shortcuts stay.	從 Facebook 功能表移除「Meta 旗下其他產品」區段，包括其他 Meta App 連結與 Meta 裝置廣告。你自己的捷徑會保留。
+The Date posted filter in post search asks for a from and to month, in place of a list of years.	貼文搜尋中的發布日期篩選會讓你選擇起訖月份，而不是年份清單。
 The Facebook logo at the top of Home is %1$s. Restart Facebook to see the change.	首頁頂端的 Facebook 標誌為 %1$s。重新啟動 Facebook 即可看到變更。
 The Facebook logo keeps its blue. Type a color code to change it.	Facebook 標誌維持藍色。輸入色碼即可變更。
 The Feeds tab will open on %1$s.	「動態消息」分頁將開啟於 %1$s。
@@ -1212,6 +1365,7 @@ The Muse card, Meta's ad for its AI agent app, leaves the top of Facebook's Menu
 The Reels tab	Reels 分頁
 The Reels tab plays the reels Facebook has loaded for you in the order picked below, instead of its own pick. It can't fetch more, and reels already placed stay put. Off by default, since it hasn't been tried on a real account yet.	Reels 分頁會依下方選擇的順序播放 Facebook 已為你載入的 Reels，取代原有排序。無法取得更多內容，也不會移動已排好的 Reels。預設停用，因為尚未使用真實帳號測試。
 The SD card you picked isn't in the phone, so videos and photos are saved on the phone's storage until it's back.	你選擇的 SD 卡不在手機中，因此在它插回之前，影片和相片會儲存在手機儲存空間。
+The Subscribe button some authors get there instead, which subscribes with one tap. Follow buttons stay.	部分作者在那裡顯示的是訂閱按鈕，點一下就會訂閱。追蹤按鈕會保留。
 The Upgrades section and its offers leave Facebook's Menu. Settings, Help and support and the rest of the Menu stay.	從 Facebook 功能表移除「升級」區段及其優惠內容。「設定」、「使用說明和支援」及其他功能表項目都會保留。
 The app holding that file is taking too long, so Hushfacebook stopped waiting. Nothing was changed.	持有該檔案的應用程式回應太久，Hushfacebook 已停止等待。未變更任何內容。
 The app holding that font file is taking too long, so Hushfacebook stopped waiting. Your font didn't change.	提供字型檔案的應用程式回應時間過長，Hushfacebook 已停止等待。字型未變更。
@@ -1245,13 +1399,18 @@ The places Facebook shows ads or reports what you do, and what this build does a
 The reels in your feed's Reels row play from the start and keep going, instead of repeating a second or two. Tiles drawn after a change pick it up.	動態消息 Reels 橫列中的影片會從頭持續播放，不再重複播放一兩秒。變更後繪製的方塊才會生效。
 The report couldn't be copied. Try again.	無法複製報告，請再試一次。
 The report couldn't be saved. Try again.	無法儲存報告，請再試一次。
+The row of emoji over the comment box goes away. You can still type emoji from your keyboard.	留言框上方的表情符號列不再顯示。你仍然可以用鍵盤輸入表情符號。
 The saved copy of %1$s is missing. Choose the file again.	%1$s 的儲存副本已遺失，請重新選擇檔案。
 The saved copy of %1$s is missing. Choose the picture again.	找不到 %1$s 已儲存的副本。請重新選擇圖片。
+The search box didn't open. Type the search again.	搜尋框沒有開啟。請重新輸入搜尋內容。
+The selected tab in the tab bar is %1$s. Restart Facebook to see the change.	分頁列中已選取的分頁為 %1$s。重新啟動 Facebook 即可看到變更。
+The selected tab keeps Facebook's color. Type a color code to change it.	已選取分頁維持 Facebook 的顏色。輸入色碼即可變更。
 The setting couldn't finish updating. Its saved value is shown.	設定無法完成更新，目前顯示已儲存的值。
 The settings file was saved, but it doesn't match what Hushfacebook wrote. Save it again as a new file.	設定檔已儲存，但驗證內容與寫入資料不符。請以新檔名重新儲存。
 The speed you pick in a feed or Watch video's menu carries over to the next videos. Reels keep their own speed. Off by default, since it hasn't been tried on a real account yet.	動態消息或 Watch 影片設定的播放速度會套用到後續影片，Reels 仍維持自身速度。尚未在實際帳號測試，預設關閉。
 The speed you pick in a feed or Watch video's menu carries over to the next videos. Reels keep their own speed. Untested on a real account, so it starts off.	種子或 Watch 影片選單中選擇的速度會帶入下一個影片。 Reels 保留自己的速度。 未經測試的影片會從真實的賬戶開始 。
 The switches above block their kinds only between the two times below. The rest of the day those kinds come through.	上面的開關只隔下兩節,其餘時間就通了。
+The thumbs-down on a comment becomes Block. One tap opens Facebook's own block screen for that person.	留言上的倒讚按鈕會變成封鎖。點一下就會為這個人開啟 Facebook 自己的封鎖畫面。
 The top bar and the tab bar turn see-through, so the feed shows through them as you scroll. On Android 12 and newer the feed behind them is blurred.	頂部列與分頁列改為半透明，捲動時能看見後方動態消息；Android 12 以上會模糊背景。
 The top bar with search and Messenger stays put while you scroll down, instead of sliding away.	捲動頁面時固定顯示包含搜尋與 Messenger 的頂部導覽列，不會向上滑出畫面。
 The top of Home says %1$s. Restart Facebook to see the change.	首頁頂端顯示 %1$s。重新啟動 Facebook 後生效。
@@ -1270,6 +1429,8 @@ This build has no notification sound to save.	此構件沒有通知聲音可儲�
 This list needs more room than it has. Shorten it, then save again.	清單內容超過容量，請縮短後再儲存。
 This phone has no file picker, so there's no way to choose a file here.	此手機沒有檔案選擇器，因此無法在此選擇檔案。
 Those apps show their own ads or none, and their rewarded ads may fail.	這些應用軟體會顯示自己的廣告或者沒有廣告,而他們的獎勵廣告可能會失敗.
+Time for a break	該休息一下了
+Title must include	標題必須包含
 Too many saves at once. Try again when one finishes.	同時儲存的項目過多。請等其中一項完成後再試。
 Top bar	頂端列
 Traditional Chinese	繁體中文
@@ -1291,11 +1452,13 @@ Turn on a set of switches in one tap, or put every switch back the way it starte
 Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row.	點一下即可啟用一組開關，或將所有開關恢復預設。長按可隱藏這一列。
 Turn this on to open the Messenger app from Facebook's top Messenger icon. Turn it off to open Facebook's built-in Chats directly instead of Meta's Messenger redirect prompt. A long press keeps Facebook's own behavior.	開啟時，點擊 Facebook 頂部的 Messenger 圖示會直接開啟 Messenger 應用程式。關閉時則直接開啟 Facebook 內建「聊天」，略過 Meta 的 Messenger 跳轉詢問。長按仍保留 Facebook 原本行為。
 Type @ before Facebook suggests someone to tag in posts or comments. Your text stays unchanged.	在貼文或留言中先輸入 @，Facebook 才會建議可標註的人。你的文字內容不會被修改。
+Type a word or a phrase and tap Add. A phrase of more than one word has to be in the title as written. A term matches anywhere in a title, so cat also matches cats. Put it in quotes with a space after it, like "cat ", to leave out cats. Go puts these into the search box and searches again.	輸入一個詞或片語，然後點按「新增」。由多個詞組成的片語必須照原樣出現在標題中。詞語可比對標題中的任何位置，所以 cat 也會比對到 cats。為它加上引號並在後面加一個空格，例如 "cat "，就能排除 cats。「搜尋」會把這些放進搜尋框並重新搜尋。
 Type or paste a post's text to see what these lists would do with it. It isn't saved.	輸入或貼上一則貼文的文字，看看這兩個清單會怎麼處理它。文字不會被儲存。
 Undo	復原
 Unlock	解鎖
 Unlock Facebook	解鎖Facebook
 Unlock app icons	解鎖應用程式圖示
+Until you clear it	直到你清除
 Until you resume, every switch but Debug logging and Lock Facebook acts as if it were off. Changes made when you patched stay in.	恢復前，除「除錯紀錄」與「鎖定 Facebook」外的開關都會暫時停用；修補時已套用的修改仍然有效。
 Up to %1$s	最高 %1$s
 Updates	更新
@@ -1320,9 +1483,11 @@ Video file name	影片檔名
 Video link	影片連結
 Video quality	影片畫質
 Video saved	影片已儲存
+Video stories don't start by themselves. Touch and hold a story, then let go, to play it. Works with Tap to play on or off.	影片限時動態不會自動開始播放。長按限時動態後放開即可播放。無論「點按播放」開啟或關閉皆可使用。
 Video stories follow the Default quality row.	影片限時動態使用「預設畫質」的設定。
 Video stories follow the Playback quality row.	影片限時動態使用「播放畫質」欄位的設定。
 Video stories play at the playback quality above.	影片故事在播放質量上。
+Video stories wait for a tap	影片限時動態等待點按
 Video stories will play at the same quality as other videos.	影片故事會以與其他影片一樣的質量播放.
 Video subfolder	影片子資料夾
 Videos	影片
@@ -1333,6 +1498,7 @@ Videos and photos go to %1$s, next to the camera's. Saves you already have stay 
 Videos and photos go to %1$s, with the phone's other downloads. Saves you already have stay where they are.	影片與相片會儲存到 %1$s，與手機其他下載內容放在一起。已儲存的檔案不會移動。
 Videos and photos go to %1$s.	影片與相片會儲存到 %1$s。
 Videos and photos will go to %1$s.	影片與相片將儲存到 %1$s。
+Videos and reels draw together with the rest of the screen, like Disable HW overlays in developer options. Try it if reels look pale until something covers them. Uses a little more battery.	影片和 Reels 會與螢幕其他部分一起繪製，效果同開發人員選項中的「停用 HW 重疊圖層」。如果 Reels 在被其他東西蓋住之前一直顯得泛白，可以試試。會多耗一點電。
 Videos are named %1$s.	影片被命名%1$s。 。 。 。
 Videos go to %1$s and photos to %2$s, as Facebook's own saves do. Some galleries don't show %1$s.	影片會儲存到 %1$s，相片會儲存到 %2$s，與 Facebook 原生儲存方式相同。部分相簿應用程式不會顯示 %1$s。
 Videos go to %1$s and photos to %2$s.	影片會儲存到 %1$s，相片則儲存到 %2$s。
@@ -1373,17 +1539,21 @@ While Marketplace mode is on, loads less of the feed in the background. Some loa
 While Marketplace mode is on, silences video suggestions, memories, birthdays and friend suggestions. Messages and trading updates still arrive.	市場模式啟用的同時,靜默影片建議,記憶,生日和朋友建議,訊息和交易更新仍然到來.
 While Marketplace only is on, loads less of the feed in the background. Some loading still happens at startup.	啟用僅顯示 Marketplace 時，可減少背景動態消息載入，但啟動時仍會載入部分內容。
 While Marketplace only is on, silences video suggestions, memories, birthdays and friend suggestions. Messages and trading updates still arrive.	啟用僅顯示 Marketplace 時，停止影片推薦、回顧、生日及好友推薦通知，訊息與交易更新仍會收到。
+Width in dp, from %1$s to %2$s. Leave it blank for %3$s.	寬度，單位 dp，範圍 %1$s 到 %2$s。留空則使用 %3$s。
 With %1$s on, Home will show the same posts as %2$s in the Feeds tab.	啟用 %1$s 後，首頁會顯示與「動態消息」分頁的 %2$s 相同貼文。
 With Block Instant Games ads on, a game's rewarded ad counts as watched. No ad plays and the game still gives its reward.	隨著Block Instant Games的廣告上映,遊戲的獎勵廣告就算上觀看的了,沒有廣告劇本,遊戲仍然給予獎勵.
 With Download feed and Watch videos on, coming back to Facebook with a reel or video link copied offers to download it, once per link. Off, Facebook doesn't look at what you copied.	下載影片和觀看影片, 帶膠捲或影片連結回到Facebook, 複製了每條連結的下載提議。 關閉時, Facebook不會看到你複製的內容 。
 With Keep the progress bar on, a reel's elapsed and total time stay above the bar. Off, they show only while you drag it.	保持進度,一盤膠捲已經過去,總時間停留在酒吧上方。關閉後,它們只會在拖動時顯示。
 With Lock Facebook on, it will lock as soon as you leave it.	鎖上臉書,一離開就會鎖上
 With Lock Facebook on, it will lock once you've been away for %1$s.	鎖上臉書,一旦你離開就會鎖上%1$s。 。 。 。
+With Opening pause on, Facebook will wait %1$s before it opens.	開啟「開啟前暫停」後，Facebook 會等待 %1$s再開啟。
 With Pinch to zoom on, double tap a photo on a profile to zoom in where you tapped, and double tap again to put it back. A single tap still opens the photo, a moment later.	啟用「雙指縮放」後，雙擊個人檔案上的相片可放大點按位置，再次雙擊可還原。單次點按仍會開啟相片，但稍有延遲。
 With Pinch to zoom on, the photo or story stays zoomed when you let go, and a story stays paused. Drag with one finger or pinch again. Tap or press Back when you're done.	啟用「雙指縮放」後，放開時相片或限時動態會維持縮放，限時動態也會保持暫停。可用單指拖曳或再次雙指縮放。完成後點按或按返回鍵。
 With Save any photo on, a post with photos gets Save photo in its three-dot menu too. A post with several saves each one, one after another.	儲存任何照片後, 帶有照片的帖子也會在其三點選單中儲存照片。 一張有多個儲存的帖子會逐一儲存 。
 With Save videos other apps can open on, a full size video Facebook only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 10 minutes stay smaller.	啟用「儲存其他應用程式可開啟的影片」後，若 Facebook 僅提供 VP9 或 AV1 的完整尺寸影片，會在手機上轉換為 H.264，而非儲存較小尺寸。處理較慢，超過 10 分鐘的影片仍使用較小尺寸。
 With Stop Story auto-advance on, a finished story plays again from the start instead of waiting on its last frame. Tap or swipe to move on.	隨著Stop Story自動預告的展開,一個完成的故事從頭開始就再次播放,而不是等待最後的幀. tap 或 swipe 繼續前進.
+With Take breaks on, a break will last %1$s.	開啟定時休息後，每次休息持續 %1$s。
+With Take breaks on, a break will start after %1$s of browsing.	開啟定時休息後，瀏覽 %1$s 後會開始休息。
 With a reel or video paused, tap its right side to step one frame forward and its left side to step one frame back. Tap the middle to play.	暫停 Reels 或影片後，點擊右側可前進一格，點擊左側可倒退一格，點擊中央可繼續播放。
 With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed, Watch and stories always wait.	開啟上面的開關,玩完一盤後,你就可以自己玩的一盤。種子、觀察和故事總是等待。
 With the switch above on, only a hold on the right third of a reel plays it at double speed. Hold anywhere else and Facebook's long-press menu opens.	上面開關後, 只能按下膠捲的右三分之一, 以雙倍的速度播放。請在其它地方按住, Facebook 的長壓選單會開啟 。
@@ -1391,13 +1561,20 @@ With the switch above on, your place stays however long you're away. Pull to ref
 Words that keep a post	保留貼文的文字
 Words to hide	要隱藏的文字
 Writing	撰寫
+You can also type "word", -word or in:place straight into the search box.	你也可以直接在搜尋框中輸入 "詞語"、-詞語 或 in:地點。
+You can open it in %1$d second.	%1$d 秒後可以開啟。
+You can open it in %1$d seconds.	%1$d 秒後可以開啟。
 You have the newest Hushfacebook release.	你目前使用的是最新 Hushfacebook。
 You paused Hushfacebook.	你已暫停 Hushfacebook。
+Your break is over.	休息結束了。
 Your controls are active.	你的控制功能目前已啟用。
 Your launcher has no room for another shortcut.	啟動器沒有空間可再加入捷徑。
 Your list of Menu tiles to hide will be empty.	要隱藏的選單方塊清單將會清空。
 Your list of Menu tiles to hide will hold %1$d tile.	要隱藏的選單方塊清單將包含 %1$d 個方塊。
 Your list of Menu tiles to hide will hold %1$d tiles.	要隱藏的選單方塊清單將包含 %1$d 個方塊。
+Your list of feed types to hide will be empty.	要隱藏的動態類型清單將會是空的。
+Your list of feed types to hide will hold %1$d type.	要隱藏的動態類型清單將包含 %1$d 個類型。
+Your list of feed types to hide will hold %1$d types.	要隱藏的動態類型清單將包含 %1$d 個類型。
 Your list of people, Pages and sites to hide will be empty.	您要隱藏的人員、 頁面和網站列表將空空 。
 Your list of people, Pages and sites to hide will hold %1$d entries.	您要隱藏的人員列表、 頁面和網站將會儲存%1$d條目。
 Your list of people, Pages and sites to hide will hold %1$d entry.	您要隱藏的人員列表、 頁面和網站將會儲存%1$d輸入。
@@ -1413,14 +1590,22 @@ Your list of words to hide will hold %1$d words or phrases.	你的隱藏文字�
 Your own words at the top of Home instead of the Facebook logo, up to %1$d characters. They take Facebook's colors in light and dark mode. Leave it blank for Facebook's logo.	在首頁頂端顯示自訂文字，取代 Facebook 標誌，最多 %1$d 個字元。文字會使用 Facebook 在淺色與深色模式的配色。留白則顯示 Facebook 標誌。
 Your phone couldn't put this video together. Try another Download quality.	手機無法合成這段影片，請改用其他下載畫質。
 Your phone couldn't write the file. Check your free space and try again.	手機無法寫入檔案。請檢查剩餘空間後再試。
+Your profile shows %1$s on this phone.	你的檔案在這支手機上顯示 %1$s。
 Your settings already match that file, so nothing will change.	目前設定已與該檔案相同，因此不需要變更。
 Your start tab and launch settings	啟動分頁與啟動設定
 Your switches already match that file, so nothing will change.	目前開關已與該檔案相同，因此不會變更任何內容。
+ads	廣告
 answered	已回應
 facebook.com and m.me links open here now.	facebook.com 和 m.me 連結現在會由這裡開啟。
 facebook.com links open here now.	facebook.com 連結現在會由這裡開啟。
 failed (%1$s)	失敗（%1$s）
 no answer	無回應
+posts from groups you're not in	未加入社團的貼文
+posts you've seen	你看過的貼文
+posts your filters matched	符合你篩選條件的貼文
+reels	Reels
+rows of Stories	限時動態列
+suggestions	推薦
 the Audience Network block	Audience Network 封鎖
 the black background in dark mode	深色模式的純黑背景
 the block on downloading ads in the background	背景廣告下載封鎖
@@ -1432,3 +1617,4 @@ the recolored dark mode	重新顏色的暗模式
 the settings row in Facebook's Menu	Facebook 功能表中的設定列
 the start-up fix for x86 devices	x86 裝置啟動修復
 the version number Google Play sees	版本編號 Google Play 檢視
+this person	這個人

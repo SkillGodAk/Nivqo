@@ -5,16 +5,52 @@
         <item quantity="other">%s поправки</item>
     </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s библиотека</item>
+        <item quantity="other">%s библиотеки</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s опција за закрпа</item>
         <item quantity="other">%s опции за закрпа</item>
     </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s ставка</item>
+        <item quantity="other">%s ставки</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">Изберете %s датотека</item>
+        <item quantity="other">Изберете %s датотеки</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">Додај %s извор</item>
+        <item quantity="other">Додај %s извори</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Извори на поправки за %s апликација</item>
+        <item quantity="other">Извори на поправки за %s апликации</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Изворот %s е скриен за оваа апликација. Изберете ја апликацијата во табот Апликации и отворете Извори за закрпи за да го вратите</item>
+        <item quantity="other">Изворите %s се скриени за оваа апликација. Изберете ја апликацијата во табот Апликации и отворете Извори за закрпи за да ги вратите</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s извор е skjкриен. Допрете за да прикажете</item>
+        <item quantity="other">%s извори се skjкриени. Допрете за да прикажете</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s одговарачка поправка</item>
+        <item quantity="other">%s одговарачки поправки</item>
+    </plurals>
     <plurals name="source_count">
         <item quantity="one">%s извор</item>
         <item quantity="other">%s извори</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s сет</item>
+        <item quantity="other">%s сетови</item>
     </plurals>
     <plurals name="package_count">
         <item quantity="one">%s пакет</item>
@@ -28,6 +64,46 @@
         <item quantity="one">%s APK датотека</item>
         <item quantity="other">%s APK датотеки</item>
     </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">Инсталирана е %s апликација</item>
+        <item quantity="other">Инсталирани се %s апликации</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">Монтирана %s апликација</item>
+        <item quantity="other">Монтирани %s апликации</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">Повторно инсталирана е %s апликација</item>
+        <item quantity="other">Повторно инсталирани се %s апликации</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">Деинсталирана %s апликација</item>
+        <item quantity="other">Деинсталирани %s апликации</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">Деинсталирај %s апликација?</item>
+        <item quantity="other">Деинсталирај %s апликации?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s апликација спремна за закрпување</item>
+        <item quantity="other">%s апликации спремни за закрпување</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s апликација во ред за закрпување</item>
+        <item quantity="other">%s апликации во ред за закрпување</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s скриено известување, допрете за да го прикажете</item>
+        <item quantity="other">%s скриени известувања, допрете за да ги прикажете</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s апликација може повторно да се закрпи</item>
+        <item quantity="other">%s апликации можат повторно да се закрпат</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">Пропуштена %s апликација</item>
+        <item quantity="other">Пропуштени %s апликации</item>
+    </plurals>
     <plurals name="home_app_info_repatch_cleaned_invalid_data">
         <item quantity="one">Отстранета %s застарена поправка од зачуваниот избор</item>
         <item quantity="other">Отстранети се %s застарени поправки од чуваната селекција</item>
@@ -36,9 +112,69 @@
         <item quantity="one">%s извор инсталиран</item>
         <item quantity="other">%s извори инсталирани</item>
     </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s скриена апликација</item>
+        <item quantity="other">%s скриени апликации</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s прикажана апликација</item>
+        <item quantity="other">%s прикажани апликации</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">Да се прикаже %s апликација?</item>
+        <item quantity="other">Да се прикажат %s апликации?</item>
+    </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s скриена апликација</item>
         <item quantity="other">%s скриени апликации</item>
     </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s апликација</item>
+        <item quantity="other">%s апликации</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s избрано</item>
+        <item quantity="other">%s избрани</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Копиран е %s крпа од избраниот пакет</item>
+        <item quantity="other">Копирани се %s крпи од избраниот пакет</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s јадро</item>
+        <item quantity="other">%s јадра</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s функција</item>
+        <item quantity="other">%s функции</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s поправка</item>
+        <item quantity="other">%s поправки</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s оптимизација</item>
+        <item quantity="other">%s оптимизации</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s промена</item>
+        <item quantity="other">%s промени</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d нови</item>
+        <item quantity="other">%1$s · %2$d нови</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s ново издание</item>
+        <item quantity="other">%s нови изданија</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d линка е овозможен</item>
+        <item quantity="other">%d овозможени врски</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d неверификувана врска</item>
+        <item quantity="other">%d неверификувани врски</item>
+    </plurals>
 </resources>

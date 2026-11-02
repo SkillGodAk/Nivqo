@@ -1,8 +1,180 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s patching</item>
+        <item quantity="other">%s patching</item>
+    </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s liburutegia</item>
+        <item quantity="other">%s liburutegi</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s patching aukera</item>
+        <item quantity="other">%s patching aukerak</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s elementu</item>
+        <item quantity="other">%s elementu</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">hautatu %s fitxari</item>
+        <item quantity="other">hautatu %s fitxari</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%s iturri gehitu</item>
+        <item quantity="other">%s iturri gehitu</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">Patch iturriak %s aplikaziorako</item>
+        <item quantity="other">Patch iturriak %s aplikaziorako</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">%s iturria ezkututa dago aplikazio honentzat. Hautatu aplikazioa Aplikazioak fitxan eta ireki Patch iturriak berreskuratzeko</item>
+        <item quantity="other">%s iturriak ezkututa daude aplikazio honentzat. Hautatu aplikazioa Aplikazioak fitxan eta ireki Patch iturriak berreskuratzeko</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s iturri ezkutatuta. Sakatu erakusteko</item>
+        <item quantity="other">%s iturri ezkutatuta. Sakatu erakusteko</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s patch bat aurkituta</item>
+        <item quantity="other">%s patch aurkituta</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s iturri</item>
+        <item quantity="other">%s iturri</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s multzo</item>
+        <item quantity="other">%s multzo</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s pakete</item>
+        <item quantity="other">%s pakete</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s patch exekutatuta</item>
+        <item quantity="other">%s patch exekutatuta</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK fitxategi</item>
+        <item quantity="other">%s APK fitxailu</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s app instalatuta</item>
+        <item quantity="other">%s app instalatuta</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s aplikazioa muntatu da</item>
+        <item quantity="other">%s aplikazio muntatu dira</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s app berriz instalatuta</item>
+        <item quantity="other">%s app berriz instalatuta</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s app desinstalatuta</item>
+        <item quantity="other">%s app desinstalatuta</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s aplikazioa ezabatu?</item>
+        <item quantity="other">%s aplikazioak ezabatu?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s aplikazioa patching egiteko prest</item>
+        <item quantity="other">%s aplikazioak patching egiteko prest</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s aplikazioa patching-erako pausedatuta</item>
+        <item quantity="other">%s aplikazioak patching-erako pausedatuta</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s jakinarazpen ezkutuko, sakatu erakusteko</item>
+        <item quantity="other">%s jakinarazpen ezkutuko, sakatu erakusteko</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s aplikazioa berriro patchatu daiteke</item>
+        <item quantity="other">%s aplikazioak berriro patchatu daitezke</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s aplikazioa bostatu da</item>
+        <item quantity="other">%s aplikazioak bostatu dira</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">%s patch zaharkatu kenduta 保存 gabeko hautaketik</item>
+        <item quantity="other">%s patch zaharkatu kenduta保存 gabeko hautaketik</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s iturri instalatuta</item>
+        <item quantity="other">%s iturri instalatuta</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s aplikazio ezkutuko</item>
+        <item quantity="other">%s aplikazio ezkutuko</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s aplikazio erakutsita</item>
+        <item quantity="other">%s aplikazio erakutsita</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">%s aplikazioa agertu?</item>
+        <item quantity="other">%s aplikazio agertu?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s aplikazio ezkutuko</item>
+        <item quantity="other">%s aplikazio ezkutuko</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s app</item>
+        <item quantity="other">%s app</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s hautatuta</item>
+        <item quantity="other">%s hautatuta</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">%s patching kopiatuta hautatutako bundle-tik</item>
+        <item quantity="other">%s patching kopiatuta hautatutako bundle-tik</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s nukleo</item>
+        <item quantity="other">%s nukleo</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s ezaugarri</item>
+        <item quantity="other">%s ezaugarri</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s konpondoil</item>
+        <item quantity="other">%s konpondoil</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s optimizazio</item>
+        <item quantity="other">%s optimizazio</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s aldaketa</item>
+        <item quantity="other">%s aldaketa</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d berria</item>
+        <item quantity="other">%1$s · %2$d berriak</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s bertsio berri</item>
+        <item quantity="other">%s bertsio berri</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d esteka aktibatuta</item>
+        <item quantity="other">%d esteka aktibatuta</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d esteka berifikatatu gabeko</item>
+        <item quantity="other">%d esteka berifikatatu gabe</item>
+    </plurals>
 </resources>

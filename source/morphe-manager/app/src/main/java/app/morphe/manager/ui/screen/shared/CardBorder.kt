@@ -31,8 +31,8 @@ import app.morphe.manager.ui.theme.ThemeTraitsDefaults
  * without it.
  */
 object CardBorder {
-    /** Shared by both, so a tinted card and a neutral one line up side by side. */
-    private val Width: Dp = 1.dp
+    /** Shared by every card, so a tinted one, a neutral one and a glass one line up side by side. */
+    val Width: Dp = 1.dp
 
     /** Low enough that the accent traces the card without competing with its own fill. */
     private const val TINTED_ALPHA = 0.25f

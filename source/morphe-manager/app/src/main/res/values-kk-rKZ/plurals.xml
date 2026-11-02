@@ -5,16 +5,52 @@
         <item quantity="other">%s Патчтар</item>
     </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s кітапхана</item>
+        <item quantity="other">%s кітапхана</item>
+    </plurals>
     <plurals name="option_count">
         <item quantity="one">%s патч опциясы</item>
         <item quantity="other">%s Патч опциялары</item>
     </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s элемент</item>
+        <item quantity="other">%s элемент</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%s файлды таңдау</item>
+        <item quantity="other">%s файлды таңдау</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%s дереккөзді қосу</item>
+        <item quantity="other">%s дереккөзді қосу</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">%s қолданбасы үшін патч көздері</item>
+        <item quantity="other">%s қолданбалар үшін патч көздері</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">Бұл қолданба үшін %s дереккөзі жасырылған. Оны қайтару үшін «Қолданбалар» қойындысында қолданбаны таңдаңыз және «Патч дереккөздері» бөлімін ашыңыз</item>
+        <item quantity="other">Бұл қолданба үшін %s дереккөздері жасырылған. Оларды қайтару үшін «Қолданбалар» қойындысында қолданбаны таңдаңыз және «Патч дереккөздері» бөлімін ашыңыз</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s көз жасырындалды. Көрсету үшін түктіңіз</item>
+        <item quantity="other">%s көздер жасырындалды. Көрсету үшін түктіңіз</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s сәйкес келетін патч</item>
+        <item quantity="other">%s сәйкес келетін патчтар</item>
+    </plurals>
     <plurals name="source_count">
         <item quantity="one">%s дереккөз </item>
         <item quantity="other">%s Дереккөздер</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s жиынтық</item>
+        <item quantity="other">%s жиынтық</item>
     </plurals>
     <plurals name="package_count">
         <item quantity="one">%s пакет</item>
@@ -28,6 +64,46 @@
         <item quantity="one">%s АПК файл</item>
         <item quantity="other">%s АПК файлдары</item>
     </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s қолданба орнатылды</item>
+        <item quantity="other">%s қолданба орнатылды</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s қолданба орнатылды</item>
+        <item quantity="other">%s қолданба орнатылды</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s қолданба қайта орнатылды</item>
+        <item quantity="other">%s қолданба қайта орнатылды</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s қолданба жойылды</item>
+        <item quantity="other">%s қолданба жойылды</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s қолданбасын жою?</item>
+        <item quantity="other">%s қолданбаны жою?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s қолданба патчтауға дайын</item>
+        <item quantity="other">%s қолданба патчтауға дайын</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s қолданба патчтау үшін кезекте тұр</item>
+        <item quantity="other">%s қолданба патчтау үшін кезекте тұр</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s жасырын хабарлама, көрсету үшін басыңыз</item>
+        <item quantity="other">%s жасырын хабарлама, көрсету үшін басыңыз</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s қолданбаны қайта патчтауға болады</item>
+        <item quantity="other">%s қолданбаны қайта патчтауға болады</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s қолданба өткізіліп кетті</item>
+        <item quantity="other">%s қолданба өткізіліп кетті</item>
+    </plurals>
     <plurals name="home_app_info_repatch_cleaned_invalid_data">
         <item quantity="one">Сақталған таңдаудан %s ескірген патч жойылды</item>
         <item quantity="other">Сақталған таңдаудан %s ескірген патчтар жойылды</item>
@@ -36,9 +112,69 @@
         <item quantity="one">%s дереккөз орнатылған </item>
         <item quantity="other">%s дереккөздер орнатылған </item>
     </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s қолданба жасырылды</item>
+        <item quantity="other">%s қолданба жасырылды</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s қолданба көрсетілді</item>
+        <item quantity="other">%s қолданба көрсетілді</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">%s қолданбаны жасырын күйден шығару?</item>
+        <item quantity="other">%s қолданбаны жасырын күйден шығару?</item>
+    </plurals>
     <plurals name="home_app_show_hidden_count">
         <item quantity="one">%s жасырылған бағдарлама</item>
         <item quantity="other">%s жасырылған бағдарламалар</item>
     </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s қолданба</item>
+        <item quantity="other">%s қолданба</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s таңдалды</item>
+        <item quantity="other">%s таңдалды</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">Таңдалған пакеттен %s патч көшірілді</item>
+        <item quantity="other">Таңдалған пакеттен %s патч көшірілді</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s ядро</item>
+        <item quantity="other">%s ядро</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s функция</item>
+        <item quantity="other">%s функция</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s түзету</item>
+        <item quantity="other">%s түзетулер</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s оңтайландыру</item>
+        <item quantity="other">%s оңтайландыру</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s өзгеріс</item>
+        <item quantity="other">%s өзгеріс</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d жаңа</item>
+        <item quantity="other">%1$s · %2$d жаңа</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s жаңа нұсқа</item>
+        <item quantity="other">%s жаңа нұсқа</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d сілтеме қосылды</item>
+        <item quantity="other">%d сілтеме қосылды</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d расталмаған сілтеме</item>
+        <item quantity="other">%d расталмаған сілтеме</item>
+    </plurals>
 </resources>

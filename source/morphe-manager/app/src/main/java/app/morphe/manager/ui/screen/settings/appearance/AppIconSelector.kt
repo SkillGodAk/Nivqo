@@ -110,7 +110,7 @@ fun AppIconSettingsItem() {
         ConfirmDialog(
             title = stringResource(R.string.settings_appearance_app_icon_change_dialog_title),
             message = htmlAnnotatedString(
-                stringResource(R.string.settings_appearance_app_icon_change_dialog_message, appIconName(selectedIcon))
+                stringResource(R.string.settings_appearance_app_icon_change_restarts, appIconName(selectedIcon))
             ),
             primaryText = stringResource(R.string.settings_appearance_app_icon_change_dialog_confirm),
             isPrimaryDestructive = false,

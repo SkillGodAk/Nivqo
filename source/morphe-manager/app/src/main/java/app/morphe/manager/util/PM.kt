@@ -113,6 +113,8 @@ class PM(
 
     fun getVersionCode(packageInfo: PackageInfo) = PackageInfoCompat.getLongVersionCode(packageInfo)
 
+    fun canLaunch(pkg: String) = app.packageManager.getLaunchIntentForPackage(pkg) != null
+
     fun launch(pkg: String) = app.packageManager.getLaunchIntentForPackage(pkg)?.let {
         it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         app.startActivity(it)

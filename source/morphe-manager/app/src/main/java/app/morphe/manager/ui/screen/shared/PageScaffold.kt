@@ -57,13 +57,7 @@ fun PageHeader(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.semantics { heading() }
                 )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                if (subtitle != null) PageSubtitle(subtitle)
             }
         },
         modifier = modifier.fillMaxWidth(),
@@ -81,6 +75,16 @@ fun PageHeader(
         search = search,
         searchLabel = searchLabel,
         searchEnabled = searchEnabled
+    )
+}
+
+/** Line under a page's title, such as what the page holds or what a mode under way asks for. */
+@Composable
+fun PageSubtitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }
 
@@ -137,7 +141,9 @@ fun PinnedHeaderPage(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
             CompositionLocalProvider(LocalBackdropHaze provides haze) {
-                Box(modifier = Modifier.contentColumn()) { bottomBar() }
+                // Held to the bottom edge, so a panel coming in as a taller one leaves rises from
+                // there rather than from the top of the room the other still takes
+                Box(modifier = Modifier.contentColumn(), contentAlignment = Alignment.BottomCenter) { bottomBar() }
             }
         },
         topBar = {

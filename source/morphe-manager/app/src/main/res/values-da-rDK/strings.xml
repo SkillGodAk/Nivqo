@@ -98,8 +98,10 @@
     <string name="home_category_name">Kategorinavn</string>
     <string name="home_category_move_to">Flyt til kategori</string>
     <string name="home_category_move_selected_title">Flyt valgte apps</string>
-    <string name="home_category_delete_confirm_title">Slet kategori</string>
-    <string name="home_category_delete_confirm_message">Slet kategori &lt;b&gt;%1$s&lt;/b&gt;? Apps i den flyttes tilbage til &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">Slet %s?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Dens apps flyttes tilbage til &lt;b&gt;%s&lt;/b&gt;</string>
     <string name="home_category_actions_unavailable">Handlinger ikke tilgængelige for denne kategori</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Hvilken app vil du patche?</string>
@@ -196,10 +198,14 @@
     <string name="sources_management_prerelease_toggle_description">Få tidlig adgang til nye eksperimentelle patch versioner</string>
     <string name="sources_prerelease_warning_title">Aktivér præ-release-patcher?</string>
     <string name="sources_prerelease_warning_message">Præ-release-versioner er stadig under udvikling. Patcher kan mislykkes eller ødelægge appen, og funktioner kan ændres uden advarsel</string>
-    <string name="expert_mode_prerelease_notice">Denne kilde er på præ-release-patcher. Patchning kan mislykkes eller opføre sig uventet</string>
-    <string name="expert_mode_experimental_version_notice">Denne kilde har kun eksperimentel understøttelse for denne app-version. Dens patches kan være ustabile eller ufuldstændige</string>
+    <string name="expert_mode_unstable_notice">Pre-release eller eksperimentelle patches kan være ustabile</string>
     <string name="sources_management_experimental_versions_toggle">Eksperimentelle app-versioner</string>
     <string name="sources_management_experimental_versions_toggle_description">Viser og retter eksperimentelle app-mål</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Aktiver pre-release patches</string>
+    <string name="sources_management_prerelease_disable">Deaktiver pre-release patches</string>
+    <string name="sources_management_experimental_versions_enable">Aktiver eksperimentelle app-versioner</string>
+    <string name="sources_management_experimental_versions_disable">Deaktiver eksperimentelle app-versioner</string>
     <string name="sources_management_already_exists">Denne kilde er allerede tilføjet</string>
     <string name="sources_management_invalid_url">Ugyldig kilde-URL. Kontroller venligst adressen og prøv igen</string>
     <string name="sources_management_blocked">Denne patchkilde er blokeret og kan ikke tilføjes</string>
@@ -207,16 +213,21 @@
     <string name="sources_management_metadata_unavailable">Metadata ikke tilgængelig</string>
     <string name="sources_management_metadata_unavailable_hint">Den eksterne metadatafil er ikke tilgængelig. Opdatering med den installerede pakke fungerer stadig, men automatisk opdatering er deaktiveret for denne kilde</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Opdateringspakken kunne ikke hentes. Kilde-URL\'en kan være forkert, eller filen findes ikke</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">Patch-pakken kunne ikke downloades. Kilde-URL\'en er muligvis forkert, eller filen findes ikke. Tryk for at ændre den</string>
     <string name="sources_management_outdated_manager_badge">Opdater Nivqo</string>
     <string name="sources_management_outdated_manager_hint">Denne kilde er bygget til patcher %1$s, men Morphe %2$s indeholder patcher %3$s. Opdater Morphe for at bruge den</string>
     <string name="sources_management_held_back_badge">Crashet</string>
     <string name="sources_management_held_back_hint">Denne kilde fik Morphe til at crashe under indlæsningen, så den bliver sprunget over. Opdater den, eller importer den igen for at prøve igen</string>
+    <string name="sources_management_signed_by">Underskrevet af</string>
+    <string name="sources_management_signing_key_changed_badge">Nøgle ændret</string>
+    <string name="sources_management_signing_key_changed_hint">Den seneste udgivelse er ikke underskrevet med den nøgle, denne kilde brugte før, så den blev ikke installeret. Tryk for at gennemse den</string>
     <string name="sources_management_source_enabled">Kilde aktiveret</string>
     <string name="sources_management_source_disabled">Kilde deaktiveret</string>
     <string name="sources_management_source_updating">Opdaterer kilde</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Visningsnavn</string>
     <string name="sources_dialog_rename">Omdøb navnet på patchkilde</string>
+    <string name="sources_dialog_change_url">Skift, hvor patch-kilden downloades fra</string>
     <string name="sources_dialog_duplicate_name_error">En patchkilde med dette navn findes allerede</string>
     <string name="sources_dialog_missing_error">Kunne ikke opdatere denne patchkilde</string>
     <string name="sources_dialog_add_source">Tilføj patchkilde</string>
@@ -227,9 +238,6 @@
     <string name="sources_dialog_paste_no_links">Ingen links fundet på udklipsholderen</string>
     <string name="sources_dialog_local">Lokalt</string>
     <string name="sources_dialog_local_files">Vælg kildefiler til patches</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">Tilføj flere filer</string>
-    <string name="sources_dialog_local_file_tap_hint">Tryk for at gennemse lager</string>
     <string name="sources_dialog_local_invalid_extension">Filen skal have en .mpp-udvidelse</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">Opdaterer %s</string>
@@ -237,6 +245,7 @@
     <string name="sources_dialog_url_invalid">URL\'en skal pege på et GitHub/GitLab-lager eller en .json-fil</string>
     <string name="sources_dialog_preinstalled">Forhåndsinstalleret</string>
     <string name="sources_dialog_community">Fællesskabets patches</string>
+    <string name="sources_dialog_choose_apps">Vælg apps</string>
     <string name="sources_dialog_choose_apps_description">Vælg, hvilke af dens apps der skal beholdes, når kilden er indlæst.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Tredjeparts patch-kilder</string>
@@ -246,18 +255,25 @@
     <string name="sources_download_fail">Kunne ikke hente patchkilder: %s</string>
     <string name="sources_download_fail_named">’%s’ kunne ikke opdateres. Tjek din internetforbindelse og prøv igen</string>
     <string name="sources_download_endpoint_not_found">’%s’: metadata for patch ikke fundet</string>
+    <string name="sources_signing_key_changed_named">\'%s\' blev ikke opdateret, fordi den seneste udgivelse ikke er underskrevet med den nøgle, den brugte før</string>
+    <string name="sources_signing_key_changed_local">Filen er ikke underskrevet med den nøgle, denne kilde brugte før. For at stole på den skal du slette kilden og tilføje filen igen</string>
+    <string name="sources_signing_key_trust_title">Stol på den nye nøgle?</string>
+    <string name="sources_signing_key_trust_message">Den seneste udgivelse er underskrevet med en anden nøgle. Enten har udvikleren udskiftet deres nøgle, eller også har en anden udgivet denne udgivelse. Stol kun på den, hvis udvikleren har annonceret en ny nøgle</string>
+    <string name="sources_signing_key_trust_message_unsigned">Den seneste udgivelse er ikke underskrevet. Enten er udvikleren holdt op med at underskrive udgivelser, eller også har en anden udgivet denne udgivelse. Stol kun på den, hvis udvikleren har annonceret det</string>
+    <string name="sources_signing_key_trusted">Betroet nøgle</string>
+    <string name="sources_signing_key_new">Ny nøgle</string>
     <string name="sources_patch_expert_badge">Ekspert</string>
     <string name="sources_patch_expert_badge_tooltip">Aktivér Eksperttilstand i Indstillinger for at inkludere denne patch manuelt</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">Har du brug for hjælp til at finde en original upatchet APK?</string>
+    <string name="home_apk_availability_title">Har du brug for hjælp til at finde APK\'en?</string>
     <string name="home_apk_availability_dialog_simple">For at patche &lt;b&gt;%s&lt;/b&gt;, skal du have den upatchede APK-version:</string>
     <string name="home_apk_availability_dialog_expert">For at patche &lt;b&gt;%s&lt;/b&gt;, skal du have en upatchet APK af versioner:</string>
     <string name="home_apk_availability_recommended_label">Anbefalet</string>
     <string name="home_apk_availability_unpatched_label">Upatchet</string>
     <string name="home_apk_availability_incompatible_label">Inkompatibel</string>
     <string name="home_apk_availability_installed_version">Installeret på denne enhed: %s</string>
-    <string name="home_apk_availability_yes">Ja, hjælp med at finde en APK</string>
-    <string name="home_apk_availability_no">Nej, jeg har allerede en APK</string>
+    <string name="home_apk_availability_find">Ja, hjælp mig med at finde den</string>
+    <string name="home_apk_availability_have">Nej, jeg har den allerede</string>
     <string name="home_apk_helper_download">Brug en hjælpeapp</string>
     <string name="home_apk_helper_untrusted">En hjælperapp er installeret, men ikke endnu betroet, så den tilbydes ikke her</string>
     <string name="home_apk_helper_untrusted_action">Gennemse hjælpere</string>
@@ -273,8 +289,8 @@
     <string name="home_apk_helper_wrong_package">Hjælpeappen returnerede en anden app end den, der bliver patchet</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo kunne ikke bruge den installerede app</string>
     <string name="home_apk_helper_installed_incompatible">Den installerede version kan ikke blive patchet</string>
-    <string name="home_apk_use_saved">Brug gemt APK</string>
-    <string name="home_apk_use_installed">Brug installeret APK</string>
+    <string name="home_apk_use_saved_copy">Brug gemt kopi</string>
+    <string name="home_apk_use_installed_app">Brug installeret app</string>
     <string name="home_apk_use_saved_unsupported">Patch\'ene understøtter ikke denne gemte kopi. At patche den vil bede dig om at bekræfte, eller vælg en anden APK.</string>
     <string name="home_apk_use_installed_unverified">Kunne ikke verificere signaturen af den installerede app, så den kan allerede være blevet patchet</string>
     <string name="home_unverified">Uverificeret</string>
@@ -310,14 +326,19 @@
     <string name="home_download_instructions_copy_link">Kopier link</string>
     <string name="home_download_instructions_link_copied">Link kopieret</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">Vælg den downloadede APK</string>
-    <string name="home_file_picker_prompt_description">Vælg det &lt;b&gt;%s&lt;/b&gt; APK-fil du lige har downloadet</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">Vælg %s APK</string>
+    <string name="home_file_picker_prompt_where">Browsere gemmer det normalt i mappen Overførsler</string>
     <string name="home_file_picker_prompt_open_apk">Åbn APK-fil</string>
     <string name="home_recommended_version">Anbefalet version</string>
     <string name="home_selected_version">Valgt version</string>
     <string name="home_select_apk_title">Vælg APK</string>
-    <string name="home_select_any_apk_description">Vælg en APK-fil fra en hvilken som helst app, eller vælg en app, der allerede er installeret på denne enhed</string>
+    <string name="home_select_apk_description">"Universelle patches virker med enhver app
+
+Vælg, hvor dens APK skal hentes fra"</string>
     <string name="home_use_installed_app">Brug installeret app</string>
+    <string name="home_use_installed_app_description">Vælg en app, der allerede er på denne enhed</string>
+    <string name="home_open_apk_file_description">Vælg en APK-, APKM-, APKS- eller XAPK-fil fra lageret</string>
     <string name="home_installed_app_picker_title">Installerede apps</string>
     <string name="home_installed_app_picker_empty">Ingen apps fundet</string>
     <string name="home_installed_app_picker_filter_user">Kun brugerapps</string>
@@ -330,19 +351,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">Søg patches</string>
     <string name="expert_mode_disable_all">Deaktiver alle</string>
-    <string name="expert_mode_disable_all_done">Alle patches deaktiveret</string>
     <string name="expert_mode_enable_all">Aktiver alle</string>
-    <string name="expert_mode_enable_all_done">Alle patches aktiveret</string>
     <string name="expert_mode_enable_all_universal_pending">Tryk igen for universelle patches</string>
     <string name="expert_mode_universal_all_warning_title">Aktivér alle universelle patcher?</string>
     <string name="expert_mode_universal_all_warning_message">Universelle patcher er ikke testet sammen. Aktivering af alle på én gang kan forårsage konflikter, mislykket patchning eller nedbrud</string>
-    <string name="expert_mode_reset_to_default">Aktivér anbefalede patches</string>
+    <string name="expert_mode_recommended">Anbefalede patches</string>
     <string name="expert_mode_reset_to_default_done">Anbefalede patches anvendt</string>
-    <string name="expert_mode_restore_saved">Gendan gemt valg</string>
+    <string name="expert_mode_selected_count">%1$s ud af %2$s valgt</string>
+    <string name="expert_mode_saved_selection">Gemt valg</string>
     <string name="expert_mode_restore_saved_done">Gemt valg er gendannet</string>
-    <string name="expert_mode_copy_from_bundle">Kopier udvalg fra en anden pakke</string>
     <string name="expert_mode_copy_from_bundle_no_patches">Ingen matchende patches i denne pakke</string>
     <string name="expert_mode_no_results">Ingen patches fundet</string>
+    <string name="expert_mode_selected_only">Kun valgte patches</string>
     <string name="expert_mode_selected_only_on">Viser kun udvalgte patches</string>
     <string name="expert_mode_selected_only_off">Viser alle patches</string>
     <string name="expert_mode_universal_patches">Universelle patches</string>
@@ -351,9 +371,7 @@
     <string name="expert_mode_patch_required_by_installer">Nødvendig for det valgte installationsmål</string>
     <string name="expert_mode_patch_unavailable_for_installer">Ikke tilgængelig for det valgte installationsmål</string>
     <string name="expert_mode_multiple_sources_warning_title">Flere patchkilder valgt</string>
-    <string name="expert_mode_multiple_sources_warning_message">"Du har valgt patches fra flere patchkilder. Dette kan forårsage kompatibilitetsproblemer eller uventet adfærd.
-
-Er du sikker på, at du vil fortsætte?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Patches fra forskellige kilder er ikke designet til at fungere sammen og kan være i konflikt eller ødelægge appen</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">Uverificeret APK</string>
     <string name="home_invalid_signature_message">Den APK du valgte for &lt;b&gt;%s&lt;/b&gt;, stemmer ikke overens med det forventede signeringscertifikat. Den kan være ændret eller fra en utroværdig kilde</string>
@@ -367,7 +385,9 @@ For de bedste resultater anbefaler denne app at patche en &lt;b&gt;fuld APK&lt;/
     <string name="home_dialog_unsupported_version_experimental_label">Eksperimentel</string>
     <string name="home_dialog_unsupported_version_experimental_description">Denne version har eksperimentel understøttelse og kan være ustabil eller ufærdig</string>
     <string name="morphe_experimental_app_version_dialog_title">Vil du eksperimentere? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">Denne version af &lt;b&gt;%s&lt;/b&gt; har tidlig eksperimentel understøttelse&lt;br/&gt;&lt;br/&gt;🔧 Forvent mærkelig app-adfærd eller uidentificerede fejl, mens patchesene bliver finpudset til denne appversion</string>
+    <string name="morphe_experimental_app_version_dialog_message">"Denne version af &lt;b&gt;%s&lt;/b&gt; har tidlig eksperimentel understøttelse.
+
+🔧 Forvent mærkelig app-adfærd eller uidentificerede fejl, mens patchesene bliver finpudset til denne appversion"</string>
     <string name="home_dialog_unsupported_version_dialog_title">Ugyldig version</string>
     <string name="home_dialog_unsupported_version_dialog_description">Denne APK er ikke en anbefalet app-version. At fortsætte kan resultere i en ikke-fungerende app</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -504,7 +524,8 @@ For de bedste resultater anbefaler denne app at patche en &lt;b&gt;fuld APK&lt;/
     <string name="shortcut_check_updates_long">Tjek for patch-opdateringer</string>
     <string name="shortcut_patch_app">Patch %s</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">Er du sikker på at du vil fjerne denne app? </string>
+    <string name="home_app_info_uninstall_title">Afinstaller denne app?</string>
+    <string name="home_app_info_uninstall_removes_data">Appen og dens data fjernes fra denne enhed</string>
     <string name="batch_uninstall_confirm_body">De valgte apps vil blive permanent fjernet fra din enhed</string>
     <string name="home_app_info_remove_app_warning">Dette vil permanent slette:</string>
     <string name="home_app_info_delete_item_database">Databaseindtastning</string>
@@ -643,12 +664,15 @@ Afinstallation sletter permanent alle appdata."</string>
     <string name="patcher_storage_permission_open_settings">Åbn lagerindstillinger </string>
     <string name="patcher_storage_badge_denied">Tilladelse afvist</string>
     <string name="patcher_storage_badge_missing">Ikke fundet</string>
+    <string name="patcher_storage_badge_rejected">Kan ikke bruges</string>
     <string name="batch_patch_option_paths_skipped">Patch-indstillingsfiler mangler og vil blive sprunget over: %1$s</string>
     <string name="patcher_missing_patches_title">Nogle patches er væk</string>
     <string name="patcher_missing_patches_description">Den gemte valgmulighed for denne app refererer til patches, som ingen aktiveret kilde længere tilbyder. Ved at fortsætte patches af appen uden dem</string>
     <string name="patcher_missing_patches_label">Tilbydes ikke længere</string>
     <string name="patcher_option_paths_gone_title">Patch-indstillingsfiler mangler</string>
     <string name="patcher_option_paths_gone_description">En eller flere patch-indstillinger peger på filer, der ikke længere findes. Fjern stierne for at patche uden dem, eller læg filerne tilbage og prøv igen</string>
+    <string name="patcher_option_paths_rejected_title">Patch-optionsfiler kan ikke bruges</string>
+    <string name="patcher_option_paths_rejected_description">En eller flere patch-optioner henviser til filer, der mangler eller ikke indeholder det, patchen beder om. Fjern stierne for at patche uden dem, eller ret filerne som beskrevet i instruktionerne for optionen, og prøv igen</string>
     <string name="patcher_option_paths_clear">Fjern stierne og fortsæt</string>
     <string name="patcher_storage_permission_hint">Tip: Flyt filer til /Android/data/app.morphe.manager/files/ - ingen ekstra tilladelser nødvendige</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -666,8 +690,10 @@ Afinstallation sletter permanent alle appdata."</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Patching i gang…</string>
     <string name="patcher_notification_text">Tryk for at vende tilbage til patcheren</string>
-    <string name="patcher_stop_confirm_title">Stop patcher</string>
-    <string name="patcher_stop_confirm_description">Er du sikker på, at du vil stoppe patchprocessen?</string>
+    <string name="patcher_stop_title">Stop patching?</string>
+    <string name="patcher_stop_discards">Fremskridtet indtil nu kasseres, og intet bliver installeret</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Fortsæt patching</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">Forvandler din app til noget fedt… 🏆</string>
     <string name="patcher_message_2">Lærer gamle apps nye tricks… 🎩</string>
@@ -809,21 +835,21 @@ Afinstallation sletter permanent alle appdata."</string>
     <string name="settings_appearance_repatch_notice_description">Viser et banner, når patchede apps kan genpatches</string>
     <string name="settings_appearance_more_apps_card">Kort med flere apps</string>
     <string name="settings_appearance_more_apps_card_description">Viser et kort under apps, der fører til community-patches</string>
-    <string name="settings_appearance_app_card_colors">App-kort farver</string>
+    <string name="settings_appearance_app_card_colors">Kortfarver</string>
     <string name="settings_appearance_app_card_colors_default">Standard</string>
-    <string name="settings_appearance_app_card_colors_default_description">Giv hver app farven af sin egen bundle</string>
+    <string name="settings_appearance_app_card_colors_default_description">Giv hver app og kilde sin egen farve</string>
     <string name="settings_appearance_app_card_colors_accent">Accent</string>
-    <string name="settings_appearance_app_card_colors_accent_description">Brug appens accentfarve til hjem-app kort</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Brug appens accentfarve til app- og kildekort</string>
     <string name="settings_appearance_app_card_colors_gradient">Gradient</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">Brug en enkelt brugerdefineret gradient til hjem-app kort</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Brug én brugerdefineret gradient til app-kort, blendet til én farve til kildekort</string>
     <string name="settings_appearance_app_card_colors_solid">Ensfarvet</string>
-    <string name="settings_appearance_app_card_colors_solid_description">Brug en enkelt brugerdefineret farve til hjem-app kort</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Brug én brugerdefineret farve til app- og kildekort</string>
     <string name="settings_appearance_app_card_colors_start">Startfarve</string>
     <string name="settings_appearance_app_card_colors_middle">Mellemfarve</string>
     <string name="settings_appearance_app_card_colors_end">Slutfarve</string>
     <string name="settings_appearance_app_card_colors_solid_color">Ensfarvet farve</string>
     <string name="settings_appearance_app_card_colors_bundle">App-bundelfarve</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">Brug hver apps egen farve her, med automatisk skyggelægning, så den passer</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Brug hver apps eller kildes egen farve her, automatisk nuanceret for at passe</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Appikon</string>
     <string name="settings_appearance_app_icon_selector_description">Sådan ser Morphe ud på din startskærm og i app-skuffen</string>
@@ -849,7 +875,8 @@ Afinstallation sletter permanent alle appdata."</string>
     <string name="settings_appearance_app_icon_mark_white">Hvid</string>
     <string name="settings_appearance_app_icon_mark_black">Sort</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Ændre appikon? </string>
-    <string name="settings_appearance_app_icon_change_dialog_message">Skift til &lt;b&gt;%s&lt;/b&gt; og genstart?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe genstarter for at skifte til &lt;b&gt;%s&lt;/b&gt;</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Ændre ikon</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1036,6 +1063,8 @@ Størrelsesformatet skal være som følger:
     <string name="installer_play_store_warning_continue">Jeg forstår, fortsæt</string>
     <string name="installer_play_store_mode">Installer som Play Butik</string>
     <string name="installer_play_store_mode_description">Mærker Google Play Store som installationskilde</string>
+    <string name="settings_nomount_only">Kun NoMount</string>
+    <string name="settings_nomount_only_description">Monterer kun apps med NoMount og falder aldrig tilbage til et bind mount, så de forbliver umonterede uden det</string>
     <string name="settings_prompt_installer_on_install">Installatørvalgsmeddelelse</string>
     <string name="settings_prompt_installer_on_install_description">Spørger, hvordan hver app skal installeres: med root før patchning, ellers efter den</string>
     <string name="settings_auto_install_with_shizuku">Automatisk installation efter patching</string>
@@ -1205,12 +1234,22 @@ Detaljer: %2$s"</string>
     <string name="settings_system_import_source_data_success">Kilde-data importeret med succes</string>
     <string name="settings_system_selected_patches_section">Valgte patches</string>
     <string name="settings_system_no_patches_or_options">Ingen patches eller valg gemt</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">Kopier udvalg fra…</string>
-    <string name="copy_selection_confirm_with_count">Kopier %s</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Valg</string>
+    <string name="selection_panel_copy_into">Kopier til %s</string>
+    <string name="selection_sets_title">Sæt</string>
+    <string name="selection_set_name">Sætnavn</string>
+    <string name="selection_set_save">Gem som sæt</string>
+    <string name="selection_set_replace">Erstat sæt</string>
+    <string name="selection_set_saved">Gemt som %s</string>
+    <string name="selection_set_applied">Skiftet til %s</string>
+    <string name="selection_set_deleted">%s slettet</string>
+    <string name="selection_set_renamed">Omdøbt til %s</string>
+    <string name="selection_set_rename_title">Omdøb sæt</string>
+    <string name="selection_set_delete_title">Slet sæt?</string>
+    <string name="selection_set_delete_message">Dette sletter permanent sættet %s</string>
     <string name="copy_selection_empty">Ingen andre gemte udvalg at kopiere fra</string>
     <string name="copy_selection_available_format">%1$s af %2$s tilgængelig</string>
-    <string name="copy_selection_same_source">Samme kilde</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Brugerdefineret filvælger</string>
     <string name="settings_system_custom_file_picker_description">Bruger Morphes indbyggede filvælger i stedet for systemets</string>
@@ -1219,7 +1258,6 @@ Detaljer: %2$s"</string>
     <string name="settings_system_apk_download_helper_trusted_count">Pålidelige: %1$d ud af %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Hjælpeapps kan downloade originale APK\'er for dig. Kun dem, du har tillid til her, tilbydes i downloadinstruktionerne.</string>
     <string name="settings_system_apk_download_helper_trust_title">Stoler du på denne hjælper?</string>
-    <string name="settings_system_apk_download_helper_trust">Tillad</string>
     <string name="settings_system_apk_download_helper_warning">APK\'en kommer fra hjælpeappen, så stol kun på apps, du kender. Morphe kontrollerer stadig pakken, versionen og signaturen for hver fil, før den patcher.</string>
     <string name="settings_system_apk_download_helper_installed_by">Installeret af %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Installeret af ukendt</string>
@@ -1231,7 +1269,10 @@ Detaljer: %2$s"</string>
     <string name="file_picker_internal_storage">Intern lagring</string>
     <string name="file_picker_sd_card">SD-kort</string>
     <string name="file_picker_root">Rod (/)</string>
+    <string name="file_picker_storage_access_unavailable">Denne enhed har ingen skærm, der tillader adgang til alle filer. Tillad det via ADB med: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">Lagre</string>
+    <string name="file_saver_downloads_failed">Kunne ikke oprette filen i Downloads</string>
+    <string name="file_saver_saving_to_downloads">Denne enhed har ingen gemmeskærm, så filen gemmes i Downloads som %1$s</string>
     <string name="file_picker_sort_name_asc">Navn (A–Z)</string>
     <string name="file_picker_sort_name_desc">Navn (Z–A)</string>
     <string name="file_picker_sort_size_desc">Størrelse (størst først)</string>
@@ -1314,6 +1355,7 @@ Detaljer: %2$s"</string>
     <string name="include">Inkluder</string>
     <string name="disable">Deaktivér</string>
     <string name="enable">Aktiver</string>
+    <string name="trust">Stol på</string>
     <string name="loading">Indlæser…</string>
     <string name="creating">Opretter…</string>
     <string name="processing_apk">Behandler APK…</string>
@@ -1335,6 +1377,8 @@ Detaljer: %2$s"</string>
     <string name="reorder_done">Rækkefølge gemt</string>
     <string name="reset_order">Nulstil rækkefølge</string>
     <string name="reset_order_done">Ordre nulstillet</string>
+    <string name="reset_order_confirm_title">Nulstil rækkefølgen?</string>
+    <string name="reset_order_confirm_message">Listen vender tilbage til sin standardrækkefølge, og den rækkefølge, der er trukket manuelt, går tabt</string>
     <string name="accessibility_select_app">Vælg app</string>
     <string name="accessibility_select_source">Vælg kilde</string>
     <string name="accessibility_move_up">Flyt op</string>
@@ -1342,6 +1386,7 @@ Detaljer: %2$s"</string>
     <string name="accessibility_app_moved_announcement">%1$s flyttet til position %2$s af %3$s</string>
     <string name="accessibility_scroll_to_top">Rul til toppen af listen</string>
     <string name="rename">Omdøb</string>
+    <string name="more_options">Flere indstillinger</string>
     <string name="import_">Importer</string>
     <string name="export">Eksportér</string>
     <string name="copy">Kopiér</string>
@@ -1386,6 +1431,7 @@ Detaljer: %2$s"</string>
     <string name="show_all">Vis alle</string>
     <string name="ignore">Ignorer</string>
     <string name="stop_ignoring">Stop med at ignorere</string>
+    <string name="stop">Stop</string>
     <string name="logs">Logge</string>
     <string name="sources">Kilder</string>
     <string name="installing_ellipsis">Installerer…</string>
@@ -1472,14 +1518,43 @@ Vil du stadig fortsætte?"</string>
     <string name="onboarding_restart_title">Funktionstur</string>
     <string name="onboarding_restart_desc">En guidet rundvisning i de vigtigste funktioner</string>
 
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <!-- Preserved Nivqo localization -->
+    <string name="home_category_delete_confirm_title">Slet kategori</string>
+    <string name="home_category_delete_confirm_message">Slet kategori &lt;b&gt;%1$s&lt;/b&gt;? Apps i den flyttes tilbage til &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <string name="expert_mode_prerelease_notice">Denne kilde er på præ-release-patcher. Patchning kan mislykkes eller opføre sig uventet</string>
+    <string name="expert_mode_experimental_version_notice">Denne kilde har kun eksperimentel understøttelse for denne app-version. Dens patches kan være ustabile eller ufuldstændige</string>
+    <string name="sources_dialog_local_add_more">Tilføj flere filer</string>
+    <string name="sources_dialog_local_file_tap_hint">Tryk for at gennemse lager</string>
+    <string name="home_apk_availability_dialog_title">Har du brug for hjælp til at finde en original upatchet APK?</string>
+    <string name="home_apk_availability_yes">Ja, hjælp med at finde en APK</string>
+    <string name="home_apk_availability_no">Nej, jeg har allerede en APK</string>
+    <string name="home_apk_use_saved">Brug gemt APK</string>
+    <string name="home_apk_use_installed">Brug installeret APK</string>
+    <string name="home_file_picker_prompt_title">Vælg den downloadede APK</string>
+    <string name="home_file_picker_prompt_description">Vælg det &lt;b&gt;%s&lt;/b&gt; APK-fil du lige har downloadet</string>
+    <string name="home_select_any_apk_description">Vælg en APK-fil fra en hvilken som helst app, eller vælg en app, der allerede er installeret på denne enhed</string>
+    <string name="expert_mode_disable_all_done">Alle patches deaktiveret</string>
+    <string name="expert_mode_enable_all_done">Alle patches aktiveret</string>
+    <string name="expert_mode_reset_to_default">Aktivér anbefalede patches</string>
+    <string name="expert_mode_restore_saved">Gendan gemt valg</string>
+    <string name="expert_mode_copy_from_bundle">Kopier udvalg fra en anden pakke</string>
+    <string name="expert_mode_multiple_sources_warning_message">"Du har valgt patches fra flere patchkilder. Dette kan forårsage kompatibilitetsproblemer eller uventet adfærd.
+
+Er du sikker på, at du vil fortsætte?"</string>
+    <string name="home_app_info_uninstall_app_confirmation">Er du sikker på at du vil fjerne denne app? </string>
+    <string name="patcher_stop_confirm_title">Stop patcher</string>
+    <string name="patcher_stop_confirm_description">Er du sikker på, at du vil stoppe patchprocessen?</string>
+    <string name="settings_appearance_app_icon_change_dialog_message">Skift til &lt;b&gt;%s&lt;/b&gt; og genstart?</string>
+    <string name="copy_selection_title">Kopier udvalg fra…</string>
+    <string name="copy_selection_confirm_with_count">Kopier %s</string>
+    <string name="copy_selection_same_source">Samme kilde</string>
+    <string name="settings_system_apk_download_helper_trust">Tillad</string>
     <string name="home_app_list_options_title">Sorter og filtrer</string>
     <string name="home_app_list_options_state_description">Sorteret efter %1$s, filtreret efter %2$s</string>
     <string name="sources_sort_title">Sortér patch-kilder</string>
     <string name="sources_apps_leave_out">Udelad</string>
     <string name="sources_apps_leave_out_done">Udeladt</string>
     <string name="sources_apps_bring_back">Bring tilbage</string>
-    <string name="sources_dialog_choose_apps">Vælg apps</string>
     <string name="hex_color">Hex farve</string>
     <string name="patcher_memory_adjustment_title">Ikke nok hukommelse</string>
     <string name="patcher_memory_adjustment_description">Patcheren blev stoppet af systemet, mens den kørte med en hukommelsesgrænse på %1$d MB. En sænkning af grænsen til %2$d MB gør patcheren til et mindre mål og kan lade kørslen fuldføre.</string>

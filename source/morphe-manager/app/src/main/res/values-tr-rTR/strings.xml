@@ -98,8 +98,10 @@
     <string name="home_category_name">Kategori adı</string>
     <string name="home_category_move_to">Kategoriye taşı</string>
     <string name="home_category_move_selected_title">Seçili uygulamaları taşı</string>
-    <string name="home_category_delete_confirm_title">Kategoriyi sil</string>
-    <string name="home_category_delete_confirm_message">&lt;b&gt;%1$s&lt;/b&gt; kategorisini sil? İçindeki uygulamalar &lt;b&gt;%2$s&lt;/b&gt; bölümüne geri taşınacak</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">%s silinsin mi?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Uygulamaları &lt;b&gt;%s&lt;/b&gt; kategorisine geri taşınır</string>
     <string name="home_category_actions_unavailable">Bu kategori için kullanılamayan işlemler</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Hangi uygulamayı yamalamak istiyorsunuz?</string>
@@ -196,10 +198,14 @@
     <string name="sources_management_prerelease_toggle_description">Yeni deneysel sürüm yamalarına erken erişim sağlar</string>
     <string name="sources_prerelease_warning_title">Ön sürüm yamalarını etkinleştir?</string>
     <string name="sources_prerelease_warning_message">Ön sürüm yapıları hâlâ geliştirme aşamasındadır. Yamalar başarısız olabilir veya uygulamayı bozabilir ve özellikler uyarı vermeden değişebilir.</string>
-    <string name="expert_mode_prerelease_notice">Bu kaynak ön sürüm yamalarındadır. Yama yapma başarısız olabilir veya beklenmedik davranabilir.</string>
-    <string name="expert_mode_experimental_version_notice">Bu kaynak, bu uygulama sürümü için yalnızca deneysel desteğe sahiptir. Yamaları kararsız veya eksik olabilir</string>
+    <string name="expert_mode_unstable_notice">Ön sürüm veya deneysel yamalar kararsız olabilir</string>
     <string name="sources_management_experimental_versions_toggle">Deneysel uygulama sürümleri</string>
     <string name="sources_management_experimental_versions_toggle_description">Deneysel uygulama hedeflerini gösterir ve yamalar</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Ön sürüm yamaları etkinleştir</string>
+    <string name="sources_management_prerelease_disable">Ön sürüm yamaları devre dışı bırak</string>
+    <string name="sources_management_experimental_versions_enable">Deneysel uygulama sürümlerini etkinleştir</string>
+    <string name="sources_management_experimental_versions_disable">Deneysel uygulama sürümlerini devre dışı bırak</string>
     <string name="sources_management_already_exists">Bu kaynak zaten eklenmiş</string>
     <string name="sources_management_invalid_url">Geçersiz kaynak URL\'si. Lütfen adresi kontrol edin ve tekrar deneyin</string>
     <string name="sources_management_blocked">Bu yama kaynağı engellenmiş ve eklenemiyor</string>
@@ -207,16 +213,21 @@
     <string name="sources_management_metadata_unavailable">Metadata Yok</string>
     <string name="sources_management_metadata_unavailable_hint">Uzak metadata dosyası kullanılamıyor. Yüklü paketle yamalama hala çalışır, ancak bu kaynak için otomatik güncelleme devre dışı bırakıldı</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Yama paketi indirilemedi. Kaynak URL\'si yanlış olabilir veya dosya mevcut olmayabilir</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">Yama paketi indirilemedi. Kaynak URL\'si yanlış olabilir veya dosya mevcut değildir. URL\'yi değiştirmek için dokunun</string>
     <string name="sources_management_outdated_manager_badge">Nivqo\'yi güncelleyin</string>
     <string name="sources_management_outdated_manager_hint">Bu kaynak, %1$s yama programı için oluşturulmuş, ancak Morphe %2$s, %3$s yama programını içeriyor. Bunu kullanmak için Morphe\'yi güncelleyin</string>
     <string name="sources_management_held_back_badge">Çöktü</string>
     <string name="sources_management_held_back_hint">Bu kaynak, yüklenirken Morphe\'nin çökmesine neden oldu; bu yüzden atlanıyor. Tekrar denemek için kaynağı güncelleyin veya yeniden içe aktarın.</string>
+    <string name="sources_management_signed_by">İmzalayan</string>
+    <string name="sources_management_signing_key_changed_badge">Anahtar değişti</string>
+    <string name="sources_management_signing_key_changed_hint">Son sürüm, bu kaynağın önceden kullandığı anahtar ile imzalanmamış; bu yüzden yüklenmedi. İncelemek için dokunun</string>
     <string name="sources_management_source_enabled">Kaynak etkin</string>
     <string name="sources_management_source_disabled">Kaynak devre dışı</string>
     <string name="sources_management_source_updating">Kaynak güncelleniyor</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Görünen ad</string>
     <string name="sources_dialog_rename">Yama kaynağını yeniden adlandır</string>
+    <string name="sources_dialog_change_url">Yama kaynağının nereden indirildiğini değiştirin</string>
     <string name="sources_dialog_duplicate_name_error">Bu isme sahip bir yama kaynağı zaten mevcut</string>
     <string name="sources_dialog_missing_error">Bu yama kaynağı güncellenemedi</string>
     <string name="sources_dialog_add_source">Yama kaynağı ekle</string>
@@ -227,9 +238,6 @@
     <string name="sources_dialog_paste_no_links">Panoda bağlantı bulunamadı</string>
     <string name="sources_dialog_local"> Yerel</string>
     <string name="sources_dialog_local_files">Yama kaynak dosyalarını seçin</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">Daha fazla dosya ekleyin</string>
-    <string name="sources_dialog_local_file_tap_hint">Depolamaya göz atmak için dokunun</string>
     <string name="sources_dialog_local_invalid_extension">Dosyanın .mpp uzantısına sahip olması gerekiyor</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">Güncelleme: %s</string>
@@ -237,6 +245,7 @@
     <string name="sources_dialog_url_invalid">URL, bir GitHub/GitLab deposuna veya .json dosyasına işaret etmelidir</string>
     <string name="sources_dialog_preinstalled">Ön yüklü</string>
     <string name="sources_dialog_community">Topluluk yamaları</string>
+    <string name="sources_dialog_choose_apps">Uygulamaları seçin</string>
     <string name="sources_dialog_choose_apps_description">Kaynak yüklendikten sonra, uygulamalarından hangilerinin tutulacağını seçin.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Üçüncü taraf yama kaynakları</string>
@@ -246,18 +255,25 @@
     <string name="sources_download_fail">Kaynaklar indirilemedi: %s</string>
     <string name="sources_download_fail_named">\'%s\' güncellenemedi. İnternet bağlantınızı kontrol edin ve tekrar deneyin</string>
     <string name="sources_download_endpoint_not_found">\'%s\': yama metadatası bulunamadı</string>
+    <string name="sources_signing_key_changed_named">\'%s\' güncellenmedi, çünkü son sürümü önceden kullandığı anahtar ile imzalanmamış</string>
+    <string name="sources_signing_key_changed_local">Bu dosya, bu kaynağın önceden kullandığı anahtar ile imzalanmamış. Güvenmek için, kaynağı silin ve dosyayı yeniden ekleyin</string>
+    <string name="sources_signing_key_trust_title">Yeni anahtara güvenilsin mi?</string>
+    <string name="sources_signing_key_trust_message">Son sürüm farklı bir anahtar ile imzalı. Ya geliştirici anahtarını değiştirdi ya da bu sürümü başka birisi yayınladı. Yalnızca geliştirici yeni bir anahtar duyurduysa güvenin</string>
+    <string name="sources_signing_key_trust_message_unsigned">Son sürüm imzalı değil. Ya geliştirici sürümleri imzalamayı bıraktı ya da bu sürümü başka birisi yayınladı. Yalnızca geliştirici bunu duyurduysa güvenin</string>
+    <string name="sources_signing_key_trusted">Güvenilen anahtar</string>
+    <string name="sources_signing_key_new">Yeni anahtar</string>
     <string name="sources_patch_expert_badge">Uzman</string>
     <string name="sources_patch_expert_badge_tooltip">Bu yamayı manuel olarak eklemek için Ayarlar\'da Uzman modunu etkinleştirin</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">Orijinal, yamalanmamış APK bulmada yardıma ihtiyacınız var mı?</string>
+    <string name="home_apk_availability_title">APK bulmada yardıma ihtiyacınız var mı?</string>
     <string name="home_apk_availability_dialog_simple">&lt;b&gt;%s&lt;/b&gt;\'i yamalamak için bu yamalanmamış APK sürümüne ihtiyacınız var:</string>
     <string name="home_apk_availability_dialog_expert">&lt;b&gt;%s&lt;/b&gt;\'i yamalamak için bu yamalanmamış APK sürümlerinden birine ihtiyacınız var:</string>
     <string name="home_apk_availability_recommended_label">Önerilen</string>
     <string name="home_apk_availability_unpatched_label">Yamalanmamış</string>
     <string name="home_apk_availability_incompatible_label">Uyumsuz</string>
     <string name="home_apk_availability_installed_version">Bu cihazda yüklü: %s</string>
-    <string name="home_apk_availability_yes">Evet, APK bulmama yardım et</string>
-    <string name="home_apk_availability_no">Hayır, bende APK var</string>
+    <string name="home_apk_availability_find">Evet, bulmama yardım et</string>
+    <string name="home_apk_availability_have">Hayır, zaten bende var</string>
     <string name="home_apk_helper_download">Bir yardımcı uygulama kullanın</string>
     <string name="home_apk_helper_untrusted">Yardımcı bir uygulama yüklü ancak henüz güvenilir değil, bu yüzden burada sunulmuyor</string>
     <string name="home_apk_helper_untrusted_action">Yardımcıları incele</string>
@@ -273,8 +289,8 @@
     <string name="home_apk_helper_wrong_package">Yardımcı uygulama yamalanan uygulamadan farklı bir uygulama döndürdü</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo yüklü uygulamayı kullanamadı</string>
     <string name="home_apk_helper_installed_incompatible">Yüklü sürüm yamalanamıyor</string>
-    <string name="home_apk_use_saved">Kayıtlı APK\'yi kullan</string>
-    <string name="home_apk_use_installed">Yüklü APK\'yi kullan</string>
+    <string name="home_apk_use_saved_copy">Kayıtlı kopyayı kullan</string>
+    <string name="home_apk_use_installed_app">Yüklü uygulamayı kullan</string>
     <string name="home_apk_use_saved_unsupported">Bu kaydedilmiş kopya yamalar tarafından desteklenmiyor. Yamalama sırasında onay istenecek veya başka bir APK seçin</string>
     <string name="home_apk_use_installed_unverified">Yüklenen uygulamanın imzası doğrulanamadı, bu nedenle zaten yama uygulanmış olabilir</string>
     <string name="home_unverified">Doğrulanmamış</string>
@@ -310,14 +326,19 @@
     <string name="home_download_instructions_copy_link">Bağlantıyı kopyala</string>
     <string name="home_download_instructions_link_copied">Bağlantı kopyalandı</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">İndirilen APK\'yi seç</string>
-    <string name="home_file_picker_prompt_description">İndirdiğiniz &lt;b&gt;%s&lt;/b&gt; APK dosyasını seçin</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">%s APK\'sini seçin</string>
+    <string name="home_file_picker_prompt_where">Tarayıcılar bunu genellikle Download klasörüne kaydeder</string>
     <string name="home_file_picker_prompt_open_apk">APK dosyasını aç</string>
     <string name="home_recommended_version">Önerilen sürüm</string>
     <string name="home_selected_version">Seçilen sürüm</string>
     <string name="home_select_apk_title">APK seç</string>
-    <string name="home_select_any_apk_description">Herhangi bir uygulamanın APK dosyasını seçin veya bu cihazda zaten yüklü olan bir uygulamayı seçin</string>
+    <string name="home_select_apk_description">"Evrensel yamalar herhangi bir uygulama ile çalışır
+
+APK'nin nereden alınacağını seçin"</string>
     <string name="home_use_installed_app">Yüklü uygulamayı kullan</string>
+    <string name="home_use_installed_app_description">Bu cihazda zaten yüklü olan bir uygulama seçin</string>
+    <string name="home_open_apk_file_description">Depolamadan bir APK, APKM, APKS veya XAPK dosyası seçin</string>
     <string name="home_installed_app_picker_title">Yüklü uygulamalar</string>
     <string name="home_installed_app_picker_empty">Uygulama bulunamadı</string>
     <string name="home_installed_app_picker_filter_user">Yalnızca kullanıcı uygulamaları</string>
@@ -330,19 +351,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">Yamaları ara</string>
     <string name="expert_mode_disable_all">Hepsini devre dışı bırak</string>
-    <string name="expert_mode_disable_all_done">Tüm yamalar devre dışı bırakıldı</string>
     <string name="expert_mode_enable_all">Hepsini etkinleştir</string>
-    <string name="expert_mode_enable_all_done">Tüm yamalar etkinleştirildi</string>
     <string name="expert_mode_enable_all_universal_pending">Evrensel yamalar için tekrar dokunun</string>
     <string name="expert_mode_universal_all_warning_title">Tüm evrensel yamaları etkinleştir?</string>
     <string name="expert_mode_universal_all_warning_message">Evrensel yamalar birlikte test edilmemiştir. Hepsini aynı anda etkinleştirmek çakışmalara, başarısız yamalara veya çökmelere neden olabilir.</string>
-    <string name="expert_mode_reset_to_default">Önerilen yamaları etkinleştir</string>
+    <string name="expert_mode_recommended">Önerilen yamalar</string>
     <string name="expert_mode_reset_to_default_done">Önerilen yamalar uygulandı</string>
-    <string name="expert_mode_restore_saved">Kaydedilen seçimi geri yükle</string>
+    <string name="expert_mode_selected_count">%1$s / %2$s seçildi</string>
+    <string name="expert_mode_saved_selection">Kaydedilen seçim</string>
     <string name="expert_mode_restore_saved_done">Kaydedilmiş seçim geri yüklendi</string>
-    <string name="expert_mode_copy_from_bundle">Başka bir bundle\'dan seçimi kopyala</string>
     <string name="expert_mode_copy_from_bundle_no_patches">Bu bundle\'da eşleşen yama yok</string>
     <string name="expert_mode_no_results">Yama bulunamadı</string>
+    <string name="expert_mode_selected_only">Sadece seçilen yamalar</string>
     <string name="expert_mode_selected_only_on">Yalnızca seçili yamalar gösteriliyor</string>
     <string name="expert_mode_selected_only_off">Tüm yamalar gösteriliyor</string>
     <string name="expert_mode_universal_patches">Evrensel yamalar</string>
@@ -351,9 +371,7 @@
     <string name="expert_mode_patch_required_by_installer">Seçilen kurulum hedefi için gerekli</string>
     <string name="expert_mode_patch_unavailable_for_installer">Seçilen kurulum hedefi için kullanılamıyor</string>
     <string name="expert_mode_multiple_sources_warning_title">Birden fazla yama kaynağı seçildi</string>
-    <string name="expert_mode_multiple_sources_warning_message">"Birden fazla yama kaynağından yama seçtiniz. Bu, uyumluluk sorunlarına veya beklenmedik davranışlara neden olabilir.
-
-Devam etmek istediğinizden emin misiniz?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Farklı kaynaklardan yamalar birlikte çalışmak için tasarlanmaz, bu yüzden çakışabilir veya uygulamayı bozabilir</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">Onaylanmamış APK</string>
     <string name="home_invalid_signature_message">&lt;b&gt;%s&lt;/b&gt; için seçtiğiniz APK, beklenen imzalama sertifikasıyla eşleşmiyor. Değiştirilmiş olabilir veya güvenilmeyen bir kaynaktan olabilir</string>
@@ -367,7 +385,9 @@ En iyi sonuçlar için bu uygulama, &lt;b&gt;tam APK&lt;/b&gt; dosyasını yamal
     <string name="home_dialog_unsupported_version_experimental_label">Deneysel</string>
     <string name="home_dialog_unsupported_version_experimental_description">Bu sürüm deneysel destek içerir ve kararsız veya eksik olabilir</string>
     <string name="morphe_experimental_app_version_dialog_title">Deney yapmak ister misiniz? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">&lt;b&gt;%s&lt;/b&gt;\'nin bu sürümünün erken deneysel desteği bulunmaktadır&lt;br/&gt;&lt;br/&gt;🔧 Bu uygulama sürümü için yamalar iyileştirilirken tuhaf uygulama davranışı veya tanımlanmamış hatalar bekleyin</string>
+    <string name="morphe_experimental_app_version_dialog_message">"&lt;b&gt;%s&lt;/b&gt;'nin bu sürümü erken deneysel desteğe sahiptir.
+
+🔧 Yamalar bu uygulama sürümü için iyileştirilirken tuhaf uygulama davranışlarıyla veya tanımlanmamış hatalarla karşılaşabilirsiniz"</string>
     <string name="home_dialog_unsupported_version_dialog_title">Desteklenmeyen Sürüm</string>
     <string name="home_dialog_unsupported_version_dialog_description">Bu APK, önerilen uygulama sürümü değil. Devam edilmesi çalışmayan bir uygulamaya neden olabilir</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -504,7 +524,8 @@ En iyi sonuçlar için bu uygulama, &lt;b&gt;tam APK&lt;/b&gt; dosyasını yamal
     <string name="shortcut_check_updates_long">Yama güncellemelerini kontrol et</string>
     <string name="shortcut_patch_app">%s\'yi yamala</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">Bu uygulamayı kaldırmak istediğinizden emin misiniz?</string>
+    <string name="home_app_info_uninstall_title">Bu uygulama kaldırılsın mı?</string>
+    <string name="home_app_info_uninstall_removes_data">Uygulama ve verileri bu cihazdan kaldırılır</string>
     <string name="batch_uninstall_confirm_body">Seçili uygulamalar cihazınızdan kalıcı olarak silinecektir.</string>
     <string name="home_app_info_remove_app_warning">Bu, aşağıdakileri kalıcı olarak silecektir:</string>
     <string name="home_app_info_delete_item_database">Veri tabanı girişi</string>
@@ -643,12 +664,15 @@ Kaldırma işlemi tüm uygulama verilerini kalıcı olarak silecektir"</string>
     <string name="patcher_storage_permission_open_settings">Depolama ayarlarını aç</string>
     <string name="patcher_storage_badge_denied">İzin reddedildi</string>
     <string name="patcher_storage_badge_missing">Bulunamadı</string>
+    <string name="patcher_storage_badge_rejected">Kullanılamaz</string>
     <string name="batch_patch_option_paths_skipped">Yama seçenek dosyaları eksik ve atlanacak: %1$s</string>
     <string name="patcher_missing_patches_title">Bazı yamalar eksik</string>
     <string name="patcher_missing_patches_description">Bu uygulama için kaydedilen seçim, artık hiçbir etkin kaynağın sunmadığı yamaları içeriyor. Devam etmek, uygulamayı bu yamalar olmadan yamalar</string>
     <string name="patcher_missing_patches_label">Artık sunulmuyor</string>
     <string name="patcher_option_paths_gone_title">Yama seçenek dosyaları eksik</string>
     <string name="patcher_option_paths_gone_description">Bir veya daha fazla yama seçeneği, artık bulunmayan dosyalara işaret ediyor. Bu dosyalar olmadan yamalamak için dosya yollarını kaldırın veya dosyaları geri koyup tekrar deneyin</string>
+    <string name="patcher_option_paths_rejected_title">Yama seçenek dosyaları kullanılamaz</string>
+    <string name="patcher_option_paths_rejected_description">Bir veya daha fazla yama seçeneği, eksik olan veya yamanın gerektirdiği özelliklere sahip olmayan dosyalara işaret ediyor. Bu dosyalar olmadan yamalamak için yolları kaldırın veya seçenek talimatlarında açıklandığı gibi dosyaları düzeltip tekrar deneyin</string>
     <string name="patcher_option_paths_clear">Dosya yollarını kaldır ve devam et</string>
     <string name="patcher_storage_permission_hint">İpucu: Dosyaları /Android/data/app.morphe.manager/files/ dizinine taşıyın - ekstra izin gerektirmez</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -666,8 +690,10 @@ Kaldırma işlemi tüm uygulama verilerini kalıcı olarak silecektir"</string>
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Yamalama devam ediyor…</string>
     <string name="patcher_notification_text">Patcher\'a dönmek için dokunun</string>
-    <string name="patcher_stop_confirm_title">Patcher\'ı durdur</string>
-    <string name="patcher_stop_confirm_description">Yama işlemini durdurmak istediğinizden emin misiniz?</string>
+    <string name="patcher_stop_title">Yamalama durdurulsun mu?</string>
+    <string name="patcher_stop_discards">Şu ana kadarki ilerleme iptal edilir ve hiçbir şey yüklenmez</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Yamalamaya devam et</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">Uygulamanızı harika bir şeye dönüştürüyoruz… 🏆</string>
     <string name="patcher_message_2">Eski uygulamalara yeni numaralar öğretiyoruz… 🎩</string>
@@ -809,21 +835,21 @@ Kaldırma işlemi tüm uygulama verilerini kalıcı olarak silecektir"</string>
     <string name="settings_appearance_repatch_notice_description">Yamalanmış uygulamalar yeniden yamalanabilir olduğunda bir başlık gösterir.</string>
     <string name="settings_appearance_more_apps_card">Daha fazla uygulama kartı</string>
     <string name="settings_appearance_more_apps_card_description">Uygulamaların altında topluluk yamalarına yönlendiren bir kart gösterir</string>
-    <string name="settings_appearance_app_card_colors">Uygulama kartı renkleri</string>
+    <string name="settings_appearance_app_card_colors">Kart renkleri</string>
     <string name="settings_appearance_app_card_colors_default">Varsayılan</string>
-    <string name="settings_appearance_app_card_colors_default_description">Her uygulamaya kendi paketinin rengini ver</string>
+    <string name="settings_appearance_app_card_colors_default_description">Her uygulama ve kaynağa kendi rengini ver</string>
     <string name="settings_appearance_app_card_colors_accent">Vurgu rengi</string>
-    <string name="settings_appearance_app_card_colors_accent_description">Ev uygulamasını kartları için uygulamanın vurgu rengini kullanın</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Uygulama ve kaynak kartları için uygulamanın vurgu rengini kullan</string>
     <string name="settings_appearance_app_card_colors_gradient">Degrade</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">Ev için uygulama kartları için tek özel degrade kullanın</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Uygulama kartları için tek bir gradyan kullan, kaynak kartları için tek bir renge karıştırılır</string>
     <string name="settings_appearance_app_card_colors_solid">Düz renk</string>
-    <string name="settings_appearance_app_card_colors_solid_description">Ev için uygulama kartları için tek özel renk kullanın</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Uygulama ve kaynak kartları için tek bir özel renk kullan</string>
     <string name="settings_appearance_app_card_colors_start">Başlangıç rengi</string>
     <string name="settings_appearance_app_card_colors_middle">Orta renk</string>
     <string name="settings_appearance_app_card_colors_end">Bitiş rengi</string>
     <string name="settings_appearance_app_card_colors_solid_color">Geçersiz renk</string>
     <string name="settings_appearance_app_card_colors_bundle">Uygulama paketi rengi</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">Burada her uygulamanın kendi rengini kullanın, otomatik olarak uyacak şekilde gölgelendirilmiştir</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Burada, her bir uygulamanın veya kaynağın kendi rengini kullan; uyum sağlaması için otomatik olarak tonlandırılır.</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Uygulama simgesi</string>
     <string name="settings_appearance_app_icon_selector_description">Morphe\'nin ana ekranınızda ve uygulama çekmecesinde nasıl göründüğü</string>
@@ -849,7 +875,8 @@ Kaldırma işlemi tüm uygulama verilerini kalıcı olarak silecektir"</string>
     <string name="settings_appearance_app_icon_mark_white">Beyaz</string>
     <string name="settings_appearance_app_icon_mark_black">Siyah</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Uygulama simgesi değiştirilsin mi?</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">&lt;b&gt;%s&lt;/b&gt; simgesine değiştirilip yeniden başlatılsın mı?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe, &lt;b&gt;%s&lt;/b&gt; simgesine geçmek için yeniden başlatılıyor</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Simgeyi değiştir</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1036,6 +1063,8 @@ Resim boyutları şu şekilde olmalıdır:
     <string name="installer_play_store_warning_continue">Anladım, devam et</string>
     <string name="installer_play_store_mode">Play Store olarak mı yüklensin</string>
     <string name="installer_play_store_mode_description">Google Play Store\'u yükleme kaynağı olarak işaretler</string>
+    <string name="settings_nomount_only">Yalnızca NoMount</string>
+    <string name="settings_nomount_only_description">Uygulamaları yalnızca NoMount ile bağlar ve asla bağlama mount\'a geri dönmez, böylece NoMount olmadan bağlanmamış kalırlar</string>
     <string name="settings_prompt_installer_on_install">Yükleyici seçimi istemi</string>
     <string name="settings_prompt_installer_on_install_description">Her uygulamanın nasıl kurulacağını sorar: yamalardan önce root ile, aksi takdirde sonrasında</string>
     <string name="settings_auto_install_with_shizuku">Yamalama sonrası otomatik yükle</string>
@@ -1205,12 +1234,22 @@ Ayrıntılar: %2$s"</string>
     <string name="settings_system_import_source_data_success">Kaynak verisi başarıyla içe aktarıldı</string>
     <string name="settings_system_selected_patches_section">Seçili yamalar</string>
     <string name="settings_system_no_patches_or_options">Hiçbir yama veya seçenek kaydedilmedi</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">Seçimi kopyala…</string>
-    <string name="copy_selection_confirm_with_count">%s kopyala</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Seçimler</string>
+    <string name="selection_panel_copy_into">%s\'ye kopyala</string>
+    <string name="selection_sets_title">Setler</string>
+    <string name="selection_set_name">Set adı</string>
+    <string name="selection_set_save">Set olarak kaydet</string>
+    <string name="selection_set_replace">Seti değiştir</string>
+    <string name="selection_set_saved">%s olarak kaydedildi</string>
+    <string name="selection_set_applied">%s setine geçildi</string>
+    <string name="selection_set_deleted">%s silindi</string>
+    <string name="selection_set_renamed">%s olarak yeniden adlandırıldı</string>
+    <string name="selection_set_rename_title">Seti yeniden adlandır</string>
+    <string name="selection_set_delete_title">Set silinsin mi?</string>
+    <string name="selection_set_delete_message">Bu %s setini kalıcı olarak siler</string>
     <string name="copy_selection_empty">Kopyalanacak başka kaydedilmiş seçim yok</string>
     <string name="copy_selection_available_format">%1$s / %2$s kullanılabilir</string>
-    <string name="copy_selection_same_source">Aynı kaynak</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Özel dosya seçici</string>
     <string name="settings_system_custom_file_picker_description">Sistem dosya seçicisi yerine Morphe\'nin yerleşik dosya seçicisini kullanır.</string>
@@ -1219,7 +1258,6 @@ Ayrıntılar: %2$s"</string>
     <string name="settings_system_apk_download_helper_trusted_count">Güvenilen: %1$d / %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Yardımcı uygulamalar sizin için orijinal APK\'lar indirebilir. İndirme talimatlarında yalnızca burada güvendiğiniz uygulamalar sunulur.</string>
     <string name="settings_system_apk_download_helper_trust_title">Bu yardımcıya güveniliyor mu?</string>
-    <string name="settings_system_apk_download_helper_trust">Güven</string>
     <string name="settings_system_apk_download_helper_warning">APK, yardımcı uygulamadan gelir, bu yüzden yalnızca tanıdığınız uygulamalara güvenin. Morphe, yamalamadan önce her dosyanın paketini, sürümünü ve imzasını yine de kontrol eder.</string>
     <string name="settings_system_apk_download_helper_installed_by">%s tarafından yüklendi</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Yükleyen bilinmiyor</string>
@@ -1231,7 +1269,10 @@ Ayrıntılar: %2$s"</string>
     <string name="file_picker_internal_storage">Dahili depolama</string>
     <string name="file_picker_sd_card">SD kart</string>
     <string name="file_picker_root">Root (/)</string>
+    <string name="file_picker_storage_access_unavailable">Bu cihazın, tüm dosyalara erişime izin verecek bir ekranı yok. ADB üzerinden şununla izin verin: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">Depolama Alanları</string>
+    <string name="file_saver_downloads_failed">İndirilenler klasöründe dosya oluşturulamadı</string>
+    <string name="file_saver_saving_to_downloads">Bu cihazda kaydetme ekranı yok, bu yüzden dosya İndirilenler klasörüne %1$s olarak kaydediliyor</string>
     <string name="file_picker_sort_name_asc">Ad (A–Z)</string>
     <string name="file_picker_sort_name_desc">Ad (Z–A)</string>
     <string name="file_picker_sort_size_desc">Boyut (en büyüğü önce)</string>
@@ -1314,6 +1355,7 @@ Ayrıntılar: %2$s"</string>
     <string name="include">Dahil Et</string>
     <string name="disable">Devre dışı bırak</string>
     <string name="enable">Etkinleştir</string>
+    <string name="trust">Güven</string>
     <string name="loading">Yükleniyor…</string>
     <string name="creating">Oluşturuluyor…</string>
     <string name="processing_apk">APK işleniyor…</string>
@@ -1335,6 +1377,8 @@ Ayrıntılar: %2$s"</string>
     <string name="reorder_done">Sıra kaydedildi</string>
     <string name="reset_order">Sırayı sıfırla</string>
     <string name="reset_order_done">Sıra sıfırlandı</string>
+    <string name="reset_order_confirm_title">Sıralama sıfırlansın mı?</string>
+    <string name="reset_order_confirm_message">Liste varsayılan sıralamasına geri döner ve elle yapılan sıralama kaybolur</string>
     <string name="accessibility_select_app">Uygulama seç</string>
     <string name="accessibility_select_source">Kaynak seçin</string>
     <string name="accessibility_move_up">Yukarı taşı</string>
@@ -1342,6 +1386,7 @@ Ayrıntılar: %2$s"</string>
     <string name="accessibility_app_moved_announcement">%1$s, %3$s\'nin %2$s konumuna taşındı</string>
     <string name="accessibility_scroll_to_top">Listenin en üstüne kaydır</string>
     <string name="rename">Yeniden adlandır</string>
+    <string name="more_options">Daha fazla seçenek</string>
     <string name="import_">İçe aktar</string>
     <string name="export">Dışa aktar</string>
     <string name="copy">Kopyala</string>
@@ -1386,6 +1431,7 @@ Ayrıntılar: %2$s"</string>
     <string name="show_all">Tümünü göster</string>
     <string name="ignore">Yoksay</string>
     <string name="stop_ignoring">Yok saymayı bırak</string>
+    <string name="stop">Durdur</string>
     <string name="logs">Günlükler</string>
     <string name="sources">Kaynaklar</string>
     <string name="installing_ellipsis">Yükleniyor…</string>
@@ -1472,14 +1518,43 @@ Devam etmek istiyor musunuz?"</string>
     <string name="onboarding_restart_title">Özellik turu</string>
     <string name="onboarding_restart_desc">Temel özelliklerde rehberli bir tur</string>
 
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <!-- Preserved Nivqo localization -->
+    <string name="home_category_delete_confirm_title">Kategoriyi sil</string>
+    <string name="home_category_delete_confirm_message">&lt;b&gt;%1$s&lt;/b&gt; kategorisini sil? İçindeki uygulamalar &lt;b&gt;%2$s&lt;/b&gt; bölümüne geri taşınacak</string>
+    <string name="expert_mode_prerelease_notice">Bu kaynak ön sürüm yamalarındadır. Yama yapma başarısız olabilir veya beklenmedik davranabilir.</string>
+    <string name="expert_mode_experimental_version_notice">Bu kaynak, bu uygulama sürümü için yalnızca deneysel desteğe sahiptir. Yamaları kararsız veya eksik olabilir</string>
+    <string name="sources_dialog_local_add_more">Daha fazla dosya ekleyin</string>
+    <string name="sources_dialog_local_file_tap_hint">Depolamaya göz atmak için dokunun</string>
+    <string name="home_apk_availability_dialog_title">Orijinal, yamalanmamış APK bulmada yardıma ihtiyacınız var mı?</string>
+    <string name="home_apk_availability_yes">Evet, APK bulmama yardım et</string>
+    <string name="home_apk_availability_no">Hayır, bende APK var</string>
+    <string name="home_apk_use_saved">Kayıtlı APK\'yi kullan</string>
+    <string name="home_apk_use_installed">Yüklü APK\'yi kullan</string>
+    <string name="home_file_picker_prompt_title">İndirilen APK\'yi seç</string>
+    <string name="home_file_picker_prompt_description">İndirdiğiniz &lt;b&gt;%s&lt;/b&gt; APK dosyasını seçin</string>
+    <string name="home_select_any_apk_description">Herhangi bir uygulamanın APK dosyasını seçin veya bu cihazda zaten yüklü olan bir uygulamayı seçin</string>
+    <string name="expert_mode_disable_all_done">Tüm yamalar devre dışı bırakıldı</string>
+    <string name="expert_mode_enable_all_done">Tüm yamalar etkinleştirildi</string>
+    <string name="expert_mode_reset_to_default">Önerilen yamaları etkinleştir</string>
+    <string name="expert_mode_restore_saved">Kaydedilen seçimi geri yükle</string>
+    <string name="expert_mode_copy_from_bundle">Başka bir bundle\'dan seçimi kopyala</string>
+    <string name="expert_mode_multiple_sources_warning_message">"Birden fazla yama kaynağından yama seçtiniz. Bu, uyumluluk sorunlarına veya beklenmedik davranışlara neden olabilir.
+
+Devam etmek istediğinizden emin misiniz?"</string>
+    <string name="home_app_info_uninstall_app_confirmation">Bu uygulamayı kaldırmak istediğinizden emin misiniz?</string>
+    <string name="patcher_stop_confirm_title">Patcher\'ı durdur</string>
+    <string name="patcher_stop_confirm_description">Yama işlemini durdurmak istediğinizden emin misiniz?</string>
+    <string name="settings_appearance_app_icon_change_dialog_message">&lt;b&gt;%s&lt;/b&gt; simgesine değiştirilip yeniden başlatılsın mı?</string>
+    <string name="copy_selection_title">Seçimi kopyala…</string>
+    <string name="copy_selection_confirm_with_count">%s kopyala</string>
+    <string name="copy_selection_same_source">Aynı kaynak</string>
+    <string name="settings_system_apk_download_helper_trust">Güven</string>
     <string name="home_app_list_options_title">Sırala ve filtrele</string>
     <string name="home_app_list_options_state_description">Sıralama: %1$s, Filtre: %2$s</string>
     <string name="sources_sort_title">Yama kaynaklarını sırala</string>
     <string name="sources_apps_leave_out">Hariç tut</string>
     <string name="sources_apps_leave_out_done">Hariç tutuldu</string>
     <string name="sources_apps_bring_back">Geri getir</string>
-    <string name="sources_dialog_choose_apps">Uygulamaları seç</string>
     <string name="hex_color">Hex rengi</string>
     <string name="patcher_memory_adjustment_title">Yetersiz bellek</string>
     <string name="patcher_memory_adjustment_description">Yamalayıcı, %1$d MB bellek sınırıyla çalışırken sistem tarafından durduruldu. Sınırı %2$d MB değerine düşürmek yamalayıcıyı daha küçük bir hedef haline getirir ve çalıştırmanın tamamlanmasını sağlayabilir.</string>

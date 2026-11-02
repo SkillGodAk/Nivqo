@@ -10,13 +10,12 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.keyframes
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.pluralStringResource
@@ -30,7 +29,10 @@ import app.morphe.manager.R
 import app.morphe.manager.ui.screen.shared.Animations
 import app.morphe.manager.ui.screen.shared.Defaults
 import app.morphe.manager.ui.screen.shared.HeaderBar
+import app.morphe.manager.ui.screen.shared.ListReorder
 import app.morphe.manager.ui.screen.shared.MorpheWordmark
+import app.morphe.manager.ui.screen.shared.PageSubtitle
+import app.morphe.manager.ui.screen.shared.ReorderHeaderActions
 import app.morphe.manager.ui.screen.shared.SearchFieldState
 import app.morphe.manager.ui.screen.shared.TitleAction
 import app.morphe.manager.ui.screen.shared.TitleActionStyle
@@ -43,7 +45,8 @@ import com.composables.icons.materialsymbols.rounded.*
 /**
  * Heads the apps page with the Morphe wordmark. Its controls bring back the alerts swiped aside,
  * while there are any, open the list's order and filter, patch an app the list does not hold from
- * its APK and search the list.
+ * its APK and search the list. While [reorder] is under way they give way to its own, see
+ * [ReorderHeaderActions].
  *
  * @param sortEnabled Whether the list's options can be opened, which a selection under way holds off.
  * @param sortOpen Whether the list's options are docked under the list, which the button then closes.
@@ -58,6 +61,7 @@ internal fun HomeHeader(
     sortOpen: Boolean,
     onSortClick: () -> Unit,
     onPatchFileClick: () -> Unit,
+    reorder: ListReorder? = null,
     // Set while the tour runs, which points at the button for other apps
     tour: OnboardingState? = null
 ) {
@@ -65,7 +69,7 @@ internal fun HomeHeader(
     HeaderBar(
         title = {
             // At the start of the room the controls leave it, as a page's title is
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 MorpheWordmark(
                     modifier = Modifier
                         .height(WordmarkHeight)
@@ -74,12 +78,19 @@ internal fun HomeHeader(
                             contentDescription = appName
                         }
                 )
+                if (reorder != null) PageSubtitle(stringResource(R.string.reorder_list_hint))
             }
         },
         modifier = Modifier.fillMaxWidth(),
-        search = search,
+        // A query would narrow the list the order is being dragged on
+        search = search.takeIf { reorder == null },
         searchLabel = stringResource(R.string.home_search_apps),
         actions = {
+            if (reorder != null) {
+                ReorderHeaderActions(reorder)
+                return@HeaderBar
+            }
+
             // Comes and goes with what it brings back, as the alerts it stands for do
             val snoozedCount = alerts.snoozedCount
             AnimatedVisibility(

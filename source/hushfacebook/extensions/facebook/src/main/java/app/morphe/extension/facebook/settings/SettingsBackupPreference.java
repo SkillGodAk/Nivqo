@@ -46,21 +46,28 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.reels.BurnInMode;
+import app.morphe.extension.facebook.reels.BurnInWait;
 import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostSources;
 import app.morphe.extension.facebook.feed.PostWords;
+import app.morphe.extension.facebook.feed.FeedTypeNames;
 import app.morphe.extension.facebook.menu.MenuTiles;
 import app.morphe.extension.facebook.media.PlaybackQuality;
+import app.morphe.extension.facebook.media.RecentlyWatched;
 import app.morphe.extension.facebook.media.SurfaceQuality;
 import app.morphe.extension.facebook.notifications.QuietHour;
 import app.morphe.extension.facebook.misc.AppLock;
+import app.morphe.extension.facebook.misc.BreakTimer;
+import app.morphe.extension.facebook.misc.OpeningPause;
 import app.morphe.extension.facebook.misc.ShareSheetItems;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.feed.ReactionCeiling;
 import app.morphe.extension.facebook.theme.AccentColor;
+import app.morphe.extension.facebook.theme.MarkColors.Mark;
 import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.shared.L10n;
@@ -399,16 +406,32 @@ public class SettingsBackupPreference extends Preference {
             if (snapshot.ceilingChange() != null) parts.add(ceilingSentence(snapshot.ceilingChange()));
             if (snapshot.shareItemsChange() != null) parts.add(shareItemsSentence(snapshot.shareItemsChange()));
             if (snapshot.menuTilesChange() != null) parts.add(menuTilesSentence(snapshot.menuTilesChange()));
+            if (snapshot.feedTypesChange() != null) parts.add(feedTypesSentence(snapshot.feedTypesChange()));
             if (snapshot.homeFeedChange() != null) parts.add(homeFeedSentence(snapshot.homeFeedChange()));
             if (snapshot.reelsOrderChange() != null) parts.add(reelsOrderSentence(snapshot.reelsOrderChange()));
+            if (snapshot.burnInChange() != null) parts.add(burnInSentence(snapshot.burnInChange()));
+            if (snapshot.burnInWaitChange() != null) parts.add(burnInWaitSentence(snapshot.burnInWaitChange()));
             if (snapshot.backgroundChange() != null) parts.add(backgroundSentence(snapshot.backgroundChange()));
             if (snapshot.lightBackgroundChange() != null) parts.add(lightBackgroundSentence(snapshot.lightBackgroundChange()));
-            if (snapshot.badgeChange() != null) parts.add(markColorSentence(false, snapshot.badgeChange()));
-            if (snapshot.logoChange() != null) parts.add(markColorSentence(true, snapshot.logoChange()));
+            if (snapshot.badgeChange() != null) parts.add(markColorSentence(Mark.BADGE, snapshot.badgeChange()));
+            if (snapshot.logoChange() != null) parts.add(markColorSentence(Mark.LOGO, snapshot.logoChange()));
+            if (snapshot.tabChange() != null) parts.add(markColorSentence(Mark.TAB, snapshot.tabChange()));
             if (snapshot.headerTextChange() != null) parts.add(headerTextSentence(snapshot.headerTextChange()));
             if (snapshot.seenKeep != null && snapshot.changes().containsKey(SettingsBackup.SEEN_KEEP)) {
                 parts.add(L10n.f("Posts you've seen will stay hidden for %1$s.",
                         HushfacebookPreferenceFragment.seenKeepLabel(snapshot.seenKeep)));
+            }
+            if (snapshot.pauseLength != null && snapshot.changes().containsKey(SettingsBackup.PAUSE_LENGTH)) {
+                parts.add(pauseLengthSentence(snapshot.pauseLength));
+            }
+            if (snapshot.breakAfter != null && snapshot.changes().containsKey(SettingsBackup.BREAK_AFTER)) {
+                parts.add(breakAfterSentence(snapshot.breakAfter));
+            }
+            if (snapshot.breakLength != null && snapshot.changes().containsKey(SettingsBackup.BREAK_LENGTH)) {
+                parts.add(breakLengthSentence(snapshot.breakLength));
+            }
+            if (snapshot.watchedKeep != null && snapshot.changes().containsKey(SettingsBackup.WATCHED_KEEP)) {
+                parts.add(watchedKeepSentence(snapshot.watchedKeep));
             }
             message = String.join("\n\n", parts);
         }
@@ -565,9 +588,21 @@ public class SettingsBackupPreference extends Preference {
         return L10n.f("Reels order will be set to %1$s.", HushfacebookPreferenceFragment.reelsOrderLabel(order));
     }
 
+    /** The sentence that says what Burn-in guard does after an import (#288). */
+    static String burnInSentence(BurnInMode mode) {
+        return L10n.f("Burn-in guard will be set to %1$s.", HushfacebookPreferenceFragment.burnInLabel(mode));
+    }
+
+    /** The sentence that says how long Burn-in guard waits after an import (#288). */
+    static String burnInWaitSentence(BurnInWait wait) {
+        if (wait == BurnInWait.AT_ONCE) return L10n.t("Burn-in guard will dim the Reels screen as soon as you stop touching it.");
+        return L10n.f("Burn-in guard will dim the Reels screen after %1$d seconds without a touch.", (int) (wait.millis / 1000));
+    }
+
     /** The sentence that says in what order comments open after an import. */
     static String commentOrderSentence(CommentOrder order) {
         if (order == CommentOrder.FACEBOOK) return L10n.t("Comments will open in the order Facebook picks.");
+        if (order == CommentOrder.OLDEST) return L10n.t("Comments will open oldest first.");
         return L10n.f("Comments will open with %1$s picked in their sort menu.",
                 HushfacebookPreferenceFragment.commentOrderLabel(order));
     }
@@ -583,6 +618,32 @@ public class SettingsBackupPreference extends Preference {
         if (after == AppLock.After.IMMEDIATELY) return L10n.t("With Lock Facebook on, it will lock as soon as you leave it.");
         return L10n.f("With Lock Facebook on, it will lock once you've been away for %1$s.",
                 HushfacebookPreferenceFragment.lockAfterLabel(after));
+    }
+
+    /** The sentence that says how long the opening pause counts down, after an import. */
+    static String pauseLengthSentence(OpeningPause.Length length) {
+        return L10n.f("With Opening pause on, Facebook will wait %1$s before it opens.",
+                HushfacebookPreferenceFragment.pauseLengthLabel(length));
+    }
+
+    /** The sentence that says how long browsing goes before a break, after an import. */
+    static String breakAfterSentence(BreakTimer.Use use) {
+        return L10n.f("With Take breaks on, a break will start after %1$s of browsing.",
+                HushfacebookPreferenceFragment.minutesLabel(use.minutes));
+    }
+
+    /** The sentence that says how long a break lasts, after an import. */
+    static String breakLengthSentence(BreakTimer.Length length) {
+        return L10n.f("With Take breaks on, a break will last %1$s.",
+                HushfacebookPreferenceFragment.minutesLabel(length.minutes));
+    }
+
+    /** The sentence that says how long Recently watched keeps an entry, after an import. */
+    static String watchedKeepSentence(RecentlyWatched.Keep keep) {
+        if (keep == RecentlyWatched.Keep.UNTIL_CLEARED) {
+            return L10n.t("Recently watched will keep entries until you clear them.");
+        }
+        return L10n.f("Recently watched will keep entries for %1$s.", HushfacebookPreferenceFragment.watchedKeepLabel(keep));
     }
 
     /** The sentence that says what the feed will do about a post's reaction count after an import. */
@@ -609,15 +670,24 @@ public class SettingsBackupPreference extends Preference {
                 L10n.isolate(background));
     }
 
-    /** The sentence that says which color the badges, or with [logo] the logo, will take after an import, [code] blank or a code. */
-    static String markColorSentence(boolean logo, String code) {
+    /** The sentence that says which color the badges, the logo or the selected tab will take after an import, [code] blank or a code. */
+    static String markColorSentence(Mark mark, String code) {
         if (code.isEmpty()) {
-            return logo ? L10n.t("If your patched Facebook includes Badge and logo colors, the logo will be Facebook's blue.")
-                    : L10n.t("If your patched Facebook includes Badge and logo colors, badges will be Facebook's red.");
+            switch (mark) {
+                case LOGO: return L10n.t("If your patched Facebook includes Badge and logo colors, the logo will be Facebook's blue.");
+                case TAB: return L10n.t("If your patched Facebook includes Badge and logo colors, the selected tab will be "
+                        + "Facebook's color.");
+                default: return L10n.t("If your patched Facebook includes Badge and logo colors, badges will be Facebook's red.");
+            }
         }
-        return logo ? L10n.f("If your patched Facebook includes Badge and logo colors, the logo will be %1$s.",
-                L10n.isolate(code))
-                : L10n.f("If your patched Facebook includes Badge and logo colors, badges will be %1$s.", L10n.isolate(code));
+        switch (mark) {
+            case LOGO: return L10n.f("If your patched Facebook includes Badge and logo colors, the logo will be %1$s.",
+                    L10n.isolate(code));
+            case TAB: return L10n.f("If your patched Facebook includes Badge and logo colors, the selected tab will be %1$s.",
+                    L10n.isolate(code));
+            default: return L10n.f("If your patched Facebook includes Badge and logo colors, badges will be %1$s.",
+                    L10n.isolate(code));
+        }
     }
 
     /** The sentence that says which color light mode's backgrounds will take after an import, [background] blank or a code. */
@@ -727,6 +797,14 @@ public class SettingsBackupPreference extends Preference {
         if (tiles == 0) return L10n.t("Your list of Menu tiles to hide will be empty.");
         return L10n.quantity(tiles, "Your list of Menu tiles to hide will hold %1$d tile.",
                 "Your list of Menu tiles to hide will hold %1$d tiles.", tiles);
+    }
+
+    /** The sentence that says how many feed types will be hidden after an import. */
+    static String feedTypesSentence(String list) {
+        int types = FeedTypeNames.count(list);
+        if (types == 0) return L10n.t("Your list of feed types to hide will be empty.");
+        return L10n.quantity(types, "Your list of feed types to hide will hold %1$d type.",
+                "Your list of feed types to hide will hold %1$d types.", types);
     }
 
     /** A sentence for each setting that isn't a switch an import changes, with no word list among them. */
@@ -941,14 +1019,26 @@ public class SettingsBackupPreference extends Preference {
                     + (snapshot.ceilingChange() == null ? "" : " " + ceilingSentence(snapshot.ceilingChange()))
                     + (snapshot.shareItemsChange() == null ? "" : " " + shareItemsSentence(snapshot.shareItemsChange()))
                     + (snapshot.menuTilesChange() == null ? "" : " " + menuTilesSentence(snapshot.menuTilesChange()))
+                    + (snapshot.feedTypesChange() == null ? "" : " " + feedTypesSentence(snapshot.feedTypesChange()))
                     + (snapshot.homeFeedChange() == null ? "" : " " + homeFeedSentence(snapshot.homeFeedChange()))
                     + (snapshot.reelsOrderChange() == null ? "" : " " + reelsOrderSentence(snapshot.reelsOrderChange()))
+                    + (snapshot.burnInChange() == null ? "" : " " + burnInSentence(snapshot.burnInChange()))
+                    + (snapshot.burnInWaitChange() == null ? "" : " " + burnInWaitSentence(snapshot.burnInWaitChange()))
                     + (snapshot.backgroundChange() == null ? "" : " " + backgroundSentence(snapshot.backgroundChange()))
                     + (snapshot.lightBackgroundChange() == null ? "" : " " + lightBackgroundSentence(snapshot.lightBackgroundChange()))
-                    + (snapshot.badgeChange() == null ? "" : " " + markColorSentence(false, snapshot.badgeChange()))
-                    + (snapshot.logoChange() == null ? "" : " " + markColorSentence(true, snapshot.logoChange()))
-                    + (snapshot.headerTextChange() == null ? "" : " " + headerTextSentence(snapshot.headerTextChange()));
-            accepted = Utils.runOnBackgroundThread(() -> {
+                    + (snapshot.badgeChange() == null ? "" : " " + markColorSentence(Mark.BADGE, snapshot.badgeChange()))
+                    + (snapshot.logoChange() == null ? "" : " " + markColorSentence(Mark.LOGO, snapshot.logoChange()))
+                    + (snapshot.tabChange() == null ? "" : " " + markColorSentence(Mark.TAB, snapshot.tabChange()))
+                    + (snapshot.headerTextChange() == null ? "" : " " + headerTextSentence(snapshot.headerTextChange()))
+                    + (snapshot.pauseLength == null || !snapshot.changes().containsKey(SettingsBackup.PAUSE_LENGTH) ? ""
+                            : " " + pauseLengthSentence(snapshot.pauseLength))
+                    + (snapshot.breakAfter == null || !snapshot.changes().containsKey(SettingsBackup.BREAK_AFTER) ? ""
+                            : " " + breakAfterSentence(snapshot.breakAfter))
+                    + (snapshot.breakLength == null || !snapshot.changes().containsKey(SettingsBackup.BREAK_LENGTH) ? ""
+                            : " " + breakLengthSentence(snapshot.breakLength))
+                    + (snapshot.watchedKeep == null || !snapshot.changes().containsKey(SettingsBackup.WATCHED_KEEP) ? ""
+                            : " " + watchedKeepSentence(snapshot.watchedKeep));
+            accepted =Utils.runOnBackgroundThread(() -> {
                 try {
                     SettingsBackup.apply(snapshot);
                     Utils.showToastLong(done);

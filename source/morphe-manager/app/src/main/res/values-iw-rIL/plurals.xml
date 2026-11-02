@@ -59,6 +59,11 @@
         <item quantity="two">שני מקורות</item>
         <item quantity="other">%s מקורות</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s סט</item>
+        <item quantity="two">%s סטים</item>
+        <item quantity="other">%s סטים</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">חבילה אחת</item>
         <item quantity="two">שתי חבילות</item>

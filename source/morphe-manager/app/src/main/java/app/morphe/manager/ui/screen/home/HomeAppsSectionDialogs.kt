@@ -10,10 +10,9 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import app.morphe.manager.R
+import app.morphe.manager.ui.screen.shared.CommunityPatchesNoticeDialog
 import app.morphe.manager.ui.screen.shared.ConfirmDialog
 import app.morphe.manager.ui.screen.shared.DialogHost
-import app.morphe.manager.ui.screen.shared.rememberOpenUrl
-import app.morphe.manager.util.COMMUNITY_PATCHES_URL
 import app.morphe.manager.util.htmlAnnotatedString
 
 /**
@@ -38,20 +37,8 @@ internal fun HomeAppsSectionDialogs(
         )
     }
 
-    // Nothing the community patches website lists is reviewed by Morphe, so that is said first
-    val openUrl = rememberOpenUrl()
     DialogHost(visible = state.showCommunityNotice) {
-        ConfirmDialog(
-            title = stringResource(R.string.sources_dialog_community_notice_title),
-            message = stringResource(R.string.sources_dialog_community_notice_message),
-            primaryText = stringResource(R.string.open),
-            isPrimaryDestructive = false,
-            onDismiss = { state.showCommunityNotice = false },
-            onConfirm = {
-                state.showCommunityNotice = false
-                openUrl(COMMUNITY_PATCHES_URL)
-            }
-        )
+        CommunityPatchesNoticeDialog(onDismiss = { state.showCommunityNotice = false })
     }
 
     DialogHost(target = state.categoryNameRequest) { request ->
@@ -77,11 +64,10 @@ internal fun HomeAppsSectionDialogs(
     }
     DialogHost(target = pendingDeleteCategory) { category ->
         ConfirmDialog(
-            title = stringResource(R.string.home_category_delete_confirm_title),
+            title = stringResource(R.string.home_category_delete_title, category.name),
             message = htmlAnnotatedString(
                 stringResource(
-                    R.string.home_category_delete_confirm_message,
-                    category.name,
+                    R.string.home_category_delete_moves_apps,
                     stringResource(R.string.home_category_uncategorized)
                 )
             ),

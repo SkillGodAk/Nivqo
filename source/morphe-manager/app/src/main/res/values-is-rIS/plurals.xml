@@ -48,6 +48,10 @@
         <item quantity="one">%s uppspretta</item>
         <item quantity="other">%s uppsprettur</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s set</item>
+        <item quantity="other">%s set</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pakkinn</item>
         <item quantity="other">%s pakkar</item>

@@ -81,6 +81,13 @@
         <item quantity="many">%s foinsí</item>
         <item quantity="other">%s foinsí</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">tacar %s</item>
+        <item quantity="two">tacair %s</item>
+        <item quantity="few">tacair %s</item>
+        <item quantity="many">tacair %s</item>
+        <item quantity="other">tacair %s</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pacáiste</item>
         <item quantity="two">%s pacáistí</item>
@@ -110,11 +117,11 @@
         <item quantity="other">%s aipanna suiteáilte</item>
     </plurals>
     <plurals name="batch_mount_summary">
-        <item quantity="one">Gléasadh %s aip</item>
-        <item quantity="two">Aip %s feistithe</item>
-        <item quantity="few">Gléasadh %s aip</item>
-        <item quantity="many">Gléasadh %s n-aip</item>
-        <item quantity="other">Gléasadh %s aip</item>
+        <item quantity="one">Feistithe %s app</item>
+        <item quantity="two">%s aip feistithe</item>
+        <item quantity="few">%s aip feistithe</item>
+        <item quantity="many">%s aip feistithe</item>
+        <item quantity="other">%s aip feistithe</item>
     </plurals>
     <plurals name="batch_reinstall_summary">
         <item quantity="one">Athshuiteáladh %s aip</item>

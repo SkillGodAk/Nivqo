@@ -98,8 +98,10 @@
     <string name="home_category_name">Название категории</string>
     <string name="home_category_move_to">Переместить в категорию</string>
     <string name="home_category_move_selected_title">Переместить выбранные приложения</string>
-    <string name="home_category_delete_confirm_title">Удалить категорию</string>
-    <string name="home_category_delete_confirm_message">Удалить категорию &lt;b&gt;%1$s&lt;/b&gt;? Приложения в ней будут возвращены в &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <!-- %s is the name of the category -->
+    <string name="home_category_delete_title">Delete %s?</string>
+    <!-- %s is the name of the category the apps fall back to -->
+    <string name="home_category_delete_moves_apps">Его приложения возвращаются в &lt;b&gt;%s&lt;/b&gt;</string>
     <string name="home_category_actions_unavailable">Действия недоступны для этой категории</string>
     <!-- Home Screen - Home Greetings -->
     <string name="home_greeting_1">Какое приложение вы хотите пропатчить</string>
@@ -196,10 +198,14 @@
     <string name="sources_management_prerelease_toggle_description">Получает ранний доступ к новым экспериментальным версиям патча</string>
     <string name="sources_prerelease_warning_title">Включить предварительные патчи?</string>
     <string name="sources_prerelease_warning_message">Предварительные сборки всё ещё в разработке. Патчи могут не сработать или сломать приложение, а функции могут меняться без предупреждения</string>
-    <string name="expert_mode_prerelease_notice">Этот источник использует предварительные патчи. Патчи могут не сработать или работать некорректно</string>
-    <string name="expert_mode_experimental_version_notice">Этот источник имеет только экспериментальную поддержку для данной версии приложения. Его патчи могут быть нестабильными или неполными</string>
+    <string name="expert_mode_unstable_notice">Предрелизные или экспериментальные патчи могут быть нестабильными</string>
     <string name="sources_management_experimental_versions_toggle">Экспериментальные версии приложений</string>
     <string name="sources_management_experimental_versions_toggle_description">Показывает и исправляет экспериментальные целевые приложения</string>
+    <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_prerelease_enable">Включить предрелизные патчи</string>
+    <string name="sources_management_prerelease_disable">Выключить предрелизные патчи</string>
+    <string name="sources_management_experimental_versions_enable">Включить экспериментальные версии приложения</string>
+    <string name="sources_management_experimental_versions_disable">Выключить экспериментальные версии приложения</string>
     <string name="sources_management_already_exists">Этот источник уже добавлен</string>
     <string name="sources_management_invalid_url">Недопустимый URL-адрес источника. Пожалуйста, проверьте адрес и попробуйте еще раз</string>
     <string name="sources_management_blocked">Этот источник патчей заблокирован и не может быть добавлен</string>
@@ -207,16 +213,21 @@
     <string name="sources_management_metadata_unavailable">Метаданные недоступны</string>
     <string name="sources_management_metadata_unavailable_hint">Удаленный файл метаданных недоступен. Применение патча к установленному пакету по-прежнему работает, но автоматическое обновление для этого источника отключено</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Не удалось загрузить пакет патчей. URL-адрес источника может быть указан неверно или файл не существует</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">Не удалось загрузить пакет патчей. Возможно, URL источника неверен или файл не существует. Нажмите, чтобы изменить это</string>
     <string name="sources_management_outdated_manager_badge">Обновить Nivqo</string>
     <string name="sources_management_outdated_manager_hint">Этот источник собран для патчера %1$s, но Morphe %2$s включает патчер %3$s. Обновите Morphe, чтобы использовать его</string>
     <string name="sources_management_held_back_badge">Сбой</string>
     <string name="sources_management_held_back_hint">Этот источник вызвал сбой Morphe во время загрузки, поэтому он пропускается. Обновите его или импортируйте заново, чтобы повторить попытку</string>
+    <string name="sources_management_signed_by">Подписано</string>
+    <string name="sources_management_signing_key_changed_badge">Ключ изменен</string>
+    <string name="sources_management_signing_key_changed_hint">Последний релиз подписан не тем ключом, который этот источник использовал ранее, поэтому он не был установлен. Нажмите, чтобы проверить его</string>
     <string name="sources_management_source_enabled">Источник включен</string>
     <string name="sources_management_source_disabled">Источник отключен</string>
     <string name="sources_management_source_updating">Обновление источника</string>
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Отображаемое имя</string>
     <string name="sources_dialog_rename">Переименовать источник патча</string>
+    <string name="sources_dialog_change_url">Изменение места загрузки исходного кода патча</string>
     <string name="sources_dialog_duplicate_name_error">Источник патча с таким названием уже существует</string>
     <string name="sources_dialog_missing_error">Не удалось обновить этот источник патча</string>
     <string name="sources_dialog_add_source">Добавить источник патча</string>
@@ -227,9 +238,6 @@
     <string name="sources_dialog_paste_no_links">В буфере обмена не найдено ссылок.</string>
     <string name="sources_dialog_local">Локальный</string>
     <string name="sources_dialog_local_files">Выберите файлы источников патчей.</string>
-    <!-- Button under the files already picked, which opens the picker again -->
-    <string name="sources_dialog_local_add_more">Добавить ещё файлы</string>
-    <string name="sources_dialog_local_file_tap_hint">Нажмите, чтобы просмотреть хранилище</string>
     <string name="sources_dialog_local_invalid_extension">Файл должен иметь расширение .mpp</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <string name="sources_dialog_local_updates">Обновляет %s</string>
@@ -237,6 +245,7 @@
     <string name="sources_dialog_url_invalid">URL должен указывать на репозиторий GitHub/GitLab или на файл .json</string>
     <string name="sources_dialog_preinstalled">Предварительно установлено</string>
     <string name="sources_dialog_community">Патчи сообщества</string>
+    <string name="sources_dialog_choose_apps">Выбрать приложения</string>
     <string name="sources_dialog_choose_apps_description">Выберите, какие из его приложений оставить после загрузки источника.</string>
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
     <string name="sources_dialog_community_notice_title">Источники сторонних патчей</string>
@@ -246,18 +255,25 @@
     <string name="sources_download_fail">Не удалось загрузить источники: %s</string>
     <string name="sources_download_fail_named">\'Не удалось обновить \"%s\". Проверьте подключение к Интернету и повторите попытку\',</string>
     <string name="sources_download_endpoint_not_found">В \"%s\" не найдены метаданные патча</string>
+    <string name="sources_signing_key_changed_named">\'%s\' не был обновлен, так как его последний релиз подписан не тем ключом, который использовался ранее</string>
+    <string name="sources_signing_key_changed_local">Файл подписан не тем ключом, который использовался этим источником ранее. Чтобы довериться ему, удалите источник и добавьте файл снова</string>
+    <string name="sources_signing_key_trust_title">Доверять новому ключу?</string>
+    <string name="sources_signing_key_trust_message">Последний релиз подписан другим ключом. Либо разработчик заменил свой ключ, либо этот релиз был опубликован кем-то другим. Доверяйте ему только в том случае, если разработчик сообщил о новом ключе</string>
+    <string name="sources_signing_key_trust_message_unsigned">Последний релиз не подписан. Либо разработчик перестал подписывать релизы, либо этот релиз был опубликован кем-то другим. Доверяйте ему только в том случае, если разработчик сообщил об этом</string>
+    <string name="sources_signing_key_trusted">Доверенный ключ</string>
+    <string name="sources_signing_key_new">Новый ключ</string>
     <string name="sources_patch_expert_badge">Эксперт</string>
     <string name="sources_patch_expert_badge_tooltip">Включите режим Эксперта в Настройках для добавления этого патча вручную</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
-    <string name="home_apk_availability_dialog_title">Нужна помощь в поиске оригинального непатченого APK?</string>
+    <string name="home_apk_availability_title">Нужна помощь в поиске APK?</string>
     <string name="home_apk_availability_dialog_simple">Чтобы патчить &lt;b&gt;%s&lt;/b&gt;, вам нужен непатченый APK с версией:</string>
     <string name="home_apk_availability_dialog_expert">Чтобы патчить &lt;b&gt;%s&lt;/b&gt;, вам нужен непатченый APK с версией:</string>
     <string name="home_apk_availability_recommended_label">Рекомендуемый</string>
     <string name="home_apk_availability_unpatched_label">Непатченый</string>
     <string name="home_apk_availability_incompatible_label">Несовместимый</string>
     <string name="home_apk_availability_installed_version">Установлено на этом устройстве: %s</string>
-    <string name="home_apk_availability_yes">Да, помогите мне найти APK</string>
-    <string name="home_apk_availability_no">Нет, у меня уже есть APK</string>
+    <string name="home_apk_availability_find">Да, помогите мне его найти</string>
+    <string name="home_apk_availability_have">Нет, у меня это уже есть</string>
     <string name="home_apk_helper_download">Использовать вспомогательное приложение</string>
     <string name="home_apk_helper_untrusted">Приложение-помощник установлено, но ещё не получило доверия, поэтому оно не предлагается здесь</string>
     <string name="home_apk_helper_untrusted_action">Проверить помощники</string>
@@ -273,8 +289,8 @@
     <string name="home_apk_helper_wrong_package">Вспомогательное приложение вернуло другое приложение, чем то, которое пропатчивается</string>
     <string name="home_apk_helper_installed_unavailable">Nivqo не смог использовать установленное приложение</string>
     <string name="home_apk_helper_installed_incompatible">Установленную версию невозможно пропатчить</string>
-    <string name="home_apk_use_saved">Использовать сохраненный APK</string>
-    <string name="home_apk_use_installed">Использовать установленный APK</string>
+    <string name="home_apk_use_saved_copy">Использовать сохраненную копию</string>
+    <string name="home_apk_use_installed_app">Использовать установленное приложение</string>
     <string name="home_apk_use_saved_unsupported">Эти патчи не поддерживают данную сохранённую копию. Применение патча потребует подтверждения или выберите другой APK</string>
     <string name="home_apk_use_installed_unverified">Не удалось проверить подпись установленного приложения, поэтому оно может быть уже пропатчено</string>
     <string name="home_unverified">Непроверенный</string>
@@ -310,14 +326,19 @@
     <string name="home_download_instructions_copy_link">Копировать ссылку</string>
     <string name="home_download_instructions_link_copied">Ссылка скопирована</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
-    <string name="home_file_picker_prompt_title">Выберите загруженный APK</string>
-    <string name="home_file_picker_prompt_description">Выберите файл %s APK, который вы только что загрузили</string>
+    <!-- %s is the name of the app whose APK was just downloaded -->
+    <string name="home_file_picker_prompt_app_title">Выберите %s APK</string>
+    <string name="home_file_picker_prompt_where">Браузеры обычно сохраняют его в папке \'Загрузки\'</string>
     <string name="home_file_picker_prompt_open_apk">Откройте APK-файл</string>
     <string name="home_recommended_version">Рекомендуемая версия</string>
     <string name="home_selected_version">Выбранная версия</string>
     <string name="home_select_apk_title">Выбрать APK</string>
-    <string name="home_select_any_apk_description">Выберите APK-файл любого приложения или выберите приложение, уже установленное на этом устройстве</string>
+    <string name="home_select_apk_description">"Универсальные патчи работают с любыми приложениями
+
+Выберите, откуда загрузить APK"</string>
     <string name="home_use_installed_app">Использовать установленное приложение</string>
+    <string name="home_use_installed_app_description">Выберите приложение, которое уже установлено на этом устройстве</string>
+    <string name="home_open_apk_file_description">Выберите файл APK, APKM, APKS или XAPK из хранилища</string>
     <string name="home_installed_app_picker_title">Установленные приложения</string>
     <string name="home_installed_app_picker_empty">Приложения не найдены</string>
     <string name="home_installed_app_picker_filter_user">Только пользовательские приложения</string>
@@ -330,19 +351,18 @@
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
     <string name="expert_mode_search">Поиск патчей</string>
     <string name="expert_mode_disable_all">Отключить все</string>
-    <string name="expert_mode_disable_all_done">Все патчи отключены</string>
     <string name="expert_mode_enable_all">Включить все</string>
-    <string name="expert_mode_enable_all_done">Все патчи включены</string>
     <string name="expert_mode_enable_all_universal_pending">Нажмите еще раз для универсальных патчей</string>
     <string name="expert_mode_universal_all_warning_title">Включить все универсальные патчи?</string>
     <string name="expert_mode_universal_all_warning_message">Универсальные патчи не тестировались вместе. Включение всех одновременно может вызвать конфликты, ошибки патчинга или краши</string>
-    <string name="expert_mode_reset_to_default">Включить рекомендованные патчи</string>
+    <string name="expert_mode_recommended">Рекомендуемые патчи</string>
     <string name="expert_mode_reset_to_default_done">Рекомендуемые патчи применены</string>
-    <string name="expert_mode_restore_saved">Восстановить сохраненный выбор</string>
+    <string name="expert_mode_selected_count">Выбрано %1$s из %2$s</string>
+    <string name="expert_mode_saved_selection">Сохраненный выбор</string>
     <string name="expert_mode_restore_saved_done">Восстановленный сохраненный выбор</string>
-    <string name="expert_mode_copy_from_bundle">Копировать выделенное из другого пакета</string>
     <string name="expert_mode_copy_from_bundle_no_patches">В этом пакете нет подходящих патчей</string>
     <string name="expert_mode_no_results">Патчи не найдены</string>
+    <string name="expert_mode_selected_only">Только выбранные патчи</string>
     <string name="expert_mode_selected_only_on">Показываются только выбранные патчи</string>
     <string name="expert_mode_selected_only_off">Показываются все патчи</string>
     <string name="expert_mode_universal_patches">Универсальные патчи</string>
@@ -351,9 +371,7 @@
     <string name="expert_mode_patch_required_by_installer">Требуется для выбранной цели установки</string>
     <string name="expert_mode_patch_unavailable_for_installer">Недоступно для выбранной цели установки</string>
     <string name="expert_mode_multiple_sources_warning_title">Выбрано несколько источников патчей</string>
-    <string name="expert_mode_multiple_sources_warning_message">"Вы выбрали патчи из нескольких источников патчей. Это может привести к проблеме совместимости или неожиданному поведению.
-
-Вы действительно хотите продолжить?"</string>
+    <string name="expert_mode_multiple_sources_warning_conflict">Патчи из разных источников не предназначены для совместной работы и могут конфликтовать или нарушать работу программы</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <string name="home_invalid_signature_title">Непроверенный APK</string>
     <string name="home_invalid_signature_message">APK, выбранный для &lt;b&gt;%s&lt;/b&gt;, не соответствует ожидаемому сертификату подписи. Он мог быть изменен или получен из ненадежного источника</string>
@@ -367,7 +385,9 @@
     <string name="home_dialog_unsupported_version_experimental_label">Экспериментальный</string>
     <string name="home_dialog_unsupported_version_experimental_description">Эта версия имеет экспериментальную поддержку и может быть нестабильной или неполной</string>
     <string name="morphe_experimental_app_version_dialog_title">Хотите поэкспериментировать? 🧪</string>
-    <string name="morphe_experimental_app_version_dialog_message">Эта версия &lt;b&gt;%s&lt;/b&gt; имеет раннюю экспериментальную поддержку&lt;br/&gt;&lt;br/&gt;🔧 В процессе доработки исправлений для этой версии приложения возможны странные сбои в работе приложения или неустановленные ошибки.</string>
+    <string name="morphe_experimental_app_version_dialog_message">"Эта версия &lt;b&gt;%s&lt;/b&gt; имеет раннюю экспериментальную поддержку.
+
+🔧 В процессе доработки исправлений для этой версии приложения возможны странные сбои в работе приложения или неустановленные ошибки"</string>
     <string name="home_dialog_unsupported_version_dialog_title">Неподдерживаемая версия</string>
     <string name="home_dialog_unsupported_version_dialog_description">Этот APK не является рекомендуемой версией приложения. Продолжение может привести к некорректной работе приложения</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
@@ -504,7 +524,8 @@
     <string name="shortcut_check_updates_long">Проверить наличие обновлений патчей</string>
     <string name="shortcut_patch_app">Патч %s</string>
     <!-- Home Screen - App Info Screen -->
-    <string name="home_app_info_uninstall_app_confirmation">Вы уверены, что хотите удалить это приложение?</string>
+    <string name="home_app_info_uninstall_title">Деинсталлировать это приложение?</string>
+    <string name="home_app_info_uninstall_removes_data">The app and its data are removed from this device</string>
     <string name="batch_uninstall_confirm_body">Выбранные приложения будут безвозвратно удалены с вашего устройства</string>
     <string name="home_app_info_remove_app_warning">Это навсегда удалит:</string>
     <string name="home_app_info_delete_item_database">Запись в базе данных</string>
@@ -643,12 +664,15 @@
     <string name="patcher_storage_permission_open_settings">Открыть настройки хранилища</string>
     <string name="patcher_storage_badge_denied">Доступ запрещен</string>
     <string name="patcher_storage_badge_missing">Не найдено</string>
+    <string name="patcher_storage_badge_rejected">Непригодно</string>
     <string name="batch_patch_option_paths_skipped">Файлы параметров патча отсутствуют и будут пропущены: %1$s</string>
     <string name="patcher_missing_patches_title">Некоторые патчи исчезли</string>
     <string name="patcher_missing_patches_description">Сохранённый выбор для этого имени приложения указывает на патчи, которые больше не доступны ни в одном включённом источнике. Продолжение приведёт к исправлению приложения без этих патчей</string>
     <string name="patcher_missing_patches_label">Больше не предлагаются</string>
     <string name="patcher_option_paths_gone_title">Файлы параметров патча отсутствуют</string>
     <string name="patcher_option_paths_gone_description">Один или несколько параметров патча указывают на файлы, которых больше нет. Удалите пути, чтобы патчить без них, или верните файлы на место и попробуйте снова</string>
+    <string name="patcher_option_paths_rejected_title">Не удалось использовать файлы опций патча</string>
+    <string name="patcher_option_paths_rejected_description">Одна или несколько опций патча указывают на файлы, которые отсутствуют или не содержат необходимых данных. Удалите пути к патчам без этих файлов, либо исправьте файлы согласно инструкциям опции и попробуйте снова</string>
     <string name="patcher_option_paths_clear">Удалить пути и продолжить</string>
     <string name="patcher_storage_permission_hint">Совет: переместите файлы в /Android/data/app.morphe.manager/files/ - дополнительные разрешения не требуются</string>
     <!-- Patcher Screen - Patcher Steps -->
@@ -666,8 +690,10 @@
     <!-- Patcher Screen - Patcher Worker -->
     <string name="patcher_notification_title">Идет установка исправлений…</string>
     <string name="patcher_notification_text">Нажмите, чтобы вернуться к патчеру</string>
-    <string name="patcher_stop_confirm_title">Остановить патчер</string>
-    <string name="patcher_stop_confirm_description">Вы уверены, что хотите остановить процесс патчинга?</string>
+    <string name="patcher_stop_title">Остановить патчинг?</string>
+    <string name="patcher_stop_discards">The progress so far is discarded and nothing is installed</string>
+    <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
+    <string name="patcher_keep_patching">Продолжить патчинг</string>
     <!-- Patcher Screen - Patcher Messages -->
     <string name="patcher_message_1">Превращаем ваше приложение во что-то потрясающее… 🏆</string>
     <string name="patcher_message_2">Обучаем старые приложения новым трюкам… 🎩</string>
@@ -809,21 +835,21 @@
     <string name="settings_appearance_repatch_notice_description">Показывает баннер когда пропатченные приложения могут быть перепатчены</string>
     <string name="settings_appearance_more_apps_card">Карточка «Другие приложения»</string>
     <string name="settings_appearance_more_apps_card_description">Показывает карточку под приложениями, ведущую к патчам сообщества</string>
-    <string name="settings_appearance_app_card_colors">Цвета карточек приложений</string>
+    <string name="settings_appearance_app_card_colors">Card colors</string>
     <string name="settings_appearance_app_card_colors_default">По умолчанию</string>
-    <string name="settings_appearance_app_card_colors_default_description">Присваивать каждому приложению цвет его собственного набора</string>
+    <string name="settings_appearance_app_card_colors_default_description">Предоставьте каждому приложению и источнику свой цвет</string>
     <string name="settings_appearance_app_card_colors_accent">Акцент</string>
-    <string name="settings_appearance_app_card_colors_accent_description">Использовать акцентный цвет приложения для карточек на главном экране</string>
+    <string name="settings_appearance_app_card_colors_accent_description">Используйте акцентный цвет программы для карточек программы и источника</string>
     <string name="settings_appearance_app_card_colors_gradient">Градиент</string>
-    <string name="settings_appearance_app_card_colors_gradient_description">Использовать один пользовательский градиент для карточек на главном экране</string>
+    <string name="settings_appearance_app_card_colors_gradient_description">Используйте один градиент для карт приложений, совмещенный в один цвет для карт исходных кодов</string>
     <string name="settings_appearance_app_card_colors_solid">Сплошной</string>
-    <string name="settings_appearance_app_card_colors_solid_description">Использовать один пользовательский цвет для карточек на главном экране</string>
+    <string name="settings_appearance_app_card_colors_solid_description">Используйте один собственный цвет для карт программ и исходных кодов</string>
     <string name="settings_appearance_app_card_colors_start">Начальный цвет</string>
     <string name="settings_appearance_app_card_colors_middle">Средний цвет</string>
     <string name="settings_appearance_app_card_colors_end">Конечный цвет</string>
     <string name="settings_appearance_app_card_colors_solid_color">Сплошной цвет</string>
     <string name="settings_appearance_app_card_colors_bundle">Цвет набора приложения</string>
-    <string name="settings_appearance_app_card_colors_bundle_description">Использовать собственный цвет каждого приложения с автоматическим затенением для соответствия</string>
+    <string name="settings_appearance_app_card_colors_bundle_description">Используйте собственный цвет каждого приложения или источника, который автоматически затеняется в соответствии с размером</string>
     <!-- Settings - Appearance Tab - App Icon Selector -->
     <string name="settings_appearance_app_icon_selector_title">Иконка приложения</string>
     <string name="settings_appearance_app_icon_selector_description">Как Morphe выглядит на главном экране и в панели приложений</string>
@@ -849,7 +875,8 @@
     <string name="settings_appearance_app_icon_mark_white">Белый</string>
     <string name="settings_appearance_app_icon_mark_black">Чёрная</string>
     <string name="settings_appearance_app_icon_change_dialog_title">Изменить значок приложения?</string>
-    <string name="settings_appearance_app_icon_change_dialog_message">Изменить на &lt;b&gt;%s&lt;/b&gt; и перезапустить?</string>
+    <!-- %s is the name of the icon picked -->
+    <string name="settings_appearance_app_icon_change_restarts">Morphe restarts to switch to &lt;b&gt;%s&lt;/b&gt;</string>
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <string name="settings_appearance_app_icon_change_dialog_confirm">Изменить значок</string>
     <!-- Settings - Advanced Tab - Updates Section -->
@@ -1036,6 +1063,8 @@ morphe_header_custom_dark.png
     <string name="installer_play_store_warning_continue">Я понимаю, продолжить</string>
     <string name="installer_play_store_mode">Установить как Play Store</string>
     <string name="installer_play_store_mode_description">Прописывает Google Play как источник установки</string>
+    <string name="settings_nomount_only">Только NoMount</string>
+    <string name="settings_nomount_only_description">Монтирует приложения только с помощью NoMount и никогда не переключается на bind mount, поэтому без него они остаются несмонтированными</string>
     <string name="settings_prompt_installer_on_install">Окно выбора установщика</string>
     <string name="settings_prompt_installer_on_install_description">Запрашивает способ установки каждого приложения: с рутом перед патчингом, иначе после него</string>
     <string name="settings_auto_install_with_shizuku">Автоматическая установка после патча</string>
@@ -1205,12 +1234,22 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_source_data_success">Данные источника импортированы успешно</string>
     <string name="settings_system_selected_patches_section">Выбранные патчи</string>
     <string name="settings_system_no_patches_or_options">Нет сохраненных патчей или параметров</string>
-    <!-- Copy selection from another bundle -->
-    <string name="copy_selection_title">Копировать выделенное из…</string>
-    <string name="copy_selection_confirm_with_count">Копировать %s</string>
+    <!-- Selection panel: saved selection, sets and copies -->
+    <string name="selection_panel_title">Выбор</string>
+    <string name="selection_panel_copy_into">Копировать в %s</string>
+    <string name="selection_sets_title">Наборы</string>
+    <string name="selection_set_name">Имя набора</string>
+    <string name="selection_set_save">Сохранить как набор</string>
+    <string name="selection_set_replace">Заменить набор</string>
+    <string name="selection_set_saved">Сохранено как %s</string>
+    <string name="selection_set_applied">Переключено на %s</string>
+    <string name="selection_set_deleted">%s удалено</string>
+    <string name="selection_set_renamed">Переименовано в %s</string>
+    <string name="selection_set_rename_title">Переименовать набор</string>
+    <string name="selection_set_delete_title">Удалить набор?</string>
+    <string name="selection_set_delete_message">Это навсегда удалит набор %s</string>
     <string name="copy_selection_empty">Нет других сохраненных выделенных фрагментов для копирования</string>
     <string name="copy_selection_available_format">%1$s из %2$s доступно</string>
-    <string name="copy_selection_same_source">Тот же источник</string>
     <!-- Settings - System Tab - Custom file picker -->
     <string name="settings_system_custom_file_picker">Пользовательский файловый менеджер</string>
     <string name="settings_system_custom_file_picker_description">Использует средство выбора файлов встроенное в Morphe вместо системного</string>
@@ -1219,7 +1258,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_apk_download_helper_trusted_count">Доверено: %1$d из %2$d</string>
     <string name="settings_system_apk_download_helper_dialog_description">Вспомогательные приложения могут загружать оригинальные APK-файлы за вас. В инструкциях по загрузке предлагаются только те, которым вы доверяете.</string>
     <string name="settings_system_apk_download_helper_trust_title">Доверять этому помощнику?</string>
-    <string name="settings_system_apk_download_helper_trust">Доверять</string>
     <string name="settings_system_apk_download_helper_warning">APK поступает из вспомогательного приложения, поэтому доверяйте только тем приложениям, которые вы знаете. Morphe по-прежнему проверяет пакет, версию и подпись каждого файла перед наложением патча.</string>
     <string name="settings_system_apk_download_helper_installed_by">Установлено: %s</string>
     <string name="settings_system_apk_download_helper_installed_by_unknown">Установщик неизвестен</string>
@@ -1231,7 +1269,10 @@ morphe_header_custom_dark.png
     <string name="file_picker_internal_storage">Внутренняя память</string>
     <string name="file_picker_sd_card">SD-карта</string>
     <string name="file_picker_root">Корень (/)</string>
+    <string name="file_picker_storage_access_unavailable">У этого устройства нет экрана для предоставления доступа ко всем файлам. Разрешите его через ADB с помощью: adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="file_picker_storages">Хранилища</string>
+    <string name="file_saver_downloads_failed">Не удалось создать файл в папке «Загрузки»</string>
+    <string name="file_saver_saving_to_downloads">У этого устройства нет экрана сохранения, поэтому файл будет сохранен в «Загрузки» как %1$s</string>
     <string name="file_picker_sort_name_asc">Имя (A–Z)</string>
     <string name="file_picker_sort_name_desc">Имя (Z–A)</string>
     <string name="file_picker_sort_size_desc">Размер (от большего к меньшему)</string>
@@ -1243,7 +1284,7 @@ morphe_header_custom_dark.png
     <string name="settings_system_about">О приложении</string>
     <string name="settings_system_manager_description">Проект с открытым исходным кодом для современного, упрощенного патчинга популярных Android-приложений, развиваемый на основе отзывов и вкладов сообщества</string>
     <string name="credits">Благодарности</string>
-    <string name="credits_description">Люди за Morphe</string>
+    <string name="credits_description">Людям, стоящим за Morphe</string>
     <string name="settings_about_section_project">Проект</string>
     <string name="settings_about_section_help">Помощь</string>
     <string name="credits_current_development">Текущая разработка</string>
@@ -1314,6 +1355,7 @@ morphe_header_custom_dark.png
     <string name="include">Включить</string>
     <string name="disable">Отключить</string>
     <string name="enable">Включить</string>
+    <string name="trust">Доверять</string>
     <string name="loading">Загрузка…</string>
     <string name="creating">Создается…</string>
     <string name="processing_apk">Обработка APK…</string>
@@ -1335,6 +1377,8 @@ morphe_header_custom_dark.png
     <string name="reorder_done">Порядок сохранен</string>
     <string name="reset_order">Сбросить порядок</string>
     <string name="reset_order_done">Сброс заказа</string>
+    <string name="reset_order_confirm_title">Сбросить порядок?</string>
+    <string name="reset_order_confirm_message">Список вернется к порядку по умолчанию, и порядок, установленный вручную, будет утерян</string>
     <string name="accessibility_select_app">Выберите приложение</string>
     <string name="accessibility_select_source">Выбрать источник</string>
     <string name="accessibility_move_up">Переместить вверх</string>
@@ -1342,6 +1386,7 @@ morphe_header_custom_dark.png
     <string name="accessibility_app_moved_announcement">%1$s перемещен(а) на позицию %2$s из %3$s</string>
     <string name="accessibility_scroll_to_top">Прокрутить к началу списка</string>
     <string name="rename">Переименовать</string>
+    <string name="more_options">Дополнительные параметры</string>
     <string name="import_">Импортировать</string>
     <string name="export">Экспорт</string>
     <string name="copy">Копировать</string>
@@ -1386,6 +1431,7 @@ morphe_header_custom_dark.png
     <string name="show_all">Показать все</string>
     <string name="ignore">Игнорировать</string>
     <string name="stop_ignoring">Перестать игнорировать</string>
+    <string name="stop">Остановить</string>
     <string name="logs">Журналы</string>
     <string name="sources">Источники</string>
     <string name="installing_ellipsis">Установка…</string>
@@ -1472,14 +1518,43 @@ morphe_header_custom_dark.png
     <string name="onboarding_restart_title">Ознакомительный тур</string>
     <string name="onboarding_restart_desc">Интерактивный обзор ключевых функций</string>
 
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <!-- Preserved Nivqo localization -->
+    <string name="home_category_delete_confirm_title">Удалить категорию</string>
+    <string name="home_category_delete_confirm_message">Удалить категорию &lt;b&gt;%1$s&lt;/b&gt;? Приложения в ней будут возвращены в &lt;b&gt;%2$s&lt;/b&gt;</string>
+    <string name="expert_mode_prerelease_notice">Этот источник использует предварительные патчи. Патчи могут не сработать или работать некорректно</string>
+    <string name="expert_mode_experimental_version_notice">Этот источник имеет только экспериментальную поддержку для данной версии приложения. Его патчи могут быть нестабильными или неполными</string>
+    <string name="sources_dialog_local_add_more">Добавить ещё файлы</string>
+    <string name="sources_dialog_local_file_tap_hint">Нажмите, чтобы просмотреть хранилище</string>
+    <string name="home_apk_availability_dialog_title">Нужна помощь в поиске оригинального непатченого APK?</string>
+    <string name="home_apk_availability_yes">Да, помогите мне найти APK</string>
+    <string name="home_apk_availability_no">Нет, у меня уже есть APK</string>
+    <string name="home_apk_use_saved">Использовать сохраненный APK</string>
+    <string name="home_apk_use_installed">Использовать установленный APK</string>
+    <string name="home_file_picker_prompt_title">Выберите загруженный APK</string>
+    <string name="home_file_picker_prompt_description">Выберите файл %s APK, который вы только что загрузили</string>
+    <string name="home_select_any_apk_description">Выберите APK-файл любого приложения или выберите приложение, уже установленное на этом устройстве</string>
+    <string name="expert_mode_disable_all_done">Все патчи отключены</string>
+    <string name="expert_mode_enable_all_done">Все патчи включены</string>
+    <string name="expert_mode_reset_to_default">Включить рекомендованные патчи</string>
+    <string name="expert_mode_restore_saved">Восстановить сохраненный выбор</string>
+    <string name="expert_mode_copy_from_bundle">Копировать выделенное из другого пакета</string>
+    <string name="expert_mode_multiple_sources_warning_message">"Вы выбрали патчи из нескольких источников патчей. Это может привести к проблеме совместимости или неожиданному поведению.
+
+Вы действительно хотите продолжить?"</string>
+    <string name="home_app_info_uninstall_app_confirmation">Вы уверены, что хотите удалить это приложение?</string>
+    <string name="patcher_stop_confirm_title">Остановить патчер</string>
+    <string name="patcher_stop_confirm_description">Вы уверены, что хотите остановить процесс патчинга?</string>
+    <string name="settings_appearance_app_icon_change_dialog_message">Изменить на &lt;b&gt;%s&lt;/b&gt; и перезапустить?</string>
+    <string name="copy_selection_title">Копировать выделенное из…</string>
+    <string name="copy_selection_confirm_with_count">Копировать %s</string>
+    <string name="copy_selection_same_source">Тот же источник</string>
+    <string name="settings_system_apk_download_helper_trust">Доверять</string>
     <string name="home_app_list_options_title">Сортировка и фильтрация</string>
     <string name="home_app_list_options_state_description">Отсортировано по %1$s, отфильтровано по %2$s</string>
     <string name="sources_sort_title">Сортировка источников патчей</string>
     <string name="sources_apps_leave_out">Исключить</string>
     <string name="sources_apps_leave_out_done">Исключено</string>
     <string name="sources_apps_bring_back">Вернуть</string>
-    <string name="sources_dialog_choose_apps">Выберите приложения</string>
     <string name="hex_color">Hex цвет</string>
     <string name="patcher_memory_adjustment_title">Недостаточно памяти</string>
     <string name="patcher_memory_adjustment_description">Патчер был остановлен системой при работе с лимитом памяти %1$d МБ. Снижение лимита до %2$d МБ делает патчер менее заметной целью и может позволить завершить процесс.</string>

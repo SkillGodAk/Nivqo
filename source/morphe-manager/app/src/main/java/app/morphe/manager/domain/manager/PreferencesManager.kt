@@ -15,6 +15,7 @@ import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import app.morphe.manager.BuildConfig
+import app.morphe.manager.domain.batch.BatchInstallPolicy
 import app.morphe.manager.domain.manager.base.BasePreferencesManager
 import app.morphe.manager.domain.repository.PatchBundleRepository.Companion.DEFAULT_SOURCE_UID
 import app.morphe.manager.ui.screen.shared.BackgroundType
@@ -105,6 +106,9 @@ class PreferencesManager(
     /** UIDs of bundles for which experimental app versions are preferred as the recommended target. */
     val bundleExperimentalVersionsEnabled = stringSetPreference("bundle_experimental_versions_enabled", emptySet())
 
+    /** Packages whose experimental version warning was confirmed, which is asked once per app. */
+    val experimentalVersionsConfirmed = stringSetPreference("experimental_versions_confirmed", emptySet())
+
     /**  Whether to send Android system notifications when updates are available in the background. */
     val backgroundUpdateNotifications = booleanPreference("background_update_notifications", false)
 
@@ -123,12 +127,16 @@ class PreferencesManager(
     /** Tracks whether the battery optimization exclusion dialog has been shown at least once. */
     val batteryOptimizationRequested = booleanPreference("battery_optimization_requested", false)
 
+    /** Set once the user has agreed to the third-party notice, after which the community website opens at once. */
+    val communityNoticeAcknowledged = booleanPreference("community_notice_acknowledged", false)
+
     val useExpertMode = booleanPreference("use_expert_mode", false)
 
     val stripUnusedNativeLibs = booleanPreference("strip_unused_native_libs", false)
 
     // System tab
     val installerPrimary = stringPreference("installer_primary", InstallerPreferenceTokens.INTERNAL)
+    val noMountOnly = booleanPreference("nomount_only", false)
     val promptInstallerOnInstall = booleanPreference("prompt_installer_on_install", false)
     /** Lets an expert run on a rooted device pick patches regardless of what its install target requires or rules out. */
     val ignoreInstallTargetRules = booleanPreference("ignore_install_target_rules", false)
@@ -206,6 +214,9 @@ class PreferencesManager(
 
     /** Batch queue prepared but not started yet (JSON), empty when there is none. */
     val batchQueue = stringPreference("batch_queue", "")
+
+    /** What the last batch queue did with its patched APKs, which the next queue starts from. */
+    val batchInstallPolicy = enumPreference("batch_install_policy", BatchInstallPolicy.SAVE_ONLY)
 
     /** Tracks whether the user has explicitly toggled the custom file picker preference. */
     val customFilePickerUserConfigured = booleanPreference("custom_file_picker_user_configured", false)
@@ -285,6 +296,7 @@ class PreferencesManager(
         val useJvmRuntime: Boolean? = null,
         val allowMeteredUpdates: Boolean? = null,
         val installerPrimary: String? = null,
+        val noMountOnly: Boolean? = null,
         val installerCustomComponents: Set<String>? = null,
         val installerHiddenComponents: Set<String>? = null,
         val keystoreAlias: String? = null,
@@ -355,6 +367,7 @@ class PreferencesManager(
                 useJvmRuntime = useJvmRuntime.takeIf { patching },
                 allowMeteredUpdates = allowMeteredUpdates.takeIf { updates },
                 installerPrimary = installerPrimary.takeIf { patching },
+                noMountOnly = noMountOnly.takeIf { patching },
                 installerCustomComponents = installerCustomComponents.takeIf { patching },
                 installerHiddenComponents = installerHiddenComponents.takeIf { patching },
                 keystoreAlias = keystoreAlias.takeIf { patching },
@@ -415,6 +428,7 @@ class PreferencesManager(
         useJvmRuntime = useJvmRuntime.get(),
         allowMeteredUpdates = allowMeteredUpdates.get(),
         installerPrimary = installerPrimary.get(),
+        noMountOnly = noMountOnly.get(),
         installerCustomComponents = installerCustomComponents.get(),
         installerHiddenComponents = installerHiddenComponents.get(),
         firstLaunch = firstLaunch.get(),
@@ -472,6 +486,7 @@ class PreferencesManager(
         snapshot.useJvmRuntime?.let { useJvmRuntime.value = it }
         snapshot.allowMeteredUpdates?.let { allowMeteredUpdates.value = it }
         snapshot.installerPrimary?.let { installerPrimary.value = it }
+        snapshot.noMountOnly?.let { noMountOnly.value = it }
         snapshot.installerCustomComponents?.let { installerCustomComponents.value = it }
         snapshot.installerHiddenComponents?.let { installerHiddenComponents.value = it }
         snapshot.keystoreAlias?.let { keystoreAlias.value = it }

@@ -32,6 +32,7 @@ import app.morphe.manager.ui.viewmodel.SettingsViewModel
 import app.morphe.manager.util.displayName
 import app.morphe.manager.util.openAppNotificationSettings
 import app.morphe.manager.util.rememberAdaptiveFilePicker
+import app.morphe.manager.util.tryLaunch
 import app.morphe.manager.worker.UpdateCheckInterval
 import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.rounded.*
@@ -129,9 +130,13 @@ fun NotificationsSettings(settingsViewModel: SettingsViewModel = koinViewModel()
             onPickRingtone = {
                 showSourcePickerFor = null
                 pendingRingtoneFor = target
-                ringtoneLauncher.launch(
-                    ringtonePickerIntent(currentUri.takeIf { it.isNotBlank() }?.toUri(), ringtoneTitle)
-                )
+                val intent = ringtonePickerIntent(currentUri.takeIf { it.isNotBlank() }?.toUri(), ringtoneTitle)
+                // Builds without a ringtone picker, as some TV ones, still have the file one
+                if (!ringtoneLauncher.tryLaunch(intent)) {
+                    pendingRingtoneFor = null
+                    pendingFileFor = target
+                    launchFilePicker()
+                }
             },
             onPickFile = {
                 showSourcePickerFor = null

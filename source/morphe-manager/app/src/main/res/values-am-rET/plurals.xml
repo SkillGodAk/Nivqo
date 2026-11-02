@@ -1,8 +1,180 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <plurals name="patch_count">
+        <item quantity="one">%s ፓች</item>
+        <item quantity="other">%s ፓቾች</item>
+    </plurals>
     <!-- Subtitle of the open-source licenses page: how many libraries it lists -->
+    <plurals name="library_count">
+        <item quantity="one">%s ላይብረሪ</item>
+        <item quantity="other">%s ቤተ-መጻሕፍት</item>
+    </plurals>
+    <plurals name="option_count">
+        <item quantity="one">%s የፓች አማራጭ</item>
+        <item quantity="other">%s የፓች አማራጮች</item>
+    </plurals>
     <!-- How many files and folders a folder holds, under its name in the file picker -->
+    <plurals name="file_picker_item_count">
+        <item quantity="one">%s እቃ</item>
+        <item quantity="other">%s እቃዎች</item>
+    </plurals>
     <!-- Button that confirms the files checked in the file picker -->
+    <plurals name="file_picker_select_count">
+        <item quantity="one">%s ፋይል ይምረጡ</item>
+        <item quantity="other">%s ፋይሎችን ይምረጡ</item>
+    </plurals>
     <!-- Button that adds every source waiting in the add source dialog -->
+    <plurals name="sources_dialog_add_count">
+        <item quantity="one">%s ምንጭ አክል</item>
+        <item quantity="other">%s ምንጮችን አክል</item>
+    </plurals>
+    <plurals name="home_app_patch_sources_title">
+        <item quantity="one">ለ%s መተግበሪያ የፓች ምንጮች</item>
+        <item quantity="other">ለ%s መተግበሪያዎች የፓች ምንጮች</item>
+    </plurals>
+    <plurals name="home_apk_availability_hidden_sources">
+        <item quantity="one">ለዚህ መተግበሪያ %s ምንጭ ተደብቋል። ለመመለስ በመተግበሪያዎች ታብ ላይ መተግበሪያውን ይምረጡ እና የፓች ምንጮችን ይክፈቱ</item>
+        <item quantity="other">ለዚህ መተግበሪያ %s ምንጮች ተደብቀዋል። ለመመለስ በመተግበሪያዎች ታብ ላይ መተግበሪያውን ይምረጡ እና የፓች ምንጮችን ይክፈቱ</item>
+    </plurals>
+    <plurals name="expert_mode_hidden_sources_notice">
+        <item quantity="one">%s ምንጭ ተደብቋል። ለማሳየት ይጫኑ</item>
+        <item quantity="other">%s ምንጮች ተደብቀዋል። ለማሳየት ይጫኑ</item>
+    </plurals>
+    <plurals name="sources_search_patch_matches">
+        <item quantity="one">%s የሚዛመድ ፓች</item>
+        <item quantity="other">%s የሚዛመዱ ፓቾች</item>
+    </plurals>
+    <plurals name="source_count">
+        <item quantity="one">%s ምንጭ</item>
+        <item quantity="other">%s ምንጮች</item>
+    </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s ስብስብ</item>
+        <item quantity="other">%s ስብስቦች</item>
+    </plurals>
+    <plurals name="package_count">
+        <item quantity="one">%s ፓኬጅ</item>
+        <item quantity="other">%s ፓኬጆች</item>
+    </plurals>
+    <plurals name="patches_executed">
+        <item quantity="one">%s ፓች ተፈጽሟል</item>
+        <item quantity="other">%s ፓቾች ተፈጽመዋል</item>
+    </plurals>
+    <plurals name="settings_system_apks_count">
+        <item quantity="one">%s APK ፋይል</item>
+        <item quantity="other">%s የAPK ፋይሎች</item>
+    </plurals>
+    <plurals name="batch_install_summary">
+        <item quantity="one">%s መተግበሪያ ተጭኗል</item>
+        <item quantity="other">%s መተግበሪያዎች ተጭነዋል</item>
+    </plurals>
+    <plurals name="batch_mount_summary">
+        <item quantity="one">%s መተግበሪያ ተጫነ</item>
+        <item quantity="other">%s መተግበሪያዎች ተጫኑ</item>
+    </plurals>
+    <plurals name="batch_reinstall_summary">
+        <item quantity="one">%s መተግበሪያ በድጋሚ ተጭኗል</item>
+        <item quantity="other">%s መተግበሪያዎች በድጋሚ ተጭነዋል</item>
+    </plurals>
+    <plurals name="batch_uninstall_summary">
+        <item quantity="one">%s መተግበሪያ ተሰርዟል</item>
+        <item quantity="other">%s መተግበሪያዎች ተሰርዘዋል</item>
+    </plurals>
+    <plurals name="batch_uninstall_confirm_title">
+        <item quantity="one">%s መተግበሪያን ይሰርዙ?</item>
+        <item quantity="other">%s መተግበሪያዎችን ይሰርዙ?</item>
+    </plurals>
+    <plurals name="batch_patch_ready_count">
+        <item quantity="one">%s መተግበሪያ ለመጠገን ዝግጁ ነው</item>
+        <item quantity="other">%s መተግበሪያዎች ለመጠገን ዝግጁ ናቸው</item>
+    </plurals>
+    <plurals name="batch_queue_pending_count">
+        <item quantity="one">%s መተግበሪያ ለጥገና ተሰልፏል</item>
+        <item quantity="other">%s መተግበሪያዎች ለጥገና ተሰልፈዋል</item>
+    </plurals>
+    <plurals name="home_alerts_snoozed_count">
+        <item quantity="one">%s የተሰወረ ማሳወቂያ፣ ለማሳየት ይጫኑ</item>
+        <item quantity="other">%s የተሰወሩ ማሳወቂያዎች፣ ለማሳየት ይጫኑ</item>
+    </plurals>
+    <plurals name="repatch_available_count">
+        <item quantity="one">%s መተግበሪያ እንደገና ሊጠገን ይችላል</item>
+        <item quantity="other">%s መተግበሪያዎች እንደገና ሊጠገኑ ይችላሉ</item>
+    </plurals>
+    <plurals name="batch_skipped_summary">
+        <item quantity="one">%s መተግበሪያ ተለፍቷል</item>
+        <item quantity="other">%s መተግበሪያዎች ተለፍተዋል</item>
+    </plurals>
+    <plurals name="home_app_info_repatch_cleaned_invalid_data">
+        <item quantity="one">%s ጊዜ ያለፈበት ፓች ከተቀመጠው ምርጫ ውስጥ ተሰርዟል</item>
+        <item quantity="other">%s ጊዜ ያለፈባቸው ፓቾች ከተቀመጠው ምርጫ ውስጥ ተሰርዘዋል</item>
+    </plurals>
+    <plurals name="sources_management_subtitle">
+        <item quantity="one">%s ምንጭ ተጭኗል</item>
+        <item quantity="other">%s ምንጮች ተጭነዋል</item>
+    </plurals>
+    <plurals name="home_apps_hidden_count">
+        <item quantity="one">%s መተግበሪያ ተደብቋል</item>
+        <item quantity="other">%s መተግበሪያዎች ተደብቀዋል</item>
+    </plurals>
+    <plurals name="home_apps_shown_count">
+        <item quantity="one">%s መተግበሪያ ይታያል</item>
+        <item quantity="other">%s መተግበሪያዎች ይታያሉ</item>
+    </plurals>
+    <plurals name="home_apps_unhide_title">
+        <item quantity="one">%s መተግበሪያን ከመደበቁ ያወጡ?</item>
+        <item quantity="other">%s መተግበሪያዎችን አታሳልጥ?</item>
+    </plurals>
+    <plurals name="home_app_show_hidden_count">
+        <item quantity="one">%s የተደበቀ መተግበሪያ</item>
+        <item quantity="other">%s የተደበቁ መተግበሪያዎች</item>
+    </plurals>
+    <plurals name="home_category_app_count">
+        <item quantity="one">%s መተግበሪያ</item>
+        <item quantity="other">%s መተግበሪያዎች</item>
+    </plurals>
+    <plurals name="expert_mode_selected_count">
+        <item quantity="one">%s ተመርጧል</item>
+        <item quantity="other">%s ተመርጠዋል</item>
+    </plurals>
+    <plurals name="expert_mode_copy_from_bundle_done">
+        <item quantity="one">%s ፓች ከተመረጠው ጥቅል ተቀድቷል</item>
+        <item quantity="other">%s ፓቾች ከተመረጠው ጥቅል ተቀድተዋል</item>
+    </plurals>
+    <plurals name="core_count">
+        <item quantity="one">%s ኮር</item>
+        <item quantity="other">%s ኮሮች</item>
+    </plurals>
+    <plurals name="changelog_feature_count">
+        <item quantity="one">%s ባህሪ</item>
+        <item quantity="other">%s ባህሪያት</item>
+    </plurals>
+    <plurals name="changelog_fix_count">
+        <item quantity="one">%s ጥገና</item>
+        <item quantity="other">%s ጥገናዎች</item>
+    </plurals>
+    <plurals name="changelog_performance_count">
+        <item quantity="one">%s ማመቻቻ</item>
+        <item quantity="other">%s ማመቻቻዎች</item>
+    </plurals>
+    <plurals name="changelog_change_count">
+        <item quantity="one">%s ለውጥ</item>
+        <item quantity="other">%s ለውጦች</item>
+    </plurals>
     <!-- Value of the Apps row on a source card when apps were left out on arrival, for example "3/232 · 2 new". %1$s is the app count, %2$d the new apps -->
+    <plurals name="sources_apps_count_with_new">
+        <item quantity="one">%1$s · %2$d አዲስ</item>
+        <item quantity="other">%1$s · %2$d አዲስ</item>
+    </plurals>
+    <plurals name="changelog_new_releases">
+        <item quantity="one">%s አዲስ ስሪት</item>
+        <item quantity="other">%s አዳዲስ ስሪቶች</item>
+    </plurals>
+    <plurals name="app_links_count_enabled">
+        <item quantity="one">%d ሊንክ ተفعيل ሆኗል</item>
+        <item quantity="other">%d ሊንኮች ተفعيل ሆነዋል</item>
+    </plurals>
+    <plurals name="app_links_count_unverified">
+        <item quantity="one">%d ያልተረጋገጠ ሊንክ</item>
+        <item quantity="other">%d ያልተረጋገጡ ሊንኮች</item>
+    </plurals>
 </resources>

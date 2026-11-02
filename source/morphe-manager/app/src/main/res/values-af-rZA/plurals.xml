@@ -48,6 +48,10 @@
         <item quantity="one">%s oorsprong</item>
         <item quantity="other">%s oorspronge</item>
     </plurals>
+    <plurals name="selection_set_count">
+        <item quantity="one">%s stel</item>
+        <item quantity="other">%s stelle</item>
+    </plurals>
     <plurals name="package_count">
         <item quantity="one">%s pakket</item>
         <item quantity="other">%s pakkette</item>

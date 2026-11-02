@@ -162,6 +162,7 @@ internal fun SectionsLayout(
                 sortOpen = state.isListOptionsOpen,
                 onSortClick = { state.isListOptionsOpen = !state.isListOptionsOpen },
                 onPatchFileClick = chromeActions.onOtherAppsClick,
+                reorder = footerBar.content?.listReorder(),
                 tour = onboardingState
             )
         },
@@ -293,10 +294,7 @@ internal fun MainAppsSection(
     LaunchedEffect(homeAppItems) {
         val currentPackages = homeAppItems.mapTo(mutableSetOf()) { it.id }
         selectedPackages.retain { it in currentPackages }
-        if (selectedPackages.isEmpty) {
-            state.isMultiSelectMode = false
-            state.selectedGroupKey = null
-        }
+        if (selectedPackages.isEmpty) state.isMultiSelectMode = false
 
         if (!state.isReorderMode) {
             state.localOrder = homeAppItems.map { it.id }
@@ -453,12 +451,9 @@ internal fun MainAppsSection(
             state.activeSourceUid = null
         }
     }
-    // Cheap key - the block only reads firstSelectedPackage, so passing the full keys
-    // list would allocate on every recomp
-    val firstSelectedPackage = selectedPackages.keys.firstOrNull()
-    val hasSelection = firstSelectedPackage != null
+    val hasSelection = selectedPackages.isNotEmpty
     // Unfiltered groups, read only to find the group a selection belongs to
-    val groupedReorderGroups = remember(
+    val selectionLookupGroups = remember(
         appGrouping,
         hasSelection,
         homeAppItems,
@@ -486,27 +481,17 @@ internal fun MainAppsSection(
             HomeAppCategoryViewMode.ALL_APPS -> emptyList()
         }
     }
-    val groupedSelectionGroup = remember(
-        appGrouping,
-        firstSelectedPackage,
-        state.selectedGroupKey,
-        groupedReorderGroups
-    ) {
-        if (appGrouping == HomeAppCategoryViewMode.ALL_APPS || firstSelectedPackage == null) {
-            return@remember null
+    // The one group holding the whole selection, which "select all" and reorder stay inside. A
+    // selection spread over several groups has none. Derived, so a toggle only reruns the lookup
+    val groupedSelectionGroup by remember(selectionLookupGroups) {
+        val groupPackages = selectionLookupGroups.map { group -> group to group.items.mapTo(hashSetOf()) { it.id } }
+        derivedStateOf {
+            val selected = selectedPackages.keys
+            if (selected.isEmpty()) return@derivedStateOf null
+            val holding = groupPackages.filter { (_, packages) -> packages.containsAll(selected) }
+            val picked = holding.firstOrNull { (group, _) -> group.selectionKey() == state.pickedGroupKey }
+            (picked ?: holding.firstOrNull())?.first
         }
-        val hasSelected: (HomeCategoryGroup) -> Boolean = { group ->
-            group.items.any { it.id == firstSelectedPackage }
-        }
-        val keyMatch = state.selectedGroupKey?.let { key ->
-            groupedReorderGroups.firstOrNull { it.selectionKey() == key && hasSelected(it) }
-        }
-        keyMatch ?: groupedReorderGroups.firstOrNull(hasSelected)
-    }
-    val groupedSelectionPackages = remember(groupedSelectionGroup) {
-        groupedSelectionGroup
-            ?.items
-            ?.mapTo(linkedSetOf()) { it.id }
     }
 
     val listState = state.listState
@@ -731,7 +716,7 @@ internal fun MainAppsSection(
     val isFilterEmpty = isListEmpty && isFilterActive
     val isSearchEmpty = isListEmpty && !isFilterActive && searchQuery.isNotBlank()
     val showMoreAppsCard = apps.showMoreAppsCard && !isFilteringList && !state.isEditing
-    val openCommunityPatches = { state.showCommunityNotice = true }
+    val openCommunityPatches = rememberOpenCommunityPatches(onNoticeNeeded = { state.showCommunityNotice = true })
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -980,7 +965,6 @@ internal fun MainAppsSection(
                         orderedItems = orderedItems,
                         itemsByPackage = homeItemsByPackage,
                         groupedSelectionGroup = groupedSelectionGroup,
-                        groupedSelectionPackages = groupedSelectionPackages,
                         sourceGroups = displayedSourceCategoryGroups,
                         isCustomCategoryView = isCustomCategoryView,
                         isSourceCategoryView = isSourceCategoryView,
