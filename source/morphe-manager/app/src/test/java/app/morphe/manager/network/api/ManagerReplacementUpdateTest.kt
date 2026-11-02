@@ -6,6 +6,26 @@ import org.junit.Test
 
 class ManagerReplacementUpdateTest {
     @Test
+    fun sameV230NameOffersLogoFixWhenBuildCodeIsNewer() {
+        assertTrue(
+            managerUpdateAvailable(
+                installedVersion = "2.3.0",
+                installedVersionCode = 39904432L,
+                remoteVersion = "2.3.0",
+                remoteVersionCode = 39904433L,
+            )
+        )
+        assertFalse(
+            managerUpdateAvailable(
+                installedVersion = "2.3.0",
+                installedVersionCode = 39904433L,
+                remoteVersion = "2.3.0",
+                remoteVersionCode = 39904433L,
+            )
+        )
+    }
+
+    @Test
     fun legacyV132SeesReplacementTransportVersion() {
         assertTrue(
             managerUpdateAvailable(

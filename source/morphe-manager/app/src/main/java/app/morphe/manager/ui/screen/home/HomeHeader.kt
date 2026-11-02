@@ -30,7 +30,7 @@ import app.morphe.manager.ui.screen.shared.Animations
 import app.morphe.manager.ui.screen.shared.Defaults
 import app.morphe.manager.ui.screen.shared.HeaderBar
 import app.morphe.manager.ui.screen.shared.ListReorder
-import app.morphe.manager.ui.screen.shared.MorpheWordmark
+import app.morphe.manager.ui.screen.shared.NivqoWordmark
 import app.morphe.manager.ui.screen.shared.PageSubtitle
 import app.morphe.manager.ui.screen.shared.ReorderHeaderActions
 import app.morphe.manager.ui.screen.shared.SearchFieldState
@@ -43,7 +43,7 @@ import com.composables.icons.materialsymbols.MaterialSymbols
 import com.composables.icons.materialsymbols.rounded.*
 
 /**
- * Heads the apps page with the Morphe wordmark. Its controls bring back the alerts swiped aside,
+ * Heads the apps page with the Nivqo wordmark. Its controls bring back the alerts swiped aside,
  * while there are any, open the list's order and filter, patch an app the list does not hold from
  * its APK and search the list. While [reorder] is under way they give way to its own, see
  * [ReorderHeaderActions].
@@ -70,7 +70,7 @@ internal fun HomeHeader(
         title = {
             // At the start of the room the controls leave it, as a page's title is
             Column(modifier = Modifier.fillMaxWidth()) {
-                MorpheWordmark(
+                NivqoWordmark(
                     modifier = Modifier
                         .height(WordmarkHeight)
                         .semantics {
