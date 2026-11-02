@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-03T06:56:18",
+  "created_at": "2026-11-03T07:21:02",
   "description": "Nivqo Manager 2.3.0 正式版：更新至 Morphe Patcher 2.1.0，內建 HushFacebook 0.20.0（109 個補丁）與 HushMessenger 0.28.0（71 個補丁），共 180 個繁中補丁說明。新增補丁包數位簽章驗證，保留繁體中文、英文、跟隨系統、Messenger 按鈕、離線核心及原本更新功能。 新版相容 Facebook 585.0.0.47.54 與 Messenger 585.0.0.53.94 指定相容原版 APK，需重新修補才有新功能。 English: Formal Manager 2.3.0 / Patcher 2.1.0 with 109 Facebook and 71 Messenger patches (180 total), verified Nivqo-signed bundles, localized patch descriptions and offline cores. Repatch compatible original Facebook/Messenger builds.",
   "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v2.3.0/Nivqo-Manager-2.3.0-20261103-release.apk",
   "signature_download_url": "",
   "version": "2.3.0",
-  "version_code": 39904432
+  "version_code": 39904459
 }
