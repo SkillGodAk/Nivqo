@@ -11,9 +11,9 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material3.MaterialTheme
@@ -60,7 +60,11 @@ fun NivqoWordmark(
     modifier: Modifier = Modifier,
     textColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         // The launcher vector has Android's adaptive-icon safe-zone padding. Crop that
         // transparent padding so the mark reads as a properly sized wordmark letter.
         Box(modifier = Modifier.size(26.dp).clipToBounds()) {
@@ -80,7 +84,6 @@ fun NivqoWordmark(
             lineHeight = 26.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
-            modifier = Modifier.offset(x = (-2).dp)
         )
     }
 }
