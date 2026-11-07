@@ -62,6 +62,8 @@ public final class Settings {
         preview = previewNow;
         bubbleRoutes = bubbleRoutesNow;
         installed = Collections.unmodifiableSet(features);
+        // A fresh start logs each failure's stack again.
+        hookErrorLogged.clear();
         // Set last: a hook that sees preferences also sees the installed controls.
         preferences = appContext.getSharedPreferences("hushmessenger", Context.MODE_PRIVATE);
         // Only the main process writes the log; its lock doesn't reach other processes.
@@ -80,7 +82,13 @@ public final class Settings {
 
     public static boolean enabled(String key) {
         boolean on = wouldUse(key);
-        if (on) activeAt.put(key, System.currentTimeMillis());
+        if (on) {
+            // Per-draw hooks call this constantly, so a healthy control's time moves once a second. One that failed this
+            // run keeps the exact time, which is what tells a use after the failure from the failure.
+            long now = System.currentTimeMillis();
+            Long last = activeAt.get(key);
+            if (last == null || now - last >= 1000 || now < last || hookErrors.containsKey(key)) activeAt.put(key, now);
+        }
         return on;
     }
 
@@ -91,6 +99,14 @@ public final class Settings {
         SharedPreferences prefs = preferences;
         return installed.contains(key) && prefs != null && !prefs.getBoolean("paused", false)
                 && !CrashGuard.isSafeMode() && prefs.getBoolean(key, false);
+    }
+
+    /** Whether Hush is on at all: not paused, not in safe mode. For a fix that has no switch of its own. */
+    static boolean running() {
+        if (!HostScreens.started) HostScreens.initializeLate();
+        if (HostScreens.failed) return false;
+        SharedPreferences prefs = preferences;
+        return prefs != null && !prefs.getBoolean("paused", false) && !CrashGuard.isSafeMode();
     }
 
     public static long lastActive(String key) {
@@ -104,18 +120,36 @@ public final class Settings {
      */
     static final ConcurrentHashMap<String, String> hookErrors = new ConcurrentHashMap<>();
     private static final String HOOK_ERROR = "hook_error_";
+    /** The patched build that saved the failures. Outside HOOK_ERROR, so it never reads as a control's failure. */
+    static final String HOOK_ERRORS_BUILD = "failed_hooks_build";
+    /** When each control's failure, by kind, last went to the log. */
+    static final ConcurrentHashMap<String, Long> hookErrorLogged = new ConcurrentHashMap<>();
 
+    // Logged before it's recorded, so the log still has it if saving the record fails.
     static void hookFailed(String key, String what, Throwable error) {
-        android.util.Log.e("HushMessenger", what, error);
-        recordHookError(key, error);
+        String failure = describeHookError(error);
+        if (logDue(key, failure)) android.util.Log.e("HushMessenger", what, error);
+        recordHookError(key, failure);
     }
 
     /** For hooks that handle file paths or chat content: logs only the error's type and where it happened. */
     static void hookFailedPrivately(String key, String what, Throwable error) {
-        android.util.Log.e("HushMessenger", what + ": " + recordHookError(key, error));
+        String failure = describeHookError(error);
+        if (logDue(key, failure)) android.util.Log.e("HushMessenger", what + ": " + failure);
+        recordHookError(key, failure);
     }
 
-    private static synchronized String recordHookError(String key, Throwable error) {
+    /** A hook can fail on every screen draw, so each kind of failure goes to the log once a minute. */
+    private static synchronized boolean logDue(String key, String failure) {
+        long now = System.currentTimeMillis();
+        Long last = hookErrorLogged.get(key + "|" + failure);
+        if (last != null && now - last < 60_000 && now >= last) return false;
+        hookErrorLogged.put(key + "|" + failure, now);
+        return true;
+    }
+
+    /** "<exception class> at <first HushMessenger frame>", with no message. */
+    private static String describeHookError(Throwable error) {
         StackTraceElement[] stack = error.getStackTrace();
         StackTraceElement frame = stack.length == 0 ? null : stack[0];
         for (StackTraceElement element : stack) {
@@ -123,18 +157,40 @@ public final class Settings {
         }
         String where = frame == null ? "unknown" : frame.getClassName().substring(frame.getClassName().lastIndexOf('.') + 1)
             + "." + frame.getMethodName() + (frame.getLineNumber() >= 0 ? ":" + frame.getLineNumber() : "");
-        String failure = error.getClass().getName() + " at " + where;
+        return error.getClass().getName() + " at " + where;
+    }
+
+    private static synchronized void recordHookError(String key, String failure) {
         long now = System.currentTimeMillis();
         hookErrors.put(key, failure + "|" + now);
         SharedPreferences prefs = preferences;
-        // A hook can fail on every screen draw, so the saved copy changes only for a new failure or once a minute.
         if (prefs != null) {
-            String previous = prefs.getString(HOOK_ERROR + key, null);
-            if (previous == null || !previous.startsWith(failure + "|") || now - hookErrorTime(previous) >= 60_000
-                    || now < hookErrorTime(previous))
-                prefs.edit().putString(HOOK_ERROR + key, failure + "|" + now).apply();
+            String build = patchedBuild(appContext);
+            boolean olderBuild = build != null && !build.equals(prefs.getString(HOOK_ERRORS_BUILD, null));
+            // A hook can fail on every screen draw, and two failures can take turns, so the saved copy changes at most
+            // once a minute.
+            String previous = olderBuild ? null : prefs.getString(HOOK_ERROR + key, null);
+            if (previous == null || now - hookErrorTime(previous) >= 60_000 || now < hookErrorTime(previous)) {
+                SharedPreferences.Editor edit = prefs.edit();
+                // Failures an older build saved went with the update, so this build's first one starts the list again.
+                if (olderBuild) {
+                    for (String saved : prefs.getAll().keySet()) if (saved.startsWith(HOOK_ERROR)) edit.remove(saved);
+                    edit.putString(HOOK_ERRORS_BUILD, build);
+                }
+                edit.putString(HOOK_ERROR + key, failure + "|" + now).apply();
+            }
         }
-        return failure;
+    }
+
+    /** The control's failure an earlier run saved, unless an older build saved it. */
+    private static String savedHookError(SharedPreferences prefs, String key) {
+        return savedHookErrorsCurrent(prefs) ? prefs.getString(HOOK_ERROR + key, null) : null;
+    }
+
+    /** Whether this patched build saved the failures. When the build can't be told, they're kept. */
+    private static boolean savedHookErrorsCurrent(SharedPreferences prefs) {
+        String build = patchedBuild(appContext);
+        return build == null || build.equals(prefs.getString(HOOK_ERRORS_BUILD, null));
     }
 
     static long hookErrorTime(String record) {
@@ -149,7 +205,7 @@ public final class Settings {
     static long hookErrorAt(String key) {
         String record = hookErrors.get(key);
         SharedPreferences prefs = preferences;
-        if (record == null && prefs != null) record = prefs.getString(HOOK_ERROR + key, null);
+        if (record == null && prefs != null) record = savedHookError(prefs, key);
         return record == null ? 0 : hookErrorTime(record);
     }
 
@@ -157,7 +213,7 @@ public final class Settings {
     static Map<String, String> lastHookErrors() {
         Map<String, String> errors = new java.util.TreeMap<>();
         SharedPreferences prefs = preferences;
-        if (prefs != null) for (Map.Entry<String, ?> saved : prefs.getAll().entrySet()) {
+        if (prefs != null && savedHookErrorsCurrent(prefs)) for (Map.Entry<String, ?> saved : prefs.getAll().entrySet()) {
             if (saved.getKey().startsWith(HOOK_ERROR) && saved.getValue() instanceof String)
                 errors.put(saved.getKey().substring(HOOK_ERROR.length()), (String) saved.getValue());
         }
@@ -248,8 +304,10 @@ public final class Settings {
 
     private static final Object META_AI_TAB = new Object();
 
+    /** Puts the People tab back in the bar on accounts where Messenger no longer builds it. */
+    static final String SHOW_PEOPLE_TAB = "tab_people_show";
     /** Bottom tabs with a switch of their own, held for the run like the Meta AI tab. */
-    static final List<String> BOTTOM_TABS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications"));
+    static final List<String> BOTTOM_TABS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications", SHOW_PEOPLE_TAB));
     /** First answer this process gave for each of {@link #BOTTOM_TABS}, by key, once the bottom bar asked. */
     static final ConcurrentHashMap<String, Boolean> bottomTabs = new ConcurrentHashMap<>();
 
@@ -257,6 +315,12 @@ public final class Settings {
     public static boolean hideNotificationsTab() { return hideBottomTab("tab_notifications"); }
 
     private static boolean hideBottomTab(String key) {
+        boolean hidden = heldBottomTab(key);
+        if (hidden) activeAt.put(key, System.currentTimeMillis());
+        return hidden;
+    }
+
+    private static boolean heldBottomTab(String key) {
         // putIfAbsent keeps whichever answer landed first, so two first askers can't get different answers. wouldUse runs
         // outside the map's lock because it can reach HostScreens.initializeLate, which takes a lock of its own.
         Boolean held = bottomTabs.get(key);
@@ -265,25 +329,29 @@ public final class Settings {
             held = bottomTabs.putIfAbsent(key, answer);
             if (held == null) held = answer;
         }
-        boolean hidden = held;
-        if (hidden) activeAt.put(key, System.currentTimeMillis());
-        return hidden;
+        return held;
     }
 
     /**
      * Messenger's tab list for the bottom bar as it's built. The bar draws only the tabs whose gate let them in, but it
      * marks the open tab by its place in this full list, so a hidden tab ahead of it lit up its neighbor (with People
      * hidden, opening Notifications showed Menu as open). Dropping the hidden tabs here keeps the two in step; every other
-     * tab and its order stay as Messenger built them.
+     * tab and its order stay as Messenger built them. Show People tab puts People back right after Chats when the server
+     * left it out, unless Hide People tab is on too.
      */
     public static <T> List<T> visibleTabs(List<T> tabs) {
         try {
-            List<T> kept = new ArrayList<>(tabs.size());
+            List<T> kept = new ArrayList<>(tabs.size() + 1);
+            boolean hasPeople = false;
             for (T tab : tabs) {
-                String key = tab instanceof Enum ? barTabKey(((Enum<?>) tab).name()) : null;
+                String name = tab instanceof Enum ? ((Enum<?>) tab).name() : null;
+                if ("PEOPLE".equals(name)) hasPeople = true;
+                String key = name == null ? null : barTabKey(name);
                 if (key == null || !("meta_ai".equals(key) ? hideMetaAiTab() : hideBottomTab(key))) kept.add(tab);
             }
-            return kept.size() == tabs.size() ? tabs : kept;
+            boolean added = !hasPeople && heldBottomTab(SHOW_PEOPLE_TAB) && !heldBottomTab("tab_people") && addPeopleTab(kept);
+            if (added) activeAt.put(SHOW_PEOPLE_TAB, System.currentTimeMillis());
+            return added || kept.size() != tabs.size() ? kept : tabs;
         } catch (RuntimeException error) {
             // The one list serves every tab switch, so the failure goes on each switch that's on, never on one that's off.
             boolean blamed = false;
@@ -295,8 +363,28 @@ public final class Settings {
         }
     }
 
-    /** Every switch that takes a tab off the bottom bar, so each one's list goes through {@link #visibleTabs}. */
-    static final List<String> TAB_CONTROLS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications", "meta_ai"));
+    /**
+     * Puts the People constant of the list's own tab enum right after Chats. False, with the list untouched, when the list
+     * has no Chats tab to stand next to or the enum has no People constant.
+     */
+    private static <T> boolean addPeopleTab(List<T> tabs) {
+        for (int i = 0; i < tabs.size(); i++) {
+            T tab = tabs.get(i);
+            if (!(tab instanceof Enum) || !"INBOX".equals(((Enum<?>) tab).name())) continue;
+            for (Object constant : ((Enum<?>) tab).getDeclaringClass().getEnumConstants()) {
+                if (!"PEOPLE".equals(((Enum<?>) constant).name())) continue;
+                @SuppressWarnings("unchecked") T people = (T) constant;
+                tabs.add(i + 1, people);
+                return true;
+            }
+            break;
+        }
+        hookFailed(SHOW_PEOPLE_TAB, "Can't find the People tab", new IllegalStateException("no INBOX and PEOPLE tabs"));
+        return false;
+    }
+
+    /** Every switch that changes the bottom bar's tabs, so each one's list goes through {@link #visibleTabs}. */
+    static final List<String> TAB_CONTROLS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications", "meta_ai", SHOW_PEOPLE_TAB));
 
     /**
      * The switch that hides a bottom tab, by the tab's constant in Messenger's tab enum, or null for a tab with none. MUSE
@@ -337,6 +425,9 @@ public final class Settings {
         owners.put(Settings.AVATAR_ROUNDED, Settings.AVATAR_SHAPE);
         for (String keep : KEEP_BADGES.values()) owners.put(keep, TAB_BADGES);
         owners.put(QuietCalls.CHOSEN_ONLY, QuietCalls.KEY);
+        owners.put(MessageLog.SAVE_EXPIRING, MessageLog.KEY);
+        owners.put(MessageLogButton.KEY, MessageLog.KEY);
+        owners.put(MessageLogButton.MENU_KEY, MessageLog.KEY);
         SUB_SWITCHES = Collections.unmodifiableMap(owners);
     }
 
@@ -413,6 +504,100 @@ public final class Settings {
         return false;
     }
 
+    static final String SEARCH_BAR = "inbox_search_bar";
+    /** First answer this process gave for the chat list's search bar, or null before Messenger asked. */
+    static volatile Boolean keptSearchBar;
+    private static final Object SEARCH_BAR_LOCK = new Object();
+
+    /**
+     * Messenger reads Meta's search icon test in each part of the chat list it builds: the search icon, the search bar
+     * above the list and the list's padding. The parts have to agree, so the first answer holds until a restart, like
+     * the emoji drawer's. Messenger's own check runs first, and this only ever turns a yes into a no.
+     */
+    public static boolean inboxSearchIcon(Object config, long flag) {
+        return searchIcon(searchIconFlag(config, flag));
+    }
+
+    /** The search icon answer Messenger gets, given its own. */
+    static boolean searchIcon(boolean original) {
+        // Without the icon there's nothing to hold, so the settings row doesn't wait for a restart that changes nothing.
+        if (!original) return false;
+        Boolean kept = keptSearchBar;
+        if (kept == null) {
+            if (!HostScreens.started) HostScreens.initializeLate();
+            synchronized (SEARCH_BAR_LOCK) {
+                if (keptSearchBar == null) keptSearchBar = wouldUse(SEARCH_BAR);
+                kept = keptSearchBar;
+            }
+        }
+        if (!kept) return true;
+        activeAt.put(SEARCH_BAR, System.currentTimeMillis());
+        return false;
+    }
+
+    /** Messenger's own check of a server flag. The patch writes its body with this build's check. */
+    static boolean searchIconFlag(Object config, long flag) { return false; }
+
+    static final String LANDSCAPE = "landscape";
+    /** First answer this process gave for landscape, or null before Messenger asked. */
+    static volatile Boolean landscape;
+    private static final Object LANDSCAPE_LOCK = new Object();
+    /** Screens that opt into Messenger's portrait lock and stay upright anyway: the Quicksnap camera and the backup QR scanner. */
+    private static final Set<String> UPRIGHT_SCREENS = Set.of(
+            "com.facebook.messaging.quicksnap.QuicksnapActivity",
+            "com.facebook.messaging.encryptedbackups.networkverification.qrcode.scanqrcode.scanner.NetworkVerificationQrCodeScannerActivity");
+
+    /**
+     * Every screen is locked or not as it's created, so a switch, Pause or safe-mode change mid-run would leave some
+     * screens turning and some not. The first answer holds until a restart.
+     */
+    private static boolean landscapeHeld() {
+        Boolean held = landscape;
+        if (held == null) {
+            if (!HostScreens.started) HostScreens.initializeLate();
+            synchronized (LANDSCAPE_LOCK) {
+                if (landscape == null) landscape = wouldUse(LANDSCAPE);
+                held = landscape;
+            }
+        }
+        if (held) activeAt.put(LANDSCAPE, System.currentTimeMillis());
+        return held;
+    }
+
+    static boolean keepsUpright(String screen) {
+        return UPRIGHT_SCREENS.contains(screen);
+    }
+
+    /**
+     * Messenger's answer to whether a screen locks to portrait, as it's created and on each orientation change it asks
+     * for later. With landscape on, a yes becomes a no, except on the cameras. A no stays a no, so a phone whose server
+     * flag is off sees nothing change and the settings row doesn't wait for a restart.
+     */
+    public static boolean portraitLock(boolean original, android.app.Activity screen) {
+        if (!original) return false;
+        try {
+            if (screen != null && keepsUpright(screen.getClass().getName())) return true;
+            return !landscapeHeld();
+        } catch (RuntimeException error) {
+            hookFailed(LANDSCAPE, "Can't let Messenger turn sideways", error);
+            return true;
+        }
+    }
+
+    /**
+     * The orientation a photo or video viewer puts back as it closes. With landscape on, portrait becomes unlocked, the
+     * way it is with Meta's flag off. Every other orientation passes through.
+     */
+    public static int mediaOrientation(int requested) {
+        if (requested != android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) return requested;
+        try {
+            return landscapeHeld() ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED : requested;
+        } catch (RuntimeException error) {
+            hookFailed(LANDSCAPE, "Can't keep a viewer from locking portrait", error);
+            return requested;
+        }
+    }
+
     /**
      * The answer a control that holds its first answer for the run is still giving, when the saved switch, Pause or
      * safe mode now says otherwise. Null when the control doesn't hold one, Messenger hasn't asked yet, or they agree.
@@ -431,7 +616,7 @@ public final class Settings {
             return shape < 0 || shape == now ? null : now == AVATAR_CIRCLE;
         }
         Boolean held = "meta_ai".equals(key) ? metaAiTab : "emoji_drawer".equals(key) ? oldEmojiDrawer
-            : OwnFont.KEY.equals(key) ? customFont : bottomTabs.get(key);
+            : SEARCH_BAR.equals(key) ? keptSearchBar : LANDSCAPE.equals(key) ? landscape : OwnFont.KEY.equals(key) ? customFont : CallRecording.KEY.equals(key) ? CallRecording.heldPlayout() : bottomTabs.get(key);
         return held == null || held == wouldUse(key) ? null : held;
     }
 
@@ -528,6 +713,13 @@ public final class Settings {
     public static boolean holdStoryAtEnd() { return enabled("story_hold"); }
 
     /**
+     * Asked with each of Meta's answers when a chat is pressed and held in the chat list: whether to open Messenger's
+     * preview, and for an encrypted chat whether its preview is allowed. True opens the preview. Off, Pause and safe mode
+     * keep Meta's answer.
+     */
+    public static boolean chatPreview(boolean stock) { return enabled("chat_preview") || stock; }
+
+    /**
      * Asked when a call starts ringing, before Messenger decides to ring and vibrate, and again for the call's
      * notification. True takes Messenger's own ringtone-off path and posts the notification without the pop-up. With
      * Only chosen chats on, only a call from a chosen chat gets true.
@@ -572,6 +764,7 @@ public final class Settings {
             return stock;
         }
     }
+    static final String HIDDEN_CHATS = "hidden_chats";
     /** Asked each time a chat's swipe up for disappearing messages could start; true keeps the gesture from starting. */
     public static boolean blockDisappearingSwipe() { return enabled("disappearing_swipe"); }
     /** Asked each time a chat looks for a photo or video taken just before it opened; true shows no card for it. */
@@ -585,6 +778,42 @@ public final class Settings {
      */
     public static Object shareStorySection(Object state, Object skip) {
         return state != skip && enabled(SHARE_STORY) ? skip : state;
+    }
+    static final String BLOCKED_LIST_PICTURES = "blocked_list_pictures";
+    /**
+     * The blocked people list hands over each blocked person's picture before it goes on their row. Null gives the row
+     * Messenger builds for someone it can't look up, with no picture. Off, Pause and safe mode keep the picture.
+     */
+    public static Object blockedListPicture(Object picture) { return enabled(BLOCKED_LIST_PICTURES) ? null : picture; }
+    static final String RESTRICTED_NOTIFY = "restricted_notify";
+    /** The folder enum's INBOX constant, found once per folder type. */
+    private static volatile Enum<?> inboxFolder;
+    /**
+     * The new-message notification check reads the chat's folder before it decides. A RESTRICTED folder comes back as
+     * INBOX, so the chat gets the same mute and status checks as any other chat. Only that local read changes: the chat
+     * stays in Restricted. Off, Pause and safe mode, and every other folder, keep the folder.
+     */
+    public static Object notificationFolder(Object folder) {
+        if (!(folder instanceof Enum) || !"RESTRICTED".equals(((Enum<?>) folder).name()) || !enabled(RESTRICTED_NOTIFY)) return folder;
+        try {
+            Class<?> type = ((Enum<?>) folder).getDeclaringClass();
+            Enum<?> inbox = inboxFolder;
+            if (inbox == null || inbox.getDeclaringClass() != type) {
+                inbox = null;
+                for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+                    if (!field.isEnumConstant() || field.getType() != type) continue;
+                    field.setAccessible(true);
+                    Enum<?> constant = (Enum<?>) field.get(null);
+                    if ("INBOX".equals(constant.name())) inbox = constant;
+                }
+                if (inbox == null) throw new IllegalStateException("No INBOX folder in " + type.getName());
+                inboxFolder = inbox;
+            }
+            return inbox;
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            hookFailed(RESTRICTED_NOTIFY, "Can't notify for a restricted chat", error);
+            return folder;
+        }
     }
     static final String AVATAR_SHAPE = "avatar_shape";
     /** Under Square profile pictures: rounds the square's corners. */
@@ -910,6 +1139,30 @@ public final class Settings {
             return null;
         }
     }
+
+    /**
+     * Messenger's copy of an item it's handed asks here for its file. Messenger picks the folder from where the item sits
+     * and dies if it can't make a file there (#124), so with Open your gallery app on the copy goes to another of its
+     * folders. A folder that works gets the plain call.
+     */
+    public static java.io.File inboundTempFile(String prefix, String suffix, java.io.File folder) throws java.io.IOException {
+        try {
+            return java.io.File.createTempFile(prefix, suffix, folder);
+        } catch (java.io.IOException refused) {
+            java.io.File spare = GalleryPicker.spareTempFile(appContext, prefix, suffix, folder, refused);
+            if (spare == null) throw refused;
+            return spare;
+        }
+    }
+    /**
+     * Messenger's check of a temp folder asks here first. It throws on a folder that's there but can't be used, before the
+     * copy gets as far as {@link #inboundTempFile}, and takes a folder it couldn't make without complaint. Answering true
+     * treats this one the same way, so the copy can move and the provider's walk over its folders stays alive.
+     */
+    public static boolean inboundFolderRefused(java.io.File folder) {
+        return folder != null && folder.exists() && !(folder.isDirectory() && folder.canRead() && folder.canWrite()) && enabled(GalleryPicker.KEY);
+    }
+
     /**
      * The chat hands every result here before it reads one. A photo from another app comes back under 1112, and the chat
      * takes its type from the result and sends one without a type as a plain file. Gallery apps often hand back only the
@@ -1042,14 +1295,15 @@ public final class Settings {
             Context context = appContext;
             return context == null || GalleryPicker.screenIntent(context) != null;
         }
-        if (TextStyleActivity.KEY.equals(key)) {
+        // A Root Mount install keeps the stock manifest, with no search screen.
+        if (LocalChatSearch.KEY.equals(key)) {
             Context context = appContext;
-            return context == null || TextStyleActivity.present(context);
+            return context == null || LocalSearchActivity.present(context);
         }
         if ("hide_menu_row".equals(key)) return menuRowCanHide();
         if (HIDE_ICON_SHORTCUTS.equals(key) || HIDE_LOGO_PRESS.equals(key)) return anotherWayIn(key);
         // Android 9 lets no app add to the shared Recordings or Music folders without the storage permission.
-        if (VoiceMessages.KEY.equals(key)) return Build.VERSION.SDK_INT >= 29;
+        if (VoiceMessages.KEY.equals(key) || SaveVoiceMenu.KEY.equals(key) || CallRecording.KEY.equals(key)) return Build.VERSION.SDK_INT >= 29;
         if (!"bubbles".equals(key)) return true;
         if (Build.VERSION.SDK_INT < 30) return false;
         if (!HostScreens.started) HostScreens.initializeLate();
@@ -1071,6 +1325,8 @@ public final class Settings {
     public static boolean allowScreenshot() { return enabled("allow_screenshot"); }
     /** Messenger's subscription check for its built-in launcher icons. Off, paused or safe mode keeps Messenger's answer. */
     public static boolean unlockAppIcons() { return enabled("app_icons"); }
+    /** Messenger's subscription check for its paid app themes (#132). Off, paused or safe mode keeps Messenger's answer. */
+    public static boolean unlockAppThemes() { return enabled("app_themes"); }
     public static void addScreenshotFlags(Window window, int flags) {
         window.addFlags(allowScreenshot() ? flags & ~WindowManager.LayoutParams.FLAG_SECURE : flags);
     }
@@ -1925,53 +2181,72 @@ public final class Settings {
         }
     }
 
-    /** Puts a HushMessenger copy of the Menu tab's Settings folder row right after it (one title String per row). */
+    /**
+     * Puts a HushMessenger copy of the Menu tab's Settings folder row right after it (one title String per row), and a
+     * Message log copy after that while its switch is on.
+     */
     @SuppressWarnings("unchecked")
     public static void addMenuSettingsEntry(ArrayList list) {
         try {
-            if (list == null || list.isEmpty() || menuRowHidden()) return;
+            boolean settingsRow = !menuRowHidden();
+            Context context = appContext;
+            String logRow = MessageLogButton.inMenu() && context != null ? MessageLogButton.label(context) : null;
+            if (list == null || list.isEmpty() || !settingsRow && logRow == null) return;
             // Messenger builds its QR code row into the same list, so find Settings by its folder key.
             int at = -1;
             for (int i = 0; i < list.size() && at < 0; i++) if (holdsSettingsKey(list.get(i))) at = i;
             if (at < 0) return;
             Object original = list.get(at);
-            Object clone = shallowClone(original);
-            if (clone == null) return;
-            java.lang.reflect.Field title = null;
-            for (java.lang.reflect.Field f : original.getClass().getDeclaredFields()) {
-                if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
-                f.setAccessible(true);
-                if (f.getType() == String.class) {
-                    if (title != null) return;
-                    title = f;
-                } else if (f.getType() == Integer.class) {
-                    f.set(clone, null);
-                } else if (f.getType().getName().endsWith("HeterogeneousMap")) {
-                    // Folder metadata, such as Settings' unseen badge count, belongs to the Settings row.
-                    Object metadata = f.get(original);
-                    if (metadata == null) continue;
-                    Object copy = shallowClone(metadata);
-                    if (copy == null) return;
-                    for (java.lang.reflect.Field m : copy.getClass().getDeclaredFields()) {
-                        if (java.lang.reflect.Modifier.isStatic(m.getModifiers()) || m.getType() != Map.class) continue;
-                        m.setAccessible(true);
-                        m.set(copy, new java.util.HashMap<>());
-                    }
-                    f.set(clone, copy);
-                } else if (f.getType().getName().endsWith("DrawerFolderKey")) {
-                    // Folder keys compare by identity, so a copy keeps this row from acting as Settings.
-                    Object key = f.get(original);
-                    Object copy = key == null ? null : shallowClone(key);
-                    if (copy == null) return;
-                    f.set(clone, copy);
-                }
+            if (settingsRow) {
+                Object hush = menuRowCopy(original, "HushMessenger");
+                if (hush == null) return;
+                list.add(++at, hush);
             }
-            if (title == null) return;
-            title.set(clone, "HushMessenger");
-            list.add(at + 1, clone);
+            if (logRow != null) {
+                Object log = menuRowCopy(original, logRow);
+                if (log != null) list.add(at + 1, log);
+            }
         } catch (Exception | LinkageError e) {
             hookFailed("menu_row", "addMenuSettingsEntry failed", e);
         }
+    }
+
+    /** A copy of the Settings folder row under [name], with its own folder key and no badge, or null if it can't be labeled. */
+    private static Object menuRowCopy(Object original, String name) throws ReflectiveOperationException {
+        Object clone = shallowClone(original);
+        if (clone == null) return null;
+        java.lang.reflect.Field title = null;
+        for (java.lang.reflect.Field f : original.getClass().getDeclaredFields()) {
+            if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
+            f.setAccessible(true);
+            if (f.getType() == String.class) {
+                if (title != null) return null;
+                title = f;
+            } else if (f.getType() == Integer.class) {
+                f.set(clone, null);
+            } else if (f.getType().getName().endsWith("HeterogeneousMap")) {
+                // Folder metadata, such as Settings' unseen badge count, belongs to the Settings row.
+                Object metadata = f.get(original);
+                if (metadata == null) continue;
+                Object copy = shallowClone(metadata);
+                if (copy == null) return null;
+                for (java.lang.reflect.Field m : copy.getClass().getDeclaredFields()) {
+                    if (java.lang.reflect.Modifier.isStatic(m.getModifiers()) || m.getType() != Map.class) continue;
+                    m.setAccessible(true);
+                    m.set(copy, new java.util.HashMap<>());
+                }
+                f.set(clone, copy);
+            } else if (f.getType().getName().endsWith("DrawerFolderKey")) {
+                // Folder keys compare by identity, so a copy keeps this row from acting as Settings.
+                Object key = f.get(original);
+                Object copy = key == null ? null : shallowClone(key);
+                if (copy == null) return null;
+                f.set(clone, copy);
+            }
+        }
+        if (title == null) return null;
+        title.set(clone, name);
+        return clone;
     }
 
     private static boolean holdsSettingsKey(Object row) throws IllegalAccessException {
@@ -1985,25 +2260,32 @@ public final class Settings {
         return false;
     }
 
-    /** Opens settings for the HushMessenger folder row and returns null; other rows come back unchanged. */
+    /**
+     * Opens settings for the HushMessenger folder row, or the message log for the Message log row, and returns null;
+     * other rows come back unchanged.
+     */
     public static Object drawerFolderClicked(Object item) {
         if (item == null) return null;
         boolean recognized = false;
         Context context = null;
         try {
-            boolean titled = false, settingsKey = false;
+            boolean settingsKey = false;
+            List<String> titles = new ArrayList<>();
             for (java.lang.reflect.Field f : item.getClass().getDeclaredFields()) {
                 if (java.lang.reflect.Modifier.isStatic(f.getModifiers())) continue;
                 f.setAccessible(true);
                 Object value = f.get(item);
                 if (value instanceof Context) context = (Context) value;
-                else if ("HushMessenger".equals(value)) titled = true;
-                // Only the copy of the Settings row carries a Settings folder key with this title.
+                else if (value instanceof String) titles.add((String) value);
+                // Only our copies of the Settings row carry a Settings folder key with one of our titles.
                 else if (value != null && value.getClass().getName().endsWith("SettingsFolderKey")) settingsKey = true;
             }
-            if (!titled || !settingsKey || context == null) return item;
+            if (!settingsKey || context == null) return item;
+            boolean settings = titles.contains("HushMessenger");
+            if (!settings && !titles.contains(MessageLogButton.label(context))) return item;
             recognized = true;
-            HostScreens.open(context, HostScreens.SETTINGS);
+            if (settings) HostScreens.open(context, HostScreens.SETTINGS);
+            else MessageLogButton.open(context);
             return null;
         } catch (ReflectiveOperationException | RuntimeException | LinkageError error) {
             hookFailedPrivately("menu_row", "Opening the drawer entry failed", error);
@@ -2061,8 +2343,7 @@ public final class Settings {
             textField.setAccessible(true);
             Object tv = textField.get(viewHolder);
             if (!(tv instanceof android.widget.TextView)) return;
-            CharSequence text = ((android.widget.TextView) tv).getText();
-            if (!"HushMessenger".equals(text != null ? text.toString() : null)) return;
+            if (MenuRowClick.ours((android.widget.TextView) tv) == null) return;
             java.lang.reflect.Field viewField = null;
             for (Class<?> c = viewHolder.getClass(); c != null; c = c.getSuperclass()) {
                 try { viewField = c.getDeclaredField("A0I"); break; }
@@ -2093,14 +2374,24 @@ public final class Settings {
             this.label = label;
         }
 
-        @Override public void onClick(android.view.View v) {
+        /** Which of our rows [label] shows right now: HostScreens.SETTINGS, MessageLog.KEY, or null for Messenger's own. */
+        static String ours(android.widget.TextView label) {
             CharSequence text = label.getText();
-            if ("HushMessenger".equals(text != null ? text.toString() : null)) {
+            String shown = text != null ? text.toString() : null;
+            if ("HushMessenger".equals(shown)) return HostScreens.SETTINGS;
+            return shown != null && shown.equals(MessageLogButton.label(label.getContext())) ? MessageLog.KEY : null;
+        }
+
+        @Override public void onClick(android.view.View v) {
+            String row = ours(label);
+            if (HostScreens.SETTINGS.equals(row)) {
                 try {
                     HostScreens.open(v.getContext(), HostScreens.SETTINGS);
                 } catch (RuntimeException e) {
                     hookFailed("menu_row", "Opening settings failed", e);
                 }
+            } else if (row != null) {
+                MessageLogButton.open(v.getContext());
             } else if (stock != null) {
                 stock.onClick(v);
             }

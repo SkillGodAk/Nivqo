@@ -115,6 +115,8 @@ A tablet or an unfolded phone gets the layout Facebook uses on a phone, so the t
 See-through bars	Durchsichtige Leisten
 # context: description of that switch; the feed is the list of posts on Home, and blurred means frosted like glass
 The top bar and the tab bar turn see-through, so the feed shows through them as you scroll. On Android 12 and newer the feed behind them is blurred.	Die obere Leiste und die Tab-Leiste werden durchsichtig, sodass der Feed beim Scrollen durchscheint. Ab Android 12 wird der Feed dahinter weichgezeichnet.
+Rounded tab bar	Abgerundete Tab-Leiste
+With the tab bar at the bottom, it gets round ends and sits a little smaller, just above the bottom of the screen, with a soft highlight behind the tab you're on.	Wenn die Tab-Leiste unten ist, bekommt sie runde Enden und wird etwas kleiner, knapp über dem unteren Bildschirmrand, mit einer sanften Hervorhebung hinter dem Tab, auf dem du bist.
 # context: switch title under Appearance; it keeps Facebook's dark mode on whatever Facebook's own Dark mode setting says
 Force dark mode	Dunkelmodus erzwingen
 # context: description of that switch; on some tablets Facebook's own Settings page has no Dark mode row
@@ -290,6 +292,8 @@ With the switch above on, your place stays however long you're away. Pull to ref
 Back leaves Home where it is	Zurück lässt die Startseite, wo sie ist
 Pressing Back on a scrolled Home no longer jumps to the top and reloads the feed. Press Back again within two seconds to do that.	Wenn du auf der heruntergescrollten Startseite Zurück drückst, springt sie nicht mehr nach oben und lädt den Feed nicht neu. Drücke innerhalb von zwei Sekunden erneut Zurück, um das zu tun.
 Press Back again to go to the top	Erneut Zurück drücken, um nach oben zu gehen
+Hide the Back reminder	Zurück-Hinweis ausblenden
+Back keeps your place without saying "Press Back again to go to the top".	Zurück behält deine Position, ohne „Erneut Zurück drücken, um nach oben zu gehen“ anzuzeigen.
 A finished story stays on screen until you tap or swipe. Turn this off for Facebook's timing.	Eine abgeschlossene Story bleibt sichtbar, bis du tippst oder wischst. Schalte dies aus, um Facebooks Zeitsteuerung zu nutzen.
 View stories anonymously	Stories anonym ansehen
 Facebook isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you. Stories you watch to the end show as watched on this phone only, until that person posts a new one.	Facebook erfährt nicht, welche Stories du ansiehst, deshalb stehst du nicht in ihren Zuschauerlisten. Wenn du antwortest oder reagierst, sieht man dich trotzdem. Stories, die du bis zum Ende ansiehst, gelten nur auf diesem Handy als angesehen, bis die Person eine neue postet.
@@ -307,6 +311,9 @@ Hide comment and reaction previews	Vorschau von Kommentaren und Reaktionen ausbl
 The comment Facebook previews under a reel and the bubbles of friends who reacted. Open the comments to see them all.	Der Kommentar, den Facebook unter einem Reel als Vorschau zeigt, und die Blasen der Freunde, die reagiert haben. Öffne die Kommentare, um alle zu sehen.
 Hide Threads cards between reels	Threads-Karten zwischen Reels ausblenden
 Hides the "Threads you might like" card between reels. Off by default, since it hasn't been tried on a real account yet.	Blendet die Karte „Threads, die dir gefallen könnten“ zwischen Reels aus. Standardmäßig aus, weil es auf einem echten Konto noch nicht ausprobiert wurde.
+Only reels from accounts I follow	Nur Reels von Konten, denen ich folge
+The Reels tab only shows reels from people and Pages you follow, starting with the next batch Facebook loads. The tab can take longer to fill. Off by default.	Der Reels-Tab zeigt nur Reels von Personen und Seiten, denen du folgst, ab dem nächsten Schwung, den Facebook lädt. Der Tab kann dann länger brauchen, bis er voll ist. Standardmäßig aus.
+Facebook has no more reels your filters would keep, so these reels aren't filtered for now.	Facebook hat keine Reels mehr, die deine Filter behalten würden, deshalb werden diese Reels vorerst nicht gefiltert.
 Download quality	Download-Qualität
 Best	Beste
 Smallest	Kleinste
@@ -385,7 +392,7 @@ Facebook opens on %1$s. If your tab bar doesn't have it, Facebook opens on Home.
 # context: summary of the tab list when Feeds is picked; off the tab bar, Feeds opens as its own page over Home
 Facebook opens on Feeds. If your tab bar doesn't have it, the Feeds page opens over Home.	Facebook startet mit Feeds. Fehlt dieser Tab in deiner Tab-Leiste, öffnet sich die Feeds-Seite über der Startseite.
 # context: a sentence in the settings import preview and its toast; %1$s is a tab name
-Facebook will open on %1$s.	Facebook startet dann mit %1$s.
+With %1$s on, Facebook will open on %2$s.	Mit %1$s an startet Facebook dann mit %2$s.
 # context: switch title under Opening Facebook; Following is Facebook's feed of the friends, Pages and groups you follow, and Home is the tab
 Following feed on Home	Gefolgt-Feed auf der Startseite
 # context: summary of that switch; the ranked feed is the one Facebook orders for you, and the Feeds tab has its own filters
@@ -501,6 +508,9 @@ Comments show their replies right away, so there's no View replies to tap.	Komme
 Load whole reply threads	Ganze Antwort-Threads laden
 # context: summary of that switch; View more replies is the row Facebook shows under an open thread that has more replies to load
 An open reply thread keeps loading as you scroll, so there's no View more replies to tap.	Ein geöffneter Antwort-Thread lädt beim Scrollen weiter, ohne dass du für weitere Antworten tippen musst.
+Hide replies button	Schaltfläche Antworten ausblenden
+An open reply thread gets a Hide replies button, so you can close it again after reading.	Ein geöffneter Antwort-Thread bekommt eine Schaltfläche Antworten ausblenden, damit du ihn nach dem Lesen wieder schließen kannst.
+Hide replies	Antworten ausblenden
 # context: switch title under Comments; View more replies is the row under an open reply thread that loads more replies, and this makes the whole row take the tap instead of only its words
 Tap anywhere on View more replies	Überall auf „Weitere Antworten anzeigen“ tippen
 # context: summary of that switch
@@ -846,8 +856,11 @@ With the switch above on, only a hold on the right third of a reel plays it at d
 # context: label of a switch under Hold a reel for 2x; a feed video is a video playing in Home's feed or in Watch, not a reel
 Hold a feed video for 2x	Feed-Video für 2x gedrückt halten
 # context: summary of that switch; Watch is Facebook's video tab, keep its name; the switches above are Hold a reel for 2x and Only on the right edge
-Holding a video in the feed or in Watch plays it at double speed until you let go. It works without the switches above.	Wenn du ein Video im Feed oder in Watch gedrückt hältst, läuft es mit doppelter Geschwindigkeit, bis du loslässt. Das funktioniert auch ohne die Schalter oben.
+Holding a video in the feed or in Watch plays it at double speed until you let go. Pull down before you let go to keep it at 2x, then tap the video to go back. It works without the switches above.	Wenn du ein Video im Feed oder in Watch gedrückt hältst, läuft es mit doppelter Geschwindigkeit, bis du loslässt. Zieh vor dem Loslassen nach unten, um 2x beizubehalten, und tippe dann auf das Video, um zurückzuwechseln. Das funktioniert auch ohne die Schalter oben.
+Locked at 2x. Tap the video to go back.	Bei 2x gesperrt. Tippe auf das Video, um zurückzuwechseln.
 Hide the pull down to lock hint	Hinweis „Zum Sperren nach unten ziehen“ ausblenden
+Hide the 2x popups	2x-Einblendungen ausblenden
+Holding a video for 2x shows no pill at all, so no "Speed: 2x", "Release to lock" or "Locked at 2x speed". The hold and the lock still work.	Beim Halten für 2x erscheint gar kein Hinweis, also kein „Geschwindigkeit: 2x“, „Loslassen zum Sperren“ oder „Bei 2x-Geschwindigkeit gesperrt“. Halten und Sperren funktionieren weiter.
 # context: summary of that switch; the quoted hint is Facebook's own text on the pill over a video held for 2x, translate it the way Facebook would; the switches above are Hold a reel for 2x's
 Holding a video for 2x shows the plain 2x pill, without the "Pull down to lock 2x speed" hint. Pulling down still locks it. It works without the switches above.	Wenn du ein Video für 2x gedrückt hältst, erscheint nur die einfache 2x-Anzeige, ohne den Hinweis „Nach unten ziehen, um 2x-Geschwindigkeit zu sperren“. Nach unten ziehen sperrt sie weiterhin. Das funktioniert auch ohne die Schalter oben.
 Default playback quality	Standard-Wiedergabequalität
@@ -970,10 +983,29 @@ Keep post dates	Beitragsdatum behalten
 # context: description of that switch; the rotating details are the texts Facebook's newer post header takes turns showing on that line
 Shows the post's date under the poster's name instead of Facebook's rotating details, which can go blank on some phones.	Zeigt unter dem Namen des Absenders das Datum des Beitrags statt der wechselnden Angaben von Facebook, die auf manchen Telefonen leer bleiben.
 Show full post text	Ganzen Beitragstext zeigen
-Posts in the feed show all of their text, so there's no See more to tap.	Beiträge im Feed zeigen ihren ganzen Text, du musst also nicht auf Mehr ansehen tippen.
+Translate	Übersetzen
+See original	Original ansehen
+Translation	Übersetzung
+Show original	Original zeigen
+Show translation	Übersetzung zeigen
+Translating...	Wird übersetzt …
+Couldn't translate this. Check your connection and try again.	Übersetzen hat nicht geklappt. Prüfe deine Verbindung und versuche es noch einmal.
+Add a Translate link to posts	Übersetzen-Link bei Beiträgen anzeigen
+Translate posts by themselves	Beiträge automatisch übersetzen
+Posts in another language get a Translate link under their text. A tap sends that post's text to Google Translate.	Beiträge in einer anderen Sprache bekommen unter dem Text einen Übersetzen-Link. Ein Tippen schickt den Text dieses Beitrags an Google Übersetzer.
+Posts in another language show translated, with See original under them. Each post's text goes to Google Translate as it's drawn.	Beiträge in einer anderen Sprache erscheinen übersetzt, darunter steht „Original ansehen“. Der Text jedes Beitrags geht beim Anzeigen an Google Übersetzer.
+Translate to	Übersetzen in
+The phone's language	Sprache des Handys
+Languages to leave alone	Sprachen, die bleiben, wie sie sind
+None picked. Posts in every language can be translated.	Keine ausgewählt. Beiträge in jeder Sprache können übersetzt werden.
+Left alone: %s	Bleiben unverändert: %s
+Posts in the feed and captions on reels show all of their text, so there's no See more to tap. Tap the text to fold it back.	Beiträge im Feed und Beschreibungen bei Reels zeigen ihren ganzen Text, du musst also nicht auf Mehr ansehen tippen. Tippe auf den Text, um ihn wieder einzuklappen.
 # context: switch title under News feed and the row it adds to a post's three-dot menu; it opens the list of people who shared the post
 See who shared	Wer hat geteilt
 Adds See who shared to a post's menu. It opens Facebook's list of the people who shared it.	Fügt dem Menü eines Beitrags Wer hat geteilt hinzu. Es öffnet die Facebook-Liste der Personen, die ihn geteilt haben.
+# context: switch title under News feed; a post's photos and videos shown one at a time in a row you swipe, instead of a grid
+Photo carousel	Fotokarussell
+A post with several photos or videos shows them in a row you swipe through, one at a time, instead of a grid.	Ein Beitrag mit mehreren Fotos oder Videos zeigt sie in einer Reihe, durch die du wischst, eins nach dem anderen statt in einem Raster.
 # context: message shown when tapping that row doesn't open the list
 Couldn't open the list of shares.	Die Liste der Teilungen konnte nicht geöffnet werden.
 # context: switch title under News feed; the Feeds header is the row at the top of the Feeds tab with Feeds, the menu and search, and the filters under it, All, Favorites, Friends, Groups and Pages
@@ -987,7 +1019,9 @@ No "Are you interested in this reel?" prompt on reels. The reel plays as usual.	
 # context: switch title under News feed; affiliate product links are the shop links creators add to their posts to earn a commission
 Hide affiliate product links	Affiliate-Produktlinks ausblenden
 # context: description of that switch; "Commission eligible" is Facebook's own label, so use Facebook's wording in your language if you know it
-Hides product cards from shopping links that creators add to posts, reels and comments. The "Commission eligible" label stays.	Blendet Produktkarten aus Shopping-Links aus, die Creator zu Beiträgen, Reels und Kommentaren hinzufügen. Das Label „Provisionsberechtigt“ bleibt.
+Hides product cards from shopping links that creators add to posts, reels and comments.	Blendet Produktkarten aus Shopping-Links aus, die Creator zu Beiträgen, Reels und Kommentaren hinzufügen.
+Hide the Commission eligible label	Label „Provisionsberechtigt“ ausblenden
+Hides the "Commission eligible" label under the creator's name on reels.	Blendet das Label „Provisionsberechtigt“ unter dem Namen des Creators bei Reels aus.
 # context: The reel button and the video menu item while links are sent to another app (#41)
 Send to app	An App senden
 # context: Title of Android's app chooser when a video's link is sent
@@ -1135,6 +1169,10 @@ Tap anywhere on a reel's or video's progress bar to jump there, instead of dragg
 Show View profile on Marketplace sellers	„Profil ansehen“ bei Marketplace-Verkäufern zeigen
 # context: summary of that switch
 Adds a View profile button to every seller's Marketplace page, opening their Facebook profile. Facebook only shows it to some accounts.	Fügt jeder Marktplatz-Verkäuferseite eine Schaltfläche Profil ansehen hinzu, die das Facebook-Profil öffnet. Facebook zeigt sie sonst nur manchen Konten.
+# context: switch title under Marketplace; a listing is one item for sale on Marketplace, and the gap is an empty band between the status bar and the listing's close and share buttons (#333)
+Remove the gap above Marketplace listings	Lücke über Marketplace-Angeboten entfernen
+# context: summary of that switch; Pixel is Google's phone, keep the name
+Takes out the empty band some phones show above a listing's top row, like Pixels on Android 17.	Entfernt den leeren Streifen, den manche Handys über der obersten Zeile eines Angebots zeigen, etwa Pixel-Geräte mit Android 17.
 # context: the Save Facebook's notification sound row under Notifications and its toasts (#83)
 Save Facebook's notification sound	Facebooks Benachrichtigungston speichern
 Adds Facebook's chime to your phone's notification sounds, for categories set to None. Then pick it in Android's notification settings for Facebook, under Sound.	Legt Facebooks Klingelton bei den Benachrichtigungstönen deines Telefons ab, für Kategorien, die auf Keine stehen. Wähle ihn dann in den Android-Benachrichtigungseinstellungen für Facebook unter Ton aus.
@@ -1200,6 +1238,12 @@ With Stop Story auto-advance on, a finished story plays again from the start ins
 Save photo in post menus	Foto speichern im Beitragsmenü
 # context: summary of the Save photo in post menus switch; "Save any photo" is the label of the switch above it and "Save photo" is the menu item, so use their translations
 With Save any photo on, a post with photos gets Save photo in its three-dot menu too. A post with several saves each one, one after another.	Wenn „Jedes Foto speichern“ an ist, bekommt ein Beitrag mit Fotos auch im Drei-Punkte-Menü „Foto speichern“. Bei mehreren Fotos wird jedes nacheinander gespeichert.
+Search photo	Foto suchen
+Search photo with	Foto suchen mit
+Search photo in post menus	Foto suchen im Beitragsmenü
+With Save any photo on, a post with one photo gets Search photo in its three-dot menu. It hands the photo to the app you pick, such as Google Lens, to look up what's in it or copy its text.	Wenn „Jedes Foto speichern“ an ist, bekommt ein Beitrag mit einem Foto im Drei-Punkte-Menü „Foto suchen“. Das Foto geht an die App, die du auswählst, etwa Google Lens, um herauszufinden, was darauf ist, oder seinen Text zu kopieren.
+No app on this phone can search with a photo	Keine App auf diesem Handy kann mit einem Foto suchen
+Couldn't get this photo. Try again in a moment.	Dieses Foto ließ sich nicht laden. Versuche es gleich noch einmal.
 # context: menu item in a post's three-dot menu that saves the post's one photo to the phone
 Save photo	Foto speichern
 # context: primary save row for a Story that reshares a Reel
@@ -1268,10 +1312,10 @@ No dot or count on Feeds, Gaming, Events and the other tabs not listed here. The
 No dot or count on this tab. Its page still shows what's new when you open it.	Kein Punkt und keine Zahl an diesem Tab. Die Seite zeigt Neues weiterhin, wenn du sie öffnest.
 # context: summary of the app icon count switch
 No number on Facebook's app icon. Notifications still arrive. Some launchers add their own count, which this can't remove.	Keine Zahl am Facebook-Symbol. Benachrichtigungen kommen weiterhin an. Manche Launcher zählen selbst mit, das lässt sich hier nicht entfernen.
-# context: switch title under News feed; it shows posts and reel captions in their original language instead of Facebook's automatic translation
+# context: switch title under News feed; it shows posts, comments and reel captions in their original language instead of Facebook's automatic translation
 Turn off auto-translation	Automatische Übersetzung ausschalten
 # context: description of that switch; See translation is the name of Facebook's own link under a post that translates it on request
-Posts and reel captions stay in the language they were written in. Facebook's See translation link stays under them.	Beiträge und Reel-Beschreibungen bleiben in der Sprache, in der sie geschrieben wurden. Der Link „Übersetzung anzeigen“ von Facebook bleibt darunter.
+Posts, comments and reel captions stay in the language they were written in. Facebook's See translation link stays under them.	Beiträge, Kommentare und Reel-Beschreibungen bleiben in der Sprache, in der sie geschrieben wurden. Der Link „Übersetzung anzeigen“ von Facebook bleibt darunter.
 # context: switch title under Reels and Watch, below Keep the reel speed; it keeps a playback speed picked on a feed or Watch video for the next videos
 Keep the video speed	Video-Geschwindigkeit beibehalten
 # context: description of that switch; the gear menu is the settings button on a video's player, where Playback speed is picked
@@ -1326,6 +1370,11 @@ Hide reposts	Geteilte Beiträge ausblenden
 Hides posts that share another post, with or without a caption. Original posts stay. Off by default, since it hasn't been tried on a real feed yet.	Blendet Beiträge aus, die einen anderen Beitrag teilen, mit oder ohne eigenen Text. Originalbeiträge bleiben. Standardmäßig aus, weil es auf einem echten Feed noch nicht ausprobiert wurde.
 Hide posts from Pages	Beiträge von Seiten ausblenden
 Hides posts written by Pages, the ones you follow too. Posts from friends and groups stay, and so does a friend's share of a Page's post.	Blendet Beiträge aus, die Seiten geschrieben haben, auch von Seiten, denen du folgst. Beiträge von Freunden und aus Gruppen bleiben, ebenso der Beitrag einer Seite, den ein Freund teilt.
+Hide posts in other languages	Beiträge in anderen Sprachen ausblenden
+Hides posts and Reels tab reels in a language you don't keep, going by the phone's own guess at each post's words or reel's caption. Ones it isn't sure about stay, and nothing leaves the phone.	Blendet Beiträge und Reels im Reels-Tab in einer Sprache aus, die du nicht behältst, nach der eigenen Einschätzung des Telefons zum Text jedes Beitrags oder zur Beschreibung jedes Reels. Was es nicht sicher erkennt, bleibt, und nichts verlässt das Telefon.
+Languages to keep	Sprachen, die bleiben
+None picked, so posts in %s stay.	Keine ausgewählt, daher bleiben Beiträge auf %s.
+Kept: %s	Bleiben: %s
 # context: switch title in Privacy: asks for the phone's own screen lock before Facebook shows
 Lock Facebook	Facebook sperren
 Save crashes to Downloads	Abstürze in Downloads speichern
@@ -1661,7 +1710,7 @@ Settings row in Menu	Einstellungszeile im Menü
 # context: summary of the switch for the Hushfacebook settings shortcut in the launcher icon's menu
 Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves that menu.	Zeigt die Hushfacebook-Einstellungen im Menü, das beim langen Drücken des Facebook-Symbols erscheint. Aus verschwinden sie aus diesem Menü.
 # context: summary of the switch for opening the settings with a long press on the Facebook logo
-A long press on the Facebook logo at the top of the home feed opens these settings. Off, the long press goes back to Facebook.	Langes Drücken des Facebook-Logos oben im Home-Feed öffnet diese Einstellungen. Aus gehört das lange Drücken wieder Facebook.
+A long press on the Facebook logo at the top of the home feed, or on the title at the top of another tab, opens these settings. Off, the long press goes back to Facebook.	Langes Drücken des Facebook-Logos oben im Home-Feed oder des Titels oben auf einem anderen Tab öffnet diese Einstellungen. Aus gehört das lange Drücken wieder Facebook.
 # context: summary of the switch for the Hushfacebook settings row in Facebook's Menu
 Adds a Hushfacebook settings row at the end of Settings and privacy in Facebook's Menu. Off, the row leaves the Menu.	Fügt am Ende von Einstellungen und Privatsphäre in Facebooks Menü eine Zeile Hushfacebook-Einstellungen hinzu. Aus verschwindet die Zeile aus dem Menü.
 # context: summary shown instead of a switch's usual one while it is the only one of the three ways into the settings still on, so it is greyed out
@@ -1702,6 +1751,14 @@ With Pinch to zoom on, the photo or story stays zoomed when you let go, and a st
 Double tap to zoom	Doppeltippen zum Zoomen
 # context: summary of that switch; "Pinch to zoom" is the label of the switch two rows above it, so use its translation; a story is the full-screen picture or video someone shares for a day
 With Pinch to zoom on, double tap a photo on a profile to zoom in where you tapped, and double tap again to put it back. A single tap still opens the photo, a moment later.	Wenn „Zum Zoomen auseinanderziehen“ an ist, zoomst du mit zweimaligem Antippen eines Fotos auf einem Profil dort hinein, wo du getippt hast, und mit nochmaligem Doppeltippen wieder heraus. Einmal antippen öffnet das Foto weiterhin, nur einen Moment später.
+# context: a switch under Pinch to zoom; with it on, the rest of the screen gets darker behind a zoomed photo or story
+Dim around a zoom	Um den Zoom abdunkeln
+# context: that switch's summary; "Pinch to zoom" is the label of the switch above it, so use its translation; a story is the full-screen picture or video someone shares for a day
+With Pinch to zoom on, the screen around a photo or story darkens as you zoom in. Turn it off to keep the rest of the screen as it is.	Wenn „Zum Zoomen auseinanderziehen“ an ist, wird der Bildschirm um ein Foto oder eine Story dunkler, während du hineinzoomst. Schalte es aus, damit der Rest des Bildschirms bleibt, wie er ist.
+# context: a switch under Pinch to zoom; with it on, a video you zoom keeps moving instead of freezing on the frame it showed
+Keep videos playing while zoomed	Videos beim Zoomen weiterlaufen lassen
+# context: that switch's summary; "Pinch to zoom" and "Stay zoomed" are the labels of switches above it, so use their translations; a Page is a business's or public figure's Facebook page; a story is the full-screen picture or video someone shares for a day
+With Pinch to zoom on, a video you zoom on a profile or Page keeps playing. With Stay zoomed on too, press and hold the zoom to pause the video, and again to play it. Stories hold still while you zoom.	Wenn „Zum Zoomen auseinanderziehen“ an ist, läuft ein Video, das du auf einem Profil oder einer Seite zoomst, weiter. Ist auch „Gezoomt bleiben“ an, halte den Zoom gedrückt, um das Video zu pausieren, und noch mal, um es abzuspielen. Storys bleiben beim Zoomen stehen.
 No ads downloaded in advance	Keine im Voraus geladenen Anzeigen
 No ad tracking	Kein Anzeigen-Tracking
 No Facebook ads in other apps	Keine Facebook-Anzeigen in anderen Apps
@@ -1722,7 +1779,7 @@ Takes away the line that says someone is typing a comment. Your own typing is a 
 Hide the search pill on reels	Suchvorschlag bei Reels ausblenden
 Hides the search suggestion under a reel's caption, the magnifier with a question to look up, the one at the top of its comments and the search bar over reels you open from a profile.	Blendet den Suchvorschlag unter der Beschreibung eines Reels aus, die Lupe mit einer Frage zum Nachschlagen, den über seinen Kommentaren und die Suchleiste über Reels, die du von einem Profil aus öffnest.
 Hide the top right buttons on opened videos	Buttons oben rechts bei geöffneten Videos ausblenden
-Takes Search and the button next to it off the top of a video or reel you open. Back stays, and so does More at the bottom of the side buttons, where Download is.	Nimmt die Suche und den Button daneben oben aus einem geöffneten Video oder Reel. Zurück bleibt, und Mehr unten bei den Buttons an der Seite, wo Download ist, bleibt auch.
+Takes Search and the button next to it off the top of a video or reel you open, and off the Reels tab. Back and Menu stay, and so does More at the bottom of the side buttons, where Download is.	Nimmt die Suche und den Button daneben oben aus einem geöffneten Video oder Reel und aus dem Reels-Tab. Zurück und Menü bleiben, und Mehr unten bei den Buttons an der Seite, wo Download ist, bleibt auch.
 # context: switch title under Appearance; the button is Facebook's Messenger icon in the top bar of Home
 Hide the Messenger button	Messenger-Button ausblenden
 # context: summary of that switch; the other top bar buttons move over to fill the space; Hushfacebook is the app's name
@@ -1769,6 +1826,8 @@ Takes the Save button off the side of reels. The buttons above it move down. A c
 Hide the speaker button on reels	Lautsprecher-Schaltfläche bei Reels ausblenden
 # context: summary of that switch
 Takes the speaker button off the bottom of the side of reels. A change shows from the next reel.	Entfernt die Lautsprecher-Schaltfläche unten seitlich an Reels. Eine Änderung gilt ab dem nächsten Reel.
+Move the speaker above the three dots	Lautsprecher über die drei Punkte setzen
+Puts the speaker button in the side column of reels, right above the three dots. A change shows from the next reel.	Setzt die Lautsprecher-Schaltfläche in die seitliche Spalte von Reels, direkt über die drei Punkte. Eine Änderung gilt ab dem nächsten Reel.
 # context: switch title under News feed; the reaction preview is the stack of reaction icons and the line with the number of reactions under a post
 Hide the reaction preview on posts	Reaktionsvorschau bei Beiträgen ausblenden
 # context: summary of that switch; "reactions" are Facebook's Like, Love, Haha and other reactions
@@ -1903,7 +1962,9 @@ What you search for, and the pages and profiles you open from a search, aren't a
 # context: switch title under Search; on, the Date posted filter in post search asks for a from and to month instead of a list of years; Date posted is Facebook's own filter name in search results
 Search date range	Datumsbereich in der Suche
 # context: summary of that switch; Date posted is Facebook's own filter name in post search results, named here as Facebook shows it
-The Date posted filter in post search asks for a from and to month, in place of a list of years.	Der Filter „Gepostet am“ in der Beitragssuche fragt nach einem Von- und Bis-Monat statt nach einer Liste von Jahren.
+The Date posted filter in post search asks for a from and to date, in place of a list of years.	Der Filter „Gepostet am“ in der Beitragssuche fragt nach einem Von- und Bis-Datum statt nach einer Liste von Jahren.
+From day	Ab Tag
+To day	Bis Tag
 # context: switch title under Reels and Watch; the audio line is the scrolling line at the bottom of a reel naming its sound, like "Name · Original audio" or a song title
 Hide the audio line on reels	Audiozeile bei Reels ausblenden
 # context: summary of that switch; "Original audio" is Facebook's own label, so use the wording Facebook shows in this language
@@ -2001,7 +2062,7 @@ The app holding that picture is taking too long, so Hushfacebook stopped waiting
 # context: toast when a tap on Home header picture comes while the last stalled app still holds a worker
 The app holding the last picture still hasn't answered. Try again later.	Die App mit dem letzten Bild hat noch immer nicht geantwortet. Versuche es später noch einmal.
 Inline feed video controls	Wiedergabesteuerung im Feed
-Adds a play/pause button to feed videos. Tap the video itself to open it full screen. Live videos and ads keep their own controls. With Tap to play on too, Facebook's own Autoplay setting stays as you set it so the button can show, and videos still wait for your tap.	Fügt Feed-Videos eine Wiedergabe-/Pausetaste hinzu. Tippe auf das Video selbst, um es im Vollbild zu öffnen. Live-Videos und Anzeigen behalten ihre eigenen Steuerelemente. Ist auch „Zum Abspielen tippen“ an, bleibt Facebooks eigene Autoplay-Einstellung so, wie du sie gewählt hast, damit die Taste erscheinen kann. Videos warten trotzdem auf dein Antippen.
+Adds a play/pause button to feed videos. Tap the video itself to open it full screen. Ads keep their own controls. With Tap to play on too, Facebook's own Autoplay setting stays as you set it so the button can show, and videos still wait for your tap.	Fügt Feed-Videos eine Wiedergabe-/Pausetaste hinzu. Tippe auf das Video selbst, um es im Vollbild zu öffnen. Anzeigen behalten ihre eigenen Steuerelemente. Ist auch „Zum Abspielen tippen“ an, bleibt Facebooks eigene Autoplay-Einstellung so, wie du sie gewählt hast, damit die Taste erscheinen kann. Videos warten trotzdem auf dein Antippen.
 Play feed video	Feed-Video abspielen
 Pause feed video	Feed-Video pausieren
 Support	Hilfe
@@ -2088,6 +2149,16 @@ Reels order will be set to %1$s.	Die Reihenfolge der Reels wird auf %1$s gesetzt
 Cast button on feed videos	Cast-Taste bei Feed-Videos
 Adds a cast button to feed videos. It hands the video to a casting app you have, such as Web Video Caster, which sends it to your TV. Facebook has no casting of its own anymore.	Fügt Feed-Videos eine Cast-Taste hinzu. Sie übergibt das Video an eine Cast-App, die du hast, etwa Web Video Caster, die es an deinen Fernseher sendet. Facebook selbst kann nicht mehr casten.
 Cast this video	Dieses Video casten
+Full player button on feed videos	Taste für den vollständigen Player bei Feed-Videos
+Adds a button to feed videos that opens the video in Facebook's own full player, with all its controls. Live videos get it too. With Tap to play on, it needs Inline feed video controls on too.	Fügt Feed-Videos eine Taste hinzu, die das Video in Facebooks eigenem vollständigen Player mit allen Steuerelementen öffnet. Live-Videos bekommen sie auch. Ist „Zum Abspielen tippen“ an, muss auch „Wiedergabesteuerung im Feed“ an sein.
+# context: a switch under Video and audio; with it on, a video opened full screen starts with its details and comments panel closed, so the video is in the middle of the screen
+Open full screen videos centered	Vollbildvideos zentriert öffnen
+# context: that switch's summary; the arrow is the small button under the video that opens and closes the details and comments panel
+Videos you open full screen, from a comment or a link, start with their details and comments folded away, so the video sits in the middle of the screen. The arrow under it still brings them back.	Videos, die du im Vollbild öffnest, etwa aus einem Kommentar oder über einen Link, starten mit eingeklappten Details und Kommentaren, sodass das Video in der Mitte des Bildschirms steht. Der Pfeil darunter holt sie weiterhin zurück.
+Open in the full player	Im vollständigen Player öffnen
+Seek bar on feed videos	Suchleiste bei Feed-Videos
+Shows a bar along the bottom of a feed video. Drag it and let go to jump to that point. Live videos and ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.	Zeigt eine Leiste am unteren Rand eines Feed-Videos. Zieh sie und lass los, um zu dieser Stelle zu springen. Live-Videos und Werbung behalten ihre eigene Steuerung. Ist „Zum Abspielen tippen“ an, muss auch „Wiedergabesteuerung im Feed“ an sein.
+Feed video position	Position im Feed-Video
 # context: title of the row that holds a color code for the count badges on the tabs
 Badge color	Badge-Farbe
 # context: title of the row that holds a color code for the Facebook logo at the top of Home
@@ -2130,14 +2201,18 @@ If your patched Facebook includes Badge and logo colors, the selected tab will b
 If your patched Facebook includes Badge and logo colors, the selected tab will be %1$s.	Wenn dein gepatchtes Facebook Badge- und Logofarben enthält, ist der gewählte Tab %1$s.
 Hide the emoji row on comments	Emoji-Leiste bei Kommentaren ausblenden
 The row of emoji over the comment box goes away. You can still type emoji from your keyboard.	Die Emoji-Leiste über dem Kommentarfeld verschwindet. Emojis kannst du weiter über deine Tastatur eingeben.
+Hide the line over the comment box	Linie über dem Kommentarfeld ausblenden
+The thin line along the top of the comment box goes away.	Die dünne Linie oben am Kommentarfeld verschwindet.
 Show Comment when comments are off	„Kommentieren“ anzeigen, wenn Kommentare aus sind
 Show the post date on reels	Veröffentlichungsdatum bei Reels anzeigen
 Shows when a reel or a video you open full screen was posted, under the name of who posted it. A change shows from the next reel.	Zeigt unter dem Namen der Person, die es gepostet hat, wann ein Reel oder ein im Vollbild geöffnetes Video veröffentlicht wurde. Die Änderung gilt ab dem nächsten Reel.
 Keeps the Comment button on reels whose comments are turned off, so you can still read the ones already there. A change shows from the next reel.	Behält den Button „Kommentieren“ bei Reels, deren Kommentare ausgeschaltet sind, damit du die vorhandenen Kommentare weiter lesen kannst. Die Änderung gilt ab dem nächsten Reel.
 Select part of a post's text	Teil eines Beitragstexts auswählen
-Holding a post's text still copies all of it, and also opens the text in a box where you can select just the part you want and copy that.	Wenn du den Text eines Beitrags gedrückt hältst, wird er weiterhin ganz kopiert und zusätzlich in einem Feld geöffnet, in dem du nur den gewünschten Teil auswählen und kopieren kannst.
+Holding a post's text opens it in a box where you can select just the part you want and copy that, or copy all of it. The hold itself copies nothing.	Wenn du den Text eines Beitrags gedrückt hältst, öffnet er sich in einem Feld, in dem du nur den gewünschten Teil auswählen und kopieren oder alles kopieren kannst. Das Gedrückthalten selbst kopiert nichts.
 Select text	Text auswählen
 Done	Fertig
+Copy all	Alles kopieren
+Copied	Kopiert
 Oldest	Älteste
 Comments open oldest first, on every post. Facebook's sort menu then shows All comments.	Kommentare öffnen sich bei jedem Beitrag mit den ältesten zuerst. Facebooks Sortiermenü zeigt dann Alle Kommentare.
 Comments will open oldest first.	Kommentare öffnen sich mit den ältesten zuerst.
@@ -2239,6 +2314,10 @@ After the time you pick on Home, Feeds, Video and Reels, they're covered for a b
 Break after	Pause nach
 # context: a row under Take breaks that opens a list of times; it's how long a break lasts
 Break length	Pausenlänge
+# context: a switch under Take breaks; with it on, watching 20 different reels also starts a break
+Also after 20 reels	Auch nach 20 Reels
+# context: that switch's summary; a reel is one of Facebook's short videos, and it counts toward the 20 once it has played for 3 seconds
+A break also starts once you've watched 20 reels, if that comes first. A reel counts once it's played for 3 seconds, and ads and live videos don't count.	Eine Pause beginnt auch, sobald du 20 Reels angesehen hast, falls das zuerst eintritt. Ein Reel zählt, sobald es 3 Sekunden lang gelaufen ist, Werbung und Live-Videos zählen nicht.
 # context: a choice in those lists
 10 minutes	10 Minuten
 # context: a choice in those lists
@@ -2278,7 +2357,7 @@ Adv. Filters button	Schaltfläche Erw. Filter
 Adds an Adv. Filters button under Marketplace's Filters on search results. It opens lists of words to keep, words to hide and places, and writes the rules into the search for you.	Fügt in den Suchergebnissen unter den Filtern des Marketplace eine Schaltfläche Erw. Filter hinzu. Sie öffnet Listen mit Wörtern zum Behalten, Wörtern zum Ausblenden und Orten und schreibt die Regeln für dich in die Suche.
 # context: switch title and summary under Marketplace; a listing is something for sale
 Show when listings went up	Anzeigen, wann Angebote eingestellt wurden
-A listing's page says how long ago it was listed and the date, next to its place. Facebook only shows it for new listings.	Die Seite eines Angebots zeigt neben dem Ort, wie lange es schon online ist, und das Datum. Facebook zeigt das nur bei neuen Angeboten.
+A listing's page says how long ago it was listed and the date, under its price and next to its place. Facebook only shows it for new listings.	Die Seite eines Angebots zeigt unter dem Preis und neben dem Ort, wie lange es schon online ist, und das Datum. Facebook zeigt das nur bei neuen Angeboten.
 # context: added after a listing's place on its Marketplace page, like Moncton, NB; %1$s is how long ago in your language from the phone, like 3 weeks ago, %2$s is the date
 Listed %1$s (%2$s)	Eingestellt %1$s (%2$s)
 How Adv. Filters works	So funktionieren Erw. Filter
@@ -2312,7 +2391,7 @@ The Subscribe button some authors get there instead, which subscribes with one t
 # context: switch title under Play SDR versions of HDR videos; washed-out means pale, faded colors
 Fix washed-out video colors	Blasse Videofarben beheben
 # context: summary under that switch; Disable HW overlays and developer options are Android's own setting names, use the names Android shows in this language
-Videos and reels draw together with the rest of the screen, like Disable HW overlays in developer options. Try it if reels look pale until something covers them. Uses a little more battery.	Videos und Reels werden zusammen mit dem restlichen Bildschirm gezeichnet, wie mit HW-Overlays deaktivieren in den Entwickleroptionen. Probier es, wenn Reels blass aussehen, bis etwas sie verdeckt. Braucht etwas mehr Akku.
+Videos and reels draw together with the rest of the screen, like Disable HW overlays in developer options. Try it if reels look pale until something covers them. Uses a little more battery and can make videos stutter, mostly high frame rate ones.	Videos und Reels werden zusammen mit dem restlichen Bildschirm gezeichnet, wie mit HW-Overlays deaktivieren in den Entwickleroptionen. Probier es, wenn Reels blass aussehen, bis etwas sie verdeckt. Braucht etwas mehr Akku. Videos können ruckeln, vor allem mit hoher Bildrate.
 # context: Reels and Watch: title of the list that fades a full-screen video's buttons while the screen sits untouched, so they don't burn into an OLED screen (#288)
 Burn-in guard	Einbrennschutz
 Dim when idle	Abdunkeln bei Inaktivität
@@ -2330,6 +2409,9 @@ After %1$d seconds	Nach %1$d Sekunden
 # context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap
 Stay dim when I tap	Gedimmt bleiben, wenn ich tippe
 Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	Sobald der Einbrennschutz die Schaltflächen abblendet, bleiben sie bei Reels abgeblendet, egal was du tippst oder wischst, auch beim nächsten Reel. Sie funktionieren weiterhin. Wenn du Reels verlässt, sind sie wieder da.
+# context: Reels: switch that shows the Reels screen and its video in black and white
+Show Reels in gray	Reels in Graustufen zeigen
+Reels and their buttons show in black and white, which makes them easier to put down. Your feed, stories, photos and chats keep their colors. It starts from the next reel, and Reels use a little more battery.	Reels und ihre Schaltflächen erscheinen in Schwarzweiß, so legst du sie leichter weg. Dein Feed, Storys, Fotos und Chats behalten ihre Farben. Das gilt ab dem nächsten Reel, und Reels brauchen etwas mehr Akku.
 # context: settings import preview; %1$s is a Burn-in guard choice such as Dim when idle
 Burn-in guard will be set to %1$s.	Der Einbrennschutz wird auf %1$s gesetzt.
 Burn-in guard will dim the Reels screen as soon as you stop touching it.	Der Einbrennschutz dunkelt den Reels-Bildschirm ab, sobald du ihn nicht mehr berührst.
@@ -2369,9 +2451,85 @@ Block button on comments	Blockieren-Button bei Kommentaren
 The thumbs-down on a comment becomes Block. One tap opens Facebook's own block screen for that person.	Der Daumen runter bei einem Kommentar wird zu Blockieren. Ein Tippen öffnet den Blockieren-Bildschirm von Facebook für diese Person.
 Block	Blockieren
 Couldn't open Block for this comment.	Blockieren war für diesen Kommentar nicht möglich.
+Block button on reaction lists	Blockieren-Button in Reaktionslisten
+In the list of people who reacted to a post, the button on each row, like Add friend or Message, becomes Block. One tap opens Facebook's own block screen.	In der Liste der Personen, die auf einen Beitrag reagiert haben, wird die Schaltfläche in jeder Zeile, etwa Freund hinzufügen oder Nachricht, zu Blockieren. Ein Tippen öffnet den Blockieren-Bildschirm von Facebook.
+Couldn't open Block for this person.	Blockieren war für diese Person nicht möglich.
 this person	diese Person
 Most viewed on profile Reels	Meistgesehen in Profil-Reels
 A profile's Reels tab lists its most viewed reels first instead of the newest. Off keeps Facebook's order. Only the reels the tab has loaded are sorted, and a reel with no view count stays after the rest.	Der Reels-Tab eines Profils zeigt zuerst die am meisten angesehenen Reels statt der neuesten. Aus lässt Facebooks Reihenfolge. Sortiert werden nur die Reels, die der Tab geladen hat, und ein Reel ohne Aufrufzahl bleibt hinter den übrigen.
 Not in this build, so dark mode stays Facebook's dark gray. Morphe Manager doesn't pick it by default. Turn on Expert mode in Manager, choose the %1$s patch and patch again.	Nicht in diesem Build, deshalb bleibt der Dunkelmodus in Facebooks Dunkelgrau. Morphe Manager wählt ihn nicht von selbst aus. Aktiviere in Manager den Expertenmodus, wähle den Patch %1$s und patche erneut.
 Cast button on reels	Cast-Taste bei Reels
 Adds a cast button to reels, under Download. It hands the reel to a casting app you have, such as Web Video Caster, which sends it to your TV.	Fügt Reels eine Cast-Taste unter Herunterladen hinzu. Sie übergibt das Reel an eine Cast-App, die du hast, etwa Web Video Caster, die es an deinen Fernseher sendet.
+Tab order	Tab-Reihenfolge
+Professional dashboard	Professional-Dashboard
+Ad Center	Werbecenter
+Create	Erstellen
+Explore	Erkunden
+As Facebook has it. Tap to put the tabs in the order you want. Facebook opens on the first one. Restart Facebook after you change this.	Wie bei Facebook. Tippe hier, um die Tabs in die gewünschte Reihenfolge zu bringen. Facebook öffnet mit dem ersten. Starte Facebook neu, nachdem du das geändert hast.
+In this order: %1$s. Facebook opens on the first one. Restart Facebook after you change this.	In dieser Reihenfolge: %1$s. Facebook öffnet mit dem ersten. Starte Facebook neu, nachdem du das geändert hast.
+Tap a tab to move it up	Tippe auf einen Tab, um ihn nach oben zu schieben
+Your tab bar will keep Facebook's order.	Deine Tab-Leiste behält die Reihenfolge von Facebook.
+Your tab bar will go in this order: %1$s.	Deine Tab-Leiste bekommt diese Reihenfolge: %1$s.
+Show only watched stories	Nur angesehene Stories zeigen
+The Stories tray keeps only the stories you've already watched, so you can find one again. Turn it off to see the new ones. Hide seen stories waits while this is on. Applies when Facebook next loads the tray.	Die Stories-Leiste behält nur Stories, die du schon angesehen hast, damit du eine wiederfindest. Schalte es aus, um die neuen zu sehen. Gesehene Stories ausblenden pausiert, solange das an ist. Gilt, wenn Facebook die Leiste das nächste Mal lädt.
+Show Posts in search	Beiträge in der Suche anzeigen
+Puts Posts back in the row over search results, after Reels, so you can see only posts for what you searched.	Bringt „Beiträge“ zurück in die Leiste über den Suchergebnissen, nach Reels, damit du nur Beiträge zu deiner Suche sehen kannst.
+Restore feed sound after opened videos	Feed-Ton nach geöffneten Videos wiederherstellen
+A video you open plays with its sound as usual. Back in the feed, the sound is what it was before you opened it, even after a long watch.	Ein Video, das du öffnest, läuft wie gewohnt mit Ton. Zurück im Feed ist der Ton so wie vor dem Öffnen, auch wenn du lange zugeschaut hast.
+Hide the Join button on posts	Beitreten-Button bei Beiträgen ausblenden
+Hides the Join button next to the group's name on posts from groups you haven't joined, and the Join group bar under their videos. A change shows on the posts drawn after it.	Blendet den Beitreten-Button neben dem Gruppennamen bei Beiträgen aus Gruppen aus, in denen du nicht Mitglied bist, und die Leiste „Gruppe beitreten“ unter deren Videos. Eine Änderung gilt für Beiträge, die danach geladen werden.
+Hide the Reels title	Reels-Titel ausblenden
+Takes the word Reels off the top of the Reels tab. The buttons beside it stay.	Nimmt das Wort Reels oben im Reels-Tab weg. Die Buttons daneben bleiben.
+Videos in search results wait for a tap	Videos in Suchergebnissen warten auf einen Tipp
+Videos in search results don't start by themselves. Tap one to play it. Works with Tap to play on or off.	Videos in Suchergebnissen starten nicht von selbst. Tippe eines an, um es abzuspielen. Funktioniert mit „Zum Abspielen tippen“ an oder aus.
+Custom color	Eigene Farbe
+Preview	Vorschau
+Blue	Blau
+Type a six-digit color code, like #2ECC71.	Gib einen sechsstelligen Farbcode ein, zum Beispiel #2ECC71.
+Pick Custom color again to change it.	Wähle Eigene Farbe noch einmal, um sie zu ändern.
+Switches that are on	Eingeschaltete Schalter
+Every switch you have on, in one list. Turn one off here and it's off everywhere.	Alle Schalter, die du eingeschaltet hast, in einer Liste. Schaltest du hier einen aus, ist er überall aus.
+No switches are on yet.	Noch ist kein Schalter eingeschaltet.
+Emoji after the logo	Emoji nach dem Logo
+An emoji drawn right after the Facebook logo at the top of Home, in its own colors. Leave it blank for none.	Ein Emoji direkt hinter dem Facebook-Logo oben auf der Startseite, in seinen eigenen Farben. Lass das Feld leer, wenn keins erscheinen soll.
+No emoji after the logo. Type one to show it there.	Kein Emoji nach dem Logo. Gib eins ein, damit es dort erscheint.
+The top of Home shows %1$s after the logo. Restart Facebook to see the change.	Oben auf der Startseite steht %1$s nach dem Logo. Starte Facebook neu, um die Änderung zu sehen.
+If your patched Facebook includes Accent color, the Custom choice will be %1$s.	Wenn dein gepatchtes Facebook die Akzentfarbe enthält, ist die Auswahl Benutzerdefiniert %1$s.
+If your patched Facebook includes Accent color, the Custom choice will keep Facebook's blue.	Wenn dein gepatchtes Facebook die Akzentfarbe enthält, behält die Auswahl Benutzerdefiniert das Blau von Facebook.
+If your patched Facebook includes Emoji after the logo, the top of Home will show %1$s after the logo.	Wenn dein gepatchtes Facebook Emoji nach dem Logo enthält, zeigt die Startseite oben nach dem Logo %1$s an.
+The top of Home will show no emoji after the logo.	Oben auf der Startseite wird nach dem Logo kein Emoji angezeigt.
+Show the post date as	Veröffentlichungsdatum anzeigen als
+How long ago	Wie lange her
+The date	Das Datum
+# context: summary under Show the post date as; %1$s is an example, 3 weeks ago or Oct 12
+Like "%1$s". A change shows from the next reel.	Etwa „%1$s“. Eine Änderung gilt ab dem nächsten Reel.
+Reel post dates will show how long ago they were posted.	Bei Reels wird angezeigt, wie lange die Veröffentlichung her ist.
+Reel post dates will show the day they were posted.	Bei Reels wird der Tag der Veröffentlichung angezeigt.
+Hide pictures on the Blocked list	Bilder in der Blockierliste ausblenden
+People you've blocked show without their profile pictures on the Blocking page in Facebook's settings. Reopen the page if it's already open.	Blockierte Personen erscheinen auf der Seite Blockieren in den Facebook-Einstellungen ohne Profilbild. Öffne die Seite neu, wenn sie schon offen ist.
+Hide Up next on videos	Als Nächstes bei Videos ausblenden
+Takes the UP NEXT bar with the next video off the bottom of a video you open from the feed, and the empty space kept for it, so the seek bar stays at the bottom. A change shows from the next video you open.	Nimmt die Leiste ALS NÄCHSTES mit dem nächsten Video unten von einem Video weg, das du aus dem Feed öffnest, samt dem leeren Platz dafür, sodass die Fortschrittsleiste unten bleibt. Eine Änderung gilt ab dem nächsten Video, das du öffnest.
+Icons look soft on this screen. Repatch with the 120-640dpi bundle.	Symbole wirken auf diesem Bildschirm unscharf. Patche erneut mit dem 120-640dpi-Bundle.
+Icons look soft on this screen	Symbole wirken auf diesem Bildschirm unscharf
+The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (120-640dpi) bundle on APKMirror, which has images for every screen.	Das Facebook, das du gepatcht hast, hat keine Bilder für diesen Bildschirm, daher werden einige Symbole vergrößert. Patche Facebook erneut aus dem Bundle (arm64-v8a) (120-640dpi) von APKMirror, das Bilder für jeden Bildschirm hat.
+Let each post come back once	Jeden Beitrag einmal zurückkommen lassen
+A post you scrolled past shows up one more time, and scrolling past it again hides it. Fewer posts go missing after a quick scroll.	Ein Beitrag, an dem du vorbeigescrollt bist, erscheint noch einmal, und wenn du wieder an ihm vorbeiscrollst, wird er ausgeblendet. So gehen nach schnellem Scrollen weniger Beiträge verloren.
+There's no Facebook link in what you shared.	In dem, was du geteilt hast, ist kein Facebook-Link.
+Open in Facebook from the share menu	Open in Facebook im Teilen-Menü
+Share a Facebook link from Messenger's browser or any other app and pick Open in Facebook, and it opens here.	Teile einen Facebook-Link aus dem Browser von Messenger oder einer anderen App und wähle Open in Facebook, dann öffnet er sich hier.
+GmsCore support	GmsCore-Unterstützung
+Version %1$s for Facebook %2$s	Version %1$s für Facebook %2$s
+Show all settings as a list	Alle Einstellungen als Liste zeigen
+Show settings by category	Einstellungen nach Kategorie zeigen
+Story play button	Play-Taste in Stories
+Double tap for next story	Doppeltippen für die nächste Story
+A tap in the middle of a story shows a play and pause button, like Reels. Taps on the sides still change stories.	Ein Tippen in die Mitte einer Story zeigt eine Play- und Pausetaste wie bei Reels. Tippen an den Seiten wechselt weiterhin die Story.
+Stories change only on a double tap, the left side for the one before and anywhere else for the next. A single tap pauses or plays the story, or shows the play button when that's on.	Stories wechseln nur bei Doppeltippen, links zur vorherigen und überall sonst zur nächsten. Einfaches Tippen pausiert die Story oder spielt sie ab, oder zeigt die Play-Taste, wenn sie an ist.
+Pause story	Story pausieren
+Play story	Story abspielen
+Hide song and effect credits	Song- und Effekt-Credits ausblenden
+Hide reply suggestions	Antwortvorschläge ausblenden
+Takes the song and effect credits off the line under the poster's name on a story. Applies from the next story you open.	Entfernt die Song- und Effekt-Credits aus der Zeile unter dem Namen der Person, die die Story gepostet hat. Gilt ab der nächsten Story, die du öffnest.
+Takes the row of suggested replies off the bottom of a story. The reply box stays. Applies from the next story you open.	Entfernt die Reihe mit Antwortvorschlägen unten in einer Story. Das Antwortfeld bleibt. Gilt ab der nächsten Story, die du öffnest.
+Progress bar at the bottom	Fortschrittsbalken unten
+Shows a thin bar along the bottom of a story that fills as it plays, like the one on Reels.	Zeigt unten in einer Story einen dünnen Balken, der sich beim Abspielen füllt, wie bei Reels.

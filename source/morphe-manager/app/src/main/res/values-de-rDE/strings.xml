@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Diese App ausblenden?</string>
     <string name="home_more_apps_title">Weitere Apps</string>
     <string name="home_more_apps_hide_title">Diese Karte ausblenden?</string>
-    <string name="home_more_apps_hide_message">Sie können es jederzeit unter Einstellungen &gt; Erscheinungsbild &gt; Startbildschirm wieder hinzufügen</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Sie können es jederzeit unter %1$s wieder zurückholen</string>
     <string name="home_app_hide_message">Diese App wird auf dem Startbildschirm ausgeblendet. Sie können sie später über die Schaltfläche am Ende der Liste wiederherstellen</string>
     <string name="home_app_will_be_hidden">Diese App wird ausgeblendet</string>
     <string name="home_app_hidden_named">%s ausgeblendet</string>
@@ -63,26 +64,12 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="home_search_apps">Apps suchen</string>
     <string name="list_options_title">Sortieren und filtern</string>
     <string name="list_options_state_description">Sortiert nach %1$s, gefiltert nach %2$s</string>
-    <string name="home_app_filter_all_description">Jede App auf dem Startbildschirm</string>
-    <string name="home_app_filter_patched_description">Apps, die du mit Nivqo gepatcht oder gespeichert hast</string>
-    <string name="home_app_filter_not_patched_description">Apps, die du noch nicht mit Morphe gepatcht hast</string>
-    <string name="home_app_filter_installed_description">Apps, die derzeit auf diesem Gerät installiert sind</string>
-    <string name="home_app_filter_uninstalled_description">Apps, die mit Morphe gepatcht wurden und nicht mehr auf diesem Gerät vorhanden sind</string>
     <string name="home_app_filter_clones">Klone</string>
-    <string name="home_app_filter_clones_description">Apps, die unter einem eigenen Paketnamen erstellt und neben der Original-App installiert werden</string>
     <string name="home_app_grouping_none">Keine</string>
-    <string name="home_app_grouping_all_apps_description">Eine Liste mit allen Apps</string>
-    <string name="home_app_grouping_sources_description">Apps unter der Patch-Quelle, die sie bereitstellt</string>
-    <string name="home_app_grouping_custom_description">Apps in von dir erstellten Kategorien</string>
-    <string name="home_app_sort_manual_description">Halte eine App lange gedrückt und tippe dann auf die Schaltfläche zum Sortieren</string>
+    <string name="home_app_sort_manual_hint">Halte eine App lange gedrückt und tippe dann auf die Schaltfläche zum Sortieren</string>
     <string name="home_app_sort_recommended">Empfohlene Reihenfolge</string>
-    <string name="home_app_sort_recommended_description">Installierte und angeheftete Apps zuerst</string>
-    <string name="home_app_sort_name_asc_description">Alphabetisch, A bis Z</string>
-    <string name="home_app_sort_name_desc_description">Umgekehrte alphabetische Reihenfolge, Z bis A</string>
     <string name="home_app_sort_updates_first">Patch-Updates zuerst</string>
-    <string name="home_app_sort_updates_first_description">Apps mit neueren Patches zuerst, dann empfohlene Reihenfolge</string>
     <string name="home_app_sort_recently_patched">Zuletzt gepatcht</string>
-    <string name="home_app_sort_recently_patched_description">Zuletzt gepatchte Apps zuerst</string>
     <string name="home_no_apps_title">Keine Apps verfügbar</string>
     <string name="home_no_apps_subtitle">Eine Patch-Quelle hinzufügen oder eine vorhandene in %s aktivieren</string>
     <string name="home_no_apps_search_subtitle">Keine Apps passen zu \"%s\"</string>
@@ -92,7 +79,7 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="home_no_apps_filter_subtitle">Nichts entspricht %s</string>
     <string name="home_category_add">Kategorie hinzufügen</string>
     <string name="home_category_all_apps">Alle Apps</string>
-    <string name="home_category_custom">Benutzerdefiniert</string>
+    <string name="home_app_grouping_categories">Kategorien</string>
     <string name="home_category_uncategorized">Nicht kategorisiert</string>
     <string name="home_category_new_title">Neue Kategorie</string>
     <string name="home_category_rename_title">Kategorie umbenennen</string>
@@ -169,17 +156,11 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="sources_management_title">Patch-Quellen</string>
     <string name="sources_search">Quellen und Patches durchsuchen</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Jede Quelle</string>
-    <string name="sources_filter_enabled_description">Quellenpatches stammen von</string>
-    <string name="sources_filter_disabled_description">Quellen deaktiviert</string>
     <string name="sources_filter_issues">Aufmerksamkeit erforderlich</string>
-    <string name="sources_filter_issues_description">Quellen, die blockiert sind, nicht geladen werden konnten oder eine neuere Version von Morphe benötigen</string>
     <string name="sources_sort_manual">Manuelle Reihenfolge</string>
     <string name="sources_sort_manual_hint">Halte eine Quelle gedrückt, um sie neu anzuordnen</string>
     <string name="sources_sort_last_updated">Zuletzt aktualisiert</string>
-    <string name="sources_sort_last_updated_description">Neueste Quellen-Updates zuerst</string>
     <string name="sources_sort_enabled_first">Aktivierte zuerst</string>
-    <string name="sources_sort_enabled_first_description">Aktive Quellen vor deaktivierten Quellen anzeigen</string>
     <string name="sources_patches_source_disabled_hint">Diese Quelle ist deaktiviert. Ihre Patches werden als Referenz angeführt und nicht angewendet.</string>
     <string name="sources_management_open_in_browser">Im Browser öffnen</string>
     <string name="sources_management_report_issue">Problem melden</string>
@@ -264,7 +245,8 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="sources_signing_key_trusted">Vertrauenswürdiger Schlüssel</string>
     <string name="sources_signing_key_new">Neuer Schlüssel</string>
     <string name="sources_patch_expert_badge">Experte</string>
-    <string name="sources_patch_expert_badge_tooltip">Expertenmodus in den Einstellungen aktivieren, um diesen Patch manuell einzuschließen</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Aktivieren Sie %1$s, um diesen Patch manuell einzuschließen</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">Hilfe beim Finden der APK benötigt?</string>
     <string name="home_apk_availability_dialog_simple">Um &lt;b&gt;%s&lt;/b&gt; zu patchen, benötigst du die ungepatchte APK-Version:</string>
@@ -272,7 +254,6 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="home_apk_availability_recommended_label">Empfohlen</string>
     <string name="home_apk_availability_unpatched_label">Nicht gepatcht</string>
     <string name="home_apk_availability_incompatible_label">Inkompatibel</string>
-    <string name="home_apk_availability_installed_version">Auf diesem Gerät installiert: %s</string>
     <string name="home_apk_availability_find">Ja, hilf mir, sie zu finden</string>
     <string name="home_apk_availability_have">Nein, ich habe sie bereits</string>
     <string name="home_apk_helper_download">Eine Hilfs-App verwenden</string>
@@ -306,12 +287,16 @@ Diese App aus der vorhandenen Quelle hinzufügen?</string>
     <string name="home_download_instructions_finding">Suche nach der Download-Seite …</string>
     <string name="home_download_instructions_step1">Drücken Sie die Taste \'%s\' unten </string>
     <string name="home_download_instructions_step2_part1">Scrollen Sie auf der Webseite nach unten und drücken Sie </string>
+    <string name="home_download_instructions_step2_apkcube">Scrollen Sie auf der Webseite nach unten, wählen Sie die Version &lt;b&gt;%s&lt;/b&gt; aus und drücken Sie</string>
     <string name="home_download_instructions_step2_generic">Scrolle auf der Webseite nach unten und drücke auf die Download-Schaltfläche</string>
     <string name="home_download_instructions_step2_variant">Scrolle auf der Webseite nach unten und drücke auf die Download-Schaltfläche der oberen &lt;b&gt;APK-Variante&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Öffne ein Suchergebnis von einer Website, der du vertraust</string>
     <string name="home_download_instructions_step2_search_note">Morphe kann nicht für diese Websites bürgen. Überspringe diejenigen, die statt einer APK-Datei einen eigenen App-Store anbieten</string>
     <string name="home_download_instructions_step3_search">Lade auf dieser Website die APK der Version &lt;b&gt;%s&lt;/b&gt; herunter, nicht die neueste Version</string>
     <string name="home_download_instructions_step3_search_any">Lade auf dieser Website die APK der App herunter. &lt;b&gt;Jede Version&lt;/b&gt; kann gepatcht werden</string>
+    <string name="home_download_instructions_step2_github">Drücke unter &lt;b&gt;Assets&lt;/b&gt; von Version &lt;b&gt;%s&lt;/b&gt; auf die Datei, die auf &lt;b&gt;.apk&lt;/b&gt; endet</string>
+    <string name="home_download_instructions_step2_github_latest">Drücke unter &lt;b&gt;Assets&lt;/b&gt; der neuesten Version auf die Datei, die auf &lt;b&gt;.apk&lt;/b&gt; endet</string>
+    <string name="home_download_instructions_step2_github_note">Wenn es mehrere APK-Dateien gibt, wähle diejenige aus, die nach %s benannt ist, oder die universelle</string>
     <string name="home_download_instructions_download_button_toast">Drücke die Download-Taste auf der Website und nicht hier 😊 </string>
     <string name="home_download_instructions_download_button_toast_2">Ausgezeichnet! Klicke nun auf \'Weiter\' und gehe zur Website 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Übung macht den Meister, und du bist auf dem richtigen Weg 💪</string>
@@ -519,11 +504,13 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="batch_queue_pending_subtitle">Tippen zum Überprüfen und Starten</string>
     <string name="batch_queue_clear_title">Warteschlange löschen?</string>
     <string name="batch_queue_clear_description">Alle Apps werden aus der Warteschlange entfernt</string>
+    <string name="batch_queue_keep_title">Warteschlange beibehalten?</string>
+    <string name="batch_queue_keep_description">Die in der Warteschlange stehenden Apps warten auf dem Startbildschirm, um später gestartet zu werden</string>
+    <string name="batch_queue_keep">Beibehalten</string>
     <string name="shortcut_repatch_short">Neu patchen</string>
     <string name="shortcut_repatch_long">Veraltete Apps neu patchen</string>
     <string name="shortcut_check_updates_short">Auf Updates prüfen</string>
     <string name="shortcut_check_updates_long">Nach Patch-Updates suchen</string>
-    <string name="shortcut_patch_app">%s patchen</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Diese App deinstallieren?</string>
     <string name="home_app_info_uninstall_removes_data">Die App und ihre Daten werden von diesem Gerät entfernt</string>
@@ -544,6 +531,7 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="home_app_info_install_type_custom_installer">Benutzerdefinierter Installer</string>
     <string name="home_app_info_install_type_system_installer">System-Installer</string>
     <string name="home_app_info_install_type_play_store">Play Store installieren</string>
+    <string name="home_app_info_install_type_root">Root-Installation</string>
     <string name="home_app_info_install_type_root_play_store">Root Play Store installieren</string>
     <string name="home_app_info_install_type_shizuku_play_store">Shizuku Play Store installieren</string>
     <string name="home_app_info_patch_update_available">Patch-Update verfügbar</string>
@@ -585,7 +573,8 @@ Für optimale Ergebnisse empfiehlt diese App, eine &lt;b&gt;vollständige APK&lt
     <string name="root_mount_module_unmount_warning">Wenn KernelSU \"Module standardmäßig aushängen\" aktiviert hat, öffnen Sie KernelSU &gt; Superuser &gt; die gemountete App &gt; Profil &gt; Benutzerdefiniert und deaktivieren Sie \"Module aushängen\". Andernfalls kann das gemountete gepatchte APK nicht wirksam werden, auch wenn Morphe es als gemountet anzeigt</string>
     <string name="root_pre_patch_installer_standard_title">Standard-Installationsmodus</string>
     <string name="root_pre_patch_installer_standard_description">Patches als normale APK mit GmsCore-Unterstützung. Ihre Installatoreinstellung wird nach dem Patchen verwendet.</string>
-    <string name="root_pre_patch_installer_hint">Gefragt, während Einstellungen <b>&amp;gt;</b> Patchen <b>&amp;gt;</b> Installation <b>&amp;gt;</b> Installer-Auswahlabfrage angezeigt wird. Der Patch-Modus kann nach dem Pchen nicht geändert werden</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">Gefragt, während %1$s auf %2$s eingestellt ist. Der Patch-Modus kann nach dem Patchen nicht mehr geändert werden</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">URL in Zwischenablage kopiert</string>
     <string name="patcher_error_log">Fehlerprotokoll</string>
@@ -685,6 +674,14 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="patcher_step_group_saving">Wird gespeichert</string>
     <string name="patcher_step_write_patched">Gepatchte APK-Datei wird geschrieben</string>
     <string name="patcher_step_sign_apk">Gepatchte APK-Datei wird signiert</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">DEX-Dateien werden gelesen</string>
+    <string name="patcher_task_extracting_resources">Ressourcen werden extrahiert</string>
+    <string name="patcher_task_decoding_resources">Ressourcen werden dekodiert</string>
+    <string name="patcher_task_indexing_classes">Klassen werden indexiert</string>
+    <string name="patcher_task_compiling_dex">DEX-Dateien werden kompiliert</string>
+    <string name="patcher_task_compiling_resources">Ressourcen werden kompiliert</string>
+    <string name="patcher_task_writing_apk">APK-Datei wird geschrieben</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Schutz vor Hintergrund-Patching</string>
     <string name="battery_optimization_dialog_description">Auf einigen Geräten wird das Patchen unterbrochen, sobald die App minimiert wird. Erlaube Morphe, ohne Akkuoptimierung im Hintergrund zu laufen, um sicherzustellen, dass der Vorgang zuverlässig abgeschlossen wird</string>
@@ -733,7 +730,8 @@ Durch die Deinstallation werden alle App-Daten dauerhaft gelöscht"</string>
     <string name="patched_app_save_failed_toast">Speichern der gepatchten App fehlgeschlagen</string>
     <string name="plugin_activity_dialog_body">Benutzerinteraktion ist erforderlich, um dieses Plugin fortzusetzen</string>
     <string name="patcher_process_killed_message">Das System hat den Patcher gestoppt, bevor er fertig war, in der Regel um Speicher freizugeben. Schließen Sie andere Apps und versuchen Sie es erneut</string>
-    <string name="patcher_process_crashed_message">Der Patcher ist abgestürzt, bevor er fertig war. Wenn dies erneut passiert, schalten Sie \"Eingebettete VM verwenden\" in den Einstellungen aus und melden Sie das Problem mit dem Log</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">Der Patcher ist abgestürzt, bevor er fertig war. Falls dies erneut passiert, schalten Sie %1$s aus und melden Sie das Problem mit dem Log</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">Der Patcher hat den Arbeitsspeicher mit einem %1$s MB-Heap erschöpft. Diese App ist zu groß für die ausgewählten Patches. Versuchen Sie, mit weniger Patch-Quellen zu patchen, oder wählen Sie weniger Patches aus</string>
     <string name="install_app_success">Erfolgreich installiert</string>
@@ -921,6 +919,8 @@ Patches sind nicht betroffen: Aktivieren Sie Vorab-Patches für jede Quelle in d
     <string name="notification_channel_patch_updates">Patch-Updates</string>
     <string name="notification_channel_patch_updates_description">Benachrichtigungen über neue Patch-Versionen</string>
     <string name="notification_channel_patcher_description">Wird angezeigt, während Morphe eine App im Hintergrund patcht</string>
+    <string name="notification_channel_patching_results">Patching-Ergebnisse</string>
+    <string name="notification_channel_patching_results_description">Wenn das Patching endet oder eine Installation auf Sie wartet, während Morphe im Hintergrund ist</string>
     <string name="notification_channel_mounted_apps">Gemountete Apps</string>
     <string name="notification_channel_mounted_apps_description">Wenn eine andere Version eine gemountete App ersetzt hat und ihr Patch nicht mehr angewendet wird</string>
     <string name="notification_mount_replaced_title">%1$s ist nicht mehr gepatcht</string>
@@ -1031,9 +1031,8 @@ Die Bildgrößen müssen wie folgt sein:
     <string name="installer_title">Installer auswählen</string>
     <string name="installer_internal_description">Verwendet den Android-Paketinstaller</string>
     <string name="installer_play_store_description">Verwendet den Systeminstaller und setzt den Google Play Store als Installationsquelle</string>
+    <string name="installer_root_description">Installiert lautlos mit Root</string>
     <string name="installer_root_play_store_description">Installiert stumm mit Root-Rechten und setzt den Google Play Store als Installationsquelle fest</string>
-    <string name="installer_auto_saved_name">Root-Mount</string>
-    <string name="installer_auto_saved_description">Mountet Apps, die im Root-Mount-Modus gepatcht wurden. Standardmäßig gepatchte APKs verwenden einen anderen Installer.</string>
     <string name="installer_shizuku_description">Installiert stillschweigend mit Shizuku oder Sui</string>
     <string name="installer_shizuku_play_store_description">Installiert stumm über Shizuku oder Sui und setzt den Google Play Store als Installationsquelle fest</string>
     <string name="installer_option_none">Kein Fallback</string>
@@ -1043,7 +1042,7 @@ Die Bildgrößen müssen wie folgt sein:
     <string name="installer_status_shizuku_not_installed">Installieren Sie Shizuku oder Sui, um diese Option zu verwenden</string>
     <string name="installer_status_shizuku_not_running">Starten Sie Shizuku oder Sui und versuchen Sie es erneut</string>
     <string name="installer_status_shizuku_permission">Erlauben Sie Nivqo von der Shizuku-App die Berechtigung.</string>
-    <string name="installer_mount_warning_install">Ihr primärer Installer ist auf den Root-Mount-Installer gesetzt. Diese gespeicherte App wurde nicht mit Mount installiert</string>
+    <string name="installer_mount_warning_install">Der Patch-Modus ist auf Root-Mount eingestellt. Diese gespeicherte App wurde nicht mit Mount installiert</string>
     <string name="mount_version_mismatch_message">Stock-App-Version (%2$s) stimmt nicht mit gepatchter App-Version (%1$s) überein. Mounten Sie die passende Stock-Version und versuchen Sie es erneut</string>
     <string name="mount_stock_restore_failed_message">Android hat die gespeicherte ursprüngliche APK abgelehnt. Installieren Sie die passende Stock-Version und versuchen Sie es dann erneut mit Mounten.</string>
     <string name="installer_status_shizuku_unsupported">Die installierte Shizuku-Version wird nicht unterstützt</string>
@@ -1065,11 +1064,17 @@ Die Bildgrößen müssen wie folgt sein:
     <string name="installer_play_store_warning_continue">Ich verstehe, fortfahren</string>
     <string name="installer_play_store_mode">Als Play Store installieren</string>
     <string name="installer_play_store_mode_description">Markiert den Google Play Store als Installationsquelle</string>
+    <string name="settings_section_patch_mode">Patch-Modus</string>
+    <string name="settings_patch_mode_ask">Jedes Mal fragen</string>
+    <string name="settings_patch_mode_ask_description">Fragt vor dem Patchen jeder App, ob sie für Root-Mount oder eine Standardinstallation gepatcht werden soll</string>
+    <string name="settings_section_after_patching">Nach dem Patchen</string>
+    <string name="settings_after_patching_install">Automatisch installieren</string>
+    <string name="settings_after_patching_ask">Welchen Installer fragen</string>
+    <string name="settings_after_patching_ask_description">Fragt jedes Mal bei der Installation einer App, welcher Installer verwendet werden soll</string>
+    <string name="settings_after_patching_manual">Manuell installieren</string>
+    <string name="settings_after_patching_manual_description">Installiert mit dem Standard-Installer, sobald Sie auf Installieren tippen</string>
     <string name="settings_nomount_only">Nur NoMount</string>
     <string name="settings_nomount_only_description">Mountet Apps nur mit NoMount und greift niemals auf einen Bind-Mount zurück, sodass sie ohne NoMount unmounted bleiben</string>
-    <string name="settings_prompt_installer_on_install">Auswahlaufforderung für den Installer</string>
-    <string name="settings_prompt_installer_on_install_description">Fragt, wie jede App installiert wird: mit Root vor dem Poching, sonst danach</string>
-    <string name="settings_auto_install_with_shizuku">Automatische Installation nach dem Patchen</string>
     <string name="settings_auto_install_with_shizuku_description">Installiert oder mountet die gepatchte APK, sobald das Pochen abgeschlossen ist</string>
     <string name="settings_auto_uninstall_with_shizuku">Bei Konflikten automatisch deinstallieren</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Deinstalliert die vorhandene App bei einem Signature-Konflikt. Dies kann App-Daten entfernen</string>
@@ -1139,7 +1144,6 @@ Details: %2$s"</string>
     <string name="settings_system_import_keystore_dialog_description">Sie müssen die Anmeldeinformationen des Keystores zum Importieren eingeben</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Benutzername (Alias)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Passwort</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Keystore-Format</string>
     <string name="settings_system_import_keystore_wrong_credentials">Falsche Keystore-Anmeldeinformationen</string>
     <string name="settings_system_import_keystore_success">Keystore importiert</string>
     <string name="settings_system_import_keystore_failed">Fehler beim Importieren des Keystores</string>
@@ -1293,6 +1297,7 @@ Details: %2$s"</string>
     <string name="credits_prior_development">Frühere Entwicklung</string>
     <string name="opensource_licenses">Open-Source-Lizenzen</string>
     <string name="opensource_licenses_description">Die Bibliotheken, auf denen Morphe aufbaut</string>
+    <string name="opensource_licenses_search">Bibliotheken und Lizenzen suchen</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Eine Wahl</string>
     <string name="easter_egg_pill_message">Nimm die blaue Pille und die Werbung bleibt genau dort, wo sie ist. Nimm die rote Pille und sieh, wie tief der Bytecode geht.</string>
@@ -1519,8 +1524,7 @@ Wollen Sie trotzdem fortfahren?"</string>
     <string name="tour_prompt_confirm">Zeigen Sie mir alles</string>
     <string name="onboarding_restart_title">Feature-Tour</string>
     <string name="onboarding_restart_desc">Eine geführte Tour durch die wichtigsten Funktionen.</string>
-
-    <!-- Preserved Nivqo localization -->
+    <string name="home_app_filter_patched_description">Apps, die du mit Nivqo gepatcht oder gespeichert hast</string>
     <string name="home_category_delete_confirm_title">Kategorie löschen</string>
     <string name="home_category_delete_confirm_message">Kategorie &lt;b&gt;%1$s&lt;/b&gt; löschen? Apps darin werden nach &lt;b&gt;%2$s&lt;/b&gt; verschoben</string>
     <string name="expert_mode_prerelease_notice">Diese Quelle enthält Vorabversionen von Patches. Das Patchen kann fehlschlagen oder unerwartetes Verhalten verursachen.</string>

@@ -200,7 +200,7 @@ public final class ResumePlayback {
     @Nullable
     static volatile ResumePoints pointsForTests;
 
-    private static final Players PLAYERS = new Players();
+    static final Players PLAYERS = new Players();
     private static final Object POINTS_LOCK = new Object();
     @Nullable
     private static ResumePoints points;
@@ -253,15 +253,26 @@ public final class ResumePlayback {
             HookStatus.invoked(FAMILY);
             RecentlyWatched.started(player);
             SkipSilence.started(player, trigger);
-            if (player != null && BreakTimer.switchedOn()) {
-                Facts facts = facts(player);
-                if (facts != null && facts.reel) BreakTimer.reelStarted();
-            }
+            if (player != null && BreakTimer.switchedOn()) reelStarted(player);
             if (!on() || player == null) return;
             HookStatus.bound(FAMILY, "player start");
             start(player, trigger, SystemClock.uptimeMillis(), System.currentTimeMillis());
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "player start", failure);
+        }
+    }
+
+    /** Tells Take breaks a reel started, and hands it the reels it counts. A failure here leaves the resume alone. */
+    private static void reelStarted(Object player) {
+        try {
+            Facts facts = facts(player);
+            if (facts == null || !facts.reel) return;
+            BreakTimer.reelStarted();
+            if (!facts.ad && !facts.live && !facts.gif && !facts.audioOnly && BreakTimer.countingReels()) {
+                BreakTimer.reelPlaying(facts.videoId, RecentlyWatched.playsOn(player, facts.videoId));
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "reel start for breaks", failure);
         }
     }
 
@@ -327,6 +338,20 @@ public final class ResumePlayback {
             if (positionMs > START_WINDOW_MS || (name != null && USER_SEEKS.contains(name))) {
                 PLAYERS.positioned(player);
             }
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "player seek", failure);
+        }
+    }
+
+    /**
+     * The seek bar on feed videos, just before it seeks. It asks for the exact spot with
+     * BY_INITIAL_FRAME_PERFECT_SEEK, which Facebook also sends by itself to start a video over, so
+     * {@link #seeking} can't tell that this one is you placing the video.
+     */
+    public static void placedByYou(Object player) {
+        try {
+            if (!on() || player == null) return;
+            PLAYERS.positioned(player);
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "player seek", failure);
         }

@@ -7,7 +7,6 @@ package app.morphe.manager.ui.screen.shared
 
 import android.graphics.Canvas
 import androidx.annotation.DrawableRes
-import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -31,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import app.morphe.manager.R
 
@@ -41,7 +41,7 @@ import app.morphe.manager.R
 @Composable
 fun MorpheLauncherLogo(modifier: Modifier = Modifier) {
     Image(
-        painter = rememberAppCompatPainter(R.drawable.ic_launcher_foreground),
+        painter = rememberPlatformPainter(R.drawable.ic_launcher_foreground),
         contentDescription = null,
         contentScale = ContentScale.Fit,
         modifier = modifier.graphicsLayer {
@@ -69,7 +69,7 @@ fun NivqoWordmark(
         // transparent padding so the mark reads as a properly sized wordmark letter.
         Box(modifier = Modifier.size(26.dp).clipToBounds()) {
             Image(
-                painter = rememberAppCompatPainter(R.drawable.ic_launcher_foreground),
+                painter = rememberPlatformPainter(R.drawable.ic_launcher_foreground),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize().graphicsLayer {
                     scaleX = 2.1f
@@ -89,25 +89,25 @@ fun NivqoWordmark(
 }
 
 /**
- * Painter for a vector of the Morphe branding, loaded through AppCompat as `painterResource` cannot
+ * Painter for a vector of the Morphe branding, loaded as a platform drawable since `painterResource` cannot
  * be trusted with them in release builds, see [rememberMorpheLogoBitmap].
  */
 @Composable
-private fun rememberAppCompatPainter(@DrawableRes id: Int): Painter {
+private fun rememberPlatformPainter(@DrawableRes id: Int): Painter {
     val context = LocalContext.current
-    return rememberDrawablePainter(drawable = remember(context, id) { AppCompatResources.getDrawable(context, id) })
+    return rememberDrawablePainter(drawable = remember(context, id) { ContextCompat.getDrawable(context, id) })
 }
 
 /**
  * Monochrome Morphe logo rasterized for use with a tinted [androidx.compose.material3.Icon].
- * Loaded through AppCompat and drawn to a bitmap because `painterResource` crashes on this vector in release builds.
+ * Loaded as a platform drawable and drawn to a bitmap because `painterResource` crashes on this vector in release builds.
  */
 @Composable
 fun rememberMorpheLogoBitmap(): ImageBitmap? {
     val context = LocalContext.current
     return remember(context) {
         runCatching {
-            val drawable = AppCompatResources.getDrawable(context, R.drawable.ic_mpp) ?: return@runCatching null
+            val drawable = ContextCompat.getDrawable(context, R.drawable.ic_mpp) ?: return@runCatching null
             val size = 96
             // The path spans nearly the full viewport, so inset it to Material's 20dp live area
             val inset = size / 24

@@ -7,7 +7,7 @@ $auditAst = [System.Management.Automation.Language.Parser]::ParseFile($auditPath
 if ($parseErrors.Count) { throw ($parseErrors -join "`n") }
 $testFunctions = @('Assert-AuditLease', 'Assert-AuditSteps', 'Assert-AuditForeground', 'Invoke-Adb',
     'Get-AuditLocales', 'Get-AuditNightMode', 'Restore-AuditState', 'Format-Shell',
-    'New-AuditBaseline', 'Get-AuditOff', 'Compare-AuditWalk', 'Test-AuditBaseline', 'Publish-AuditBaseline', 'Save-SettingsPages', 'Get-SettingsPages', 'Test-AuditSectionShown', 'Get-AuditLocaleTable', 'Write-Step', 'Test-AuditDestination', 'Select-AuditTapNode', 'Find-AuditTapNode', 'Get-UiNodes', 'Send-Profile', 'Test-AuditLocaleList', 'Get-AuditLauncher', 'Get-Report',
+    'New-AuditBaseline', 'Get-AuditOff', 'Compare-AuditWalk', 'Test-AuditBaseline', 'Publish-AuditBaseline', 'Save-SettingsPages', 'Get-SettingsPages', 'Test-AuditSectionShown', 'Test-SettingsScreen', 'Get-AuditLocaleTable', 'Write-Step', 'Test-AuditDestination', 'Select-AuditTapNode', 'Find-AuditTapNode', 'Get-UiNodes', 'Send-Profile', 'Test-AuditLocaleList', 'Get-AuditLauncher', 'Get-Report',
     'Test-AuditReelViewer', 'Get-AuditReelProof', 'Close-AuditHoldCover', 'Open-AuditRoute', 'Test-AuditKeyboard', 'Test-AuditSettingsRestored', 'ConvertFrom-AuditJsonTable', 'Resolve-AuditStateBefore', 'Get-AuditCrashes')
 foreach ($functionName in $testFunctions) {
     $definition = $auditAst.Find({ param($node)
@@ -19,6 +19,10 @@ foreach ($functionName in $testFunctions) {
 $commonAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'common.ps1'), [ref]$null, [ref]$null)
 . ([scriptblock]::Create($commonAst.Find({ param($node)
     $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Use-Utf8ConsoleOutput' }, $true).Extent.Text))
+# Get-AuditCrashes reads the buffer through phone-smoke's Read-CrashBuffer, loaded the way device-audit loads it.
+$smokeAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'phone-smoke.ps1'), [ref]$null, [ref]$null)
+. ([scriptblock]::Create($smokeAst.Find({ param($node)
+    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Read-CrashBuffer' }, $true).Extent.Text))
 
 . (Join-Path $PSScriptRoot 'device-install.ps1')
 $failures = [Collections.Generic.List[string]]::new()
@@ -141,23 +145,15 @@ function Write-TestLease([string]$Owner = $testToken, [double]$Minutes = 25) {
 try {
     # A stock install and its clone can run on one device. A crash in the clone is not a crash
     # in the package being audited, but that package's colon-named processes still belong to it.
-    foreach ($scriptPath in @($auditPath, (Join-Path $PSScriptRoot 'phone-smoke.ps1'))) {
-        $sourceAst = [System.Management.Automation.Language.Parser]::ParseFile($scriptPath, [ref]$null, [ref]$null)
-        $selectFatal = $sourceAst.Find({ param($node)
-            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
-                $node.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
-                $node.Left.VariablePath.UserPath -ceq 'fatal'
-        }, $true)
-        if (-not $selectFatal) { throw "No package crash selection in $scriptPath" }
-        $crashes = @(
-            '1730000000.100 1000 1000 E AndroidRuntime: Process: com.facebook.katana, PID: 1000',
-            '1730000000.200 1001 1001 E AndroidRuntime: Process: com.facebook.katana:push, PID: 1001',
-            '1730000000.300 1002 1002 E AndroidRuntime: Process: com.facebook.katana.morphe, PID: 1002',
-            '1730000000.400 1003 1003 E AndroidRuntime: Process: com.facebook.katanax, PID: 1003')
-        . ([scriptblock]::Create($selectFatal.Extent.Text))
-        Assert-That ($fatal.Count -eq 2 -and $fatal[0] -ceq $crashes[0] -and $fatal[1] -ceq $crashes[1]) `
-            "$(Split-Path -Leaf $scriptPath) attributed another package's crash to Facebook."
-    }
+    # Both walks pick them through phone-smoke's Read-CrashBuffer.
+    $crashes = @(
+        '1730000000.100 1000 1000 E AndroidRuntime: Process: com.facebook.katana, PID: 1000',
+        '1730000000.200 1001 1001 E AndroidRuntime: Process: com.facebook.katana:push, PID: 1001',
+        '1730000000.300 1002 1002 E AndroidRuntime: Process: com.facebook.katana.morphe, PID: 1002',
+        '1730000000.400 1003 1003 E AndroidRuntime: Process: com.facebook.katanax, PID: 1003')
+    $fatal = (Read-CrashBuffer -Lines $crashes -Package $Package).Fatal
+    Assert-That ($fatal.Count -eq 2 -and $fatal[0] -ceq $crashes[0] -and $fatal[1] -ceq $crashes[1]) `
+        "Read-CrashBuffer attributed another package's crash to Facebook."
 
     Assert-Throws { Invoke-Adb shell input keyevent KEYCODE_WAKEUP } 'Missing token permitted a wake.'
     [IO.File]::WriteAllText($LeaseTokenFile, $testToken)
@@ -455,6 +451,17 @@ try {
     Assert-That ($null -eq (Select-AuditTapNode 'Settings and privacy' @($row, (New-TapNode 'Settings and privacy' '[0,1900][1080,2058]' 'false')))) 'A match outside the clickable row was ignored.'
     Assert-That ($null -eq (Select-AuditTapNode 'Settings and privacy' @($rowText, (New-TapNode 'Settings and privacy' '[136,1001][956,1058]' 'false')))) 'Two unclickable matches picked one.'
     Assert-That ($null -eq (Select-AuditTapNode 'Settings and privacy' @((New-TapNode 'Settings and privacy' '[0,1966][1080,2091]' 'true' 'com.other.app')))) 'A foreign node was tapped.'
+    # Two short posts put two Comment buttons on one screen (the 0.21.0 walk's feed).
+    $lowerComment = New-TapNode 'Comment' '[24,866][106,948]' 'true'
+    $upperComment = New-TapNode 'Comment' '[24,474][106,556]' 'true'
+    Assert-That ([object]::ReferenceEquals((Select-AuditTapNode 'Comment' @($lowerComment, $upperComment)), $upperComment)) 'Two Comment buttons on one screen were not resolved to the topmost.'
+    $MinimumTapY = 600
+    try {
+        Assert-That ([object]::ReferenceEquals((Select-AuditTapNode 'Comment' @($upperComment, $lowerComment)), $lowerComment)) 'A Comment button above the minimum tap Y was taken.'
+        Assert-That ($null -eq (Select-AuditTapNode 'Comment' @($upperComment, (New-TapNode 'Comment' '[24,300][106,382]' 'true')))) 'Comment buttons all above the minimum tap Y returned one.'
+    } finally { $MinimumTapY = 0 }
+    Assert-That ($null -eq (Select-AuditTapNode 'Comment' @((New-TapNode 'Comment' '[24,474][106,556]' 'false'), (New-TapNode 'Comment' '[24,866][106,948]' 'false')))) 'An unclickable Comment label was tapped.'
+    Assert-That ([object]::ReferenceEquals((Select-AuditTapNode 'Comment' @($lowerComment, $upperComment, (New-TapNode 'Comment' '[24,100][106,182]' 'true' 'com.other.app'))), $upperComment)) 'A foreign Comment node was taken over Facebook''s.'
     Write-TestLease -Owner 'replacement'
     Assert-Throws { Invoke-Adb shell input tap 10 10 } 'Ownership loss during the walk permitted input.'
 
@@ -947,6 +954,11 @@ try {
         'Independent open sections were rejected or their proof was missing from the result.'
     $script:screenText = @('Newsfeed')
     Assert-That (-not @(Save-SettingsPages 'dark-de-no-toolbar' 'de')[0].Opened) 'Section proof passed without the Hushfacebook toolbar.'
+    # A page opened at its section has scrolled the Hushfacebook header away; the list toggle stays.
+    $script:screenText = @('Alle Einstellungen als Liste zeigen', 'Newsfeed')
+    Assert-That (@(Save-SettingsPages 'dark-de-toggle' 'de')[0].Opened) 'A German page under its list toggle alone was rejected.'
+    $script:screenText = @('Show all settings as a list', 'Newsfeed')
+    Assert-That (-not @(Save-SettingsPages 'dark-de-english-toggle' 'de')[0].Opened) 'An English toggle passed a German page.'
     $script:screenText = @('Hushfacebook', 'Newsfeed')
     $script:pageAck = New-TestSectionAck '{"route":"Playback","title":"Newsfeed","locale":"de-DE","localeTags":["de-rde","de"]}'
     Assert-That (-not @(Save-SettingsPages 'dark-de' 'de')[0].Opened) 'Wrong localized page was accepted.'

@@ -217,6 +217,16 @@ class PatchBundleRepository(
             .filter { (_, patches) -> patches.isNotEmpty() }
 
     /**
+     * [PatchBundleSource.Extensions.patchSourceHeaders] for the sources [uids], or when there are
+     * none for every source with patches for [packageName].
+     */
+    suspend fun patchSourceHeaders(packageName: String, uids: Collection<Int>): PatchSourceHeaders? {
+        val wanted = uids.ifEmpty { simpleSourceChoices(packageName).map { (bundle, _) -> bundle.uid } }
+        val byUid = sources.value.associateBy { it.uid }
+        return PatchBundleSource.patchSourceHeaders(wanted.distinct().mapNotNull { byUid[it] })
+    }
+
+    /**
      * How many sources with patches for [packageName] it is kept from, which every point
      * offering a choice leaves out. Counted the way [offeredBundleInfoFlow] drops them, so an
      * app kept from every source hides none.
@@ -2563,9 +2573,9 @@ class PatchBundleRepository(
         internal const val HUSHMESSENGER_SOURCE_UID = -1_260_439_702
 
         internal const val HUSHFACEBOOK_BUNDLED_ASSET =
-            "morphe-hush/hushfacebook-0.20.0.mpp"
+            "morphe-hush/hushfacebook-0.21.0.mpp"
         internal const val HUSHMESSENGER_BUNDLED_ASSET =
-            "morphe-hush/hushmessenger-0.28.0.mpp"
+            "morphe-hush/hushmessenger-0.29.0.mpp"
 
         internal const val HUSHFACEBOOK_UPDATE_ENDPOINT =
             "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json"

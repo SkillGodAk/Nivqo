@@ -190,11 +190,10 @@ class SpoofSelfReadsTest {
         assertTrue(spoofSelfReadsPatch in spoofPackageVersionPatch.dependencies)
     }
 
-    /** The armv7 builds expect ACRA's extra pre-Android 9 read, and every arm64 build the usual 17. */
-    @Test fun theArmv7BuildsExpectOneMoreRead() {
+    /** The armv7 build expects ACRA's extra pre-Android 9 read, and the arm64 build the usual 17. */
+    @Test fun theArmv7BuildExpectsOneMoreRead() {
         for (code in MessengerTarget.VERSION_CODES) {
-            val armv7 = code in setOf(347014974, 347014990)
-            assertEquals(if (armv7) 18 else 17, selfVersionReadsFor(controlProfileFor(code.toString())), "$code")
+            assertEquals(if (code == 347215341) 18 else 17, selfVersionReadsFor(controlProfileFor(code.toString())), "$code")
         }
     }
 
@@ -216,7 +215,7 @@ class SpoofSelfReadsTest {
                 continue
             }
             val found = planSelfVersionReads(methods, expected)
-            // The obfuscated owners move between 585's families, so those two go by the version check's log line and the trace hook's name.
+            // The obfuscated owners move between 586's arm64 and armv7 builds, so those two go by the version check's log line and the trace hook's name.
             val versionCheck = methods.filter { m ->
                 m.implementation?.instructions?.any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string?.startsWith(VERSION_CHECK_LOG) == true } == true
             }.map { it.hookId() }.distinct()

@@ -17,6 +17,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
+import android.graphics.RenderNode;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -33,11 +34,13 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.PatchFamily;
@@ -98,6 +101,126 @@ public class TranslucentBarsTest {
         assertSame(screen.page, TranslucentBars.under(screen.topHolder));
         assertSame(screen.page, TranslucentBars.under(screen.tabHolder));
         assertNull("nothing is drawn before the page", TranslucentBars.under(screen.page));
+    }
+
+    /** Rows from [top] to [bottom] of the screen, in the window, which starts the screen's own view lower down. */
+    private static Rect onScreen(TranslucentBarsForTests screen, int top, int bottom) {
+        int[] at = new int[2];
+        screen.window.getLocationInWindow(at);
+        return new Rect(at[0], at[1] + top, at[0] + 720, at[1] + bottom);
+    }
+
+    @Test
+    public void aPageThatOnlyHoldsTheRowsOnScreenIsStillUnderTheBar() {
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        int[] origin = new int[2];
+        // The tab holder ends at 1600, past the page, on a phone where it reaches under the navigation bar.
+        screen.page.layout(0, 0, 720, 1560);
+        assertNull(TranslucentBars.under(screen.tabHolder));
+        assertSame(screen.page, TranslucentBars.reachingUnder(screen.tabHolder, onScreen(screen, 1440, 1552), origin));
+        assertNull("rows past the page have nothing under them",
+                TranslucentBars.reachingUnder(screen.tabHolder, onScreen(screen, 1440, 1600), origin));
+        assertNull("no rows on screen", TranslucentBars.reachingUnder(screen.tabHolder, new Rect(), origin));
+
+        screen.page.setVisibility(View.INVISIBLE);
+        assertNull("a hidden page", TranslucentBars.reachingUnder(screen.tabHolder, onScreen(screen, 1440, 1552), origin));
+    }
+
+    /**
+     * #250: Marketplace's React Native page sits in a FrameLayout whose bottom padding stops it at
+     * the tab bar's top, so nothing showed through the bar. While the bars are see-through the gap
+     * goes and the page runs under the bar. Switching them off gives the gap back. The display is
+     * tall enough to show the whole screen, so the tab bar's rows are on it.
+     */
+    @Test
+    @Config(qualifiers = "w720dp-h1800dp")
+    public void aPageThatStopsAtTheTabBarRunsUnderIt() {
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        FrameLayout holder = new FrameLayout(screen.activity);
+        holder.setPadding(0, 0, 0, 160);
+        View market = new View(screen.activity);
+        holder.addView(market, new FrameLayout.LayoutParams(720, FrameLayout.LayoutParams.MATCH_PARENT));
+        screen.page.addView(holder, new FrameLayout.LayoutParams(720, 1600));
+        View banner = new View(screen.activity);
+        screen.page.addView(banner, new FrameLayout.LayoutParams(720, 200));
+        screen.layOut();
+        assertEquals("stops at the tab bar", 1440, market.getBottom());
+
+        screen.bars.update();
+        screen.layOut();
+        assertEquals("under the tab bar", 1600, market.getBottom());
+        assertEquals("a short view nearby", 200, banner.getBottom());
+        assertTrue(statusLine(), statusLine().contains(TranslucentBars.STRETCHED + " 1"));
+
+        Settings.TRANSLUCENT_BARS.save(false);
+        screen.bars.update();
+        screen.layOut();
+        assertEquals("the gap back", 160, holder.getPaddingBottom());
+        assertEquals(1440, market.getBottom());
+    }
+
+    /** A page held off the tab bar by its own bottom margin, which Facebook keeps putting back, is left alone. */
+    @Test
+    @Config(qualifiers = "w720dp-h1800dp")
+    public void aGapFacebookKeepsPuttingBackIsLeftAlone() {
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        View market = new View(screen.activity);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(720, FrameLayout.LayoutParams.MATCH_PARENT);
+        params.bottomMargin = 160;
+        screen.page.addView(market, params);
+        screen.layOut();
+        for (int stretch = 1; stretch <= TranslucentBars.MAX_PUT_BACKS; stretch++) {
+            screen.bars.update();
+            screen.layOut();
+            assertEquals("stretch " + stretch, 1600, market.getBottom());
+            params.bottomMargin = 160;
+            market.setLayoutParams(params);
+            screen.layOut();
+            ShadowLooper.idleMainLooper(TranslucentBars.RESCAN_MS + 1, TimeUnit.MILLISECONDS);
+        }
+        screen.bars.update();
+        screen.layOut();
+        assertEquals("Facebook's gap kept", 1440, market.getBottom());
+        assertTrue(statusLine(), statusLine().contains(TranslucentBars.LEFT_SHORT + " 1"));
+    }
+
+    @Test
+    public void aPageALevelUpIsStillUnderTheBar() {
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        FrameLayout wrapper = new FrameLayout(screen.activity);
+        screen.window.removeView(screen.tabHolder);
+        wrapper.addView(screen.tabHolder, new FrameLayout.LayoutParams(720, 160));
+        screen.window.addView(wrapper, new FrameLayout.LayoutParams(720, 160, android.view.Gravity.BOTTOM));
+        screen.layOut();
+
+        assertNull("its parent draws nothing before it", TranslucentBars.under(screen.tabHolder));
+        assertSame(screen.page, TranslucentBars.reachingUnder(screen.tabHolder, onScreen(screen, 1440, 1552), new int[2]));
+    }
+
+    @Test
+    public void theReportSaysWhenABarLosesTheViewUnderIt() {
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        HookStatus.invoked(FamilyNames.BOTTOM_TAB_BAR);
+        Rect rows = onScreen(screen, 1440, 1552);
+        assertSame(screen.page, screen.bars.underNow(screen.tabHolder, rows));
+        assertFalse("a page holding the box isn't news", statusLine().contains("Counted"));
+
+        screen.page.layout(0, 0, 720, 1560);
+        assertSame(screen.page, screen.bars.underNow(screen.tabHolder, rows));
+        assertSame(screen.page, screen.bars.underNow(screen.tabHolder, rows));
+        assertTrue(statusLine(), statusLine().contains(TranslucentBars.UNDER_ITS_ROWS + " 1"));
+
+        screen.page.layout(0, 0, 720, 1500);
+        assertNull(screen.bars.underNow(screen.tabHolder, rows));
+        assertNull(screen.bars.underNow(screen.tabHolder, rows));
+        assertTrue(statusLine(), statusLine().contains(TranslucentBars.NOTHING_UNDER + " 1"));
+        assertTrue(statusLine(), statusLine().contains("No view under bar 0,1440-720,1600 rows " + rows.toShortString() + " before 0,0-720,88 before 0,0-720,1500 1"));
+
+        screen.page.layout(0, 0, 720, 1600);
+        assertSame(screen.page, screen.bars.underNow(screen.tabHolder, rows));
+        screen.page.layout(0, 0, 720, 1500);
+        assertNull(screen.bars.underNow(screen.tabHolder, rows));
+        assertTrue("losing it again counts again", statusLine().contains(TranslucentBars.NOTHING_UNDER + " 2"));
     }
 
     @Test
@@ -169,7 +292,7 @@ public class TranslucentBarsTest {
         int[] origin = new int[2];
         screen.page.getLocationInWindow(origin);
         TranslucentBars.Frost frost = new TranslucentBars.Frost(screen.page, 47f);
-        frost.update(new Rect(0, 1440, 720, 1600), 0.5f, 1);
+        frost.update(new Rect(0, 1440, 720, 1600), 0.5f, 1, 0f);
         assertEquals("the fade is on the clipping node", 0.5f, frost.node.getAlpha(), 0f);
         assertEquals(1440 - origin[1], frost.node.getTop());
         assertEquals(1600 - origin[1], frost.node.getBottom());
@@ -177,6 +300,36 @@ public class TranslucentBarsTest {
         assertEquals(0, frost.blur.getTop());
         assertEquals(160, frost.blur.getBottom());
         assertEquals(720, frost.blur.getRight());
+        assertFalse("a square bar's frost is its box", frost.node.getClipToOutline());
+
+        // #344: a rounded tab bar's frost gets the pill's round ends, and loses them with the pill.
+        frost.update(new Rect(36, 1429, 684, 1530), 1f, 2, 50.5f);
+        assertTrue(frost.node.getClipToOutline());
+        frost.update(new Rect(0, 1440, 720, 1600), 1f, 3, 0f);
+        assertFalse(frost.node.getClipToOutline());
+        frost.remove();
+    }
+
+    @Test
+    @Config(sdk = 34)
+    public void theFrostOfAScrolledHostIsDrawnWhereTheHostShows() {
+        // A host's overlay draws in its scrolled content, so a scrolled host put the frost off by
+        // its scroll and left the bar plain over a sharp feed (#250).
+        TranslucentBarsForTests screen = new TranslucentBarsForTests();
+        int[] origin = new int[2];
+        screen.page.getLocationInWindow(origin);
+        screen.page.scrollTo(720, 0);
+        TranslucentBars.Frost frost = new TranslucentBars.Frost(screen.page, 47f);
+        frost.update(new Rect(0, 1440, 720, 1600), 1f, 1, 0f);
+        Tracking canvas = new Tracking();
+        canvas.hardware = true;
+        // The host's own drawing: its overlay comes after the scroll is applied.
+        canvas.translate(-720, 0);
+
+        frost.draw(canvas);
+
+        assertEquals(1, canvas.nodes.size());
+        assertEquals("on screen, over the bar", new Rect(0, 1440 - origin[1], 720, 1600 - origin[1]), canvas.nodes.get(0));
         frost.remove();
     }
 
@@ -264,9 +417,11 @@ public class TranslucentBarsTest {
         }
     }
 
-    /** A canvas that keeps its translation and each cleared box, in its starting coordinates. */
+    /** A canvas that keeps its translation, each cleared box and each node drawn, in its starting coordinates. */
     private static final class Tracking extends Canvas {
         final List<Rect> cleared = new ArrayList<>();
+        final List<Rect> nodes = new ArrayList<>();
+        boolean hardware;
         private final Deque<float[]> stack = new ArrayDeque<>();
         private float x;
         private float y;
@@ -300,6 +455,17 @@ public class TranslucentBarsTest {
             if (paint.getXfermode() instanceof PorterDuffXfermode) {
                 cleared.add(new Rect(Math.round(left + x), Math.round(top + y), Math.round(right + x), Math.round(bottom + y)));
             }
+        }
+
+        @Override
+        public boolean isHardwareAccelerated() {
+            return hardware;
+        }
+
+        @Override
+        public void drawRenderNode(RenderNode node) {
+            nodes.add(new Rect(Math.round(node.getLeft() + x), Math.round(node.getTop() + y),
+                    Math.round(node.getRight() + x), Math.round(node.getBottom() + y)));
         }
     }
 

@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">ამის დამალვა?</string>
     <string name="home_more_apps_title">მეტი აპლიკაცია</string>
     <string name="home_more_apps_hide_title">숨기기 এই কার্ডটি?</string>
-    <string name="home_more_apps_hide_message">შეგიძლიათ მისი აღდგენა ნებისმიერ დროს: პარამეტრები &gt; გარეგნული სახე &gt; მთავარი ეკრანი</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">შეგიძლიათ ის ნებისმიერ დროს დააბრუნოთ %1$s-ში</string>
     <string name="home_app_hide_message">ეს აპლიკაცია დამალული იქნება მთავარი ეკრანიდან. მისი აღდგენა შეგიძლიათ მოგვიანებით დამალული აპლიკაციებიდან, სიის ბოლოს მოცემული ღილაკის გამოყენებით</string>
     <string name="home_app_will_be_hidden">ეს აპლიკაცია დაიმალება</string>
     <string name="home_app_hidden_named">%s დამალულია</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">აპლიკაციების ძებნა</string>
     <string name="list_options_title">სორტირება და ფილტრაცია</string>
     <string name="list_options_state_description">დასორტირებული %1$s-ით, გაფილტრებული %2$s-ით</string>
-    <string name="home_app_filter_all_description">ყველა აპლიკაცია მთავარ ეკრანზე</string>
-    <string name="home_app_filter_patched_description">აპლიკაციები, რომლებიც დააპატჩეთ ან შეინახეთ Morphe-ის მეშვეობით</string>
-    <string name="home_app_filter_not_patched_description">აპლიკაციები, რომლებიც ჯერ არ დააპატჩეთ Morphe-ში</string>
-    <string name="home_app_filter_installed_description">ამ მოწყობილობაზე ამჟამად დაინსტალირებული აპლიკაციები</string>
-    <string name="home_app_filter_uninstalled_description">Morphe-ით დაპატჩული აპლიკაციები, რომლებიც აღარ არის ამ მოწყობილობაზე</string>
     <string name="home_app_filter_clones">კლონები</string>
-    <string name="home_app_filter_clones_description">აპლიკაციები, რომლებიც შექმნილია საკუთარი პაკეტის სახელით და დაინსტალირებულია ორიგინალთან ერთად</string>
     <string name="home_app_grouping_none">არცერთი</string>
-    <string name="home_app_grouping_all_apps_description">ერთი სია ყველა აპლიკაციით</string>
-    <string name="home_app_grouping_sources_description">აპლიკაციები იმ პატჩის წყაროს მიხედვით, რომელიც მათ უზრუნველყოფს</string>
-    <string name="home_app_grouping_custom_description">აპლიკაციები თქვენ მიერ შექმნილ კატეგორიებში</string>
-    <string name="home_app_sort_manual_description">გააწყვეტინეთ აპლიკაცია, შემდეგ დააჭირეთ გადალაგების ღილაკს</string>
+    <string name="home_app_sort_manual_hint">გააწყვეტინეთ აპლიკაცია, შემდეგ დააჭირეთ განლაგების შეცვლის ღილაკს</string>
     <string name="home_app_sort_recommended">რეკომენდებული თანმიმდევრობა</string>
-    <string name="home_app_sort_recommended_description">ინსტალირებული და закрепებული აპლიკაციები პირველ რიგში</string>
-    <string name="home_app_sort_name_asc_description">ანბანის მიხედვით, A-დან Z-მდე</string>
-    <string name="home_app_sort_name_desc_description">ანბანის უკუმიმართულებით, Z-დან A-მდე</string>
     <string name="home_app_sort_updates_first">პატჩის განახლებები პირველ რიგში</string>
-    <string name="home_app_sort_updates_first_description">აპლიკაციები უახლესი პატჩებით პირველად, შემდეგ რეკომენდებული თანმიმდევრობით</string>
     <string name="home_app_sort_recently_patched">ბოლოს დაფატჩებული</string>
-    <string name="home_app_sort_recently_patched_description">ჯერ ყველაზე ახლახან დაფატჩებული აპლიკაციები</string>
     <string name="home_no_apps_title">აპლიკაციები არ არის ხელმისაწვდომი</string>
     <string name="home_no_apps_subtitle">დაამატეთ პატჩის წყარო ან ჩართეთ არსებული %s-ში</string>
     <string name="home_no_apps_search_subtitle">აპლიკაციები, რომლებიც შეესაბამება \"%s\"-ს, ვერ მოიძებნა</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">არაფერი შეესაბამება %s-ს</string>
     <string name="home_category_add">კატეგორიის დამატება</string>
     <string name="home_category_all_apps">ყველა აპლიკაცია</string>
-    <string name="home_category_custom">საკუთარი</string>
+    <string name="home_app_grouping_categories">კატეგორიები</string>
     <string name="home_category_uncategorized">უკატეგორიზო</string>
     <string name="home_category_new_title">ახალი კატეგორია</string>
     <string name="home_category_rename_title">კატეგორიის გადარქმევა</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">პატჩების წყაროები</string>
     <string name="sources_search">წყაროებისა და პატჩების ძებნა</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">ყველა წყარო</string>
-    <string name="sources_filter_enabled_description">წყაროები, საიდანაც მოიტანება პატჩები</string>
-    <string name="sources_filter_disabled_description">გამორთული წყაროები</string>
     <string name="sources_filter_issues">საჭიროებს ყურადღებას</string>
-    <string name="sources_filter_issues_description">წყაროები, რომლებიც არის დაბლოკილი, ვერ ჩაიტვირთა ან საჭიროებენ Morphe-ის უფრო ახალ ვერსიას</string>
     <string name="sources_sort_manual">მექანიკური თანმიმდევრობა</string>
     <string name="sources_sort_manual_hint">თანმიმდევრობის შესაცვლელად, გრძელვრად დააჭირეთ წყაროს</string>
     <string name="sources_sort_last_updated">ბოლო განახლება</string>
-    <string name="sources_sort_last_updated_description">წყაროს უახლესი განახლებები პირველ რიგში</string>
     <string name="sources_sort_enabled_first">გაქტიურებული პირველ რიგში</string>
-    <string name="sources_sort_enabled_first_description">აჩვენეთ აქტიური წყაროები გათიშულ წყაროებამდე</string>
     <string name="sources_patches_source_disabled_hint">ეს წყარო გათიშულია. მისი პატჩები ჩამოთვლილია მხოლოდ საინფორმაციოდ და არ გამოიყენება</string>
     <string name="sources_management_open_in_browser">გახსენი ბრაუზერში</string>
     <string name="sources_management_report_issue">პრობლემის შეტყობინება</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">გასენდობი გასაღები</string>
     <string name="sources_signing_key_new">ახალი გასაღები</string>
     <string name="sources_patch_expert_badge">ექსპერტი</string>
-    <string name="sources_patch_expert_badge_tooltip">ჩართეთ ექსპერტის რეჟიმი პარამეტრებში, რათა ეს პატჩი ხელით დაამატოთ</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">ჩართეთ %1$s, რათა ეს patch დაამატოთ მანუალურად</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">გჭირდებათ დახმარება APK-ის პოვნაში?</string>
     <string name="home_apk_availability_dialog_simple">&lt;b&gt;%s&lt;/b&gt;-ის დასაპაჩად, გჭირდებათ დააპაჩებელი APK ვერსია:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">რეკომენდებული</string>
     <string name="home_apk_availability_unpatched_label">დაუპატჩავი</string>
     <string name="home_apk_availability_incompatible_label">შეუსაბამო</string>
-    <string name="home_apk_availability_installed_version">ინსტალირებულია ამ მოწყობილობაზე: %s</string>
     <string name="home_apk_availability_find">დიახ, დამეხმარეთ მის პოვნაში</string>
     <string name="home_apk_availability_have">არა, ის უკვე მაქვს</string>
     <string name="home_apk_helper_download">გამოიყენეთ დამხმარე აპლიკაცია</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">ჩამოტვირთვის გვერდის ძებნა…</string>
     <string name="home_download_instructions_step1">დააჭირეთ ქვემოთ მოცემულ ღილაკს \'%s\'</string>
     <string name="home_download_instructions_step2_part1">ჩამოსქროლეთ ვებგვერდი და დააჭირეთ</string>
+    <string name="home_download_instructions_step2_apkcube">ჩამოიწევთ ვებგვერდზე ქვემოთ, აირჩიეთ ვერსია &lt;b&gt;%s&lt;/b&gt; და დააჭირეთ</string>
     <string name="home_download_instructions_step2_generic">ჩამოშალეთ ვებგვერდი ქვემოთ და დააჭირეთ ჩამოტვირთვის ღილაკს</string>
     <string name="home_download_instructions_step2_variant">ჩამოშალეთ ვებგვერდი ქვემოთ და დააჭირეთ პირველი &lt;b&gt;APK ვარიანტის&lt;/b&gt; ჩამოტვირთვის ღილაკს</string>
     <string name="home_download_instructions_step2_search">გახსენით ძიების შედეგი ვებგვერდიდან, რომელსაც ენდობით</string>
     <string name="home_download_instructions_step2_search_note">Morphe ვერ განკვეთავს ამ ვებგვერდების நம்பራዊანობას. გამოტოვეთ ისინი, რომლებიც APK ფაილის ნაცვლად საკუთარ აპლიკაციების მაღაზიას სთავაზობენ</string>
     <string name="home_download_instructions_step3_search">მოცემულ ვებგვერდზე ჩამოტვირთეთ &lt;b&gt;%s&lt;/b&gt; ვერსიის APK და არა უახლესი ვერსია</string>
     <string name="home_download_instructions_step3_search_any">მოცემულ ვებგვერდზე ჩამოტვირთეთ აპლიკაციის APK. &lt;b&gt;ნებისმიერი ვერსიის&lt;/b&gt; პატჩირებაა შესაძლებელი</string>
+    <string name="home_download_instructions_step2_github">გამოშვების &lt;b&gt;%s&lt;/b&gt; განყოფილებაში &lt;b&gt;Assets&lt;/b&gt;, დააჭირეთ ფაილს, რომელიც სრულდება &lt;b&gt;.apk&lt;/b&gt;-ით</string>
+    <string name="home_download_instructions_step2_github_latest">უახლეს გამოშვებაში, განყოფილებაში &lt;b&gt;Assets&lt;/b&gt;, დააჭირეთ ფაილს, რომელიც სრულდება &lt;b&gt;.apk&lt;/b&gt;-ით</string>
+    <string name="home_download_instructions_step2_github_note">თუ არის რამდენიმე APK ფაილი, აირჩიეთ ის, რომელსაც ჰქვია %s ან უნივერსალური ფაილი</string>
     <string name="home_download_instructions_download_button_toast">დააჭირეთ ჩამოტვირთვას ვებგვერდზე და არა აქ 😊</string>
     <string name="home_download_instructions_download_button_toast_2">შესანიშნავია! ახლა დააჭირეთ გაგრძელებას და გადადით ვებგვერდზე 👆</string>
     <string name="home_download_instructions_download_button_toast_3">პრაქტიკა სრულყოფილებას ამაღლებს და თქვენ უკვე მიუახლოვდებით მას 💪</string>
@@ -355,8 +340,10 @@
     <string name="expert_mode_enable_all_universal_pending">კვლავ დააჭირეთ უნივერსალური პატჩებისთვის</string>
     <string name="expert_mode_universal_all_warning_title">ყველა უნივერსალური პატჩის ჩართვა?</string>
     <string name="expert_mode_universal_all_warning_message">უნივერსალური პატჩები ერთად არ არის დატესტავებული. მათი ერთდროულად ჩართვამ შესაძლოა გამოიწვიოს კონფლიქტები, პატჩირების ჩაგდება ან აპლიკაციის გათიშვა</string>
+    <string name="expert_mode_recommended">რეკომენდებული პატჩები</string>
     <string name="expert_mode_reset_to_default_done">გამოყენებულია რეკომენდებული პატჩები</string>
     <string name="expert_mode_selected_count">%1$s შერჩეულია %2$s-დან</string>
+    <string name="expert_mode_saved_selection">შენახული არჩევანი</string>
     <string name="expert_mode_restore_saved_done">აღდგენილია შენახული არჩევანი</string>
     <string name="expert_mode_copy_from_bundle_no_patches">ამ ბანდლში შესაბამისი პატჩები არ მოიპოვება</string>
     <string name="expert_mode_no_results">პატჩები ვერ მოიძებნა</string>
@@ -516,11 +503,13 @@
     <string name="batch_queue_pending_subtitle">გადახედეთ და დაიწყეთ დაჭერით</string>
     <string name="batch_queue_clear_title">გსურთ რიგის გასუფთავება?</string>
     <string name="batch_queue_clear_description">ყველა აპლიკაცია ამოიშლება რიგიდან</string>
+    <string name="batch_queue_keep_title">შეინახოთ რიგი?</string>
+    <string name="batch_queue_keep_description">რიგში ჩადგმული აპლიკაციები დაელოდებიან მთავარ ეკრანზე მოგვიანებით გაშვებას</string>
+    <string name="batch_queue_keep">შენახვა</string>
     <string name="shortcut_repatch_short">გადაპატჩვა</string>
     <string name="shortcut_repatch_long">მოძველებული აპლიკაციების გადაპატჩვა</string>
     <string name="shortcut_check_updates_short">განახლებების შემოწმება</string>
     <string name="shortcut_check_updates_long">პატჩების განახლებების შემოწმება</string>
-    <string name="shortcut_patch_app">პატჩინგი %s</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">წაშალოთ ეს აპლიკაცია?</string>
     <string name="home_app_info_uninstall_removes_data">აპლიკაცია და მისი მონაცემები წაიშლება ამ მოწყობილობიდან</string>
@@ -541,6 +530,7 @@
     <string name="home_app_info_install_type_custom_installer">საკუთარი ინსტალატორი</string>
     <string name="home_app_info_install_type_system_installer">სისტემური ინსტალატორი</string>
     <string name="home_app_info_install_type_play_store">Play Store-იდან ინსტალაცია</string>
+    <string name="home_app_info_install_type_root">Root ინსტალაცია</string>
     <string name="home_app_info_install_type_root_play_store">Root Play Store ინსტალაცია</string>
     <string name="home_app_info_install_type_shizuku_play_store">Shizuku Play Store-ის ინსტალაცია</string>
     <string name="home_app_info_patch_update_available">პატჩის განახლება ხელმისაწვდომია</string>
@@ -582,7 +572,8 @@
     <string name="root_mount_module_unmount_warning">თუ KernelSU-ში ჩართულია \"Unmount modules by default\", გახსენით KernelSU &gt; Superuser &gt; აპლიკაცია, რომელიც დაამაუნტეთ &gt; Profile &gt; Custom და გამორთეთ \"Unmount modules\". წინააღმდეგ შემთხვევაში, დაამაუნტებულმა პატჩირებულმა APK-მ შესაძლოა არ იმუშაოს, მაშინაც კი, თუ Morphe მას დაამაუნტებულად აჩვენებს</string>
     <string name="root_pre_patch_installer_standard_title">სტანდარტული ინსტალაციის რეჟიმი</string>
     <string name="root_pre_patch_installer_standard_description">აკეთებს პატჩებს როგორც ჩვეულებრივ APK-ს GmsCore-ის მხარდაჭერით. პატჩინგის შემდეგ გამოიყენება თქვენი ინსტალატორის პარამეტრები</string>
-    <string name="root_pre_patch_installer_hint">ის ถามება, როდესაც ჩართულია პარამეტრები &gt; პატჩინგი &gt; ინსტალაცია &gt; ინსტალატორის არჩევის მოთხოვნა. პატჩის რეჟიმის შეცვლა პატჩინგის შემდეგ შეუძლებელია</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">მოთხოვნილია, როდესაც %1$s არის %2$s. Patch-ის რეჟიმის შეცვლა patch-ის შემდეგ შეუძლებელია</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">შეცდომა კოპირებულია ბუფერში</string>
     <string name="patcher_error_log">შეცდომების ჟურნალი</string>
@@ -681,6 +672,14 @@
     <string name="patcher_step_group_saving">შენახვა</string>
     <string name="patcher_step_write_patched">აპატიჩებული APK ფაილის ჩაწერა</string>
     <string name="patcher_step_sign_apk">აპატიჩებული APK ფაილის ხელმოწერა</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">DEX ფაილების კითხვა</string>
+    <string name="patcher_task_extracting_resources">რესურსების ექსტრაქცია</string>
+    <string name="patcher_task_decoding_resources">რესურსების დეკოდირება</string>
+    <string name="patcher_task_indexing_classes">კლასების ინდექსირება</string>
+    <string name="patcher_task_compiling_dex">DEX ფაილების კომპილაცია</string>
+    <string name="patcher_task_compiling_resources">რესურსების კომპილირება</string>
+    <string name="patcher_task_writing_apk">APK ფაილის ჩაწერა</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">ფონური პატჩირების დაცვა</string>
     <string name="battery_optimization_dialog_description">ზოგიერთ მოწყობილობას შესაძლოა შეაჩეროს პატჩერი, როდესაც აპლიკაცია მინიმალიზებულია. უფლება მიეცით Morphe-ს იმუშაოს ელემენტის შეზღუდვების გარეშე, რათა პატჩირება საიმედოდ დასრულდეს</string>
@@ -729,7 +728,8 @@
     <string name="patched_app_save_failed_toast">ვერ მოხერხდა პატჩირებული აპლიკაციის შენახვა</string>
     <string name="plugin_activity_dialog_body">ამ პლაგინის გამოსაყენებლად საჭიროა მომხმარებლის ინტერაქცია</string>
     <string name="patcher_process_killed_message">სისტემამ შეაჩერა პატჩერის მუშაობა დასრულებამდე, როგორც წესი, მეხსიერების გასათავისუფლებლად. დახურეთ სხვა აპლიკაციები და სცადეთ ხელახლა</string>
-    <string name="patcher_process_crashed_message">პატჩერი გაითიშა დასრულებამდე. თუ ეს კვლავ მოხდება, გამორთეთ \"Use embedded VM\" პარამეტრებში და შეტყობინეთ პრობლემის შესახებ ლოგის თანხლებით</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">Patcher გაითიშა დასრულებამდე. თუ ეს კვლავ მოხდება, გამორთეთ %1$s და შეგვატყობინეთ პრობლემის შესახებ ლოგის თანხლებით</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">პატჩერს მეხსიერება გაუთავდა %1$s მბ-იანი heap-ით. ეს აპლიკაცია ძალიან დიდია არჩეული პატჩებისთვის. სცადეთ პატჩირება ნაკლები პატჩის წყაროთი ან შეირჩიეთ ნაკლები პატჩი</string>
     <string name="install_app_success">წარმატებით დაინსტალირდა</string>
@@ -917,6 +917,8 @@
     <string name="notification_channel_patch_updates">ფათჩის განახლებები</string>
     <string name="notification_channel_patch_updates_description">შეტყობინებები ახალი ფათჩის რელიზების შესახებ</string>
     <string name="notification_channel_patcher_description">ჩნდება, როდესაც Morphe აპლიკაციას ფონურ რეჟიმში ამodიფიცირებს</string>
+    <string name="notification_channel_patching_results">პატჩინგის შედეგები</string>
+    <string name="notification_channel_patching_results_description">როდესაც პატჩინგი სრულდება ან ინსტალაცია გელოდებათ, სანამ Morphe ფონურ რეჟიმშია</string>
     <string name="notification_channel_mounted_apps">დაინსტალირებული აპლიკაციები</string>
     <string name="notification_channel_mounted_apps_description">როდესაც სხვა ვერსია ანაცვლებს დაინსტალირებულ აპლიკაციას და მისი პატჩი აღარ მოქმედებს</string>
     <string name="notification_mount_replaced_title">%1$s აღარ არის პატჩირებული</string>
@@ -1027,9 +1029,8 @@ morphe_header_custom_dark.png
     <string name="installer_title">აირჩიეთ ინსტალატორი</string>
     <string name="installer_internal_description">იყენებს Android-ის პაკეტის ინსტალატორს</string>
     <string name="installer_play_store_description">იყენებს სისტემურ ინსტალატორს და ამზადებს Google Play Store-ს ინსტალაციის წყაროდ</string>
+    <string name="installer_root_description">ინსტალაცია ხდება ჩუმად root-ით</string>
     <string name="installer_root_play_store_description">ინსტალირებს ჩუმად root-ის მეშვეობით და ამზადებს Google Play Store-ს ინსტალაციის წყაროდ</string>
-    <string name="installer_auto_saved_name">Root mount</string>
-    <string name="installer_auto_saved_description">ამაუნტებს აპლიკაციებს, რომლებიც პატჩირებული იყო root mount რეჟიმში. სტანდარტული პატჩირებული APK-ები იყენებენ სხვა ინსტალატორს</string>
     <string name="installer_shizuku_description">ინსტალირებს ჩუმად Shizuku-ს ან Sui-ს გამოყენებით</string>
     <string name="installer_shizuku_play_store_description">ინსტალირებს ჩუმად Shizuku-ს ან Sui-ს მეშვეობით და ამზადებს Google Play Store-ს ინსტალაციის წყაროდ</string>
     <string name="installer_option_none">არ არის სარეზერვო</string>
@@ -1039,7 +1040,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_installed">ამ ოფციით სარგებლობისთვის დააინსტალირეთ Shizuku ან Sui</string>
     <string name="installer_status_shizuku_not_running">გაუშვით Shizuku ან Sui და სცადეთ თავიდან</string>
     <string name="installer_status_shizuku_permission">მიეცით ნებართვა Morphe-ს Shizuku-ს აპლიკაციიდან</string>
-    <string name="installer_mount_warning_install">თქვენი ძირითადი ინსტალატორი განისაზღვრა როგორც rooted mount ინსტალატორი. ეს შენახული აპლიკაცია არ დაინსტალირებულა mount-ის გამოყენებით</string>
+    <string name="installer_mount_warning_install">Patch-ის რეჟიმი არის root mount. ეს შენახული აპლიკაცია არ დაინსტალირებულა mount-ის გამოყენებით</string>
     <string name="mount_version_mismatch_message">სტოკ აპლიკაციის ვერსია (%2$s) არ შეესაბამება პატჩირებული აპლიკაციის ვერსიას (%1$s). დაამაუნთეთ შესაბამისი სტოკ ვერსია და სცადეთ თავიდან</string>
     <string name="mount_stock_restore_failed_message">Android-მა უარყო შენახული ორიგინალი APK. დააინსტალირეთ შესაბამისი სტოკ ვერსია და შემდეგ სცადეთ Mount ხელახლა</string>
     <string name="installer_status_shizuku_unsupported">დაინსტალირებული Shizuku-ს ვერსია არ არის მხარდაჭერილი</string>
@@ -1061,11 +1062,17 @@ morphe_header_custom_dark.png
     <string name="installer_play_store_warning_continue">მესმის, გავაგრძელო</string>
     <string name="installer_play_store_mode">დააინსტალირე როგორც Play Store</string>
     <string name="installer_play_store_mode_description">ნიშნავს Google Play Store-ს, როგორც ინსტალაციის წყაროს</string>
+    <string name="settings_section_patch_mode">Patch-ის რეჟიმი</string>
+    <string name="settings_patch_mode_ask">ყოველჯერზე მიკითხოს</string>
+    <string name="settings_patch_mode_ask_description">ყოველჯერეს patch-ის დროს გკითხავთ, გსურთ root mount-ით თუ სტანდარტული ინსტალაციით patch-ი</string>
+    <string name="settings_section_after_patching">Patch-ის შემდეგ</string>
+    <string name="settings_after_patching_install">ავტომატური ინსტალაცია</string>
+    <string name="settings_after_patching_ask">მიკითხოს, რომელი ინსტალატორი გამოიყენოს</string>
+    <string name="settings_after_patching_ask_description">ყოველთვის, როდესაც აპლიკაცია ინსტალირდება, გკითხავთ, რომელი ინსტალატორი გამოიყენოთ</string>
+    <string name="settings_after_patching_manual">მანუალური ინსტალაცია</string>
+    <string name="settings_after_patching_manual_description">ინსტალაცია ხდება ნაგულისხმევი ინსტალატორით მას შემდეგ, რაც დააჭერთ Install-ს</string>
     <string name="settings_nomount_only">მხოლოდ NoMount</string>
     <string name="settings_nomount_only_description">ამონტაჟებს აპლიკაციებს მხოლოდ NoMount-ით და არასოდეს გადადის bind mount-ზე, ამიტომ მათ გარეშე ისინი რჩებიან დაამონტაჟებლად</string>
-    <string name="settings_prompt_installer_on_install">ინსტალატორის არჩევის მოთხოვნა</string>
-    <string name="settings_prompt_installer_on_install_description">კითხულობს, როგორ დააინსტალიროს თითოეული აპლიკაცია: root-ით პატჩინგამდე, წინააღმდეგ შემთხვევაში - მის შემდეგ</string>
-    <string name="settings_auto_install_with_shizuku">ავტომატური ინსტალაცია პატჩინგის შემდეგ</string>
     <string name="settings_auto_install_with_shizuku_description">აინსტალირებს ან ამაუნთებს პატჩირებულ APK-ს, როგორც კი პატჩინგი დასრულდება</string>
     <string name="settings_auto_uninstall_with_shizuku">ავტომატური წაშლა კონფლიქტის შემთხვევაში</string>
     <string name="settings_auto_uninstall_with_shizuku_description">შეს एसीთავს არსებულ აპლიკაციას ხელმოწერის კონფლიქტის შემთხვევაში. ამან შესაძლოა წაშალოს აპლიკაციის მონაცემები</string>
@@ -1135,7 +1142,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_keystore_dialog_description">იმპორტისთვის დაგჭირდებათ keystore-ის ავტორიზაციის მონაცემების შეყვანა</string>
     <string name="settings_system_import_keystore_dialog_alias_field">მომხმარებლის სახელი (Alias)</string>
     <string name="settings_system_import_keystore_dialog_password_field">პაროლი</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Keystore-ის ფორმატი</string>
     <string name="settings_system_import_keystore_wrong_credentials">Keystore-ის არასწორი ავტორიზაციის მონაცემები</string>
     <string name="settings_system_import_keystore_success">Keystore იმპორტირებულია</string>
     <string name="settings_system_import_keystore_failed">Keystore-ის იმპორტი ვერ მოხერხდა</string>
@@ -1289,6 +1295,7 @@ morphe_header_custom_dark.png
     <string name="credits_prior_development">წინა დეველოპმენტი</string>
     <string name="opensource_licenses">ღია კოდის ლიცენზიები</string>
     <string name="opensource_licenses_description">ბიბლიოთეკები, რომლებსაც Morphe ეფუძნება</string>
+    <string name="opensource_licenses_search">ბიბლიოთეკებისა და ლიცენზიების ძებნა</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">არჩევანი</string>
     <string name="easter_egg_pill_message">მიიღეთ ლურჯი აფთიაქის კაფსულა და რეკლამები დარჩება იქ, სადაც არიან. მიიღეთ წითელი და ნახეთ, რამდენად ღრმაა ბაიტკოდი</string>

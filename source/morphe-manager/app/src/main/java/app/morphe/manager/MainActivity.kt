@@ -22,7 +22,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -46,6 +45,7 @@ import app.morphe.manager.domain.batch.BatchTarget
 import app.morphe.manager.domain.manager.HomeAppButtonPreferences
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.domain.repository.PatchBundleRepository
+import app.morphe.manager.notification.UpdateNotifications
 import app.morphe.manager.ui.model.SourceScope
 import app.morphe.manager.ui.model.navigation.*
 import app.morphe.manager.ui.screen.BatchPatcherScreen
@@ -86,7 +86,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.parameter.parametersOf
 import org.koin.androidx.viewmodel.ext.android.getViewModel as getActivityViewModel
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
     /** Language the activity was attached in, to tell when it has to be recreated. */
     private var attachedLanguage = AppLocale.SYSTEM
@@ -216,7 +216,7 @@ class MainActivity : AppCompatActivity() {
 
         // Handled here rather than in onNewIntent so a cold start from a notification or a
         // launcher shortcut triggers the check as well
-        if (intent?.getBooleanExtra(UpdateNotificationManager.EXTRA_TRIGGER_UPDATE_CHECK, false) == true) {
+        if (intent?.getBooleanExtra(UpdateNotifications.EXTRA_TRIGGER_UPDATE_CHECK, false) == true) {
             vm.pendingUpdateCheck = true
             return
         }
@@ -241,14 +241,6 @@ class MainActivity : AppCompatActivity() {
         // Batch result notification: reopens the queue it reports about
         if (intent?.action == ACTION_SHOW_BATCH_RESULT) {
             vm.pendingBatchResult = true
-            return
-        }
-
-        // Launcher shortcut for one app: opens the usual patch dialog for it
-        if (intent?.action == ACTION_PATCH_APP) {
-            intent.getStringExtra(EXTRA_PATCH_PACKAGE)
-                ?.takeIf { it.isNotBlank() }
-                ?.let { vm.pendingPatchPackage = it }
             return
         }
 
@@ -339,9 +331,6 @@ class MainActivity : AppCompatActivity() {
         /** Identifies the launcher shortcut an intent came from, for usage reporting. */
         const val EXTRA_SHORTCUT_ID = "shortcut_id"
 
-        /** Action behind the per-app launcher shortcuts. */
-        const val ACTION_PATCH_APP = "app.morphe.manager.action.PATCH_APP"
-
         /** Action behind the update check shortcut. Shortcut intents must carry one. */
         const val ACTION_CHECK_UPDATES = "app.morphe.manager.action.CHECK_UPDATES"
 
@@ -356,9 +345,6 @@ class MainActivity : AppCompatActivity() {
 
         /** Action behind the changelog button of a manager update notification. */
         const val ACTION_SHOW_MANAGER_CHANGELOG = "app.morphe.manager.action.SHOW_MANAGER_CHANGELOG"
-
-        /** Package the per-app shortcut opens the patch dialog for. */
-        const val EXTRA_PATCH_PACKAGE = "patch_package"
 
         /** Action behind a notification opening an app's info dialog. */
         const val ACTION_SHOW_APP_INFO = "app.morphe.manager.action.SHOW_APP_INFO"
@@ -438,16 +424,6 @@ private fun MorpheManager(vm: MainViewModel) {
             onDismiss = { vm.pendingManagerChangelog = false },
             expectsUpdate = true
         )
-    }
-
-    // Per-app shortcut reuses the trigger the installed-app dialog already goes through
-    LaunchedEffect(vm.pendingPatchPackage) {
-        vm.pendingPatchPackage?.let { packageName ->
-            vm.pendingPatchPackage = null
-            navController.popBackStack(HomeScreen, false)
-            navController.getBackStackEntry(HomeScreen)
-                .savedStateHandle["patch_trigger_package"] = packageName
-        }
     }
 
     LaunchedEffect(vm.pendingAppInfoPackage) {
@@ -611,8 +587,6 @@ private fun MorpheManager(vm: MainViewModel) {
         ) {
             composable<HomeScreen> { entry ->
                 val bundleUpdateProgress by homeViewModel.bundleUpdateProgress.collectAsStateWithLifecycle(null)
-                val patchTriggerPackage by entry.savedStateHandle.getStateFlow<String?>("patch_trigger_package", null)
-                    .collectAsStateWithLifecycle()
                 val appInfoTriggerPackage by entry.savedStateHandle.getStateFlow<String?>("app_info_trigger_package", null)
                     .collectAsStateWithLifecycle()
 
@@ -643,10 +617,6 @@ private fun MorpheManager(vm: MainViewModel) {
                     },
                     homeViewModel = homeViewModel,
                     bundleUpdateProgress = bundleUpdateProgress,
-                    patchTriggerPackage = patchTriggerPackage,
-                    onPatchTriggerHandled = {
-                        entry.savedStateHandle["patch_trigger_package"] = null
-                    },
                     appInfoTriggerPackage = appInfoTriggerPackage,
                     onAppInfoTriggerHandled = {
                         entry.savedStateHandle["app_info_trigger_package"] = null

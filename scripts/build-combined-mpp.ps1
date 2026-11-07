@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.1.0",
+    [string]$Version = "1.2.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -130,6 +130,9 @@ try {
     # HushFacebook 0.19.0 also provides Hide tab badges; namespace the Messenger instance.
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("tab_badges", "Hide tab badges",' 'controlPatch("tab_badges", "Messenger · Hide tab badges",'
 
+    # HushFacebook 0.21 and HushMessenger 0.29 both expose GmsCore support; scope Messenger display name only.
+    Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\misc\GmsCoreSupportPatch.kt") 'internal const val GMS_CORE_PATCH = "GmsCore support"' 'internal const val GMS_CORE_PATCH = "Messenger · GmsCore support"'
+
     # First generate patch metadata: this modifies patches-list.json and must precede the clean commit.
     Push-Location $temp
     try {
@@ -148,9 +151,16 @@ try {
     # The Git repository is disposable and never touches the canonical branch.
     & git -C $temp init -q
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git init failed" }
-    & git -C $temp add -A
+    # git may warn about CRLF on Messenger Gradle metadata. The exit code is the only failure gate.
+    $oldPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & git -C $temp add -A
+    } finally {
+        $ErrorActionPreference = $oldPreference
+    }
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git add failed" }
-    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.1.0 combined source"
+    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.2.0 combined source"
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git commit failed" }
     Push-Location $temp
     try {
@@ -196,7 +206,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 180 -or $facebookCount -ne 109 -or $messengerCount -ne 71 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 205 -or $facebookCount -ne 117 -or $messengerCount -ne 88 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

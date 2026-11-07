@@ -20,8 +20,8 @@ If you use the **original Morphe Manager**, you do not need Nivqo Manager and yo
 
    `https://github.com/SkillGodAk/Nivqo`
 
-4. Add the source. Morphe reads the repository's root `patches-bundle.json` and installs **Nivqo Patches** (current stable source version: `0.3.0`).
-5. The single source contains all 60 HushFacebook patches and all 32 HushMessenger patches, for 92 patches total. Future combined MPP updates are delivered through the same source.
+4. Add the source. Morphe reads the repository's root `patches-bundle.json` and installs **Nivqo Patches** (current stable source version: `1.2.0`).
+5. The single source contains all 117 HushFacebook patches and 88 HushMessenger patches, for 205 patches total. Future combined MPP updates are delivered through the same source.
 
 The original Morphe Manager does not include Nivqo Manager's Traditional Chinese patch-metadata localization, so some patch names/descriptions inside Morphe may remain in English. The actual Nivqo HushFacebook / HushMessenger cores are still used, so their in-app plugin settings keep the Traditional Chinese interface and language options.
 
@@ -65,14 +65,16 @@ Use one of the supported builds below.
 
 | Version name | Supported versionCode | Architecture / notes |
 | --- | ---: | --- |
-| 580.0.0.51.74 | `475019344` | arm64-v8a, current primary upstream-tested build |
+| 585.0.0.47.54 | `476015655` | arm64-v8a (Android 11+) |
+| 585.0.0.47.54 | `476015543` | armeabi-v7a (Android 11+) |
 | 577.0.0.50.72 | `474426275` | arm64-v8a, compatible build |
 
 ### Messenger
 
 | Version name | Supported versionCode | Architecture |
 | --- | --- | --- |
-| 580.0.0.49.91 | `346013354` / `346013355` / `346013356` / `346013357` / `346013358` / `346013359` / `346013370`<br>`346013372` / `346013374` / `346013375` / `346013387` / `346013391` / `346013394` / `346013423`<br>`346013427` / `346013440` / `346013441` / `346013442` / `346013443` / `346013444` / `346013445` | arm64-v8a |
+| 586.0.0.55.92 | `347215257` / `347215330` / `347215343` / `347215344` / `347215348` | arm64-v8a |
+| 586.0.0.55.92 | `347215341` | armeabi-v7a |
 
 > **The same versionName does not guarantee compatibility. Use the versionCode as the deciding value.**  
 > If Manager reports an unsupported build, verify that the original APK matches one of the exact build codes above.
@@ -99,12 +101,11 @@ Starting with Nivqo v1.32.0, updates are split into two layers:
 
 Current core channels:
 
-- Nivqo Patches `0.3.0` (single combined source for the original Morphe Manager; Facebook 60 + Messenger 32)
-- Nivqo Manager `1.33.0` (synced with Morphe Manager `1.33.0` / Morphe Patcher `1.15.0`)
-- HushFacebook `0.7.1-nivqo.1` (formal upstream Release `v0.7.1` / commit `cd40d35fd92f09fdd4194654167fba276005aa81`; 60 patches; Facebook 581.0.0.45.58 support added; Nivqo localization and two-way Facebook / Messenger routing preserved)
-- HushMessenger `0.14.0-nivqo.1` (formal upstream Release `v0.14.0` / commit `c3d91c8200337cd826c2c92ef06e1f9c261f8e62`; 32 patches)
-- HushFacebook patch metadata in Manager: 60 / 60 Traditional Chinese
-- HushMessenger core settings have `203 / 203` Traditional Chinese coverage. Manager patch metadata is `32 / 32` in Traditional Chinese, with Messenger-specific wording retained for duplicate patch names.
+- Nivqo Patches `1.2.0` (combined: Facebook 117 + Messenger 88 = 205 patches)
+- Nivqo Manager `2.5.0` (Morphe Manager 2.5.0 / Patcher 2.3.0)
+- HushFacebook `0.21.0-nivqo.1` (117 patches for Facebook 585.0.0.47.54)
+- HushMessenger `0.29.0-nivqo.1` (88 patches for Messenger 586.0.0.55.92)
+- Manager includes Traditional Chinese patch names/descriptions for both current cores.
 
 - **HushFacebook / HushMessenger patch cores** are served by Nivqo's own GitHub update channel. By default Nivqo syncs only formally published upstream Releases/Tags; `main`, unreleased commits and prereleases are not adopted unless explicitly chosen. Formal releases are merged with Nivqo's Traditional Chinese/custom changes and tested before publication.
 - **Nivqo Manager itself** is released only when Manager code changes, and future Manager updates are resolved from `SkillGodAk/Nivqo` GitHub Releases.

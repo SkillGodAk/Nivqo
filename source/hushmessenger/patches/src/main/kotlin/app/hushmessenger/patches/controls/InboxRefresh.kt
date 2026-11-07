@@ -34,7 +34,7 @@ internal const val INBOX_ITEMS_CALL = "$INBOX_REFRESH->onInboxItems(Ljava/lang/O
 internal const val INBOX_REFRESH_ROUTE = "$HOST_SCREENS->inboxRefreshRoute()Ljava/lang/String;"
 /** The list observer has a class of its own, built from the supplier and the subscription's generation number. */
 private const val OBSERVER_INIT = "<init>(${INBOX_SUPPLIER}I)V"
-/** 585's subscribe call takes the supplier and a flag; stock's retries pass true, and so does the extension. */
+/** 586's subscribe call takes the supplier and a flag; stock's retries pass true, and so does the extension. */
 private val SUBSCRIBE_PARAMS = listOf(INBOX_SUPPLIER, "Z")
 
 /** The supplier's static subscribe call and the int its list observer sets once rows arrive, as the extension reads them. */
@@ -107,7 +107,7 @@ internal fun resolveInboxRefresh(items: Method, classOf: (String) -> ClassDef?):
 }
 
 /**
- * The observer's listed-count update, `size < limit ? 5 : 1`, as 585 compiles it: `const/4 vR, 1` earlier in the same
+ * The observer's listed-count update, `size < limit ? 5 : 1`, as 586 compiles it: `const/4 vR, 1` earlier in the same
  * straight run (it also feeds a flag write), then `if-ge ..., <the write>; const/4 vR, 5; iput vR, supplier->F:I`.
  * Between that `const/4 vR, 1` and the branch nothing writes vR and no jump lands, so vR is 1 whenever the branch is taken.
  */
@@ -130,9 +130,11 @@ private fun List<Instruction>.isListedWrite(at: Int, targets: Set<Int>): Boolean
 }
 
 /** The extension stub the route is written into: `const-string vX, ""` then `return-object vX`. */
-internal fun Method.validateInboxRefreshStub() {
+internal fun Method.validateInboxRefreshStub() = validateRouteStub(INBOX_REFRESH_ROUTE)
+
+internal fun Method.validateRouteStub(id: String) {
     val code = implementation?.instructions?.toList().orEmpty()
-    if (hookId() != INBOX_REFRESH_ROUTE || !AccessFlags.STATIC.isSet(accessFlags) || code.size != 2 ||
+    if (hookId() != id || !AccessFlags.STATIC.isSet(accessFlags) || code.size != 2 ||
         code[0].opcode != Opcode.CONST_STRING || code[0].string() != "" || code[1].opcode != Opcode.RETURN_OBJECT ||
         (code[0] as OneRegisterInstruction).registerA != (code[1] as OneRegisterInstruction).registerA) extensionChanged()
 }

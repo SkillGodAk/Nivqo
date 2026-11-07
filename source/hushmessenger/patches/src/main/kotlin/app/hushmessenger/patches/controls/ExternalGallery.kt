@@ -3,6 +3,7 @@ package app.hushmessenger.patches.controls
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
@@ -36,6 +37,15 @@ private const val CHAT_GALLERY_CALL = "$SETTINGS->chatGallery()Landroid/os/Bundl
 private const val MEDIA_RESULT_CALL = "$SETTINGS->externalMediaResult(IILandroid/content/Intent;)V"
 private const val GALLERY_ITEMS_CALL = "$SETTINGS->galleryItems(Ljava/lang/Object;Landroid/content/Intent;)Z"
 private const val PROVIDER_GET = "get()Ljava/lang/Object;"
+internal const val GALLERY_TEMP_FILE = "gallery_temp_file"
+private const val CREATE_TEMP_FILE = "Ljava/io/File;->createTempFile(Ljava/lang/String;Ljava/lang/String;Ljava/io/File;)Ljava/io/File;"
+private const val FILE_OUTPUT_OPEN = "Ljava/io/FileOutputStream;-><init>(Ljava/io/File;)V"
+private const val INBOUND_TEMP_CALL = "$SETTINGS->inboundTempFile(Ljava/lang/String;Ljava/lang/String;Ljava/io/File;)Ljava/io/File;"
+private const val FILE_TYPE = "Ljava/io/File;"
+private const val FILE_EXISTS = "Ljava/io/File;->exists()Z"
+private const val FOLDER_REFUSED_CALL = "$SETTINGS->inboundFolderRefused(Ljava/io/File;)Z"
+private const val FOLDER_NO_WRITE = "No write permissions for temporary directory "
+private const val FOLDER_NOT_FOLDER = " is not a directory."
 
 /** A gallery event handler, its field holding the chat camera launcher's provider, and that provider's interface. */
 internal data class GalleryHandler(val id: String, val provider: String, val providerType: String)
@@ -143,7 +153,7 @@ private fun ClassDef.galleryImplements(iface: String, byType: Map<String, ClassD
  * The one class whose objects run [start] as [launcher] declares it, or none. Messenger 583's launcher was abstract, with
  * one final subclass that ran this start and another that brought its own, and the hook calls the start virtually, so it
  * only handed its bundle to the first kind. 584's two subclasses both inherit the start, so the launcher itself is the class.
- * 585 is back to 583's shape.
+ * 586 has 583's shape again.
  */
 private fun List<ClassDef>.galleryTarget(launcher: ClassDef, start: Method, byType: Map<String, ClassDef>): ClassDef? {
     val signature = start.parameterTypes.map { it.toString() }
@@ -198,7 +208,7 @@ internal fun Method.isGalleryHandler(): Boolean {
  *     ...
  *     invoke-static {..., vEvent, vProvider}, <editor>(..., EditGalleryItemEvent, <Provider>)V
  *
- * Code between the two may branch, as the plugin's does on a cached value, but only the read leads in. 585 reads the
+ * Code between the two may branch, as the plugin's does on a cached value, but only the read leads in. 586 reads the
  * field into another register and `move-object`s it into the call's range, so up to four plain moves are followed.
  *
  * and in the editor, on its last parameter:
@@ -219,7 +229,7 @@ private fun Method.galleryProvider(iface: String, start: Method, byType: Map<Str
     val providerType = edit.parameterTypes.lastOrNull()?.toString() ?: return null
     val provider = code[e].galleryArguments().lastOrNull() ?: return null
     var load = (e - 1 downTo 0).firstOrNull { code[it].galleryWrites(provider) } ?: return null
-    // 585 reads the field into another register and moves it into the call's range, so plain moves are followed.
+    // 586 reads the field into another register and moves it into the call's range, so plain moves are followed.
     repeat(4) {
         val move = code[load].takeIf { it.opcode in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16) }
             as? TwoRegisterInstruction ?: return@repeat
@@ -279,13 +289,21 @@ internal fun Method.onlyParameter(type: String): Int? {
  *     const/16 v0, 0x458
  *     ...
  *     iget-object vIntent, pEvent, <event>->A02:Landroid/content/Intent;
+ *
+ * 586's armv7 handler reuses the event's register for the coroutine's last argument once it's done with the event. The
+ * hooks run before any of it, so that's fine while nothing from the reuse on branches or catches, and only reads ahead of
+ * it count.
  */
 internal fun Method.galleryItemsIntent(byType: Map<String, ClassDef>): FieldReference? {
     if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != "V" || onlyParameter(THREAD_KEY_TYPE) == null) return null
     val code = implementation?.instructions?.toList() ?: return null
     val event = parameterRegister(onlyParameter(ACTIVITY_RESULT_EVENT) ?: return null)
-    if (code.none { (it as? NarrowLiteralInstruction)?.narrowLiteral == EXTERNAL_MEDIA_REQUEST } || code.any { it.galleryWrites(event) }) return null
-    val intent = code.filter { it.opcode == Opcode.IGET_OBJECT && (it as TwoRegisterInstruction).registerB == event }
+    if (code.none { (it as? NarrowLiteralInstruction)?.narrowLiteral == EXTERNAL_MEDIA_REQUEST }) return null
+    val reused = code.indexOfFirst { it.galleryWrites(event) }.takeIf { it >= 0 } ?: code.size
+    if (reused < code.size && (implementation!!.tryBlocks.isNotEmpty() || code.drop(reused).any { it is OffsetInstruction })) return null
+    val reads = code.indices.filter { code[it].opcode == Opcode.IGET_OBJECT && (code[it] as TwoRegisterInstruction).registerB == event }
+    if (reads.any { it > reused }) return null
+    val intent = reads.map { code[it] }
         .mapNotNull { it.galleryField() }.filter { it.definingClass == ACTIVITY_RESULT_EVENT && it.type == "Landroid/content/Intent;" }
         .distinctBy { it.toString() }.singleOrNull() ?: return null
     byType[ACTIVITY_RESULT_EVENT]?.fields?.singleOrNull { it.name == intent.name && it.type == intent.type && !AccessFlags.STATIC.isSet(it.accessFlags) }
@@ -439,6 +457,72 @@ internal fun MutableMethod.injectExternalGallery() {
         if-eqz $started, :stock_gallery
         return-void
     """.trimIndent(), ExternalLabel("stock_gallery", getInstruction(at)))
+}
+
+/**
+ * Where the one temp file call sits in Messenger's copy of an item it's handed: an instance method with no parameters
+ * that names the file "inbound" and opens it for writing. A range call isn't one the swap can keep the registers of.
+ */
+private fun Method.inboundCopyCall(): Int? {
+    if (AccessFlags.STATIC.isSet(accessFlags) || parameterTypes.isNotEmpty() || returnType != "V") return null
+    if ("inbound" !in galleryStrings()) return null
+    val code = implementation?.instructions?.toList() ?: return null
+    if (code.none { it.opcode == Opcode.INVOKE_DIRECT && it.galleryMethod()?.toString() == FILE_OUTPUT_OPEN }) return null
+    val call = code.indices.filter { code[it].galleryMethod()?.toString() == CREATE_TEMP_FILE }.singleOrNull() ?: return null
+    return call.takeIf { code[it].opcode == Opcode.INVOKE_STATIC }
+}
+
+/** The registers in Messenger's check of a temp folder: the folder, and the one its first answer overwrites. */
+private data class TempFolderCheck(val folder: Int, val answer: Int)
+
+/**
+ * Messenger's check of a temp folder, which throws on one that's there but can't be used: an instance method with no
+ * parameters that returns a file, reads its own file field first and asks straight away whether that exists.
+ */
+private fun Method.tempFolderCheck(): TempFolderCheck? {
+    if (AccessFlags.STATIC.isSet(accessFlags) || parameterTypes.isNotEmpty() || returnType != FILE_TYPE) return null
+    if (!galleryStrings().containsAll(listOf(FOLDER_NO_WRITE, FOLDER_NOT_FOLDER))) return null
+    val code = implementation?.instructions?.toList()?.takeIf { it.size >= 3 } ?: return null
+    val field = code[0].galleryField() ?: return null
+    if (code[0].opcode != Opcode.IGET_OBJECT || field.definingClass != definingClass || field.type != FILE_TYPE) return null
+    val folder = (code[0] as TwoRegisterInstruction).registerA
+    if (code[1].opcode != Opcode.INVOKE_VIRTUAL || code[1].galleryMethod()?.toString() != FILE_EXISTS) return null
+    if ((code[1] as FiveRegisterInstruction).registerC != folder || code[2].opcode != Opcode.MOVE_RESULT) return null
+    val answer = (code[2] as OneRegisterInstruction).registerA
+    return TempFolderCheck(folder, answer).takeIf { folder <= 15 && answer != folder }
+}
+
+/** Both or neither, since moving the copy doesn't help a folder that dies in the check before the copy starts. */
+internal fun findGalleryTempFile(classes: Iterable<ClassDef>): List<Method> {
+    val methods = classes.flatMap { it.methods }
+    val copy = methods.filter { it.inboundCopyCall() != null }.singleOrNull() ?: return emptyList()
+    val check = methods.filter { it.tempFolderCheck() != null }.singleOrNull() ?: return emptyList()
+    return listOf(check, copy)
+}
+
+internal fun MutableMethod.validateGalleryTempFile() {
+    if (tempFolderCheck() == null && inboundCopyCall() == null) galleryChanged("the copy of a picked item")
+}
+
+/**
+ * Messenger picks the copy's folder from where the item sits and dies if it can't make a file there (#124), so the
+ * extension makes the file and can move it to another of Messenger's folders. A folder that's there but can't be used
+ * dies earlier, in the check, so the check hands it back the way it already hands back a folder it couldn't make.
+ */
+internal fun MutableMethod.injectGalleryTempFile() {
+    val check = tempFolderCheck()
+    if (check != null) {
+        addInstructionsWithLabels(1, """
+            invoke-static {v${check.folder}}, $FOLDER_REFUSED_CALL
+            move-result v${check.answer}
+            if-eqz v${check.answer}, :stock_check
+            return-object v${check.folder}
+        """.trimIndent(), ExternalLabel("stock_check", getInstruction(1)))
+        return
+    }
+    val at = inboundCopyCall() ?: galleryChanged("the copy of a picked item")
+    val call = getInstruction<FiveRegisterInstruction>(at)
+    replaceInstruction(at, "invoke-static {v${call.registerC}, v${call.registerD}, v${call.registerE}}, $INBOUND_TEMP_CALL")
 }
 
 /**

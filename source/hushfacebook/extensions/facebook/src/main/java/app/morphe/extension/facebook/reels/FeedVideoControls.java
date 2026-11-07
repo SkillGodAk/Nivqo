@@ -4,31 +4,45 @@
  */
 package app.morphe.extension.facebook.reels;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
+import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
+import android.view.WindowInsets;
 import android.widget.FrameLayout;
+import android.widget.SeekBar;
 
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 import app.morphe.extension.facebook.download.OpenInAnotherApp;
+import app.morphe.extension.facebook.download.SendLink;
+import app.morphe.extension.facebook.media.ProgressBar;
+import app.morphe.extension.facebook.media.ResumePlayback;
+import app.morphe.extension.facebook.media.TapToPlay;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.facebook.settings.SettingsStatus;
@@ -45,12 +59,30 @@ import app.morphe.extension.shared.settings.BaseSettings;
  * sit on the player's container, where the video will show (#239). Facebook keeps its video taps and fullscreen controls. The Tap to play patch
  * supplies these bridges independently of its autoplay switch and of Hold a feed video for 2x.
  * The cast button also needs the video patch, whose player record holds the file it hands over.
+ * A seek bar can run just above the video's bottom edge too, clear of Facebook's own buttons there (#326).
+ * A live video gets play/pause and the full player button but no cast button or seek bar, having
+ * no file to hand over and no end to seek to. The full player button, next to play, opens the video
+ * in Facebook's own player with all its controls (#239).
  */
 public final class FeedVideoControls {
     private static final String FAMILY = FamilyNames.TAP_TO_PLAY;
     private static final String SOURCE = "FeedVideoControls";
-    /** Touch target, its gap from the video's edge, and the disc drawn in it, sized like Facebook's speaker icon (#301). */
+    /** Touch target, its gap from the video's sides, and the disc drawn in it, sized like Facebook's speaker icon (#301). */
     static final int SIZE_DP = 40, MARGIN_DP = 4, DISC_DP = 28;
+    /** How far below the video's top the buttons sit, clear of the channel picture on a reel style post, which takes their taps otherwise. */
+    static final int TOP_DP = 54;
+    /** The seek bar's touch height, short because a feed video's caption sits right above it, and the room a drag's time takes above it. */
+    static final int BAR_DP = 20, TIME_DP = 28;
+    /** The room the seek bar leaves under it for what Facebook puts in the video's bottom corners: the speaker, and the tagged people (#326). */
+    static final int BAR_LIFT_DP = 40;
+    private static final long TICK_MS = 250;
+    /** Facebook's link handler, which opens a watch link in its own video player. */
+    static final String URI_HANDLER = "com.facebook.katana.IntentUriHandler";
+    /** What a [Button] does. */
+    static final int PLAY = 0, CAST = 1, OPEN = 2;
+    /** How long the bar waits for a seek to land, and how near the spot counts as landed. */
+    static final long LANDING_MS = 3000;
+    private static final int LANDED_WITHIN_MS = 1000;
     private static final Map<Object, Control> players = new WeakHashMap<>();
     private static Handler main;
 
@@ -60,9 +92,14 @@ public final class FeedVideoControls {
         Object origin(Object player);
         String videoId(Object params);
         boolean eligible(Object params);
+        boolean live(Object params);
         boolean playing(Object player);
         void command(Object player, boolean play);
         void cast(View from, String videoId);
+        void open(View from, String videoId);
+        int position(Object player);
+        int length(Object player, Object params);
+        void seek(Object player, int positionMs);
     }
 
     private static final Players PATCHED = new Players() {
@@ -71,13 +108,26 @@ public final class FeedVideoControls {
         public Object origin(Object player) { return playerOrigin(player); }
         public String videoId(Object params) { return mediaId(params); }
         public boolean eligible(Object params) { return ordinaryVideo(params); }
+        public boolean live(Object params) { return liveNow(params); }
         public boolean playing(Object player) { return isPlaying(player); }
         public void command(Object player, boolean play) { commandPlayer(player, play); }
         public void cast(View from, String videoId) { OpenInAnotherApp.cast(from.getContext(), videoId); }
+        public void open(View from, String videoId) {
+            // With Tap to play on, the player this tap opens plays, as one a tapped feed video opens does.
+            TapToPlay.feedVideoOpening();
+            openFullPlayer(from.getContext(), videoId);
+        }
+        public int position(Object player) { return playerPosition(player); }
+        public int length(Object player, Object params) {
+            int length = playerLength(player);
+            return length > 0 ? length : paramsLength(params);
+        }
+        public void seek(Object player, int positionMs) { seekPlayer(player, null, positionMs); }
     };
     static volatile Players access = PATCHED;
     @Nullable static volatile Boolean inBuildForTests;
     @Nullable static volatile Boolean videoPatchInBuildForTests;
+    @Nullable static volatile WindowInsets insetsForTests;
 
     private FeedVideoControls() { }
 
@@ -86,8 +136,9 @@ public final class FeedVideoControls {
     @Nullable public static Object playerParams(Object player) { return null; }
     @Nullable public static Object playerOrigin(Object player) { return null; }
     @Nullable public static String mediaId(Object params) { return null; }
+    /** Not an ad, audio or a GIF. A live video counts, and {@link #liveNow} says which parts it gets. */
     public static boolean ordinaryVideo(Object params) {
-        return !liveNow(params) && !sponsored(params) && !audioOnly(params) && !animatedGif(params);
+        return !sponsored(params) && !audioOnly(params) && !animatedGif(params);
     }
     public static boolean liveNow(Object params) { return true; }
     public static boolean sponsored(Object params) { return true; }
@@ -95,6 +146,20 @@ public final class FeedVideoControls {
     public static boolean animatedGif(Object params) { return true; }
     public static boolean isPlaying(Object player) { return false; }
     public static void commandPlayer(Object player, boolean play) { }
+    public static int playerPosition(Object player) { return 0; }
+    public static int playerLength(Object player) { return 0; }
+    public static int paramsLength(Object params) { return 0; }
+    /** [slot] only lends the patch a register for Facebook's trigger. */
+    public static void seekPlayer(Object player, @Nullable Object slot, int positionMs) { }
+
+    /** Opens [videoId] in Facebook's own player through its link handler, as Recently watched does. */
+    static void openFullPlayer(Context context, String videoId) {
+        String link = SendLink.videoLink(videoId);
+        if (link == null) return;
+        Intent view = new Intent(Intent.ACTION_VIEW, Uri.parse(link)).setClassName(context.getPackageName(), URI_HANDLER);
+        if (!(context instanceof Activity)) view.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(view);
+    }
 
     /** First in the native attach. The queued refresh reads the field after Facebook writes it. */
     public static void attached(@Nullable ViewGroup container, @Nullable Object player) {
@@ -172,13 +237,23 @@ public final class FeedVideoControls {
         return (forced != null ? forced : SettingsStatus.videoDownload()) && Settings.FEED_VIDEO_CAST_BUTTON.get();
     }
 
+    private static boolean seekOn() {
+        return inBuild() && Settings.FEED_VIDEO_SEEK_BAR.get();
+    }
+
+    private static boolean openOn() {
+        return inBuild() && Settings.FEED_VIDEO_FULL_PLAYER_BUTTON.get();
+    }
+
     private static void refresh(Control control) {
         try {
             Object player = control.player.get();
             ViewGroup container = control.expected.get();
             boolean play = playOn();
             boolean cast = castOn();
-            if ((!play && !cast) || control.released || player == null || container == null
+            boolean seek = seekOn();
+            boolean open = openOn();
+            if ((!play && !cast && !seek && !open) || control.released || player == null || container == null
                     || access.view(player) != container) {
                 control.remove(true);
                 return;
@@ -188,14 +263,16 @@ public final class FeedVideoControls {
                 control.remove(false);
                 return;
             }
-            Target target = target(control, play && cast);
+            Target target = target(control, play, open, cast);
             if (target == null) {
                 control.remove(false);
                 return;
             }
-            control.button = place(control, control.button, play ? target : null, false);
-            control.cast = place(control, control.cast, cast ? target : null, true);
+            control.button = place(control, control.button, play ? target : null, PLAY);
+            control.open = place(control, control.open, open ? target : null, OPEN);
+            control.cast = place(control, control.cast, cast && !target.live ? target : null, CAST);
             if (control.button != null) control.button.state(access.playing(player));
+            control.bar = placeBar(control, control.bar, seek ? target : null, player);
         } catch (Throwable failure) {
             control.remove(true);
             HookStatus.threw(FAMILY, "inline feed button", failure);
@@ -204,7 +281,7 @@ public final class FeedVideoControls {
 
     /** Keeps, makes or drops one button for [target]: null takes it off. Answers what's showing. */
     @Nullable
-    private static Button place(Control control, @Nullable Button current, @Nullable Target target, boolean cast) {
+    private static Button place(Control control, @Nullable Button current, @Nullable Target target, int kind) {
         if (current != null && (target == null || current.generation != control.generation
                 || current.params.get() != target.params || current.surface.get() != target.surface
                 || !current.videoId.equals(target.videoId)
@@ -214,16 +291,51 @@ public final class FeedVideoControls {
         }
         if (target == null) return null;
         if (current == null) {
-            current = new Button(control, target, cast);
+            current = new Button(control, target, kind);
             target.content.addView(current, new FrameLayout.LayoutParams(target.size, target.size,
                     Gravity.LEFT | Gravity.TOP));
-            HookStatus.bound(FAMILY, cast ? "inline cast button" : "inline feed button");
+            HookStatus.bound(FAMILY, kind == CAST ? "inline cast button"
+                    : kind == OPEN ? "inline full player button" : "inline feed button");
         }
-        int left = cast ? target.right : target.left;
+        int left = kind == CAST ? target.right : kind == OPEN ? target.next : target.left;
         FrameLayout.LayoutParams layout = (FrameLayout.LayoutParams) current.getLayoutParams();
         if (layout.leftMargin != left || layout.topMargin != target.top) {
             layout.leftMargin = left;
             layout.topMargin = target.top;
+            current.setLayoutParams(layout);
+        }
+        return current;
+    }
+
+    /** Keeps, makes or drops the seek bar for [target], which may have no room for one. Answers what's showing. */
+    @Nullable
+    private static Scrub placeBar(Control control, @Nullable Scrub current, @Nullable Target target, Object player) {
+        Rect area = target == null ? null : target.bar;
+        if (current != null && (area == null || current.generation != control.generation
+                || current.params.get() != target.params || current.surface.get() != target.surface
+                || !current.videoId.equals(target.videoId)
+                || current.getParent() != target.content)) {
+            detach(current);
+            current = null;
+        }
+        if (area == null) return null;
+        if (current == null) {
+            current = new Scrub(control, target);
+            target.content.addView(current, new FrameLayout.LayoutParams(area.width(), area.height(),
+                    Gravity.LEFT | Gravity.TOP));
+            HookStatus.bound(FAMILY, "feed video seek bar");
+            current.update(player);
+            control.tick();
+        }
+        // A drag's time needs room above the line, which stays put at the bottom.
+        int lift = current.dragging ? Math.round(TIME_DP * current.getResources().getDisplayMetrics().density) : 0;
+        FrameLayout.LayoutParams layout = (FrameLayout.LayoutParams) current.getLayoutParams();
+        if (layout.leftMargin != area.left || layout.topMargin != area.top - lift
+                || layout.width != area.width() || layout.height != area.height() + lift) {
+            layout.leftMargin = area.left;
+            layout.topMargin = area.top - lift;
+            layout.width = area.width();
+            layout.height = area.height() + lift;
             current.setLayoutParams(layout);
         }
         return current;
@@ -248,9 +360,12 @@ public final class FeedVideoControls {
         });
     }
 
-    /** Where the buttons go on the video [control] shows, or null when none fit. [both] needs room for two. */
+    /**
+     * Where the buttons go on the video [control] shows, or null when none fit. It needs room for
+     * each of [play], [open] and [cast] that's on, and always for one.
+     */
     @Nullable
-    private static Target target(Control control, boolean both) {
+    private static Target target(Control control, boolean play, boolean open, boolean cast) {
         Object player = control.player.get();
         ViewGroup container = control.expected.get();
         if (player == null || container == null || control.released || access.view(player) != container
@@ -259,9 +374,11 @@ public final class FeedVideoControls {
         Object origin = access.origin(player);
         String id = params == null ? null : access.videoId(params);
         if (params == null || id == null || id.isEmpty() || !access.eligible(params)) {
-            return miss(control, "no video id, or a live video, ad, audio or GIF");
+            return miss(control, "no video id, or an ad, audio or GIF");
         }
-        if (origin == null || !origin.toString().startsWith("newsfeed::")) return miss(control, "origin", origin);
+        boolean live = access.live(params);
+        // Any feed counts, so a page's, a group's or a profile's videos get them too (#239).
+        if (origin == null || !FeedVideoAlone.fromFeed(origin.toString())) return miss(control, "origin", origin);
         View row = container;
         View list = null;
         for (ViewParent parent = container.getParent(); parent instanceof View; parent = parent.getParent()) {
@@ -304,13 +421,99 @@ public final class FeedVideoControls {
         float density = container.getResources().getDisplayMetrics().density;
         int size = Math.round(SIZE_DP * density);
         int margin = Math.round(MARGIN_DP * density);
-        int across = both ? size * 2 + margin * 3 : size + margin * 2;
-        if (visible.width() < across || visible.height() < size + margin * 2) return miss(control, "too little of it shows");
+        int down = Math.round(TOP_DP * density);
+        int buttons = Math.max(1, (play ? 1 : 0) + (open ? 1 : 0) + (cast && !live ? 1 : 0));
+        int across = size * buttons + margin * (buttons + 1);
+        if (visible.width() < across || visible.height() < down + size + margin) return miss(control, "too little of it shows");
         int[] at = new int[2];
+        Rect bar = !seekOn() ? null : live ? noBar(control, "a live video has no end to seek to", null)
+                : barArea(control, container, surface, list, content, visible, down + size + margin, density);
         content.getLocationInWindow(at);
+        // Margins count from inside the padding, which holds the status bar on an edge to edge screen.
+        at[0] += content.getPaddingLeft();
+        at[1] += content.getPaddingTop();
+        if (bar != null) bar.offset(-at[0], -at[1]);
         control.missed = null;
-        return new Target(params, id, surface, (FrameLayout) content, size,
-                visible.left - at[0] + margin, visible.right - at[0] - margin - size, visible.top - at[1] + margin);
+        int left = visible.left - at[0] + margin;
+        return new Target(params, id, surface, (FrameLayout) content, size, left, play ? left + size + margin : left,
+                visible.right - at[0] - margin - size, visible.top - at[1] + down, bar, live);
+    }
+
+    /**
+     * Where the seek bar goes in the window, {@link #BAR_LIFT_DP} above the bottom of the video's
+     * [visible] part, or null when that spot isn't showing, or something on top of the feed lies
+     * across it. The buttons keep [room] of the height.
+     */
+    @Nullable
+    /** Whether a bar ending at window position [bottom] reaches the strip Android keeps for its home swipe. No app can claim touches there, so the bar would look live and never get a drag. */
+    private static boolean inGestureStrip(View content, int bottom) {
+        WindowInsets insets = insetsForTests != null ? insetsForTests : content.getRootWindowInsets();
+        return insets != null
+                && bottom > content.getRootView().getHeight() - insets.getInsets(WindowInsets.Type.mandatorySystemGestures()).bottom;
+    }
+
+    private static Rect barArea(Control control, ViewGroup container, View surface, View list, View content,
+            Rect visible, int room, float density) {
+        // A surface can be taller than its container, which crops it, so the video ends at the higher edge of the two.
+        int[] at = new int[2];
+        surface.getLocationInWindow(at);
+        int bottom = at[1] + surface.getHeight();
+        container.getLocationInWindow(at);
+        bottom = Math.min(bottom, at[1] + container.getHeight()) - Math.round(BAR_LIFT_DP * density);
+        int height = Math.round(BAR_DP * density);
+        if (visible.bottom < bottom || visible.height() < room + height) return noBar(control, "its bottom edge doesn't show", null);
+        if (inGestureStrip(content, bottom)) return noBar(control, "its bottom edge is in the system's gesture strip", null);
+        Rect area = new Rect(visible.left, bottom - height, visible.right, bottom);
+        View over = over(list, content, area);
+        if (over != null) return noBar(control, "something lies over its bottom edge", over.getClass().getName());
+        control.missedBar = null;
+        return area;
+    }
+
+    /** Puts why [control]'s video has no seek bar in the debug log, like {@link #miss}. Answers null. */
+    @Nullable
+    private static Rect noBar(Control control, String why, @Nullable Object detail) {
+        if (!BaseSettings.DEBUG.get()) {
+            control.missedBar = null;
+        } else if (!why.equals(control.missedBar)) {
+            control.missedBar = why;
+            Logger.diagnosticDebug(DiagnosticCategory.OTHER, SOURCE,
+                    () -> "Feed video seek bar: none, " + why + (detail == null ? "" : " " + detail));
+        }
+        return null;
+    }
+
+    /** The first thing drawn above [list] that lies across [area], such as the tab bar sliding back. */
+    @Nullable
+    private static View over(View list, View content, Rect area) {
+        View child = list;
+        for (ViewParent parent = list.getParent(); parent instanceof ViewGroup; parent = parent.getParent()) {
+            ViewGroup group = (ViewGroup) parent;
+            for (int i = group.indexOfChild(child) + 1; i < group.getChildCount(); i++) {
+                View found = lying(group.getChildAt(i), area);
+                if (found != null) return found;
+            }
+            if (group == content) break;
+            child = group;
+        }
+        return null;
+    }
+
+    /** [view] or one inside it that shows across [area]. Frames only count by what they hold, and a bare spacer doesn't. */
+    @Nullable
+    private static View lying(View view, Rect area) {
+        if (view instanceof Button || view instanceof Scrub || !view.isShown() || view.getAlpha() <= 0f) return null;
+        Rect rect = new Rect();
+        if (!view.getGlobalVisibleRect(rect) || !Rect.intersects(rect, area)) return null;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = lying(group.getChildAt(i), area);
+                if (found != null) return found;
+            }
+            return null;
+        }
+        return view.getClass() == View.class && view.getBackground() == null ? null : view;
     }
 
     @Nullable
@@ -358,19 +561,27 @@ public final class FeedVideoControls {
         }
         Control control = button.control;
         try {
-            if (!(button.cast ? castOn() : playOn()) || (button.cast ? control.cast : control.button) != button
-                    || control.generation != button.generation) return;
-            Target current = target(control, false);
+            boolean on = button.kind == CAST ? castOn() : button.kind == OPEN ? openOn() : playOn();
+            Button current = button.kind == CAST ? control.cast : button.kind == OPEN ? control.open : control.button;
+            if (!on || current != button || control.generation != button.generation) return;
             Object player = control.player.get();
-            if (current == null || player == null || current.params != button.params.get()
-                    || !button.videoId.equals(current.videoId) || current.surface != button.surface.get()
-                    || button.getParent() != current.content) {
+            if (player == null || !stillOver(control, button, button.params, button.videoId, button.surface)) {
                 control.remove(false);
                 return;
             }
-            if (button.cast) {
+            if (button.kind == CAST) {
                 access.cast(button, button.videoId);
                 HookStatus.counted(FAMILY, "inline cast");
+                return;
+            }
+            if (button.kind == OPEN) {
+                // The feed's copy stops, so the two never play over each other.
+                if (access.playing(player)) {
+                    access.command(player, false);
+                    refresh(control);
+                }
+                access.open(button, button.videoId);
+                HookStatus.counted(FAMILY, "inline full player");
                 return;
             }
             access.command(player, !access.playing(player));
@@ -382,15 +593,51 @@ public final class FeedVideoControls {
         }
     }
 
+    /** Whether [view], made for [videoId]'s [params] on [surface], still sits on that video. */
+    private static boolean stillOver(Control control, View view, WeakReference<Object> params, String videoId,
+            WeakReference<View> surface) {
+        Target current = target(control, false, false, false);
+        return current != null && current.params == params.get() && videoId.equals(current.videoId)
+                && current.surface == surface.get() && view.getParent() == current.content;
+    }
+
+    /** The bar was let go, or moved by a screen reader, at [bar]'s progress. */
+    private static void seek(Scrub bar) {
+        Control control = bar.control;
+        try {
+            if (!seekOn() || control.bar != bar || control.generation != bar.generation) return;
+            Object player = control.player.get();
+            if (player == null || !stillOver(control, bar, bar.params, bar.videoId, bar.surface)) {
+                control.remove(false);
+                return;
+            }
+            ResumePlayback.placedByYou(player);
+            access.seek(player, bar.getProgress());
+            bar.landing = bar.getProgress();
+            bar.landingUntil = SystemClock.uptimeMillis() + LANDING_MS;
+            HookStatus.counted(FAMILY, "feed video seek");
+        } catch (Throwable failure) {
+            control.remove(true);
+            HookStatus.threw(FAMILY, "feed video seek", failure);
+        }
+    }
+
     private static final class Target {
         final Object params;
         final String videoId;
         final View surface;
         final FrameLayout content;
-        final int size, left, right, top;
-        Target(Object params, String videoId, View surface, FrameLayout content, int size, int left, int right, int top) {
+        /** Play's spot, the full player button's next to it, and cast's across from them. */
+        final int size, left, next, right, top;
+        /** Where the seek bar goes in [content], or null when it has no place. */
+        @Nullable final Rect bar;
+        /** A live video, which gets no cast button or seek bar. */
+        final boolean live;
+        Target(Object params, String videoId, View surface, FrameLayout content, int size, int left, int next, int right,
+                int top, @Nullable Rect bar, boolean live) {
             this.params = params; this.videoId = videoId; this.surface = surface; this.content = content;
-            this.size = size; this.left = left; this.right = right; this.top = top;
+            this.size = size; this.left = left; this.next = next; this.right = right; this.top = top; this.bar = bar;
+            this.live = live;
         }
     }
 
@@ -402,11 +649,34 @@ public final class FeedVideoControls {
         volatile boolean released;
         /** The last reason the debug log gave for no button, or null since one showed. */
         @Nullable String missed;
+        /** The same for the seek bar, which can miss while the buttons show. */
+        @Nullable String missedBar;
         private WeakReference<ViewGroup> observed = new WeakReference<>(null);
         private WeakReference<ViewTreeObserver> observer = new WeakReference<>(null);
         @Nullable Button button;
+        @Nullable Button open;
         @Nullable Button cast;
+        @Nullable Scrub bar;
+        /** Moves the bar along. Read on this tick rather than on each drawn frame, which comes far more often. */
+        private final Runnable mover = this::move;
         Control(Object player) { this.player = new WeakReference<>(player); }
+        private void move() {
+            Scrub showing = bar;
+            Object owner = player.get();
+            if (showing == null || owner == null) return;
+            try {
+                showing.update(owner);
+                tick();
+            } catch (Throwable failure) {
+                remove(true);
+                HookStatus.threw(FAMILY, "feed video seek bar", failure);
+            }
+        }
+        void tick() {
+            if (main == null) return;
+            main.removeCallbacks(mover);
+            main.postDelayed(mover, TICK_MS);
+        }
         void observe(ViewGroup view) {
             ViewTreeObserver next = view.getViewTreeObserver();
             if (observed.get() == view && observer.get() == next) return;
@@ -418,9 +688,16 @@ public final class FeedVideoControls {
         }
         void remove(boolean listeners) {
             if (button != null) detach(button);
+            if (open != null) detach(open);
             if (cast != null) detach(cast);
+            if (bar != null) {
+                detach(bar);
+                if (main != null) main.removeCallbacks(mover);
+            }
             button = null;
+            open = null;
             cast = null;
+            bar = null;
             if (!listeners) return;
             ViewGroup view = observed.get();
             if (view != null) view.removeOnAttachStateChangeListener(this);
@@ -436,21 +713,21 @@ public final class FeedVideoControls {
 
     /**
      * A 40 dp target showing a small translucent disc with a white symbol, like Facebook's own
-     * speaker icon: play or pause, or the cast one for [cast].
+     * speaker icon: play or pause, the cast one, or the full player one, by [kind].
      */
     static final class Button extends View {
         final Control control;
-        final boolean cast;
+        final int kind;
         final long generation;
         final WeakReference<Object> params;
         final String videoId;
         final WeakReference<View> surface;
         final Look look = new Look();
         boolean playing;
-        Button(Control control, Target target, boolean cast) {
+        Button(Control control, Target target, int kind) {
             super(target.content.getContext());
             this.control = control;
-            this.cast = cast;
+            this.kind = kind;
             generation = control.generation;
             params = new WeakReference<>(target.params);
             videoId = target.videoId;
@@ -458,22 +735,123 @@ public final class FeedVideoControls {
             setClickable(true);
             setFocusable(true);
             setOnClickListener(view -> click(this));
-            if (cast) {
-                setContentDescription(L10n.t("Cast this video"));
-                setTooltipText(getContentDescription());
-            } else {
+            if (kind == PLAY) {
                 state(false);
+            } else {
+                setContentDescription(L10n.t(kind == CAST ? "Cast this video" : "Open in the full player"));
+                setTooltipText(getContentDescription());
             }
         }
         void state(boolean value) {
-            if (cast || getContentDescription() != null && playing == value) return;
+            if (kind != PLAY || getContentDescription() != null && playing == value) return;
             playing = value;
             setContentDescription(L10n.t(value ? "Pause feed video" : "Play feed video"));
             setTooltipText(getContentDescription());
             invalidate();
         }
         @Override protected void onDraw(Canvas canvas) {
-            look.draw(canvas, getWidth(), getHeight(), getResources().getDisplayMetrics().density, cast, playing);
+            look.draw(canvas, getWidth(), getHeight(), getResources().getDisplayMetrics().density, kind, playing);
+        }
+    }
+
+    /**
+     * A thin white line with a thumb along the video's bottom edge, drawn here so it looks the same
+     * under every Facebook theme. The list never sees a drag on it, since it sits above the list in
+     * the screen's content, and being a SeekBar keeps Long press opens comments off it. A drag only
+     * shows the time, and the video moves when it's let go.
+     */
+    static final class Scrub extends SeekBar {
+        final Control control;
+        final long generation;
+        final WeakReference<Object> params;
+        final String videoId;
+        final WeakReference<View> surface;
+        final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        final RectF rect = new RectF();
+        boolean dragging;
+        boolean cancelled;
+        int landing = -1;
+        long landingUntil;
+        Scrub(Control control, Target target) {
+            super(target.content.getContext());
+            this.control = control;
+            generation = control.generation;
+            params = new WeakReference<>(target.params);
+            videoId = target.videoId;
+            surface = new WeakReference<>(target.surface);
+            setBackground(null);
+            setThumb(null);
+            setProgressDrawable(null);
+            setThumbOffset(0);
+            setPadding(0, 0, 0, 0);
+            setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            setContentDescription(L10n.t("Feed video position"));
+            paint.setTextAlign(Paint.Align.CENTER);
+            setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                    if (fromUser && !dragging) seek(Scrub.this);
+                }
+                @Override public void onStartTrackingTouch(SeekBar bar) {
+                    dragging = true;
+                    invalidate();
+                }
+                @Override public void onStopTrackingTouch(SeekBar bar) {
+                    dragging = false;
+                    if (!cancelled) seek(Scrub.this);
+                    invalidate();
+                }
+            });
+        }
+        void update(Object player) {
+            if (dragging) return;
+            Object of = params.get();
+            int length = of == null ? 0 : access.length(player, of);
+            setVisibility(length > 0 ? View.VISIBLE : View.GONE);
+            if (length <= 0) return;
+            if (getMax() != length) setMax(length);
+            int position = Math.max(0, Math.min(length, access.position(player)));
+            // The player reports the old spot until a seek lands, which would spring the bar back.
+            if (landing >= 0 && Math.abs(position - landing) > LANDED_WITHIN_MS && SystemClock.uptimeMillis() < landingUntil) return;
+            landing = -1;
+            setProgress(position);
+        }
+        @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+            super.onLayout(changed, left, top, right, bottom);
+            // A SeekBar only claims the spot around a thumb drawable, and this one draws its own, so a drag starting near the screen's side went to Back.
+            setSystemGestureExclusionRects(Collections.singletonList(new Rect(0, 0, right - left, bottom - top)));
+        }
+        @Override public boolean onTouchEvent(MotionEvent event) {
+            // A cancel stops the tracking too, and isn't a let go.
+            cancelled = event.getActionMasked() == MotionEvent.ACTION_CANCEL;
+            return super.onTouchEvent(event);
+        }
+        @Override protected synchronized void onDraw(Canvas canvas) {
+            float density = getResources().getDisplayMetrics().density;
+            float y = getHeight() - 6 * density;
+            float half = 1.5f * density;
+            float radius = (dragging ? 8 : 6) * density;
+            float x = getMax() <= 0 ? 0 : getWidth() * (float) getProgress() / getMax();
+            paint.setColor(0x4D000000);
+            canvas.drawRect(0, y - half - density, getWidth(), y + half + density, paint);
+            paint.setColor(0x80FFFFFF);
+            canvas.drawRect(0, y - half, getWidth(), y + half, paint);
+            paint.setColor(0xFFFFFFFF);
+            canvas.drawRect(0, y - half, x, y + half, paint);
+            canvas.drawCircle(Math.max(radius, Math.min(getWidth() - radius, x)), y, radius, paint);
+            if (dragging) drawTime(canvas, x, y - radius - 2 * density, density);
+        }
+        /** Where a let go would land, on a small dark pill just above the line, kept on the video. */
+        private void drawTime(Canvas canvas, float x, float bottom, float density) {
+            String time = ProgressBar.time(getProgress());
+            paint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 11, getResources().getDisplayMetrics()));
+            float across = paint.measureText(time) / 2 + 6 * density;
+            float middle = Math.max(across, Math.min(getWidth() - across, x));
+            float top = Math.max(0, bottom - paint.getFontSpacing());
+            rect.set(middle - across, top, middle + across, bottom);
+            paint.setColor(0xCC000000);
+            canvas.drawRoundRect(rect, 4 * density, 4 * density, paint);
+            paint.setColor(0xFFFFFFFF);
+            canvas.drawText(time, middle, (top + bottom - paint.ascent() - paint.descent()) / 2, paint);
         }
     }
 
@@ -483,6 +861,9 @@ public final class FeedVideoControls {
         final RectF rect = new RectF();
         final Path path = new Path();
         void draw(Canvas canvas, int width, int height, float density, boolean cast, boolean playing) {
+            draw(canvas, width, height, density, cast ? CAST : PLAY, playing);
+        }
+        void draw(Canvas canvas, int width, int height, float density, int kind, boolean playing) {
             float cx = width / 2f, cy = height / 2f;
             float r = Math.min(Math.min(cx, cy), DISC_DP / 2f * density);
             paint.setStyle(Paint.Style.FILL);
@@ -491,8 +872,10 @@ public final class FeedVideoControls {
             paint.setColor(0xFFFFFFFF);
             // The symbol's square box, centered on the disc.
             float s = r * 1.7f, x = cx - s / 2, y = cy - s / 2;
-            if (cast) {
+            if (kind == CAST) {
                 drawCast(canvas, x, y, s);
+            } else if (kind == OPEN) {
+                drawCorners(canvas, x, y, s);
             } else if (playing) {
                 canvas.drawRect(x + s * .32f, y + s * .28f, x + s * .44f, y + s * .72f, paint);
                 canvas.drawRect(x + s * .56f, y + s * .28f, x + s * .68f, y + s * .72f, paint);
@@ -526,6 +909,22 @@ public final class FeedVideoControls {
             paint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(x + stroke * .5f, y - stroke * .5f, stroke * .9f, paint);
         }
+        /** The usual full screen symbol in the [s] box at [left], [top]: a bracket in each corner. */
+        private void drawCorners(Canvas canvas, float left, float top, float s) {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(s * .08f);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            float near = s * .28f, far = s * .72f, arm = s * .14f;
+            path.reset();
+            for (float[] corner : new float[][] {{near, near, 1, 1}, {far, near, -1, 1}, {near, far, 1, -1}, {far, far, -1, -1}}) {
+                float x = left + corner[0], y = top + corner[1];
+                path.moveTo(x + corner[2] * arm, y);
+                path.lineTo(x, y);
+                path.lineTo(x, y + corner[3] * arm);
+            }
+            canvas.drawPath(path, paint);
+            paint.setStyle(Paint.Style.FILL);
+        }
     }
 
     /** Every player that has attached a video and not been dropped yet, for Pause reels while comments are open. */
@@ -535,6 +934,25 @@ public final class FeedVideoControls {
             for (Object player : players.keySet()) if (player != null) found.add(player);
         }
         return found;
+    }
+
+    /** Whether the screen point [x], [y] is on a seek bar, so a press there only drags it. */
+    static boolean barAt(View root, int x, int y) {
+        for (Control control : snapshot()) {
+            Scrub bar = control.bar;
+            if (bar == null || !bar.isShown() || bar.getRootView() != root) continue;
+            int[] at = new int[2];
+            bar.getLocationOnScreen(at);
+            if (x >= at[0] && x < at[0] + bar.getWidth() && y >= at[1] && y < at[1] + bar.getHeight()) return true;
+        }
+        return false;
+    }
+
+    @Nullable static SeekBar showingBar(Object player) {
+        synchronized (players) {
+            Control control = players.get(player);
+            return control == null ? null : control.bar;
+        }
     }
 
     @Nullable static View showing(Object player) {
@@ -551,6 +969,13 @@ public final class FeedVideoControls {
         }
     }
 
+    @Nullable static View showingOpen(Object player) {
+        synchronized (players) {
+            Control control = players.get(player);
+            return control == null ? null : control.open;
+        }
+    }
+
     static void reset() {
         for (Control control : snapshot()) control.remove(true);
         synchronized (players) {
@@ -560,5 +985,6 @@ public final class FeedVideoControls {
         access = PATCHED;
         inBuildForTests = null;
         videoPatchInBuildForTests = null;
+        insetsForTests = null;
     }
 }

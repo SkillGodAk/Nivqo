@@ -25,9 +25,142 @@ object PatchMetadataLocalizer {
         "Navigation" to "導覽",
         "Inbox" to "收件匣",
         "Conversations" to "對話",
+        "Calls" to "通話",
+        "Stories" to "限時動態",
+        "Marketplace" to "Marketplace",
     )
 
     private val zh = mapOf(
+        // Disambiguate shared Facebook/Messenger patch names in combined Nivqo Patches.
+        "Messenger · Allow screenshots" to Zh(
+            "Messenger · 允許截圖",
+            "允許 Messenger 在原本受限制的頁面截圖或錄製畫面。"
+        ),
+        "Messenger · Hide read receipts" to Zh(
+            "Messenger · 隱藏已讀回條",
+            "讀取聊天訊息時不傳送已讀標記，依照 Messenger 的相關設定運作。"
+        ),
+        "Messenger · Hide tab badges" to Zh(
+            "Messenger · 隱藏分頁徽章",
+            "隱藏 Messenger 底部分頁上的通知數字徽章。"
+        ),
+        "Messenger · Hide typing indicator" to Zh(
+            "Messenger · 隱藏正在輸入",
+            "不向對方顯示自己正在輸入訊息的狀態。"
+        ),
+        "Messenger · Material You theme" to Zh(
+            "Messenger · Material You 主題",
+            "依照手機主題色調整 Messenger 的部分介面顏色。"
+        ),
+        "Messenger · Restore screens on re-signed builds" to Zh(
+            "Messenger · 修復重新簽署後的畫面",
+            "改善重新簽署的 Messenger 開啟聊天室或連結時出現空白畫面的問題。"
+        ),
+        "Messenger · Unlock app icons" to Zh(
+            "Messenger · 解鎖 App 圖示",
+            "可使用 Messenger 提供的其他啟動圖示樣式。"
+        ),
+        "Messenger · View stories anonymously" to Zh(
+            "Messenger · 匿名查看限時動態",
+            "觀看限時動態時不立即傳送自己的觀看記錄。"
+        ),
+        // New patches in November 2026 formal FB 0.21 / MSG 0.29
+        "Clean up the story viewer" to Zh(
+            "清理限時動態畫面",
+            "可隱藏限時動態的音樂與特效資訊、推薦回覆，並在畫面下方新增播放進度條。"
+        ),
+        "Open in Facebook from the share menu" to Zh(
+            "從分享選單用 Facebook 開啟",
+            "在 Android 分享選單加入「在 Facebook 開啟」，從其他應用程式直接開啟 Facebook 連結。"
+        ),
+        "Photo carousel" to Zh(
+            "貼文照片輪播",
+            "將貼文中的多張照片與影片改成左右滑動的輪播列，並顯示目前張數。"
+        ),
+        "Remove the gap above Marketplace listings" to Zh(
+            "移除 Marketplace 頂部空白",
+            "移除部分手機在 Marketplace 商品頁頂部出現的不必要空白區。"
+        ),
+        "Search posts tab" to Zh(
+            "恢復搜尋貼文分頁",
+            "將貼文篩選分頁重新加入 Facebook 搜尋結果，方便只查看貼文。"
+        ),
+        "Story viewer taps" to Zh(
+            "限時動態點按控制",
+            "可點選限時動態中央暫停或繼續播放，或改成雙擊才切換下一則。"
+        ),
+        "Translate posts" to Zh(
+            "翻譯外語貼文",
+            "使用 Google 翻譯處理外語貼文，可顯示翻譯入口或自動翻譯。"
+        ),
+        "Allow landscape" to Zh(
+            "允許橫向顯示",
+            "讓 Messenger 配合手機自動旋轉，在支援的聊天畫面使用橫向介面。"
+        ),
+        "Ask before a call" to Zh(
+            "撥號前再次確認",
+            "點擊聊天頂部的語音或視訊通話按鈕時先顯示確認，避免誤撥。"
+        ),
+        "Customize message actions" to Zh(
+            "自訂訊息操作選單",
+            "調整長按訊息後各個操作按鈕的顯示順序，並隱藏不常用的功能。"
+        ),
+        "Hide call buttons" to Zh(
+            "隱藏通話按鈕",
+            "隱藏聊天室頂部的語音與視訊通話按鈕，仍可接聽來電或加入通話。"
+        ),
+        "Hide chosen chats" to Zh(
+            "隱藏指定聊天室",
+            "可從聊天列表隱藏選定對話，並在設定中恢復；不會自動關閉通知。"
+        ),
+        "Hide pictures on the Blocked list" to Zh(
+            "隱藏封鎖清單頭像",
+            "在隱私設定的封鎖名單中隱藏個人頭像，姓名與解除封鎖功能仍保留。"
+        ),
+        "Jump to the first message or a date" to Zh(
+            "跳到首則訊息或指定日期",
+            "長按聊天室頂部名稱，可要求跳到最早訊息或指定日期；僅能回溯 Messenger 可載入的紀錄。"
+        ),
+        "Keep chat pop-ups" to Zh(
+            "保留聊天通知彈出視窗",
+            "避免 Messenger 自動永久停用訊息彈出通知；仍須遵守 Android 系統通知設定。"
+        ),
+        "Keep the search bar" to Zh(
+            "恢復聊天列表搜尋列",
+            "當 Messenger 將搜尋欄改成圖示時，可恢復頂部完整搜尋列。"
+        ),
+        "Notify for restricted chats" to Zh(
+            "受限聊天室照常通知",
+            "讓受限制聯絡人的新訊息照常顯示通知，已靜音的對話仍保持靜音。"
+        ),
+        "Preview chats on long press" to Zh(
+            "長按預覽聊天室",
+            "長按聊天列表中的對話，可先預覽訊息而不直接進入聊天室。"
+        ),
+        "Record calls" to Zh(
+            "錄製 Messenger 通話",
+            "通話時顯示錄音按鈕，將錄音保存至手機的錄音資料夾；使用前請留意當地法律與通話者同意。"
+        ),
+        "Save button for voice messages" to Zh(
+            "語音訊息加入儲存按鈕",
+            "長按單則語音訊息可直接儲存音檔，不必開啟自動儲存全部語音訊息。"
+        ),
+        "Search saved messages" to Zh(
+            "搜尋手機已儲存的訊息",
+            "在未端對端加密的對話中搜尋本機已載入的歷史訊息，無法搜尋尚未載入的內容。"
+        ),
+        "Show People tab" to Zh(
+            "恢復聯絡人分頁",
+            "在 Messenger 底部導覽列恢復「聯絡人」分頁，適用於原本被隱藏的帳號。"
+        ),
+        "Unlock app themes" to Zh(
+            "解鎖更多聊天主題",
+            "允許在 Messenger 提供的主題中自由選擇，並支援淺色模式自訂顏色。"
+        ),
+        "Your own home header" to Zh(
+            "自訂聊天列表頂部標題",
+            "將 Messenger 聊天列表頂部標誌換成自己輸入的文字或選取的圖片。"
+        ),
         // Nivqo localized patch descriptions for November 2026 formal Hush cores
         "Local profile counts" to Zh(
             "自訂個人檔案數字",
@@ -49,9 +182,13 @@ object PatchMetadataLocalizer {
             "Android Auto 訊息支援",
             "讓 Android Auto 朗讀 Messenger 訊息，並透過語音輸入回覆。"
         ),
+        "Messenger · GmsCore support" to Zh(
+            "Messenger · GmsCore 通知支援",
+            "讓使用 microG-RE 的手機透過 GmsCore 接收 Messenger 推播；使用原生 Google Play 服務的裝置不必啟用。"
+        ),
         "GmsCore support" to Zh(
             "GmsCore 通知支援",
-            "讓使用 microG-RE 的手機透過 GmsCore 收到 Messenger 推播；一般 Google Play 服務手機請勿勾選。"
+            "讓使用 microG-RE 的手機透過 GmsCore 接收 Facebook 推播；一般 Google Play 服務裝置不必啟用。"
         ),
         "Hide the Instants button" to Zh(
             "隱藏 Instants 按鈕",

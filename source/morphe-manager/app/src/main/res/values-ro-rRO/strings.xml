@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Ascunzi această aplicație?</string>
     <string name="home_more_apps_title">Mai multe aplicații</string>
     <string name="home_more_apps_hide_title">Ascunzi acest card?</string>
-    <string name="home_more_apps_hide_message">Îl poți readuce oricând din Setări &gt; Aspect &gt; Ecranul principal</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Îl puteți readuce oricând în %1$s</string>
     <string name="home_app_hide_message">Această aplicație va fi ascunsă de pe ecranul de pornire. O poți restaura mai târziu din secțiunea aplicațiilor ascunse, folosind butonul din partea de jos a listei.</string>
     <string name="home_app_will_be_hidden">Aplicația va fi ascunsă</string>
     <string name="home_app_hidden_named">%s ascunse</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">Caută aplicații</string>
     <string name="list_options_title">Sortează și filtrează</string>
     <string name="list_options_state_description">Sortate după %1$s, filtrate după %2$s</string>
-    <string name="home_app_filter_all_description">Fiecare aplicație de pe ecranul de pornire</string>
-    <string name="home_app_filter_patched_description">Aplicațiile pe care le-ai patch-uit sau salvat cu Nivqo</string>
-    <string name="home_app_filter_not_patched_description">Aplicațiile pe care nu le-ai patch-uit încă în Morphe</string>
-    <string name="home_app_filter_installed_description">Aplicații instalate în prezent pe acest dispozitiv</string>
-    <string name="home_app_filter_uninstalled_description">Aplicații patch-uite cu Morphe care nu mai sunt pe acest dispozitiv</string>
     <string name="home_app_filter_clones">Clone</string>
-    <string name="home_app_filter_clones_description">Aplicații create sub un nume de pachet propriu, instalate alături de original</string>
     <string name="home_app_grouping_none">Niciunul</string>
-    <string name="home_app_grouping_all_apps_description">O listă cu toate aplicațiile</string>
-    <string name="home_app_grouping_sources_description">Aplicații din sursa de parchet care le furnizează</string>
-    <string name="home_app_grouping_custom_description">Aplicații în categoriile pe care le creați</string>
-    <string name="home_app_sort_manual_description">Apăsați lung pe o aplicație, apoi atingeți butonul de reordonare</string>
+    <string name="home_app_sort_manual_hint">Apasă lung o aplicație, apoi apasă butonul de reordonare</string>
     <string name="home_app_sort_recommended">Ordinare recomandată</string>
-    <string name="home_app_sort_recommended_description">Aplicațiile instalate și fixate primele</string>
-    <string name="home_app_sort_name_asc_description">Alfabetic, de la A la Z</string>
-    <string name="home_app_sort_name_desc_description">În ordine alfabetică inversă, de la Z la A</string>
     <string name="home_app_sort_updates_first">Actualizări de patch-uri mai întâi</string>
-    <string name="home_app_sort_updates_first_description">Aplicații cu patch-uri mai noi primele, apoi ordinea recomandată</string>
     <string name="home_app_sort_recently_patched">Patch-uite recent</string>
-    <string name="home_app_sort_recently_patched_description">Aplicațiile patch-uite cel mai recent, primele</string>
     <string name="home_no_apps_title">Nicio aplicație disponibilă</string>
     <string name="home_no_apps_subtitle">Adaugă o sursă de patch sau activează una existentă în %s</string>
     <string name="home_no_apps_search_subtitle">Nici o aplicație nu corespunde cu \"%s\"</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">Nimic nu corespunde cu %s</string>
     <string name="home_category_add">Adaugă categorie</string>
     <string name="home_category_all_apps">Toate aplicațiile</string>
-    <string name="home_category_custom">Personalizat</string>
+    <string name="home_app_grouping_categories">Categorii</string>
     <string name="home_category_uncategorized">Necategorisite</string>
     <string name="home_category_new_title">Categorie nouă</string>
     <string name="home_category_rename_title">Redenumire categorie</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">Surse de patch-uri</string>
     <string name="sources_search">Caută surse și patch-uri</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Toate sursele</string>
-    <string name="sources_filter_enabled_description">Patch-urile surselor sunt preluate din</string>
-    <string name="sources_filter_disabled_description">Surse dezactivate</string>
     <string name="sources_filter_issues">Necesită atenție</string>
-    <string name="sources_filter_issues_description">Sursele care sunt blocate, nu s-au încărcat sau necesită o versiune mai nouă Morphe</string>
     <string name="sources_sort_manual">Comandă manuală</string>
     <string name="sources_sort_manual_hint">Țineți apăsat pe o sursă pentru a reordona</string>
     <string name="sources_sort_last_updated">Ultima actualizare</string>
-    <string name="sources_sort_last_updated_description">Actualizări ale surselor cele mai recente mai întâi</string>
     <string name="sources_sort_enabled_first">Activat mai întâi</string>
-    <string name="sources_sort_enabled_first_description">Afișează sursele active înainte de sursele dezactivate</string>
     <string name="sources_patches_source_disabled_hint">Această sursă este dezactivată. Patch-urile sale sunt listate pentru referință și nu sunt aplicate</string>
     <string name="sources_management_open_in_browser">Deschide în browser</string>
     <string name="sources_management_report_issue">Raportează o problemă</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">Cheie de încredere</string>
     <string name="sources_signing_key_new">Cheie nouă</string>
     <string name="sources_patch_expert_badge">Expert</string>
-    <string name="sources_patch_expert_badge_tooltip">Activează modul Expert în Setări pentru a include manual acest patch</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Activați %1$s pentru a include acest patch manual</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">Ai nevoie de ajutor pentru a găsi APK-ul?</string>
     <string name="home_apk_availability_dialog_simple">Pentru a patch-ui &lt;b&gt;%s&lt;/b&gt;, ai nevoie de o versiune APK nepatch-uită:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">Recomandat</string>
     <string name="home_apk_availability_unpatched_label">Nepatch-uit</string>
     <string name="home_apk_availability_incompatible_label">Incompatibil</string>
-    <string name="home_apk_availability_installed_version">Instalat pe acest dispozitiv: %s</string>
     <string name="home_apk_availability_find">Da, ajută-mă să îl găsesc</string>
     <string name="home_apk_availability_have">Nu, îl am deja</string>
     <string name="home_apk_helper_download">Utilizați o aplicație de asistență</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">Se caută pagina de descărcare…</string>
     <string name="home_download_instructions_step1">Apasă pe butonul \'%s\' de mai jos</string>
     <string name="home_download_instructions_step2_part1">Derulează în josul paginii și apasă</string>
+    <string name="home_download_instructions_step2_apkcube">Derulați în jos pagina web, selectați versiunea &lt;b&gt;%s&lt;/b&gt; și apăsați</string>
     <string name="home_download_instructions_step2_generic">Derulează în josul paginii web și apasă butonul ei de descărcare</string>
     <string name="home_download_instructions_step2_variant">Derulează în josul paginii web și apasă butonul de descărcare al &lt;b&gt;variantei APK&lt;/b&gt; din partea de sus</string>
     <string name="home_download_instructions_step2_search">Deschide un rezultat de căutare de pe un site web de încredere</string>
     <string name="home_download_instructions_step2_search_note">Morphe nu poate garanta pentru aceste site-uri web. Evită-le pe cele care oferă propriul magazin de aplicații în loc de un fișier APK</string>
     <string name="home_download_instructions_step3_search">Pe site-ul respectiv, descarcă APK-ul versiunii &lt;b&gt;%s&lt;/b&gt;, nu pe cea mai nouă</string>
     <string name="home_download_instructions_step3_search_any">Pe site-ul respectiv, descarcă APK-ul aplicației. &lt;b&gt;Orice versiune&lt;/b&gt; poate fi patch-uită</string>
+    <string name="home_download_instructions_step2_github">La secțiunea &lt;b&gt;Assets&lt;/b&gt; a versiunii &lt;b&gt;%s&lt;/b&gt;, apasă pe fișierul care se termină în &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_latest">La secțiunea &lt;b&gt;Assets&lt;/b&gt; a celei mai recente versiuni, apasă pe fișierul care se termină în &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_note">Dacă există mai multe fișiere APK, alege pe cel denumit după %s sau pe cel universal</string>
     <string name="home_download_instructions_download_button_toast">Apasă butonul pe site, nu aici 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Excelent! Acum apasă pe continuare și mergi pe site-ul web 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Exercițiul este cheia succesului și te apropii din ce în ce mai mult 💪</string>
@@ -518,11 +503,13 @@ Pentru cele mai bune rezultate, această aplicație recomandă patch-uirea unui 
     <string name="batch_queue_pending_subtitle">Atinge pentru a revizui și a începe</string>
     <string name="batch_queue_clear_title">Golirezi cozile?</string>
     <string name="batch_queue_clear_description">Toate aplicațiile vor fi eliminate din coadă</string>
+    <string name="batch_queue_keep_title">Să păstrezi coada?</string>
+    <string name="batch_queue_keep_description">Aplicațiile din coadă vor aștepta pe ecranul principal pentru a fi pornite ulterior</string>
+    <string name="batch_queue_keep">Păstrare</string>
     <string name="shortcut_repatch_short">Repară</string>
     <string name="shortcut_repatch_long">Repară aplicațiile depășite</string>
     <string name="shortcut_check_updates_short">Verifică actualizări</string>
     <string name="shortcut_check_updates_long">Verifică actualizările patch-ului</string>
-    <string name="shortcut_patch_app">Aplică patch la %s</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Dezinstalezi această aplicație?</string>
     <string name="home_app_info_uninstall_removes_data">Aplicația și datele sale sunt eliminate de pe acest dispozitiv</string>
@@ -543,6 +530,7 @@ Pentru cele mai bune rezultate, această aplicație recomandă patch-uirea unui 
     <string name="home_app_info_install_type_custom_installer">Instalator personalizat</string>
     <string name="home_app_info_install_type_system_installer">Instalator sistem</string>
     <string name="home_app_info_install_type_play_store">Instalare de pe Play Store</string>
+    <string name="home_app_info_install_type_root">Instalare root</string>
     <string name="home_app_info_install_type_root_play_store">Instalare de pe Play Store cu root</string>
     <string name="home_app_info_install_type_shizuku_play_store">Instalare Play Store prin Shizuku</string>
     <string name="home_app_info_patch_update_available">Actualizare patach disponibilă</string>
@@ -584,7 +572,8 @@ Pentru cele mai bune rezultate, această aplicație recomandă patch-uirea unui 
     <string name="root_mount_module_unmount_warning">Dacă KernelSU are activată opțiunea „Deconectarea modulelor implicit”, deschideți KernelSU &gt; Superuser &gt; aplicația montată &gt; Profil &gt; Personalizat și dezactivați „Deconectarea modulelor”. În caz contrar, APK-ul patchuit montat poate să nu fie aplicat, chiar dacă Morphe îl indică ca fiind montat</string>
     <string name="root_pre_patch_installer_standard_title">Mod de instalare standard</string>
     <string name="root_pre_patch_installer_standard_description">Patch-uri ca un APK normal cu suport GmsCore. Setarea de instalare este folositã dupã aplicarea patch-ului.</string>
-    <string name="root_pre_patch_installer_hint">Întrebare în timp ce Setări &gt; Patching &gt; Instalare &gt; Prompt de selectare a instalatorului este activ. Modul de patch nu poate fi schimbat după patch</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">S-a întrebat în timp ce %1$s este setat pe %2$s. Modul de patch nu poate fi modificat după patch-uire</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Eroare copiată în clipboard</string>
     <string name="patcher_error_log">Jurnal erori</string>
@@ -683,6 +672,14 @@ Dezinstalarea va șterge definitiv toate datele aplicației."</string>
     <string name="patcher_step_group_saving">Se salvează</string>
     <string name="patcher_step_write_patched">Se scrie fișierul APK modificat</string>
     <string name="patcher_step_sign_apk">Se semnează fișierul APK modificat</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">Citire fișiere DEX</string>
+    <string name="patcher_task_extracting_resources">Extragere resurse</string>
+    <string name="patcher_task_decoding_resources">Decodare resurse</string>
+    <string name="patcher_task_indexing_classes">Indexare clase</string>
+    <string name="patcher_task_compiling_dex">Compilare fișiere DEX</string>
+    <string name="patcher_task_compiling_resources">Compilare resurse</string>
+    <string name="patcher_task_writing_apk">Scriere fișier APK</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Protecție la patch-uri în fundal</string>
     <string name="battery_optimization_dialog_description">Unele dispozitive pot opri patcher-ul când aplicația este minimizată. Permiteți aplicației Morphe să ruleze fără restricții de baterie pentru a asigura finalizarea fiabilă a patch-urilor</string>
@@ -731,7 +728,8 @@ Dezinstalarea va șterge definitiv toate datele aplicației."</string>
     <string name="patched_app_save_failed_toast">Eroare la salvarea aplicației modificate</string>
     <string name="plugin_activity_dialog_body">Este necesară interacțiunea utilizatorului pentru a continua cu acest plugin</string>
     <string name="patcher_process_killed_message">Sistemul a oprit patcher-ul înainte ca acesta să se încheie, de obicei pentru a elibera memorie. Închideți alte aplicații și încercați din nou</string>
-    <string name="patcher_process_crashed_message">Patcher-ul s-a blocat înainte de a termina. Dacă se întâmplă din nou, dezactivează \"Use embedded VM\" în setări și raportează problema împreună cu log-ul</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">Patcher-ul a crash-uit înainte de a termina. Dacă se întâmplă din nou, dezactivați %1$s și raportați problema împreună cu log-ul</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">Programul de aplicare a modificărilor nu a avut memorie suficientă, cu un heap de %1$s MB. Această aplicație este prea mare pentru patch-urile selectate. Încercați aplicarea modificărilor cu mai puține surse sau selectați mai puține patch-uri</string>
     <string name="install_app_success">Instalat cu succes</string>
@@ -919,6 +917,8 @@ Patches are not affected: enable pre-release patches for each source in the patc
     <string name="notification_channel_patch_updates">Actualizări de patch</string>
     <string name="notification_channel_patch_updates_description">Notificări despre noile lansări de patch</string>
     <string name="notification_channel_patcher_description">Afișate în timp ce Morphe aplică un patch unei aplicații în fundal</string>
+    <string name="notification_channel_patching_results">Rezultatele patching-ului</string>
+    <string name="notification_channel_patching_results_description">Când patching-ul se termină sau o instalare te așteaptă în timp ce Morphe este în fundal</string>
     <string name="notification_channel_mounted_apps">Aplicații montate</string>
     <string name="notification_channel_mounted_apps_description">Când o altă versiune a înlocuit o aplicație montată și patch-ul acesteia nu se mai aplică</string>
     <string name="notification_mount_replaced_title">%1$s nu mai este patchuit</string>
@@ -1029,9 +1029,8 @@ Dimensiunile imaginilor trebuie să fie următoarele:
     <string name="installer_title">Selectați instalatorul</string>
     <string name="installer_internal_description">Utilizează installerul de pachete Android</string>
     <string name="installer_play_store_description">Utilizează installer-ul sistem și setează Google Play Store ca sursă de instalare</string>
+    <string name="installer_root_description">Se instalează silențios cu root</string>
     <string name="installer_root_play_store_description">Instalează silențios cu acces root și setează Google Play Store ca sursă de instalare</string>
-    <string name="installer_auto_saved_name">Montare root</string>
-    <string name="installer_auto_saved_description">Monteazã aplicaţiile care au fost patch-uite în modul de montare root. APK-urile patch-uite standard folosesc un alt installer.</string>
     <string name="installer_shizuku_description">Instalează silențios folosind Shizuku sau Sui</string>
     <string name="installer_shizuku_play_store_description">Instalează silențios prin Shizuku sau Sui și setează Google Play Store ca sursă de instalare</string>
     <string name="installer_option_none">Fără opțiuni de rezervă</string>
@@ -1041,7 +1040,7 @@ Dimensiunile imaginilor trebuie să fie următoarele:
     <string name="installer_status_shizuku_not_installed">Instalează Shizuku sau Sui pentru a folosi această opțiune</string>
     <string name="installer_status_shizuku_not_running">Pornește Shizuku sau Sui și încearcă din nou</string>
     <string name="installer_status_shizuku_permission">Acordă permisiune aplicației Nivqo din aplicația Shizuku</string>
-    <string name="installer_mount_warning_install">Instalatorul principal setat la instalatorul montat radical. Această aplicație salvată nu a fost instalată folosind montaj</string>
+    <string name="installer_mount_warning_install">Modul de patch este setat pe mount root. Această aplicație salvată nu a fost instalată folosind mount</string>
     <string name="mount_version_mismatch_message">Versiunea aplicației de bază (%2$s) nu se potrivște cu versiunea aplicației patate (%1$s). Montează versiunea de bază potrivită, apoi reîncercați</string>
     <string name="mount_stock_restore_failed_message">Android a respins APK-ul original salvat. Instaleazã versiunea implicitã corespunzãtoare, apoi încercã din nou Montare.</string>
     <string name="installer_status_shizuku_unsupported">Versiunea Shizuku instalată nu este suportată</string>
@@ -1063,11 +1062,17 @@ Dimensiunile imaginilor trebuie să fie următoarele:
     <string name="installer_play_store_warning_continue">Am înțeles, continuă</string>
     <string name="installer_play_store_mode">Instalează ca Play Store</string>
     <string name="installer_play_store_mode_description">Marchează Google Play Store ca sursă de instalare</string>
+    <string name="settings_section_patch_mode">Mod patch</string>
+    <string name="settings_patch_mode_ask">Întreabă de fiecare dată</string>
+    <string name="settings_patch_mode_ask_description">Întreabă înainte de a patch-ui fiecare aplicație dacă doriți patch pentru mount root sau instalare standard</string>
+    <string name="settings_section_after_patching">După patch-uire</string>
+    <string name="settings_after_patching_install">Instalează automat</string>
+    <string name="settings_after_patching_ask">Întreabă ce instalator</string>
+    <string name="settings_after_patching_ask_description">Întreabă ce instalator să folosească de fiecare dată când se instalează o aplicație</string>
+    <string name="settings_after_patching_manual">Instalează manual</string>
+    <string name="settings_after_patching_manual_description">Instalează cu instalatorul implicit odată ce apăsați Instalare</string>
     <string name="settings_nomount_only">Doar NoMount</string>
     <string name="settings_nomount_only_description">Montează aplicațiile doar cu NoMount și nu revine niciodată la un bind mount, astfel încât acestea să rămână demontate fără acesta</string>
-    <string name="settings_prompt_installer_on_install">Solicitare de selecție a installerului</string>
-    <string name="settings_prompt_installer_on_install_description">Intreabă cum se instalează fiecare aplicație: cu root înainte de patch, altfel după</string>
-    <string name="settings_auto_install_with_shizuku">Instalare automată după patch-uire</string>
     <string name="settings_auto_install_with_shizuku_description">Instalează sau montează APK-ul patch-uithi rapid ce patch-ul s-a completat</string>
     <string name="settings_auto_uninstall_with_shizuku">Dezinstalare automată în caz de conflict</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Dezinstalază aplicația existentă în caz de conflict de semnătură. Acest lucru poate șterge datele aplicației</string>
@@ -1137,7 +1142,6 @@ Detalii: %2$s"</string>
     <string name="settings_system_import_keystore_dialog_description">Vă veți trebi să introduceți credențialele keystore-ului pentru a-l importa</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Nume (Alias)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Parolă</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Format Keystore</string>
     <string name="settings_system_import_keystore_wrong_credentials">Datele cheii incorecte</string>
     <string name="settings_system_import_keystore_success">Keystore importat</string>
     <string name="settings_system_import_keystore_failed">A eșuat importarea keystore-ului</string>
@@ -1291,6 +1295,7 @@ Detalii: %2$s"</string>
     <string name="credits_prior_development">Dezvoltare anterioară</string>
     <string name="opensource_licenses">Licențe open-source</string>
     <string name="opensource_licenses_description">Bibliotecile pe care se bazează Morphe</string>
+    <string name="opensource_licenses_search">Căutare în biblioteci și licențe</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">O alegere</string>
     <string name="easter_egg_pill_message">Take the blue pill and the ads stay exactly where they are. Take the red one and see how deep the bytecode goes</string>
@@ -1517,8 +1522,7 @@ Doriți totuși să continuați?"</string>
     <string name="tour_prompt_confirm">Arată-mi</string>
     <string name="onboarding_restart_title">Tur de prezentare</string>
     <string name="onboarding_restart_desc">Un tur ghidat al funcțiilor cheie</string>
-
-    <!-- Preserved Nivqo localization -->
+    <string name="home_app_filter_patched_description">Aplicațiile pe care le-ai patch-uit sau salvat cu Nivqo</string>
     <string name="home_category_delete_confirm_title">Șterge categorie</string>
     <string name="home_category_delete_confirm_message">Șterge categoria &lt;b&gt;%1$s&lt;/b&gt;? Aplicațiile din aceasta vor reveni la &lt;b&gt;%2$s&lt;/b&gt;</string>
     <string name="expert_mode_prerelease_notice">Această sursă utilizează patch-uri de pre-lansare. Patch-uirea poate eșua sau se poate comporta neașteptat.</string>

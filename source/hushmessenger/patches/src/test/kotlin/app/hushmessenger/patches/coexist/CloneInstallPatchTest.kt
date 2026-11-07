@@ -1,9 +1,14 @@
 package app.hushmessenger.patches.coexist
 
 import app.hushmessenger.patches.MessengerTarget
+import app.hushmessenger.patches.controls.DEFAULT_STRINGS
+import app.hushmessenger.patches.controls.MANIFEST_STRINGS
+import app.hushmessenger.patches.controls.RESTART_LABEL
 import app.hushmessenger.patches.controls.SETTINGS_AUTHORITY_SUFFIX
+import app.hushmessenger.patches.controls.SETTINGS_LABEL
 import app.hushmessenger.patches.controls.SHORTCUT_HOST
 import app.hushmessenger.patches.controls.addSettingsEntry
+import app.hushmessenger.patches.controls.addStrings
 import app.hushmessenger.patches.controls.collectLifecycle
 import app.hushmessenger.patches.controls.fixtureClass
 import app.hushmessenger.patches.controls.fixtureMethod
@@ -48,6 +53,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -66,7 +72,7 @@ private val STOCK = """
       <uses-permission android:name="com.facebook.orca.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
       <uses-permission android:name="com.facebook.katana.provider.ACCESS"/>
       <uses-permission android:name="app.hushfacebook.permission.prod.FB_APP_COMMUNICATION"/>
-      <queries><provider android:authorities="androidx.car.app.connection"/><package android:name="com.facebook.katana"/></queries>
+      <queries><provider android:authorities="androidx.car.app.connection"/><package android:name="com.facebook.katana"/><package android:name="com.facebook.orca"/></queries>
       <application android:label="@string/app_name">
         <meta-data android:name="android.telephony.PROPERTY_SATELLITE_DATA_OPTIMIZED" android:value="com.facebook.orca"/>
         <activity android:name="com.facebook.messenger.neue.MainActivity" android:taskAffinity="com.facebook.orca.Main">
@@ -317,6 +323,9 @@ class CloneInstallPatchTest {
             TAM_AUTHORITY to "$COPY$TAM_SUFFIX", "com.facebook.orca.hush.settings" to "$COPY.hush.settings"), result.authorities)
         assertEquals("androidx.car.app.connection", manifest.elements("queries").single().getElementsByTagName("provider")
             .let { (it.item(0) as Element).getAttribute("android:authorities") })
+        // 586 asks to see Messenger itself, which for the copy is the copy. Other apps it asks for stay.
+        assertEquals(listOf("com.facebook.katana", COPY), manifest.elements("queries").single().getElementsByTagName("package")
+            .let { nodes -> (0 until nodes.length).map { (nodes.item(it) as Element).getAttribute("android:name") } })
 
         assertEquals("$COPY.Main", manifest.named("activity", "com.facebook.messenger.neue.MainActivity").getAttribute("android:taskAffinity"))
         assertEquals("$COPY.com.facebook.bugreporter",
@@ -335,16 +344,39 @@ class CloneInstallPatchTest {
         assertEquals(COPY, manifest.named("meta-data", "android.telephony.PROPERTY_SATELLITE_DATA_OPTIMIZED").getAttribute("android:value"))
         assertEquals("com.facebook.orca.prefs.Parent", manifest.named("meta-data", "android.support.PARENT_ACTIVITY").getAttribute("android:value"))
 
-        assertEquals("Copy", manifest.elements("application").single().getAttribute("android:label"))
-        assertEquals("Copy", manifest.named("activity-alias", "com.facebook.orca.LauncherAliasDreamy").getAttribute("android:label"))
-        assertEquals("Copy", manifest.named("activity-alias", "com.facebook.orca.auth.StartScreenActivity").getAttribute("android:label"))
-        assertEquals("Copy settings", manifest.named("activity", "app.hushmessenger.extension.SettingsActivity").getAttribute("android:label"))
-        assertEquals("Copy settings", manifest.named("activity-alias", "app.hushmessenger.extension.SettingsLauncher").getAttribute("android:label"))
-        assertEquals("Restart Messenger", manifest.named("activity", "app.hushmessenger.extension.RestartActivity").getAttribute("android:label"))
+        // Every label is a string resource: a realme launcher showed one written into the manifest as Messenger's (#141).
+        assertEquals("@string/$CLONE_LABEL", manifest.elements("application").single().getAttribute("android:label"))
+        assertEquals("@string/$CLONE_LABEL", manifest.named("activity-alias", "com.facebook.orca.LauncherAliasDreamy").getAttribute("android:label"))
+        assertEquals("@string/$CLONE_LABEL", manifest.named("activity-alias", "com.facebook.orca.auth.StartScreenActivity").getAttribute("android:label"))
+        assertEquals("@string/$SETTINGS_LABEL", manifest.named("activity", "app.hushmessenger.extension.SettingsActivity").getAttribute("android:label"))
+        assertEquals("@string/$SETTINGS_LABEL", manifest.named("activity-alias", "app.hushmessenger.extension.SettingsLauncher").getAttribute("android:label"))
+        assertEquals("@string/$RESTART_LABEL", manifest.named("activity", "app.hushmessenger.extension.RestartActivity").getAttribute("android:label"))
         assertEquals(4, result.labels)
+        assertTrue(manifest.elements("*").none { (it.getAttribute("android:label").ifEmpty { "@" }).first() != '@' },
+            "No label is left as plain text")
         // Android resolves alias names against the new package only when they're relative, and none are.
         assertTrue(manifest.elements("activity-alias").none { it.getAttribute("android:name").startsWith(COPY) })
         assertFalse("com.facebook.orca" in manifest.values())
+    }
+
+    @Test fun theClonesNameGoesInTheStringsTheLabelsPointAt() {
+        fun strings(vararg pairs: Pair<String, String>) = xml("<resources>" + pairs.joinToString("") { (name, text) ->
+            "<string name=\"$name\">$text</string>" } + "</resources>")
+        fun Document.text(name: String) = elements("string").singleOrNull { it.getAttribute("name") == name }?.textContent
+        val files = MANIFEST_STRINGS.mapValues { (_, texts) -> strings("app_name" to "Messenger").apply { addStrings(texts) } }
+        for ((path, document) in files) document.nameClone(path, "Copy (2)")
+        assertEquals("Copy (2)", files.getValue(DEFAULT_STRINGS).text(CLONE_LABEL))
+        assertEquals("Messenger", files.getValue(DEFAULT_STRINGS).text("app_name"), "Messenger's own name stays for its screens")
+        assertEquals(listOf("Copy (2) settings", "Cài đặt Copy (2)", "Copy (2) 設定"), files.values.map { it.text(SETTINGS_LABEL) })
+        // Only the default file needs the app name; every language falls back to it.
+        assertEquals(listOf("Copy (2)", null, null), files.values.map { it.text(CLONE_LABEL) })
+        assertEquals("Restart Messenger", files.getValue(DEFAULT_STRINGS).text(RESTART_LABEL))
+        // Without settings in the patch there is no settings label to name, and the app name still goes in.
+        val bare = strings("app_name" to "Messenger").apply { nameClone(DEFAULT_STRINGS, "Copy") }
+        assertEquals("Copy", bare.text(CLONE_LABEL))
+        assertNull(bare.text(SETTINGS_LABEL))
+        // A strings file that has the clone's string already was patched before.
+        assertFailsWith<PatchException> { bare.nameClone(DEFAULT_STRINGS, "Copy") }
     }
 
     @Test fun anythingThatWouldCollideStopsThePatchBeforeTheManifestChanges() {
@@ -554,17 +586,52 @@ class CloneInstallPatchTest {
         }
     }
 
+    @Test fun aRefusedFacebookHandOffStopsThePatchBeforeTheCloneSitesChange() {
+        val katanaClone = "com.facebook.katana.morphe"
+        // No hand-off left to move, or a clone that takes the Facebook clone's own name.
+        for ((newPackage, handOffs) in listOf(COPY to emptyList<Pair<MutableMethod, Int>>(), katanaClone to listOf(broadcastSender() to 0))) {
+            val lookup = backupLookup()
+            val check = attachmentCheck()
+            val sender = broadcastSender()
+            val before = listOf(lookup, check, sender).map { it.code() }
+            assertFailsWith<PatchException> {
+                applyCloneCode(lookup, check, newPackage, listOf(sender to 1), emptySet(), emptyList(), katanaClone) { handOffs }
+            }
+            assertEquals(before, listOf(lookup, check, sender).map { it.code() }, newPackage)
+        }
+        // The regular Facebook app keeps its name everywhere, so its hand-offs aren't even looked for.
+        applyCloneCode(backupLookup(), attachmentCheck(), COPY, emptyList(), emptySet(), emptyList(), FACEBOOK_PACKAGE) { error("looked for hand-offs") }
+    }
+
+    @Test fun aHandOffAfterTheLookupSiteMovesWhereItWasFound() {
+        val katanaClone = "com.facebook.katana.morphe"
+        // A hand-off in the lookup's own method, after the instruction the clone lookup adds.
+        val body = LOOKUP_BODY.replace("return-void", "const-string v2, \"$FACEBOOK_PACKAGE\"\ninvoke-virtual {v4, v2}, $SET_PACKAGE\nreturn-void")
+        assertNotEquals(LOOKUP_BODY, body)
+        val lookup = backupLookup(body)
+        val handOff = lookup.code().indexOfFirst { (it as? ReferenceInstruction)?.reference.let { ref -> ref is StringReference && ref.string == FACEBOOK_PACKAGE } }
+        val size = lookup.code().size
+        applyCloneCode(lookup, attachmentCheck(), COPY, emptyList(), emptySet(), emptyList(), katanaClone) { listOf(lookup to handOff) }
+        val strings = lookup.code().mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+        assertEquals(size + 1, lookup.code().size)
+        assertEquals(1, strings.count { it == katanaClone })
+        assertFalse(FACEBOOK_PACKAGE in strings)
+        assertEquals(2 to katanaClone, lookup.loads(handOff + 1))
+    }
+
     @Test fun eachBuildFamilyHasItsOwnPinnedSites() {
         val families = MessengerTarget.VERSION_CODES.map { expectedCloneSitesFor(it.toString()) }.toSet()
-        assertEquals(3, families.size)
+        assertEquals(2, families.size)
         assertTrue(families.all { it.size == 7 && it.count { id -> '@' in id } == 5 })
-        assertEquals(setOf("LX/OnZ;-><init>()V", "LX/4ae;->A00(Ljava/lang/String;)Z",
-            "LX/KeQ;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
-            "LX/8cK;->A04(Landroid/os/Bundle;)LX/9be;@225", "LX/8cK;->A04(Landroid/os/Bundle;)LX/9be;@318",
-            "LX/CVD;->onClick(Landroid/view/View;)V@81", "LX/Jig;->onClick(Landroid/view/View;)V@174"), expectedCloneSitesFor("347015064"))
-        // The second arm64 profile differs only in controls; its clone sites are the base's.
-        assertEquals(expectedCloneSitesFor("347015062"), expectedCloneSitesFor("347014996"))
-        assertEquals(expectedCloneSitesFor("347015062"), expectedCloneSitesFor("347015067"))
+        assertEquals(setOf("LX/Y7a;-><init>()V", "LX/4NY;->A00(Ljava/lang/String;)Z",
+            "LX/391;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
+            "LX/93D;->A04(Landroid/os/Bundle;)LX/9Xq;@228", "LX/93D;->A04(Landroid/os/Bundle;)LX/9Xq;@323",
+            "LX/Cg3;->onClick(Landroid/view/View;)V@83", "LX/Jm8;->onClick(Landroid/view/View;)V@155"), expectedCloneSitesFor("347215348"))
+        assertEquals(setOf("LX/MJk;-><init>()V", "LX/4No;->A00(Ljava/lang/String;)Z",
+            "LX/39H;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
+            "LX/947;->A05(Landroid/os/Bundle;)LX/9Z4;@186", "LX/947;->A05(Landroid/os/Bundle;)LX/9Z4;@281",
+            "LX/Cgh;->onClick(Landroid/view/View;)V@83", "LX/Jrm;->onClick(Landroid/view/View;)V@151"), expectedCloneSitesFor("347215341"))
+        assertFailsWith<PatchException> { expectedCloneSitesFor("347015062") }
         assertFailsWith<PatchException> { expectedCloneSitesFor("346611999") }
     }
 
@@ -707,7 +774,7 @@ class CloneInstallPatchTest {
             assertFalse("com.facebook.orca" in manifest.values(), code)
             val aliases = manifest.elements("activity-alias").filter { it.getAttribute("android:name").startsWith("com.facebook.orca.LauncherAlias") }
             assertEquals(7, aliases.size, code)
-            assertTrue(aliases.all { it.getAttribute("android:label") == CLONE_DEFAULT_LABEL }, code)
+            assertTrue(aliases.all { it.getAttribute("android:label") == "@string/$CLONE_LABEL" }, code)
         }
     }
 

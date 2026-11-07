@@ -15,20 +15,25 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val EPHEMERAL_VIEWER = "Lcom/facebook/messaging/media/ephemeralmedia/viewer/EphemeralMediaViewerFragment;"
 internal const val QUICKSNAP_VIEWER = "Lcom/facebook/messaging/quicksnap/consumption/viewer/MsgrQuicksnapViewerFragment;"
-/** "Generate AI stickers" in Messenger 585's string pack (0x7f140559 in 584). */
-internal const val GENERATE_AI_LABEL = 0x7f140560
+/** "Generate AI stickers" in Messenger 586's string pack (0x7f140559 in 584). Each release renumbers it. */
+internal const val GENERATE_AI_LABEL = 0x7f14055d
 /**
- * "Generate" in 585's arm64 string pack: the same cell when an account gets more than one sticker maker. Its tap opens a
+ * "Generate" in 586's string pack: the same cell when an account gets more than one sticker maker. Its tap opens a
  * menu of custom, AI and music stickers, so it fronts the AI maker too.
  */
-internal const val GENERATE_MENU_LABEL = 0x7f141c2d
-/** "Generate" in 585's armv7 string pack, two resources past arm64's. */
-internal const val GENERATE_MENU_LABEL_ARMV7 = 0x7f141c2f
-/** The viewer's onCreateDialog override: A1J in 585 arm64 and the 347014974 armv7 family, A1H in the 347014990 one. */
-internal const val EPHEMERAL_DIALOG = "A1J"
-internal val EPHEMERAL_DIALOGS = setOf(EPHEMERAL_DIALOG, "A1H")
-/** The Quicksnap viewer's onCreateView frame: 40 registers on 585 arm64, 39 on armv7. */
-internal val QUICKSNAP_REGISTERS = setOf(39, 40)
+internal const val GENERATE_MENU_LABEL = 0x7f141c4e
+/** "Generate" in 586's armv7 string pack, two resources past arm64's (0x7f141c4e is "Meta AI theme" there). */
+internal const val GENERATE_MENU_LABEL_ARMV7 = 0x7f141c50
+/** The viewer's onCreateDialog override, A1K in 586. */
+internal const val EPHEMERAL_DIALOG = "A1K"
+/** The same override in 586's armv7 build, with the same body. */
+internal const val EPHEMERAL_DIALOG_ARMV7 = "A1L"
+internal val EPHEMERAL_DIALOGS = setOf(EPHEMERAL_DIALOG, EPHEMERAL_DIALOG_ARMV7)
+/** The Quicksnap viewer's onCreateView frame in 586. */
+internal const val QUICKSNAP_REGISTERS = 39
+/** One register fewer in 586's armv7 build. */
+internal const val QUICKSNAP_REGISTERS_ARMV7 = 38
+internal val QUICKSNAP_FRAMES = setOf(QUICKSNAP_REGISTERS, QUICKSNAP_REGISTERS_ARMV7)
 private const val WINDOW = "Landroid/view/Window;"
 private const val SET_FLAGS = "$WINDOW->setFlags(II)V"
 private const val ADD_FLAGS = "$WINDOW->addFlags(I)V"
@@ -100,7 +105,7 @@ internal fun Method.screenshotViewerSites(): List<Int> {
             // Builds move the flag between 29 and 32 with their setup code, so the one window flag call is the site.
             val site = code.indices.singleOrNull { code[it].mediaRef() == ADD_FLAGS } ?: mediaFailure(this)
             sites = listOf(site); allowedJumps = emptySet()
-            site >= 6 && !coveredThrough(site) && implementation!!.registerCount in QUICKSNAP_REGISTERS &&
+            site >= 6 && !coveredThrough(site) && implementation!!.registerCount in QUICKSNAP_FRAMES &&
                 result(site - 6, "Landroid/app/Dialog;", 0) && nullCheck(site - 5, 0, site + 1) &&
                 window(site - 4, "Landroid/app/Dialog;", 0, 1, site + 1) && literal(site - 1, 0) && call(site, ADD_FLAGS, listOf(1, 0))
         }
@@ -130,8 +135,9 @@ internal fun MutableMethod.injectScreenshotViewer() {
 }
 
 /**
- * The cell under 585's naming, the label it shows, how many renders offer that label, the same for its Generate menu label,
+ * The cell under 586's naming, the label it shows, how many renders offer that label, the same for its Generate menu label,
  * and how many instructions its own render has (24 registers). Four renders offer the AI label and one the menu label.
+ * Each ABI's DEX names the cell and its types differently, so each gets a row.
  */
 internal data class AiCell(
     val type: String, val superclass: String, val scope: String, val component: String,
@@ -141,13 +147,11 @@ internal data class AiCell(
     val render = "$type->render($scope)$component"
 }
 internal val aiCells = listOf(
-    // 585 arm64 under two namings, then the two armv7 namings, whose menu label sits two resources later.
-    AiCell("LX/R3i;", "LX/1No;", "LX/2ED;", "LX/1IG;"),
-    AiCell("LX/R3h;", "LX/1No;", "LX/2ED;", "LX/1IG;"),
-    AiCell("LX/OXo;", "LX/1Og;", "LX/2Fc;", "LX/1J8;", menu = GENERATE_MENU_LABEL_ARMV7),
-    AiCell("LX/OGf;", "LX/1OE;", "LX/2Ed;", "LX/1Ig;", menu = GENERATE_MENU_LABEL_ARMV7, size = 113),
+    AiCell("LX/REu;", "LX/1JA;", "LX/2Ca;", "LX/1Gk;"),
+    // 586's armv7 build: four fewer instructions in the render, and its own Generate label.
+    AiCell("LX/O19;", "LX/1JZ;", "LX/2Cz;", "LX/1H9;", size = 109, menu = GENERATE_MENU_LABEL_ARMV7),
 )
-internal const val AI_CELL_SIZE = 109
+internal const val AI_CELL_SIZE = 113
 internal const val AI_CELL_REGISTERS = 24
 internal const val AI_CELL_SOURCES = 4
 internal const val AI_MENU_SOURCES = 1
@@ -226,7 +230,7 @@ private const val NEXT = "Ljava/util/Iterator;->next()Ljava/lang/Object;"
 /**
  * The Suggested sticker grid around [AiCell]. Its render loops over the grid items and sends each through an instance-of
  * chain; the Generate menu item's branch builds the cell, and so does the Generate AI item's where a build still lists it
- * (585 dropped it from the grid). [sites] are where those branch bodies start, [skip] is the loop head every item goes
+ * (584 did; 586 doesn't). [sites] are where those branch bodies start, [skip] is the loop head every item goes
  * back to and [flag] is the register the chain's instance-of results land in.
  */
 internal data class AiGrid(val sites: List<Int>, val skip: Int, val flag: Int)

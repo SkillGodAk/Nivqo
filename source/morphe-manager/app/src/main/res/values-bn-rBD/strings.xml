@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">এই অ্যাপটি লুকিয়ে রাখবেন?</string>
     <string name="home_more_apps_title">আরও অ্যাপ</string>
     <string name="home_more_apps_hide_title">এই কার্ডটি লুকিয়ে রাখবেন?</string>
-    <string name="home_more_apps_hide_message">আপনি যেকোনো সময় সেটি Settings &gt; Appearance &gt; Home screen থেকে ফিরিয়ে আনতে পারেন</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">আপনি যেকোনো সময় %1$s থেকে এটি ফিরিয়ে আনতে পারেন</string>
     <string name="home_app_hide_message">এই অ্যাপটি হোম স্ক্রীন থেকে লুকানো হবে। আপনি তালিকাটির নীচে থাকা \'\' বোতামটি ব্যবহার করে পরে এটি পুনরুদ্ধার করতে পারেন</string>
     <string name="home_app_will_be_hidden">এ অ্যাপটি লুকিয়ে রাখা হবে</string>
     <string name="home_app_hidden_named">%s লুকানো</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">অ্যাপস অনুসন্ধান করুন</string>
     <string name="list_options_title">সাজান ও ফিল্টার করুন</string>
     <string name="list_options_state_description">%1$s দ্বারা সাজানো, %2$s দ্বারা ফিল্টার করা</string>
-    <string name="home_app_filter_all_description">হোম স্ক্রিনে থাকা প্রতিটি অ্যাপ</string>
-    <string name="home_app_filter_patched_description">Nivqo দিয়ে আপনি যেসব অ্যাপ প্যাচ করেছেন বা সংরক্ষণ করেছেন</string>
-    <string name="home_app_filter_not_patched_description">Morphe-এ আপনি যেসব অ্যাপ এখনও প্যাচ করেননি</string>
-    <string name="home_app_filter_installed_description">এই ডিভাইসে বর্তমানে ইনস্টল করা অ্যাপগুলো</string>
-    <string name="home_app_filter_uninstalled_description">Morphe দিয়ে প্যাচ করা অ্যাপগুলো যেগুলো আর এই ডিভাইসে নেই</string>
     <string name="home_app_filter_clones">ক্লোন</string>
-    <string name="home_app_filter_clones_description">নিজস্ব প্যাকেজ নামে তৈরি, মূল অ্যাপের পাশাপাশি ইনস্টল করা অ্যাপ</string>
     <string name="home_app_grouping_none">কোনোটিই নয়</string>
-    <string name="home_app_grouping_all_apps_description">প্রতিটি অ্যাপসহ একটি তালিকা</string>
-    <string name="home_app_grouping_sources_description">যারা সেগুলো সরবরাহ করে সেই পেচ উৎসের অধীনে অ্যাপস</string>
-    <string name="home_app_grouping_custom_description">আপনি যে বিষয়শ্রেণীগুলো তৈরি করেন তাতে অ্যাপস</string>
-    <string name="home_app_sort_manual_description">কোনো অ্যাপ দীর্ঘক্ষণ চাপুন, তারপর পুনর্বিন্যাস বোতামে আলতো চাপুন</string>
+    <string name="home_app_sort_manual_hint">একটি অ্যাপ দীর্ঘক্ষণ চেপে ধরুন, তারপর রিঅর্ডার বাটনে ট্যাপ করুন</string>
     <string name="home_app_sort_recommended">সুপারিশকৃত ক্রম</string>
-    <string name="home_app_sort_recommended_description">ইনস্টল করা এবং পিন করা অ্যাপগুলি প্রথমে</string>
-    <string name="home_app_sort_name_asc_description">বর্ণানুক্রমিকভাবে, A থেকে Z</string>
-    <string name="home_app_sort_name_desc_description">বিপরীত বর্ণানুক্রমিক, Z থেকে A</string>
     <string name="home_app_sort_updates_first">প্রথমে প্যাচ আপডেট</string>
-    <string name="home_app_sort_updates_first_description">যে অ্যাপগুলিতে নতুন প্যাচ আছে সেগুলি আগে, তারপর প্রস্তাবিত ক্রম</string>
     <string name="home_app_sort_recently_patched">সম্প্রতি প্যাচ করা</string>
-    <string name="home_app_sort_recently_patched_description">সবচেয়ে সম্প্রতি প্যাচ করা অ্যাপগুলো প্রথমে</string>
     <string name="home_no_apps_title">কোনো অ্যাপস পাওয়া যায়নি</string>
     <string name="home_no_apps_subtitle">একটি প্যাচ উৎস যোগ করুন অথবা %s-এ বিদ্যমান একটি সক্ষম করুন</string>
     <string name="home_no_apps_search_subtitle">\"%s\" এর সাথে মেলে এমন কোনো অ্যাপ নেই</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">%s-এর সাথে কিছুই মেলেনি</string>
     <string name="home_category_add">বিভাগ যোগ করুন</string>
     <string name="home_category_all_apps">সমস্ত অ্যাপস</string>
-    <string name="home_category_custom">কাস্টম</string>
+    <string name="home_app_grouping_categories">ক্যাটেগরি</string>
     <string name="home_category_uncategorized">শ্রেণীবিহীন</string>
     <string name="home_category_new_title">নতুন বিভাগ</string>
     <string name="home_category_rename_title">বিভাগটির নাম পরিবর্তন করুন</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">প্যাচ সোর্সগুলো</string>
     <string name="sources_search">উৎস এবং প্যাচ অনুসন্ধান করুন</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">প্রতিটি উৎস</string>
-    <string name="sources_filter_enabled_description">উৎস প্যাচগুলি নেওয়া হয়েছে</string>
-    <string name="sources_filter_disabled_description">উৎস বন্ধ করা হয়েছে</string>
     <string name="sources_filter_issues">মনোযোগের প্রয়োজন</string>
-    <string name="sources_filter_issues_description">সোর্সগুলি যা ব্লক করা হয়েছে, লোড করতে ব্যর্থ হয়েছে বা একটি নতুন Morphe-এর প্রয়োজন</string>
     <string name="sources_sort_manual">ম্যানুয়াল অর্ডার</string>
     <string name="sources_sort_manual_hint">পুনরায় সাজানোর জন্য একটি উৎসের উপর দীর্ঘক্ষণ চাপুন</string>
     <string name="sources_sort_last_updated">সর্বশেষ আপডেট করা হয়েছে</string>
-    <string name="sources_sort_last_updated_description">সর্বশেষ সোর্স আপডেট প্রথমে</string>
     <string name="sources_sort_enabled_first">প্রথমে সক্ষম</string>
-    <string name="sources_sort_enabled_first_description">অক্ষম সোর্সের আগে সক্রিয় সোর্স দেখান</string>
     <string name="sources_patches_source_disabled_hint">এই উৎসটি অক্ষম। এর প্যাচগুলি রেফারেন্সের জন্য তালিকাভুক্ত এবং প্রয়োগ করা হয় না।</string>
     <string name="sources_management_open_in_browser">ব্রাউজারে ওপেন করুন</string>
     <string name="sources_management_report_issue">একটি সমস্যা রিপোর্ট করুন</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">বিশ্বস্ত কী</string>
     <string name="sources_signing_key_new">নতুন কী</string>
     <string name="sources_patch_expert_badge">বিশেষজ্ঞ</string>
-    <string name="sources_patch_expert_badge_tooltip">এই প্যাচটি ম্যানুয়ালি অন্তর্ভুক্ত করতে সেটিংস-এ বিশেষজ্ঞ মোড সক্রিয় করুন</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">এই প্যাচটি ম্যানুয়ালি অন্তর্ভুক্ত করতে %1$s চালু করুন</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">APK খুঁজে পেতে সাহায্য প্রয়োজন?</string>
     <string name="home_apk_availability_dialog_simple">প্যাচ করতে &lt;b&gt;%s&lt;/b&gt; এর জন্য, অ-প্যাচড এপিকি (APK) সংস্করণ দরকার:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">প্রশংসিত</string>
     <string name="home_apk_availability_unpatched_label">অনুশিষ্টিত</string>
     <string name="home_apk_availability_incompatible_label">অসঙ্গতিপূর্ণ</string>
-    <string name="home_apk_availability_installed_version">এই ডিভাইসে ইনস্টল করা হয়েছে: %s</string>
     <string name="home_apk_availability_find">হ্যাঁ, আমাকে এটি খুঁজে পেতে সাহায্য করুন</string>
     <string name="home_apk_availability_have">না, এটি আমার কাছে ইতিমধ্যে আছে</string>
     <string name="home_apk_helper_download">একটি সহায়ক অ্যাপ ব্যবহার করুন</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">ডাউনলোড পেজ খোঁজা হচ্ছে…</string>
     <string name="home_download_instructions_step1">নিচের \'%s\' বোতামটি চাপুন</string>
     <string name="home_download_instructions_step2_part1">ওয়েবপেজটি স্ক্রোল করুন এবং চাপুন</string>
+    <string name="home_download_instructions_step2_apkcube">ওয়েবপেজটি স্ক্রল করে নিচে নামুন, ভার্সন &lt;b&gt;%s&lt;/b&gt; বেছে নিন এবং প্রেস করুন</string>
     <string name="home_download_instructions_step2_generic">ওয়েবপেজে নিচে স্ক্রল করুন এবং এর ডাউনলোড বাটনটি চাপুন</string>
     <string name="home_download_instructions_step2_variant">ওয়েবপেজে নিচে স্ক্রল করুন এবং উপরের <b>APK ভ্যারিয়েন্টের</b> ডাউনলোড বাটনটি চাপুন</string>
     <string name="home_download_instructions_step2_search">আপনি বিশ্বাস করেন এমন একটি ওয়েবসাইট থেকে একটি অনুসন্ধান ফলাফল খুলুন</string>
     <string name="home_download_instructions_step2_search_note">Morphe এই ওয়েবসাইটগুলোর ব্যাপারে নিশ্চয়তা দিতে পারে না। যেগুলো APK ফাইলের পরিবর্তে নিজস্ব অ্যাপ স্টোর অফার করে, সেগুলো এড়িয়ে যান।</string>
     <string name="home_download_instructions_step3_search">সেই ওয়েবসাইটে, <b>%s</b> সংস্করণের APK ডাউনলোড করুন, সবচেয়ে নতুনটি নয়।</string>
     <string name="home_download_instructions_step3_search_any">সেই ওয়েবসাইটে, অ্যাপটির APK ডাউনলোড করুন। <b>যেকোনো সংস্করণ</b> প্যাচ করা যেতে পারে।</string>
+    <string name="home_download_instructions_step2_github">রিলিজ &lt;b&gt;%s&lt;/b&gt;-এর &lt;b&gt;Assets&lt;/b&gt;-এর অধীনে, &lt;b&gt;.apk&lt;/b&gt; দিয়ে শেষ হওয়া ফাইলটিতে প্রেস করুন</string>
+    <string name="home_download_instructions_step2_github_latest">সর্বশেষ রিলিজের &lt;b&gt;Assets&lt;/b&gt;-এর অধীনে, &lt;b&gt;.apk&lt;/b&gt; দিয়ে শেষ হওয়া ফাইলটিতে প্রেস করুন</string>
+    <string name="home_download_instructions_step2_github_note">যদি বেশ কয়েকটি APK ফাইল থাকে, তবে %s নামে থাকা ফাইলটি অথবা ইউনিভার্সাল ফাইলটি বেছে নিন</string>
     <string name="home_download_instructions_download_button_toast">এখানে নয়, ওয়েবসাইটে ডাউনলোড করুন 😊</string>
     <string name="home_download_instructions_download_button_toast_2">চমৎকার! এখন কন্টিনিউ বাটনে ক্লিক করে ওয়েবসাইটে চলে যান 👆</string>
     <string name="home_download_instructions_download_button_toast_3">অনুশীলনের মাধ্যমেই নিখুঁত হওয়া যায় এবং আপনি সঠিক পথেই এগোচ্ছেন 💪</string>
@@ -518,11 +503,13 @@
     <string name="batch_queue_pending_subtitle">সমীক্ষা করে শুরু করতে ট্যাপ করুন</string>
     <string name="batch_queue_clear_title">কিউ পরিষ্কার করবেন?</string>
     <string name="batch_queue_clear_description">সব অ্যাপ কিউ থেকে সরানো হবে</string>
+    <string name="batch_queue_keep_title">কিউটি কি রাখা হবে?</string>
+    <string name="batch_queue_keep_description">কিউতে থাকা অ্যাপগুলো পরবর্তীতে শুরু করার জন্য হোম স্ক্রিনে অপেক্ষা করবে</string>
+    <string name="batch_queue_keep">রাখুন</string>
     <string name="shortcut_repatch_short">পুনরায় প্যাচ করুন</string>
     <string name="shortcut_repatch_long">পুরানো অ্যাপগুলি পুনরায় প্যাচ করুন</string>
     <string name="shortcut_check_updates_short">আপডেটগুলি দেখুন</string>
     <string name="shortcut_check_updates_long">প্যাচ আপডেটের জন্য দেখুন</string>
-    <string name="shortcut_patch_app">%s প্যাচ করুন</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">এই অ্যাপটি আনইনস্টল করবেন?</string>
     <string name="home_app_info_uninstall_removes_data">অ্যাপ এবং এর ডেটা এই ডিভাইস থেকে সরিয়ে ফেলা হবে</string>
@@ -543,6 +530,7 @@
     <string name="home_app_info_install_type_custom_installer">কাস্টম ইনস্টলার</string>
     <string name="home_app_info_install_type_system_installer">সিস্টেম ইনস্টলার</string>
     <string name="home_app_info_install_type_play_store">Play Store-এ ইনস্টল করুন</string>
+    <string name="home_app_info_install_type_root">রুট ইনস্টল</string>
     <string name="home_app_info_install_type_root_play_store">রুট প্লে স্টোর ইনস্টল করুন</string>
     <string name="home_app_info_install_type_shizuku_play_store">শিজুউকু প্লে স্টোর ইনস্টল করুন</string>
     <string name="home_app_info_patch_update_available">প্যাচ আপডেট উপলব্ধ আছে</string>
@@ -584,7 +572,8 @@
     <string name="root_mount_module_unmount_warning">যদি KernelSU-তে \"ডিফল্টভাবে মডিউল আনমাউন্ট\" চালু থাকে, তবে KernelSU &gt; সুপারইউজার &gt; যে অ্যাপটি আপনি মাউন্ট করেছিলেন &gt; প্রোফাইল &gt; কাস্টমে জানুন এবং \"মডিউল আনমাউন্ট\" বন্ধ করুন। অন্যথায়, মাউন্ট করা প্যাচড APK কার্যকর নাও হতে পারে, এমনকি Morphe এটা মাউন্ট করা হিসাবে দেখালেও</string>
     <string name="root_pre_patch_installer_standard_title">স্ট্যান্ডার্ড ইনস্টল মোড</string>
     <string name="root_pre_patch_installer_standard_description">GmsCore সমর্থন সহ একটি সাধারণ APK হিসাবে প্যাচ। প্যাচিং করার পরে আপনার ইনস্টলার সেটিংস ব্যবহার করা হয়</string>
-    <string name="root_pre_patch_installer_hint"><b>&amp;gt;</b> সেটিংস <b>&amp;gt;</b> প্যাচিং <b>&amp;gt;</b> ইনস্টলেশনে ইনস্টলার নির্বাচনের প্রম্পট সক্রিয় থাকাকালীন জিজ্ঞাসা করা হয়। প্যাচিংয়ের পরে প্যাচ মোড পরিবর্তন করা যায় না</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">%1$s যখন %2$s সেট করা থাকে তখন জিজ্ঞাসা করা হয়েছে। প্যাচ করার পরে প্যাচ মোড পরিবর্তন করা যাবে না</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">ত্রুটি ক্লিপবোর্ডে অনুলিপি করা হয়েছে</string>
     <string name="patcher_error_log">ত্রুটি রিপোর্ট</string>
@@ -683,6 +672,14 @@
     <string name="patcher_step_group_saving">সংরক্ষণ</string>
     <string name="patcher_step_write_patched">প্যাচযুক্ত APK ফাইল লেখা হচ্ছে</string>
     <string name="patcher_step_sign_apk">প্যাচ করা APK ফাইল সাইন করা হচ্ছে</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">DEX ফাইলগুলো পড়া হচ্ছে</string>
+    <string name="patcher_task_extracting_resources">রিসোর্স এক্সট্র্যাক্ট করা হচ্ছে</string>
+    <string name="patcher_task_decoding_resources">রিসোর্স ডিকোড করা হচ্ছে</string>
+    <string name="patcher_task_indexing_classes">ক্লাস ইনডেক্সিং করা হচ্ছে</string>
+    <string name="patcher_task_compiling_dex">DEX ফাইলগুলো কম্পাইল করা হচ্ছে</string>
+    <string name="patcher_task_compiling_resources">রিসোর্স কম্পাইল করা হচ্ছে</string>
+    <string name="patcher_task_writing_apk">APK ফাইল লেখা হচ্ছে</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">ব্যাকগ্রাউন্ড প্যাচিং সুরক্ষা</string>
     <string name="battery_optimization_dialog_description">কিছু ডিভাইস অ্যাপটি মিনিমাইজ করা হলে প্যাচার বন্ধ করতে পারে। প্যাচিং নির্ভরযোগ্যভাবে সম্পন্ন করার জন্য Morphe-কে ব্যাটারি সীমাবদ্ধতা ছাড়াই চলতে দেওয়ার অনুমতি দিন</string>
@@ -731,7 +728,8 @@
     <string name="patched_app_save_failed_toast">প্যাচ করা অ্যাপ সংরক্ষণ করতে ব্যর্থ</string>
     <string name="plugin_activity_dialog_body">এই প্লাগইন চালিয়ে যেতে জন্য ব্যবহারকারীর ইন্টারেকশন প্রয়োজন</string>
     <string name="patcher_process_killed_message">সিস্টেমটি প্যাচারকে সম্পন্ন করার আগেই বন্ধ করে দিয়েছে, সাধারণত মেমোরি খালি করতে। অন্য অ্যাপগুলো বন্ধ করুন এবং আবার চেষ্টা করুন</string>
-    <string name="patcher_process_crashed_message">প্যাচার শেষ হওয়ার আগেই ক্র্যাশ করেছে। এটি আবার ঘটলে, সেটিংসে গিয়ে \"Use embedded VM\" বন্ধ করুন এবং লগসহ সমস্যাটি রিপোর্ট করুন</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">প্যাচার শেষ হওয়ার আগেই ক্র্যাশ করেছে। যদি এটি আবার ঘটে, তবে %1$s বন্ধ করুন এবং লগ সহ সমস্যাটি রিপোর্ট করুন</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">%1$s MB হিপ মেমোরি ব্যবহার করে প্যাচার রান শেষ হয়ে গেছে। এই অ্যাপটি নির্বাচিত প্যাচগুলির জন্য খুব বড়। কম প্যাচ সোর্স সহ প্যাচিং করার চেষ্টা করুন, অথবা কম প্যাচ নির্বাচন করুন</string>
     <string name="install_app_success">সাফল্য়ের সাথে ইনস্টল করা হয়েছে</string>
@@ -919,6 +917,8 @@
     <string name="notification_channel_patch_updates">প্যাচ আপডেট</string>
     <string name="notification_channel_patch_updates_description">নতুন প্যাচ রিলিজ সম্পর্কে বিজ্ঞপ্তি</string>
     <string name="notification_channel_patcher_description">Morphe ব্যাকগ্রাউন্ডে কোনো অ্যাপ প্যাচ করার সময় দেখানো হয়</string>
+    <string name="notification_channel_patching_results">প্যাচিং ফলাফল</string>
+    <string name="notification_channel_patching_results_description">যখন প্যাচিং শেষ হয় বা Morphe ব্যাকগ্রাউন্ডে থাকা অবস্থায় কোনো ইনস্টলেশন আপনার জন্য অপেক্ষা করে</string>
     <string name="notification_channel_mounted_apps">মাউন্ট করা অ্যাপগুলো</string>
     <string name="notification_channel_mounted_apps_description">যখন অন্য কোনো সংস্করণ একটি মাউন্ট করা অ্যাপকে প্রতিস্থাপন করেছে এবং এর প্যাচটি আর প্রযোজ্য নয়</string>
     <string name="notification_mount_replaced_title">%1$s আর প্যাচ করা নেই</string>
@@ -1019,9 +1019,8 @@ morphe_adaptive_monochrome_custom.xml
     <string name="installer_title">ইনস্টলার নির্বাচন করুন</string>
     <string name="installer_internal_description">অ্যান্ড্রয়েড প্যাকেজ ইনস্টলার ব্যবহার করে।</string>
     <string name="installer_play_store_description">সিস্টেম ইনস্টলার ব্যবহার করে এবং Google Play Store-কে ইনস্টল উৎস হিসাবে সেট করে</string>
+    <string name="installer_root_description">রুট-এর সাহায্যে নিঃশব্দে ইনস্টল করে</string>
     <string name="installer_root_play_store_description">রুট ব্যবহার করে নিঃশব্দে ইনস্টল করে এবং গুগল প্লে স্টোরকে ইনস্টল উৎস হিসেবে সেট করে</string>
-    <string name="installer_auto_saved_name">রুট মাউন্ট</string>
-    <string name="installer_auto_saved_description">রুট মাউন্ট মোডে প্যাচ করা অ্যাপ্লিকেশনগুলো মাউন্ট করে। স্ট্যান্ডার্ড প্যাচ করা APKs অন্য ইনস্টলার ব্যবহার করে</string>
     <string name="installer_shizuku_description">Shizuku বা Sui ব্যবহার করে নিঃশব্দে ইনস্টল করে।</string>
     <string name="installer_shizuku_play_store_description">শিজুকু অথবা সুই এর মাধ্যমে নিঃশব্দে ইনস্টল করে এবং গুগল প্লে স্টোরকে ইনস্টল উৎস হিসেবে সেট করে</string>
     <string name="installer_option_none">কোন ফলব্যাক নেই</string>
@@ -1031,7 +1030,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="installer_status_shizuku_not_installed">এই বিকল্প ব্যবহার করতে শিজুকু বা সুই ইনস্টল করুন</string>
     <string name="installer_status_shizuku_not_running">শিজুকু বা সুই শুরু করুন এবং আবার চেষ্টা করুন</string>
     <string name="installer_status_shizuku_permission">Nivqo-কে Shizuku অ্যাপ থেকে অনুমতি দিন</string>
-    <string name="installer_mount_warning_install">তোমার প্রধান ইনস্টলার রুটেড মাউন্ট ইনস্টলার সেট করা আছে. এই সেভড অ্যাপটি মাউন্ট ব্যবহার করে ইনস্টল করা হয়নি</string>
+    <string name="installer_mount_warning_install">প্যাচ মোড root mount-এ সেট করা আছে। এই সেভ করা অ্যাপটি mount ব্যবহার করে ইনস্টল করা হয়নি</string>
     <string name="mount_version_mismatch_message">স্টক অ্যাপ ভার্সন (%2$s) প্যাচড অ্যাপ ভার্সন (%1$s) এর সাথে ম্যাচ করে না. ম্যাচিং স্টক ভার্সন মাউন্ট কর এবং আবার চেষ্টা করুন</string>
     <string name="mount_stock_restore_failed_message">অ্যান্ড্রয়েড সংরক্ষিত মূল APK প্রত্যাখ্যান করেছে। ম্যাচিং স্টক সংস্করণ ইনস্টল করুন, তারপর আবার মাউন্ট করার চেষ্টা করুন।</string>
     <string name="installer_status_shizuku_unsupported">ইনস্টল করা শিজুকু ভার্সন সমর্থিত নয়</string>
@@ -1053,11 +1052,17 @@ morphe_adaptive_monochrome_custom.xml
     <string name="installer_play_store_warning_continue">আমি বুঝতে পেরেছি, চালিয়ে যান</string>
     <string name="installer_play_store_mode">Play Store হিসাবে ইনস্টল করুন</string>
     <string name="installer_play_store_mode_description">Google Play Store-কে ইনস্টলেশনের উৎস হিসেবে চিহ্নিত করে</string>
+    <string name="settings_section_patch_mode">প্যাচ মোড</string>
+    <string name="settings_patch_mode_ask">প্রতিবার জিজ্ঞাসা করুন</string>
+    <string name="settings_patch_mode_ask_description">প্রতিটি অ্যাপ প্যাচ করার আগে এটি root mount নাকি স্ট্যান্ডার্ড ইনস্টলের জন্য প্যাচ করতে হবে তা জিজ্ঞাসা করে</string>
+    <string name="settings_section_after_patching">প্যাচ করার পর</string>
+    <string name="settings_after_patching_install">স্বয়ংক্রিয়ভাবে ইনস্টল করুন</string>
+    <string name="settings_after_patching_ask">কোন ইনস্টলার ব্যবহার করবেন তা জিজ্ঞাসা করুন</string>
+    <string name="settings_after_patching_ask_description">প্রতিবার অ্যাপ ইনস্টল করার সময় কোন ইনস্টলার ব্যবহার করতে হবে তা জিজ্ঞাসা করে</string>
+    <string name="settings_after_patching_manual">ম্যানুয়ালি ইনস্টল করুন</string>
+    <string name="settings_after_patching_manual_description">আপনি Install ট্যাপ করার পর ডিফল্ট ইনস্টলারের মাধ্যমে ইনস্টল করে</string>
     <string name="settings_nomount_only">শুধুমাত্র NoMount</string>
     <string name="settings_nomount_only_description">অ্যাপগুলোকে শুধুমাত্র NoMount দিয়ে মাউন্ট করে এবং কখনোই বাইন্ড মাউন্টে ফিরে যায় না, ফলে NoMount ছাড়া সেগুলো আনমাউন্টেড থাকে</string>
-    <string name="settings_prompt_installer_on_install">ইনস্টলার নির্বাচন প্রম্পট।</string>
-    <string name="settings_prompt_installer_on_install_description">প্রতিটি অ্যাপ ইনস্টল করার পদ্ধতি জিজ্ঞাসা করে: রুট ব্যবহার করে প্যাচিংয়ের আগে, অন্যথায় এর পরে</string>
-    <string name="settings_auto_install_with_shizuku">প্যাচিং করার পরে স্বয়ংক্রিয়ভাবে ইনস্টল করুন</string>
     <string name="settings_auto_install_with_shizuku_description">প্যাচিং সম্পন্ন হওয়ার সাথে সাথে প্যাচযুক্ত APK ইনস্টল বা মাউন্ট করে</string>
     <string name="settings_auto_uninstall_with_shizuku">সংঘাত হলে স্বয়ংক্রিয়ভাবে আনইনস্টল করুন</string>
     <string name="settings_auto_uninstall_with_shizuku_description">সাড়া সংঘাতে বিদ্যমান অ্যাপটি আনইনস্টল করে। এতে অ্যাপের ডেটা মুছে যেতে পারে</string>
@@ -1129,7 +1134,6 @@ morphe_adaptive_monochrome_custom.xml
     <string name="settings_system_import_keystore_dialog_description">আপনাকে ইম্পোর্ট করতে অ্যাপের মধ্যে keystore এর credentials লিখতে হবে</string>
     <string name="settings_system_import_keystore_dialog_alias_field">কাস্টম কী-স্টোর আমদানি করুন</string>
     <string name="settings_system_import_keystore_dialog_password_field">পাসওয়ার্ড</string>
-    <string name="settings_system_import_keystore_dialog_format_field">কী-স্টোর ফর্ম্যাট</string>
     <string name="settings_system_import_keystore_wrong_credentials">কী-স্টোর নাম (এলিয়াস) ভুলে</string>
     <string name="settings_system_import_keystore_success">কী-স্টোর নাম (এলিয়াস) ভুলে</string>
     <string name="settings_system_import_keystore_failed">কী-স্টোর আমদানি ব্যর্থ হয়েছে</string>
@@ -1283,6 +1287,7 @@ morphe_adaptive_monochrome_custom.xml
     <string name="credits_prior_development">পূর্ববর্তী উন্নয়ন</string>
     <string name="opensource_licenses">ওপেন-সোর্স লাইসেন্স।</string>
     <string name="opensource_licenses_description">যে লাইব্রেরিগুলোর উপর Morphe তৈরি হয়েছে</string>
+    <string name="opensource_licenses_search">লাইব্রেরি এবং লাইসেন্স অনুসন্ধান করুন</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">একটি পছন্দ</string>
     <string name="easter_egg_pill_message">নীল পিলটি নিন এবং বিজ্ঞাপনগুলো ঠিক যেখানে আছে সেখানেই থাকবে। লালটি নিন এবং দেখুন বাইটকোড কত গভীরে যায়।</string>
@@ -1509,15 +1514,13 @@ morphe_adaptive_monochrome_custom.xml
     <string name="tour_prompt_confirm">আমাকে দেখাও</string>
     <string name="onboarding_restart_title">বৈশিষ্ট্য ভ্রমণ</string>
     <string name="onboarding_restart_desc">মূল বৈশিষ্ট্যগুলির একটি গাইডেড ট্যুর</string>
-
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <string name="home_app_filter_patched_description">Nivqo দিয়ে আপনি যেসব অ্যাপ প্যাচ করেছেন বা সংরক্ষণ করেছেন</string>
     <string name="home_app_list_options_title">সাজান এবং ফিল্টার করুন</string>
     <string name="home_app_list_options_state_description">%1$s অনুসারে সাজানো হয়েছে, %2$s অনুসারে ফিল্টার করা হয়েছে</string>
     <string name="sources_sort_title">প্যাচ সোর্স সাজান</string>
     <string name="sources_apps_leave_out">বাদ দিন</string>
     <string name="sources_apps_leave_out_done">বাদ দেওয়া হয়েছে</string>
     <string name="sources_apps_bring_back">ফিরিয়ে আনুন</string>
-
     <string name="hex_color">డిస్‌క్‌వర్‌ కోడ్ రంగు</string>
     <string name="patcher_memory_adjustment_title">পর্যাপ্ত মেমোরি নেই</string>
     <string name="patcher_memory_adjustment_description">প্যাচারটি %1$d MB মেমোরি সীমা নিয়ে চলার সময় সিস্টেম এটি বন্ধ করে দিয়েছিল। সীমাটি %2$d MB-এ কমালে প্যাচারটি ছোট লক্ষ্য হয়ে যায় এবং রানটি শেষ হতে পারে।</string>

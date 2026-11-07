@@ -66,6 +66,9 @@ private fun mirrored(classes: Iterable<ClassDef>, skip: Set<String>, find: (List
             val savedLog = messageLogContract
             val savedThreads = readReceiptThreadFields
             val savedRecipe = markReadRecipe
+            val savedLogButton = messageLogButtonRecipe
+            val savedThemePick = appThemePick
+            val savedVoiceMenu = saveVoiceMenuRecipe
             val savedPicture = autoReplyPictureRecipe
             val savedGallery = galleryRoute
             val savedGalleryChat = galleryChatRoute
@@ -82,6 +85,9 @@ private fun mirrored(classes: Iterable<ClassDef>, skip: Set<String>, find: (List
                 messageLogContract = savedLog
                 readReceiptThreadFields = savedThreads
                 markReadRecipe = savedRecipe
+                messageLogButtonRecipe = savedLogButton
+                appThemePick = savedThemePick
+                saveVoiceMenuRecipe = savedVoiceMenu
                 autoReplyPictureRecipe = savedPicture
                 galleryRoute = savedGallery
                 galleryChatRoute = savedGalleryChat
@@ -104,7 +110,7 @@ private fun disagreements(classes: List<ClassDef>, found: Map<String, List<Metho
 }
 
 /** A copy of the method with only its parameters' registers left. */
-private fun Method.starved(): Method {
+internal fun Method.starved(): Method {
     val words = parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 } + if (AccessFlags.STATIC.isSet(accessFlags)) 0 else 1
     val code = implementation!!
     return ImmutableMethod(definingClass, name, parameters, returnType, accessFlags, annotations, hiddenApiRestrictions,
@@ -121,7 +127,9 @@ private fun proves(hook: String, method: Method, classes: List<ClassDef>): Boole
     // Some fixtures hand over plain dexlib2 methods. validateHook edits nothing, so a wrapper reads the same.
     (method as? MutableMethod ?: MutableMethod(method)).validateHook(hook)
     when (hook) {
-        INBOX_REFRESH_HOOK -> resolveInboxRefresh(method, classOf)
+        INBOX_REFRESH_HOOK, PIN_LIST -> resolveInboxRefresh(method, classOf)
+        HIDDEN_CHAT_LIST -> { resolveInboxRefresh(method, classOf); checkNotNull(hiddenChatNames(classOf)) }
+        HIDDEN_CHAT_ROW -> checkNotNull(method.hiddenRowBuilder(classOf))
         "emoji_typeface" -> method.emojiFontHolder(classOf)
     }
 }.isSuccess

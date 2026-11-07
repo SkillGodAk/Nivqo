@@ -19,9 +19,11 @@ import app.morphe.manager.domain.installer.SessionInstaller
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.domain.repository.*
 import app.morphe.manager.domain.worker.WorkerRepository
+import app.morphe.manager.notification.PatchingNotifications
 import app.morphe.manager.patcher.patch.PatchSourceRef
 import app.morphe.manager.patcher.split.SplitApkPreparer
 import app.morphe.manager.patcher.worker.PatcherWorker
+import app.morphe.manager.service.ForegroundHoldService
 import app.morphe.manager.ui.model.PatchRunProgress
 import app.morphe.manager.ui.model.SelectedApp
 import app.morphe.manager.util.AppCoroutineScope
@@ -30,7 +32,6 @@ import app.morphe.manager.util.Options
 import app.morphe.manager.util.PM
 import app.morphe.manager.util.PatchSelection
 import app.morphe.manager.util.PatchSelectionUtils.sanitizeForPatcher
-import app.morphe.manager.util.UpdateNotificationManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
@@ -61,7 +62,6 @@ class BatchPatchCoordinator(
     private val installedAppRepository: InstalledAppRepository,
     private val originalApkRepository: OriginalApkRepository,
     private val sourceMuteRepository: SourceMuteRepository,
-    private val notificationManager: UpdateNotificationManager,
     private val installerManager: InstallerManager,
     private val sessionInstaller: SessionInstaller,
     private val json: Json,
@@ -74,6 +74,10 @@ class BatchPatchCoordinator(
 
     private var runJob: Job? = null
     private var activeWorkId: UUID? = null
+
+    // Keeps the queue in the foreground between the workers of its apps
+    @Volatile
+    private var foregroundHold: ForegroundHoldService.Hold? = null
 
     // The latest re-resolve per item, so an older one finishing last cannot undo the user's newer pick
     private val resolveJobs = ConcurrentHashMap<String, Job>()
@@ -137,7 +141,8 @@ class BatchPatchCoordinator(
                     planFresh(
                         targets = (saved?.targets.orEmpty() + targets).distinctBy { it.id },
                         policy = saved?.policy ?: prefs.batchInstallPolicy.get(),
-                        excludedIds = saved?.excluded.orEmpty()
+                        excludedIds = saved?.excluded.orEmpty(),
+                        kept = saved != null
                     )
                 }
             }
@@ -147,7 +152,8 @@ class BatchPatchCoordinator(
     private suspend fun planFresh(
         targets: List<BatchTarget>,
         policy: BatchInstallPolicy,
-        excludedIds: Set<String>
+        excludedIds: Set<String>,
+        kept: Boolean
     ) {
         fun BatchPatchItem.withExclusion() = if (id in excludedIds) excluded() else this
 
@@ -155,7 +161,8 @@ class BatchPatchCoordinator(
         _state.value = BatchRunState(
             items = targets.map { placeholder(it).withExclusion() },
             phase = BatchPhase.PLANNING,
-            policy = policy
+            policy = policy,
+            kept = kept
         )
         val items = resolver.resolve(targets).map { it.withExclusion() }
         _state.update { it.copy(items = items, phase = BatchPhase.PREFLIGHT) }
@@ -294,7 +301,12 @@ class BatchPatchCoordinator(
                 items = state.items.map { item ->
                     if (item.id != itemId) return@map item
 
-                    val edited = item.copy(selection = selection, options = options, selectionEdited = true)
+                    val edited = item.copy(
+                        selection = selection,
+                        options = options,
+                        selectedByHand = true,
+                        selectionEdited = true
+                    )
                     edited.copy(state = edited.stateForSelection(item.state))
                 }
             )
@@ -321,6 +333,11 @@ class BatchPatchCoordinator(
     fun setPolicy(policy: BatchInstallPolicy) {
         _state.update { it.copy(policy = policy) }
         scope.launch { prefs.batchInstallPolicy.update(policy) }
+    }
+
+    /** Keeps the queue that has not started yet for later, stored until it is started or cleared. */
+    fun keep() {
+        _state.update { if (it.isPending) it.copy(kept = true) else it }
     }
 
     fun markAutoInstallStarted() {
@@ -358,6 +375,12 @@ class BatchPatchCoordinator(
         if (current.runnable.isEmpty()) return
 
         runJob?.cancel()
+        // Taken while the app is still on screen, the last moment the system grants it
+        val hold = ForegroundHoldService.Hold(
+            app,
+            app.getText(R.string.batch_patch_title),
+            app.getText(R.string.patcher_notification_text)
+        ).also { foregroundHold = it }
         runJob = scope.launch {
             _state.update { it.copy(phase = BatchPhase.RUNNING) }
             try {
@@ -369,6 +392,7 @@ class BatchPatchCoordinator(
                 withContext(NonCancellable) {
                     activeWorkId = null
                     installUnattendedIfRequested()
+                    hold.release()
                     _state.update {
                         it.copy(
                             phase = BatchPhase.FINISHED,
@@ -388,6 +412,7 @@ class BatchPatchCoordinator(
         activeWorkId?.let(workManager::cancelWorkById)
         runJob?.cancel()
         runJob = null
+        foregroundHold?.release()
         markRemainingCancelled()
         _state.update { it.copy(phase = BatchPhase.FINISHED, activeIndex = null, activeRun = null) }
     }
@@ -428,6 +453,7 @@ class BatchPatchCoordinator(
                 resolved.copy(
                     selection = item.selection,
                     options = item.options,
+                    selectedByHand = true,
                     selectionEdited = true,
                     // The edited selection is what ran, so it has patches even where the defaults have none
                     state = item.stateForSelection(resolved.state)
@@ -514,18 +540,23 @@ class BatchPatchCoordinator(
         val state = _state.value ?: return
         if (!state.hasOutcome) return
 
+        // A queue stopped before its end closes quietly rather than sounding like a result
+        val playTone = prefs.patcherCompletionSound.get() && !state.wasStopped
+
         // The summary screen already says all of this when the user is watching it, the same
-        // rule a single run follows. The tone still plays, it is what draws them back
+        // rule a single run follows. The tone still plays, it is what draws them back, and
+        // stands in for the channel sound rather than playing beside it
         if (!ManagerApplication.isInForeground) {
-            notificationManager.showBatchCompletionNotification(
+            PatchingNotifications.showBatchResult(
+                context = app,
                 patched = state.succeeded,
                 failed = state.failed,
-                skipped = state.skipped
+                skipped = state.skipped,
+                silent = playTone
             )
         }
 
-        // A queue stopped before its end closes quietly rather than sounding like a result
-        if (prefs.patcherCompletionSound.get() && !state.wasStopped) {
+        if (playTone) {
             CompletionSound.play(
                 context = app,
                 succeeded = state.succeeded > 0,
@@ -604,6 +635,7 @@ class BatchPatchCoordinator(
                 withContext(Dispatchers.Main) { runProgress.updateSplitRequirement(file, needsSplit, merged) }
             },
             onProgress = runProgress::onProgress,
+            onTaskProgress = runProgress::onTaskProgress,
             patchSources = patchSources,
             announceCompletion = false,
             queuePosition = _state.value?.let { it.position to it.total },
@@ -616,6 +648,12 @@ class BatchPatchCoordinator(
 
         try {
             val finished = workManager.getWorkInfoByIdFlow(workId).first { it?.state?.isFinished == true }
+            // The worker leaves its last step in the notification, which the queue holds on to
+            val preparingNext = _state.value?.runnable?.isNotEmpty() == true
+            foregroundHold?.update(
+                app.getText(R.string.batch_patch_title),
+                app.getText(if (preparingNext) R.string.batch_patch_preparing_next else R.string.patcher_notification_text)
+            )
 
             when (finished?.state) {
                 WorkInfo.State.SUCCEEDED -> {
@@ -763,11 +801,9 @@ class BatchPatchCoordinator(
                 patchNames = bundle.patchNames
             )
         }
-        // Simple mode derives its options from the per-app preference screen rather than the
-        // database, so only an expert-mode selection is worth writing back
-        if (prefs.useExpertMode.get()) {
-            patchOptionsRepository.saveOptions(configurationKey, item.options)
-        }
+        // Options simple mode keeps on its preference screen stay there, rather than replacing
+        // the ones saved for the sources they name
+        if (item.selectedByHand) patchOptionsRepository.saveOptions(configurationKey, item.options)
 
         if (!prefs.savePatchedApks.get()) {
             // Retention is off, so the patched APK only lives long enough for the summary

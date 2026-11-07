@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Esconder esta aplicação?</string>
     <string name="home_more_apps_title">Mais apps</string>
     <string name="home_more_apps_hide_title">Esconder este cartão?</string>
-    <string name="home_more_apps_hide_message">Você pode trazê-lo de volta a qualquer momento em Configurações &gt; Aparência &gt; Tela inicial</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Podes recuperá-lo a qualquer momento em %1$s</string>
     <string name="home_app_hide_message">Esta aplicação irá ficar oculta do ecrã principal. Podes restaurá-la posteriormente a partir das aplicações ocultas utilizando o botão na parte inferior da lista.</string>
     <string name="home_app_will_be_hidden">Esta aplicação será ocultada</string>
     <string name="home_app_hidden_named">%s oculto</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">Pesquisar aplicações</string>
     <string name="list_options_title">Ordenar e filtrar</string>
     <string name="list_options_state_description">Ordenado por %1$s, filtrado por %2$s</string>
-    <string name="home_app_filter_all_description">Todos os apps na tela inicial</string>
-    <string name="home_app_filter_patched_description">Apps que você modificou ou salvou com o Nivqo</string>
-    <string name="home_app_filter_not_patched_description">Apps que você ainda não modificou no Morphe</string>
-    <string name="home_app_filter_installed_description">Aplicações atualmente instaladas neste dispositivo</string>
-    <string name="home_app_filter_uninstalled_description">Aplicações corrigidas com Morphe que já não estão neste dispositivo</string>
     <string name="home_app_filter_clones">Clones</string>
-    <string name="home_app_filter_clones_description">Aplicativos criados com um nome de pacote próprio, instalados juntamente com o original</string>
     <string name="home_app_grouping_none">Nenhum</string>
-    <string name="home_app_grouping_all_apps_description">Uma lista com todos os aplicativos</string>
-    <string name="home_app_grouping_sources_description">Aplicativos sob a fonte de patch que os fornece</string>
-    <string name="home_app_grouping_custom_description">Aplicativos nas categorias que você cria</string>
-    <string name="home_app_sort_manual_description">Pressione e segure um aplicativo, depois toque no botão de reordenar</string>
+    <string name="home_app_sort_manual_hint">Pressione longamente um app e, em seguida, toque no botão de reordenar</string>
     <string name="home_app_sort_recommended">Ordem recomendada</string>
-    <string name="home_app_sort_recommended_description">Aplicativos instalados e fixados primeiro</string>
-    <string name="home_app_sort_name_asc_description">Alfabética, de A a Z</string>
-    <string name="home_app_sort_name_desc_description">Ordem alfabética inversa, de Z a A</string>
     <string name="home_app_sort_updates_first">Atualizações de patch primeiro</string>
-    <string name="home_app_sort_updates_first_description">Aplicativos com patches mais recentes primeiro, depois a ordem recomendada</string>
     <string name="home_app_sort_recently_patched">Corrigido recentemente</string>
-    <string name="home_app_sort_recently_patched_description">Aplicativos corrigidos mais recentemente primeiro</string>
     <string name="home_no_apps_title">Nenhuma aplicação disponível</string>
     <string name="home_no_apps_subtitle">Adiciona uma fonte de modificações ou ativa uma já existente em %s</string>
     <string name="home_no_apps_search_subtitle">Nenhuma aplicação corresponde a \"%s\"</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">Nada correspondeu a %s</string>
     <string name="home_category_add">Adicionar categoria</string>
     <string name="home_category_all_apps">Todos os aplicativos</string>
-    <string name="home_category_custom">Personalizado</string>
+    <string name="home_app_grouping_categories">Categorias</string>
     <string name="home_category_uncategorized">Não categorizado</string>
     <string name="home_category_new_title">Nova categoria</string>
     <string name="home_category_rename_title">Renomear categoria</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">Fontes de modificações</string>
     <string name="sources_search">Pesquisar fontes e patches</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Todas as origens</string>
-    <string name="sources_filter_enabled_description">Os patchs das origens são obtidos de</string>
-    <string name="sources_filter_disabled_description">Origens desativadas</string>
     <string name="sources_filter_issues">Precisa de atenção</string>
-    <string name="sources_filter_issues_description">Fontes que estão bloqueadas, falharam ao carregar ou precisam de um Morphe mais recente</string>
     <string name="sources_sort_manual">Ordem manual</string>
     <string name="sources_sort_manual_hint">Mantenha pressionado uma fonte para reorganizar</string>
     <string name="sources_sort_last_updated">Última atualização</string>
-    <string name="sources_sort_last_updated_description">Atualizações de fontes mais recentes primeiro</string>
     <string name="sources_sort_enabled_first">Habilitados primeiro</string>
-    <string name="sources_sort_enabled_first_description">Mostrar fontes ativas antes das desabilitadas</string>
     <string name="sources_patches_source_disabled_hint">Esta fonte está desativada. Seus patches são listados para referência e não são aplicados</string>
     <string name="sources_management_open_in_browser">Abrir links no navegador</string>
     <string name="sources_management_report_issue">Relatar um problema</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">Chave confiável</string>
     <string name="sources_signing_key_new">Nova chave</string>
     <string name="sources_patch_expert_badge">Avançado</string>
-    <string name="sources_patch_expert_badge_tooltip">Ativa o modo Avançado nas Definições para incluir esta modificação manualmente</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Ativa %1$s para incluir esta modificação manualmente</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">Precisa de ajuda para encontrar o APK?</string>
     <string name="home_apk_availability_dialog_simple">Para modificar &lt;b&gt;%s&lt;/b&gt;, precisas da versão não modificada do APK:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">Recomendado</string>
     <string name="home_apk_availability_unpatched_label">Não modificado</string>
     <string name="home_apk_availability_incompatible_label">Incompatível</string>
-    <string name="home_apk_availability_installed_version">Instalado neste dispositivo: %s</string>
     <string name="home_apk_availability_find">Sim, ajude-me a encontrá-lo</string>
     <string name="home_apk_availability_have">Não, já o tenho</string>
     <string name="home_apk_helper_download">Usar um aplicativo auxiliar</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">A encontrar a página de download…</string>
     <string name="home_download_instructions_step1">Pressiona o botão \"%s\" em baixo</string>
     <string name="home_download_instructions_step2_part1">Desloca a página para baixo e pressiona</string>
+    <string name="home_download_instructions_step2_apkcube">Role a página para baixo, selecione a versão &lt;b&gt;%s&lt;/b&gt; e pressione</string>
     <string name="home_download_instructions_step2_generic">Desloca a página para baixo e pressiona o botão de download</string>
     <string name="home_download_instructions_step2_variant">Desloca a página para baixo e pressiona o botão de download da &lt;b&gt;variante APK&lt;/b&gt; do topo</string>
     <string name="home_download_instructions_step2_search">Abre um resultado de pesquisa de um site em que confias</string>
     <string name="home_download_instructions_step2_search_note">Morphe não se responsabiliza por estes sites. Evita aqueles que oferecem a sua própria loja de aplicações em vez de um ficheiro APK</string>
     <string name="home_download_instructions_step3_search">Nesse site, descarrega o APK da versão &lt;b&gt;%s&lt;/b&gt;, não o mais recente</string>
     <string name="home_download_instructions_step3_search_any">Nesse site, descarrega o APK da aplicação. &lt;b&gt;Qualquer versão&lt;/b&gt; pode ser patchada</string>
+    <string name="home_download_instructions_step2_github">Em &lt;b&gt;Assets&lt;/b&gt; da versão &lt;b&gt;%s&lt;/b&gt;, pressione o arquivo com a extensão &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_latest">Em &lt;b&gt;Assets&lt;/b&gt; da versão mais recente, pressione o arquivo com a extensão &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_note">Se houver vários arquivos APK, escolha o nomeado como %s ou o universal</string>
     <string name="home_download_instructions_download_button_toast">Pressiona o botão \"download\" no site, e não aqui 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Ótimo! Agora clique em continuar e acesse o site 👆</string>
     <string name="home_download_instructions_download_button_toast_3">A prática leva à perfeição e você está chegando lá 💪</string>
@@ -518,11 +503,13 @@ Para obteres os melhores resultados, este ficheiro recomenda a modificação de 
     <string name="batch_queue_pending_subtitle">Toque para revisar e iniciar</string>
     <string name="batch_queue_clear_title">Limpar a fila?</string>
     <string name="batch_queue_clear_description">Todos os apps serão removidos da fila</string>
+    <string name="batch_queue_keep_title">Manter a fila?</string>
+    <string name="batch_queue_keep_description">Os apps na fila aguardarão na tela inicial para serem iniciados posteriormente</string>
+    <string name="batch_queue_keep">Manter</string>
     <string name="shortcut_repatch_short">Refazer correção</string>
     <string name="shortcut_repatch_long">Refazer correção dos aplicativos desatualizados</string>
     <string name="shortcut_check_updates_short">Verificar atualizações</string>
     <string name="shortcut_check_updates_long">Verificar atualizações de patch</string>
-    <string name="shortcut_patch_app">Corrigir %s</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Desinstalar este app?</string>
     <string name="home_app_info_uninstall_removes_data">O app e seus dados serão removidos deste dispositivo</string>
@@ -543,6 +530,7 @@ Para obteres os melhores resultados, este ficheiro recomenda a modificação de 
     <string name="home_app_info_install_type_custom_installer">Instalador personalizado</string>
     <string name="home_app_info_install_type_system_installer">Instalador do sistema</string>
     <string name="home_app_info_install_type_play_store">Instalar na Play Store</string>
+    <string name="home_app_info_install_type_root">Instalação Root</string>
     <string name="home_app_info_install_type_root_play_store">Instalar na Play Store com root</string>
     <string name="home_app_info_install_type_shizuku_play_store">Instalar na Play Store via Shizuku</string>
     <string name="home_app_info_patch_update_available">Atualização de modificação disponível</string>
@@ -584,7 +572,8 @@ Para obteres os melhores resultados, este ficheiro recomenda a modificação de 
     <string name="root_mount_module_unmount_warning">Se o KernelSU tiver &quot;Desmontar módulos por padrão&quot; ativado, abra o KernelSU <b>&gt;</b> Superusuário <b>&gt;</b> o app que você montou <b>&gt;</b> Perfil <b>&gt;</b> Personalizado e desative &quot;Desmontar módulos&quot;. Caso contrário, o APK patchado montado pode não fazer efeito, mesmo se o Morphe mostrar como montado</string>
     <string name="root_pre_patch_installer_standard_title">Modo de instalação padrão</string>
     <string name="root_pre_patch_installer_standard_description">Patches como um APK normal com suporte ao GmsCore. Sua configuração de instalador será usada após a aplicação do patch.</string>
-    <string name="root_pre_patch_installer_hint">Perguntado enquanto Configurações &gt; Reparo &gt; Instalação &gt; A prompt de seleção do instalador está visível. O modo de reparo não pode ser alterado após o reparo</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">Perguntado enquanto %1$s está definido como %2$s. O modo de modificação não pode ser alterado após a modificação</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Erro copiado para a área de transferência</string>
     <string name="patcher_error_log">Log de erros</string>
@@ -683,6 +672,14 @@ Desinstalar apagará permanentemente todos os dados do aplicativo."</string>
     <string name="patcher_step_group_saving">A guardar</string>
     <string name="patcher_step_write_patched">A escrever ficheiro APK modificado</string>
     <string name="patcher_step_sign_apk">A assinar ficheiro APK modificado</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">Lendo arquivos DEX</string>
+    <string name="patcher_task_extracting_resources">Extraindo recursos</string>
+    <string name="patcher_task_decoding_resources">Decodificando recursos</string>
+    <string name="patcher_task_indexing_classes">Indexando classes</string>
+    <string name="patcher_task_compiling_dex">Compilando arquivos DEX</string>
+    <string name="patcher_task_compiling_resources">Compilando recursos</string>
+    <string name="patcher_task_writing_apk">Gravando arquivo APK</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Proteção contra aplicação de patches em segundo plano</string>
     <string name="battery_optimization_dialog_description">Alguns dispositivos podem interromper o aplicador de patches quando o aplicativo é minimizado. Permita que o Morphe seja executado sem restrições de bateria para garantir que a aplicação de patches seja concluída de forma confiável</string>
@@ -731,7 +728,8 @@ Desinstalar apagará permanentemente todos os dados do aplicativo."</string>
     <string name="patched_app_save_failed_toast">Erro ao guardar a aplicação modificada</string>
     <string name="plugin_activity_dialog_body">Uma interação do utilizador é necessária para continuar com este plugin</string>
     <string name="patcher_process_killed_message">O sistema interrompeu o patcher antes de concluir, geralmente para liberar memória. Feche outros aplicativos e tente novamente</string>
-    <string name="patcher_process_crashed_message">O patcher travou antes de terminar. Se isso acontecer novamente, desative \"Usar VM incorporada\" nas configurações e relate o problema com o log</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">O modificador crashou antes de terminar. Se acontecer novamente, desativa %1$s e reporta o problema com o log</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">O corretor ficou sem memória com um heap de %1$s MB. Este aplicativo é muito grande para os patches selecionados. Tente corrigir com menos fontes de patch ou selecione menos patches</string>
     <string name="install_app_success">Instalado com sucesso</string>
@@ -919,6 +917,8 @@ Os patches não são afetados: ative os patches de pré-lançamento para cada fo
     <string name="notification_channel_patch_updates">Atualizações de patch</string>
     <string name="notification_channel_patch_updates_description">Notificações sobre novas versões de patch</string>
     <string name="notification_channel_patcher_description">Mostrado enquanto o Morphe está a modificar uma aplicação em segundo plano</string>
+    <string name="notification_channel_patching_results">Resultados do Patching</string>
+    <string name="notification_channel_patching_results_description">Quando o patch finalizar ou a instalação aguardar sua ação com o Morphe em segundo plano</string>
     <string name="notification_channel_mounted_apps">Aplicativos montados</string>
     <string name="notification_channel_mounted_apps_description">Quando outra versão substituiu um app montado e o patch não se aplica mais</string>
     <string name="notification_mount_replaced_title">%1$s não está mais com patch</string>
@@ -1029,9 +1029,8 @@ As dimensões das imagens devem ser as seguintes:
     <string name="installer_title">Selecionar instalador</string>
     <string name="installer_internal_description">Usar o instalador de pacotes do Android</string>
     <string name="installer_play_store_description">Utiliza o instalador do sistema e define a Google Play Store como fonte de instalação</string>
+    <string name="installer_root_description">Instala silenciosamente com root</string>
     <string name="installer_root_play_store_description">Instala silenciosamente com root e define a Google Play Store como fonte de instalação</string>
-    <string name="installer_auto_saved_name">Montagem root</string>
-    <string name="installer_auto_saved_description">Monta aplicativos que foram patchados no modo de montagem root. APKs patchados padrão usam outro instalador.</string>
     <string name="installer_shizuku_description">Instalar silenciosamente utilizando o Shizuku ou o Sui</string>
     <string name="installer_shizuku_play_store_description">Instala silenciosamente através do Shizuku ou Sui e define a Google Play Store como fonte de instalação</string>
     <string name="installer_option_none">Nenhum fallback</string>
@@ -1041,7 +1040,7 @@ As dimensões das imagens devem ser as seguintes:
     <string name="installer_status_shizuku_not_installed">Instala o Shizuku ou o Sui para usares esta opção</string>
     <string name="installer_status_shizuku_not_running">Inicia o Shizuku ou o Sui e tenta de novo</string>
     <string name="installer_status_shizuku_permission">Conceder permissão ao Nivqo do aplicativo Shizuku</string>
-    <string name="installer_mount_warning_install">O teu instalador principal está definido para o instalador de montagem root. Esta aplicação guardada não foi instalada com mount</string>
+    <string name="installer_mount_warning_install">O modo de modificação está definido para montagem root. Esta aplicação guardada não foi instalada com mount</string>
     <string name="mount_version_mismatch_message">A versão da aplicação original (%2$s) não corresponde à versão da aplicação modificada (%1$s). Monta a versão original correspondente, e tenta de novo</string>
     <string name="mount_stock_restore_failed_message">O Android rejeitou o APK original salvo. Instale a versão original correspondente e tente Montar novamente.</string>
     <string name="installer_status_shizuku_unsupported">A versão do Shizuku instalada não é suportada</string>
@@ -1063,11 +1062,17 @@ As dimensões das imagens devem ser as seguintes:
     <string name="installer_play_store_warning_continue">Eu entendo, continuar</string>
     <string name="installer_play_store_mode">Instalar como Play Store</string>
     <string name="installer_play_store_mode_description">Marca a Google Play Store como a fonte de instalação</string>
+    <string name="settings_section_patch_mode">Modo de modificação</string>
+    <string name="settings_patch_mode_ask">Perguntar sempre</string>
+    <string name="settings_patch_mode_ask_description">Pergunta antes de modificar cada aplicação se deve ser modificada para montagem root ou instalação padrão</string>
+    <string name="settings_section_after_patching">Após a modificação</string>
+    <string name="settings_after_patching_install">Instalar automaticamente</string>
+    <string name="settings_after_patching_ask">Perguntar qual instalador</string>
+    <string name="settings_after_patching_ask_description">Pergunta qual instalador utilizar sempre que uma aplicação é instalada</string>
+    <string name="settings_after_patching_manual">Instalar manualmente</string>
+    <string name="settings_after_patching_manual_description">Instala com o instalador padrão assim que tocares em Instalar</string>
     <string name="settings_nomount_only">Apenas NoMount</string>
     <string name="settings_nomount_only_description">Monta aplicativos apenas com NoMount e nunca recorre a um bind mount, para que permaneçam desmontados sem ele</string>
-    <string name="settings_prompt_installer_on_install">Solicitação de seleção do instalador</string>
-    <string name="settings_prompt_installer_on_install_description">Pergunta como instalar cada aplicativo: com root antes do reparo, caso contrário depois dele</string>
-    <string name="settings_auto_install_with_shizuku">Instalação automática após a aplicação do patch</string>
     <string name="settings_auto_install_with_shizuku_description">Instala ou monta o APK corrigido assim que o reparo é concluído</string>
     <string name="settings_auto_uninstall_with_shizuku">Desinstalação automática em caso de conflito</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Desinstala o aplicativo existente em caso de conflito de assinatura. Isso pode remover os dados do aplicativo</string>
@@ -1137,7 +1142,6 @@ Detalhes: %2$s"</string>
     <string name="settings_system_import_keystore_dialog_description">Precisarás de introduzir as credenciais da keystore para importá-la</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Nome de utilizador (Apelido)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Palavra-passe</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Formato da Keystore</string>
     <string name="settings_system_import_keystore_wrong_credentials">Credenciais da keystore incorretas</string>
     <string name="settings_system_import_keystore_success">Keystore importada</string>
     <string name="settings_system_import_keystore_failed">Erro ao importar keystore</string>
@@ -1291,6 +1295,7 @@ Detalhes: %2$s"</string>
     <string name="credits_prior_development">Desenvolvimento anterior</string>
     <string name="opensource_licenses">Licenças de código aberto</string>
     <string name="opensource_licenses_description">As bibliotecas em que o Morphe foi construído</string>
+    <string name="opensource_licenses_search">Procurar bibliotecas e licenças</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Uma escolha</string>
     <string name="easter_egg_pill_message">Tome a pílula azul e os anúncios ficam exatamente onde estão. Tome a pílula vermelha e veja até onde vai o bytecode.</string>
@@ -1517,8 +1522,7 @@ Queres continuar na mesma?"</string>
     <string name="tour_prompt_confirm">Me mostre</string>
     <string name="onboarding_restart_title">Tour de recursos.</string>
     <string name="onboarding_restart_desc">Uma visita guiada pelos principais recursos</string>
-
-    <!-- Preserved Nivqo localization -->
+    <string name="home_app_filter_patched_description">Apps que você modificou ou salvou com o Nivqo</string>
     <string name="home_category_delete_confirm_title">Excluir categoria</string>
     <string name="home_category_delete_confirm_message">Excluir categoria &lt;b&gt;%1$s&lt;/b&gt;? Os aplicativos nela serão movidos de volta para &lt;b&gt;%2$s&lt;/b&gt;</string>
     <string name="expert_mode_prerelease_notice">Esta fonte está em correções de pré-lançamento. A correção pode falhar ou se comportar inesperadamente.</string>

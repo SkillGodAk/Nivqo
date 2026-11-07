@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Ẩn ứng dụng này?</string>
     <string name="home_more_apps_title">Thêm ứng dụng</string>
     <string name="home_more_apps_hide_title">Ẩn thẻ này?</string>
-    <string name="home_more_apps_hide_message">Bạn có thể mang nó trở lại bất cứ lúc nào trong Cài đặt &gt; Giao diện &gt; Màn hình chính</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Bạn có thể khôi phục lại bất cứ lúc nào trong %1$s</string>
     <string name="home_app_hide_message">Ứng dụng này sẽ bị ẩn khỏi trang chủ. Bạn có thể khôi phục lại từ danh sách ứng dụng đang ẩn ở cuối danh sách</string>
     <string name="home_app_will_be_hidden">Ứng dụng này sẽ bị ẩn</string>
     <string name="home_app_hidden_named">%s ẩn</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">Tìm ứng dụng</string>
     <string name="list_options_title">Sắp xếp và lọc</string>
     <string name="list_options_state_description">Đã xếp theo %1$s và lọc theo %2$s</string>
-    <string name="home_app_filter_all_description">Mọi ứng dụng trên màn hình chính</string>
-    <string name="home_app_filter_patched_description">Các ứng dụng đã được bạn vá hoặc lưu bằng Nivqo</string>
-    <string name="home_app_filter_not_patched_description">Các ứng dụng mà bạn chưa vá trong Morphe</string>
-    <string name="home_app_filter_installed_description">Các ứng dụng hiện đang được cài đặt trên thiết bị này</string>
-    <string name="home_app_filter_uninstalled_description">Các ứng dụng từng được vá bằng Morphe nhưng không còn trên thiết bị nữa</string>
     <string name="home_app_filter_clones">Bản sao</string>
-    <string name="home_app_filter_clones_description">Các ứng dụng được đựng dưới tên gói riêng, được cài đặt như ứng dụng khác ứng dụng gốc</string>
     <string name="home_app_grouping_none">Không</string>
-    <string name="home_app_grouping_all_apps_description">Một danh sách chứa mọi ứng dụng</string>
-    <string name="home_app_grouping_sources_description">Các ứng dụng nằm trong nguồn patch cung cấp chúng</string>
-    <string name="home_app_grouping_custom_description">Các ứng dụng trong các danh mục do bạn tạo</string>
-    <string name="home_app_sort_manual_description">Bấm giữ một ứng dụng, sau đó chọn nút sắp xếp lại</string>
+    <string name="home_app_sort_manual_hint">Bấm giữ một ứng dụng, sau đó chọn nút sắp xếp lại</string>
     <string name="home_app_sort_recommended">Thứ tự đề xuất</string>
-    <string name="home_app_sort_recommended_description">Ưu tiên ứng dụng đã cài đặt và được ghim trước</string>
-    <string name="home_app_sort_name_asc_description">Theo thứ tự bảng chữ cái, A đến Z</string>
-    <string name="home_app_sort_name_desc_description">Đảo ngược theo thứ tự bảng chữ cái, Z đến A</string>
     <string name="home_app_sort_updates_first">Ưu tiên vá cập nhật</string>
-    <string name="home_app_sort_updates_first_description">Các ứng dụng có bản vá mới hơn trước, rồi theo thứ tự đề xuất</string>
     <string name="home_app_sort_recently_patched">Mới vá gần đây</string>
-    <string name="home_app_sort_recently_patched_description">Các ứng dụng được vá gần đây nhất trước</string>
     <string name="home_no_apps_title">Không có ứng dụng nào có sẵn</string>
     <string name="home_no_apps_subtitle">Thêm nguồn vá mới hoặc bật nguồn có sẵn trong %s</string>
     <string name="home_no_apps_search_subtitle">Không có ứng dụng nào khớp với \"%s\"</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">Không có kết quả nào phù hợp với %s</string>
     <string name="home_category_add">Thêm danh mục</string>
     <string name="home_category_all_apps">Tất cả ứng dụng</string>
-    <string name="home_category_custom">Tùy chỉnh</string>
+    <string name="home_app_grouping_categories">Danh mục</string>
     <string name="home_category_uncategorized">Chưa phân loại</string>
     <string name="home_category_new_title">Danh mục mới</string>
     <string name="home_category_rename_title">Đổi tên danh mục</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">Nguồn vá</string>
     <string name="sources_search">Tìm kiếm nguồn và bản vá</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Mọi nguồn</string>
-    <string name="sources_filter_enabled_description">Nguồn patch được lấy từ</string>
-    <string name="sources_filter_disabled_description">Nguồn đã tắt</string>
     <string name="sources_filter_issues">Cần xử lý</string>
-    <string name="sources_filter_issues_description">Các nguồn bị chặn, không thể tải hoặc cần Morphe mới hơn</string>
     <string name="sources_sort_manual">Sắp xếp thủ công</string>
     <string name="sources_sort_manual_hint">Bấm giữ một nguồn để sắp xếp lại</string>
     <string name="sources_sort_last_updated">Cập nhật lần cuối</string>
-    <string name="sources_sort_last_updated_description">Ưu tiên cập nhật nguồn mới nhất trước</string>
     <string name="sources_sort_enabled_first">Ưu tiên đã kích hoạt trước</string>
-    <string name="sources_sort_enabled_first_description">Hiển thị các nguồn đang hoạt động trước các nguồn đã bị vô hiệu hóa</string>
     <string name="sources_patches_source_disabled_hint">Nguồn này đã bị tắt. Các bản vá của nó được liệt kê để tham khảo và không được áp dụng</string>
     <string name="sources_management_open_in_browser">Mở trong trình duyệt</string>
     <string name="sources_management_report_issue">Báo cáo sự cố</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">Khóa đáng tin cậy</string>
     <string name="sources_signing_key_new">Khóa mới</string>
     <string name="sources_patch_expert_badge">Chuyên gia</string>
-    <string name="sources_patch_expert_badge_tooltip">Bật chế độ Chuyên gia trong Cài đặt để có thể tự thêm bản vá này</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Bật %1$s để thêm bản vá này theo cách thủ công</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">Cần trợ giúp tìm APK?</string>
     <string name="home_apk_availability_dialog_simple">Để vá &lt;b&gt;%s&lt;/b&gt;, bạn cần APK chưa vá với phiên bản:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">Khuyên dùng</string>
     <string name="home_apk_availability_unpatched_label">Chưa vá</string>
     <string name="home_apk_availability_incompatible_label">Không tương thích</string>
-    <string name="home_apk_availability_installed_version">Đã cài đặt trên thiết bị này: %s</string>
     <string name="home_apk_availability_find">Có, hãy giúp tôi tìm nó</string>
     <string name="home_apk_availability_have">Không, tôi có rồi</string>
     <string name="home_apk_helper_download">Dùng ứng dụng hỗ trợ</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">Đang tìm trang tải xuống…</string>
     <string name="home_download_instructions_step1">Bấm nút \"%s\" ở bên dưới</string>
     <string name="home_download_instructions_step2_part1">Cuộn xuống trang web và bấm</string>
+    <string name="home_download_instructions_step2_apkcube">Cuộn xuống trang web, chọn phiên bản &lt;b&gt;%s&lt;/b&gt; và nhấn</string>
     <string name="home_download_instructions_step2_generic">Lướt xuống trong trang web và bấm nút tải xuống</string>
     <string name="home_download_instructions_step2_variant">Lướt xuống trong trang web và bấm nút tải xuống của &lt;b&gt;biến thể APK&lt;/b&gt; ở trên cùng</string>
     <string name="home_download_instructions_step2_search">Mở một kết quả tìm kiếm từ trang web mà bạn tin tưởng</string>
     <string name="home_download_instructions_step2_search_note">Morphe không thể đảm bảo độ tin cậy của các trang web này. Hãy bỏ qua những trang yêu cầu cài đặt kho ứng dụng của họ thay vì cho tải tệp APK ngay</string>
     <string name="home_download_instructions_step3_search">Trên trang web đó, hãy tải APK của phiên bản &lt;b&gt;%s&lt;/b&gt;, chứ không phải cái mới nhất</string>
     <string name="home_download_instructions_step3_search_any">Trên trang web đó, cứ tải APK nào cũng được, vì &lt;b&gt;bất kỳ phiên bản nào&lt;/b&gt; cũng có thể vá</string>
+    <string name="home_download_instructions_step2_github">Trong mục &lt;b&gt;Assets&lt;/b&gt; của bản phát hành &lt;b&gt;%s&lt;/b&gt;, hãy nhấn vào tệp kết thúc bằng &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_latest">Trong mục &lt;b&gt;Assets&lt;/b&gt; của bản phát hành mới nhất, hãy nhấn vào tệp kết thúc bằng &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_note">Nếu có nhiều tệp APK, hãy chọn tệp được đặt tên theo %s hoặc tệp universal</string>
     <string name="home_download_instructions_download_button_toast">Bấm tải xuống trên trang web ấy, chứ không phải ở đây 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Tuyệt! Bây giờ hãy bấm tiếp tục và truy cập trang web 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Có công mài sắt, có ngày nên kim. Bạn đang làm rất tốt 💪</string>
@@ -518,11 +503,13 @@ Tốt nhất bạn nên chuyển sang &lt;b&gt;APK đầy đủ&lt;/b&gt; để 
     <string name="batch_queue_pending_subtitle">Chạm để xem lại và bắt đầu</string>
     <string name="batch_queue_clear_title">Xóa hàng đợi?</string>
     <string name="batch_queue_clear_description">Tất cả ứng dụng sẽ bị xóa khỏi hàng đợi</string>
+    <string name="batch_queue_keep_title">Giữ hàng chờ?</string>
+    <string name="batch_queue_keep_description">Các ứng dụng trong hàng chờ sẽ đợi trên màn hình chính để khởi chạy sau</string>
+    <string name="batch_queue_keep">Giữ</string>
     <string name="shortcut_repatch_short">Vá lại</string>
     <string name="shortcut_repatch_long">Vá lại các ứng dụng đã cũ</string>
     <string name="shortcut_check_updates_short">Kiểm tra cập nhật</string>
     <string name="shortcut_check_updates_long">Kiểm tra cập nhật bản vá</string>
-    <string name="shortcut_patch_app">Vá %s</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Gỡ cài đặt ứng dụng này?</string>
     <string name="home_app_info_uninstall_removes_data">Ứng dụng và dữ liệu của nó sẽ bị xóa khỏi thiết bị này</string>
@@ -543,6 +530,7 @@ Tốt nhất bạn nên chuyển sang &lt;b&gt;APK đầy đủ&lt;/b&gt; để 
     <string name="home_app_info_install_type_custom_installer">Trình cài đặt tùy chỉnh</string>
     <string name="home_app_info_install_type_system_installer">Trình cài đặt hệ thống</string>
     <string name="home_app_info_install_type_play_store">Cài đặt từ Cửa hàng Play</string>
+    <string name="home_app_info_install_type_root">Cài đặt root</string>
     <string name="home_app_info_install_type_root_play_store">Cài đặt từ Cửa hàng Play (Root)</string>
     <string name="home_app_info_install_type_shizuku_play_store">Cài đặt từ Cửa hàng Play (Shizuku)</string>
     <string name="home_app_info_patch_update_available"> Đã có bản vá mới</string>
@@ -584,7 +572,8 @@ Tốt nhất bạn nên chuyển sang &lt;b&gt;APK đầy đủ&lt;/b&gt; để 
     <string name="root_mount_module_unmount_warning">Nếu KernelSU có bật \"Unmount modules by default\", hãy mở KernelSU &gt; Superuser &gt; ứng dụng đã mount &gt; Profile &gt; Custom rồi tắt \"Unmount modules\". Nếu không, APK đã vá và mounted có thể không hoạt động, ngay cả khi Morphe hiển thị nó đã mounted</string>
     <string name="root_pre_patch_installer_standard_title">Chế độ cài đặt tiêu chuẩn</string>
     <string name="root_pre_patch_installer_standard_description">Vá như APK thông thường có hỗ trợ GmsCore. au khi vá xong, ứng dụng sẽ được cài đặt theo phương thức cài đặt đã chọn</string>
-    <string name="root_pre_patch_installer_hint">Được hỏi khi Cài đặt <b>&amp;gt;</b> Vá lỗi <b>&amp;gt;</b> Cài đặt <b>&amp;gt;</b> Yêu cầu chọn trình cài đặt đang hiển thị. Chế độ vá không thể thay đổi sau khi vá</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">Được hỏi khi %1$s được đặt thành %2$s. Chế độ vá không thể thay đổi sau khi vá</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Đã sao chép lỗi vào bảng nhớ tạm</string>
     <string name="patcher_error_log">Nhật ký lỗi</string>
@@ -683,6 +672,14 @@ Gỡ cài đặt sẽ xóa vĩnh viễn toàn bộ dữ liệu ứng dụng"</st
     <string name="patcher_step_group_saving">Đang lưu</string>
     <string name="patcher_step_write_patched">Đang viết APK đã vá</string>
     <string name="patcher_step_sign_apk">Đang ký APK đã vá</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">Đọc các tệp DEX</string>
+    <string name="patcher_task_extracting_resources">Đang trích xuất tài nguyên</string>
+    <string name="patcher_task_decoding_resources">Đang giải mã tài nguyên</string>
+    <string name="patcher_task_indexing_classes">Đang lập chỉ mục các lớp</string>
+    <string name="patcher_task_compiling_dex">Đang biên dịch các tệp DEX</string>
+    <string name="patcher_task_compiling_resources">Đang biên dịch tài nguyên</string>
+    <string name="patcher_task_writing_apk">Đang ghi tệp APK</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Bảo vệ khi vá nền</string>
     <string name="battery_optimization_dialog_description">Một số thiết bị có thể tắt trình vá khi ứng dụng bị thu nhỏ. Cho phép Morphe chạy không giới hạn pin để quá trình vá hoàn thành ổn định</string>
@@ -731,7 +728,8 @@ Gỡ cài đặt sẽ xóa vĩnh viễn toàn bộ dữ liệu ứng dụng"</st
     <string name="patched_app_save_failed_toast">Không thể lưu ứng dụng đã vá</string>
     <string name="plugin_activity_dialog_body">Bạn vẫn cần tự thao tác để tải ứng dụng</string>
     <string name="patcher_process_killed_message">Hệ thống đã dừng trình vá trước khi hoàn tất, thường là để giải phóng bộ nhớ. Đóng các ứng dụng khác và thử lại</string>
-    <string name="patcher_process_crashed_message">Trình vá lỗi đã bị treo trước khi hoàn tất. Nếu tình trạng này tiếp tục xảy ra, hãy tắt \"Sử dụng VM nhúng\" trong cài đặt và báo cáo sự cố kèm theo bản ghi log</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">Trình vá đã bị sự cố trước khi hoàn tất. Nếu điều này xảy ra lần nữa, hãy tắt %1$s và báo cáo sự cố cùng với nhật ký</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">Trình vá đã hết bộ nhớ với heap %1$s MB. Ứng dụng này quá lớn so với các bản vá đã chọn. Hãy thử vá với ít nguồn vá hơn hoặc chọn ít bản vá hơn</string>
     <string name="install_app_success">Đã cài đặt thành công</string>
@@ -919,6 +917,8 @@ Các bản vá không bị ảnh hưởng: bật các bản vá trước khi ph�
     <string name="notification_channel_patch_updates">Cập nhật bản vá</string>
     <string name="notification_channel_patch_updates_description">Thông báo về các bản phát hành bản vá mới</string>
     <string name="notification_channel_patcher_description">Hiển thị khi Morphe đang vá ứng dụng trong nền</string>
+    <string name="notification_channel_patching_results">Kết quả vá lỗi</string>
+    <string name="notification_channel_patching_results_description">Khi quá trình vá lỗi kết thúc hoặc một bản cài đặt đang chờ bạn trong khi Morphe chạy ngầm</string>
     <string name="notification_channel_mounted_apps">Ứng dụng đã gắn</string>
     <string name="notification_channel_mounted_apps_description">Khi một phiên bản khác thay thế một ứng dụng đã được gắn và bản vá của nó không còn áp dụng được nữa</string>
     <string name="notification_mount_replaced_title">%1$s không còn được vá</string>
@@ -1030,9 +1030,8 @@ Kích thước hình ảnh yêu cầu:
     <string name="installer_title">Trình cài đặt</string>
     <string name="installer_internal_description">Dùng trình cài đặt gói của Android</string>
     <string name="installer_play_store_description">Sử dụng trình cài đặt hệ thống và đặt Cửa hàng Play làm nguồn cài đặt</string>
+    <string name="installer_root_description">Tự động cài đặt với root</string>
     <string name="installer_root_play_store_description">Cài đặt bằng root mà không cần xác nhận, đồng thời đặt Google Play Store làm nguồn cài đặt</string>
-    <string name="installer_auto_saved_name">Gắn kết bằng root</string>
-    <string name="installer_auto_saved_description">Chỉ áp dụng cho các ứng dụng được vá ở chế độ Gắn kết bằng root. Các APK được vá theo chế độ tiêu chuẩn sẽ được cài bằng trình cài đặt khác</string>
     <string name="installer_shizuku_description">Cài ẩn bằng Shizuku hoặc Sui</string>
     <string name="installer_shizuku_play_store_description">Cài đặt thông qua Shizuku mà không cần xác nhận, đồng thời đặt Google Play Store làm nguồn cài đặt</string>
     <string name="installer_option_none">Không có</string>
@@ -1042,7 +1041,7 @@ Kích thước hình ảnh yêu cầu:
     <string name="installer_status_shizuku_not_installed">Cài Shizuku hoặc Sui để dùng tuỳ chọn này</string>
     <string name="installer_status_shizuku_not_running">Chạy Shizuku hoặc Sui và thử lại</string>
     <string name="installer_status_shizuku_permission">Cấp quyền Shizuku cho Nivqo trong ứng dụng Shizuku</string>
-    <string name="installer_mount_warning_install">Trình cài đặt chính của bạn đã được đặt là trình cài đặt mount gốc. Ứng dụng đã lưu này không được cài đặt bằng mount</string>
+    <string name="installer_mount_warning_install">Chế độ vá được đặt thành root mount. Ứng dụng đã lưu này không được cài đặt bằng mount</string>
     <string name="mount_version_mismatch_message">Phiên bản ứng dụng gốc (%2$s) không khớp với phiên bản ứng dụng đã sửa (%1$s). Mount phiên bản gốc khớp, sau đó thử lại</string>
     <string name="mount_stock_restore_failed_message">Android đã từ chối APK gốc đã lưu. Hãy cài đặt đúng phiên bản gốc tương ứng rồi thử gắn lại</string>
     <string name="installer_status_shizuku_unsupported">Phiên bản Shizuku đã cài không được hỗ trợ</string>
@@ -1066,11 +1065,17 @@ Kết quả thực tế có thể khác nhau tùy theo phiên bản Android, ROM
     <string name="installer_play_store_warning_continue">Tôi hiểu, tiếp đi</string>
     <string name="installer_play_store_mode">Cài đặt như ứng dụng từ Cửa hàng Play</string>
     <string name="installer_play_store_mode_description">Đánh dấu Google Play Store là nguồn cài đặt</string>
+    <string name="settings_section_patch_mode">Chế độ vá</string>
+    <string name="settings_patch_mode_ask">Hỏi mỗi lần</string>
+    <string name="settings_patch_mode_ask_description">Hỏi trước khi vá mỗi ứng dụng xem nên vá cho root mount hay cài đặt tiêu chuẩn</string>
+    <string name="settings_section_after_patching">Sau khi vá</string>
+    <string name="settings_after_patching_install">Tự động cài đặt</string>
+    <string name="settings_after_patching_ask">Hỏi trình cài đặt nào</string>
+    <string name="settings_after_patching_ask_description">Hỏi trình cài đặt nào cần sử dụng mỗi khi cài đặt ứng dụng</string>
+    <string name="settings_after_patching_manual">Cài đặt thủ công</string>
+    <string name="settings_after_patching_manual_description">Cài đặt bằng trình cài đặt mặc định sau khi bạn nhấn Cài đặt</string>
     <string name="settings_nomount_only">Chỉ NoMount</string>
     <string name="settings_nomount_only_description">Chỉ gắn kết các ứng dụng bằng NoMount và không bao giờ quay lại dùng bind mount, vì vậy chúng sẽ không được gắn kết nếu thiếu NoMount</string>
-    <string name="settings_prompt_installer_on_install">Hỏi chọn trình cài đặt</string>
-    <string name="settings_prompt_installer_on_install_description">Hỏi cách cài đặt từng ứng dụng: với quyền root trước khi vá, nếu không thì sau đó</string>
-    <string name="settings_auto_install_with_shizuku">Tự động cài đặt sau khi vá</string>
     <string name="settings_auto_install_with_shizuku_description">Cài đặt hoặc gắn APK đã vá ngay sau khi quá trình vá hoàn tất</string>
     <string name="settings_auto_uninstall_with_shizuku">Tự động gỡ cài đặt khi có xung đột</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Gỡ cài đặt ứng dụng hiện tại khi xung đột chữ ký. Điều này có thể xóa dữ liệu ứng dụng</string>
@@ -1140,7 +1145,6 @@ Chi tiết: %2$s"</string>
     <string name="settings_system_import_keystore_dialog_description">Bạn sẽ cần điền thông tin xác thực của kho khóa để nhập chúng</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Tên người dùng (Alias)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Mật khẩu</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Định dạng kho khoá</string>
     <string name="settings_system_import_keystore_wrong_credentials">Thông tin xác thực kho khóa không đúng</string>
     <string name="settings_system_import_keystore_success">Đã nhập kho khóa</string>
     <string name="settings_system_import_keystore_failed">Khổng thể nhập kho khóa</string>
@@ -1294,6 +1298,7 @@ Chi tiết: %2$s"</string>
     <string name="credits_prior_development">Trước đây</string>
     <string name="opensource_licenses">Giấy phép mã nguồn mở</string>
     <string name="opensource_licenses_description">Các thư viện mà Morphe xây dựng trên đó</string>
+    <string name="opensource_licenses_search">Tìm kiếm thư viện và giấy phép</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Một lựa chọn</string>
     <string name="easter_egg_pill_message">Hãy uống viên thuốc màu xanh và quảng cáo sẽ ở nguyên vị trí. Hãy uống viên thuốc màu đỏ và xem mã byte có thể đi sâu đến đâu.</string>
@@ -1518,8 +1523,7 @@ Chi tiết: %2$s"</string>
     <string name="tour_prompt_confirm">Cho tôi xem</string>
     <string name="onboarding_restart_title">Khám phá tính năng</string>
     <string name="onboarding_restart_desc">Chuyến tham quan có hướng dẫn về các tính năng chính</string>
-
-    <!-- Preserved Nivqo localization -->
+    <string name="home_app_filter_patched_description">Các ứng dụng đã được bạn vá hoặc lưu bằng Nivqo</string>
     <string name="home_category_delete_confirm_title">Xóa danh mục</string>
     <string name="home_category_delete_confirm_message">Xóa danh mục &lt;b&gt;%1$s&lt;/b&gt;? Các ứng dụng trong danh mục này sẽ được chuyển về &lt;b&gt;%2$s&lt;/b&gt;</string>
     <string name="expert_mode_prerelease_notice">Nguồn này đang sử dụng các bản vá trước khi phát hành. Việc vá có thể thất bại hoặc hoạt động không như mong đợi</string>

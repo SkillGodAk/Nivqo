@@ -32,7 +32,13 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * kinds of the overlay's call-to-action list, and with the switch on the list comes back without
  * them.
  *
- * <p>The "Commission eligible" label is a disclosure and is left alone.
+ * <p>The "Commission eligible" label under a reel's creator has a switch of its own, off by default
+ * (#329). The label's row and the check for whether a reel has that row each read the same flag on
+ * the reel, and {@link #keepCommissionLabel} answers both.
+ *
+ * <p>A profile opened from a reel with a shop link floats that reel's product banner over its grid
+ * (#329). The reel tags the profile's bundle with where it came from, and the profile asks for the
+ * banner only with that tag, so {@link #keepProfileEntry} answers null for it.
  *
  * <p>Off, paused, before the settings are ready, or when anything here fails, the answer is
  * Facebook's own.
@@ -42,6 +48,8 @@ public final class AffiliateLinks {
     static final String REEL_CARD = "Reel product card kept out";
     static final String FEED_CARD = "Feed product card kept out";
     static final String COMMENT_CARD = "Comment sheet product card kept out";
+    static final String COMMISSION_LABEL = "Commission eligible label kept out";
+    static final String PROFILE_BANNER = "Profile shop banner kept out";
     /**
      * Counted with the kind's name after it, so a report says which shop card a reel had. The name is
      * one of {@link #SHOP_CTAS}, so the count's text stays fixed.
@@ -62,6 +70,23 @@ public final class AffiliateLinks {
     private static volatile boolean logged;
 
     private AffiliateLinks() {
+    }
+
+    /**
+     * The hook right after Facebook reads a reel's "Commission eligible" flag, handed the flag as an
+     * int. False while the label's switch is on, and the flag otherwise.
+     */
+    public static boolean keepCommissionLabel(int commissionEligible) {
+        boolean shows = commissionEligible != 0;
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!shows || !Utils.settingsReady() || !Settings.HIDE_COMMISSION_LABEL.get()) return shows;
+            kept("commission label", COMMISSION_LABEL);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "commission label", failure);
+            return shows;
+        }
     }
 
     /**
@@ -176,6 +201,24 @@ public final class AffiliateLinks {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "reel CTA list", failure);
             return filtered;
+        }
+    }
+
+    /**
+     * The hook right before Facebook tags the bundle of a profile it opens with the shop link's entry
+     * point, handed that tag. Null, what a profile opened any other way gets, while the switch is on.
+     */
+    @Nullable
+    public static String keepProfileEntry(@Nullable String entryPoint) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (entryPoint == null || !hiding()) return entryPoint;
+            kept("profile entry point", PROFILE_BANNER);
+            Logger.printDebug(() -> "Affiliate links: profile entry point " + entryPoint + " kept out");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "profile entry point", failure);
+            return entryPoint;
         }
     }
 

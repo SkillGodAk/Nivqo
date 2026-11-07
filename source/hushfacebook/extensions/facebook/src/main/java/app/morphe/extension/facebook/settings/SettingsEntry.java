@@ -59,7 +59,9 @@ import app.morphe.extension.facebook.media.TapToPlay;
 import app.morphe.extension.facebook.misc.AppIcons;
 import app.morphe.extension.facebook.misc.AppLock;
 import app.morphe.extension.facebook.misc.BreakTimer;
+import app.morphe.extension.facebook.misc.BlockedListPictures;
 import app.morphe.extension.facebook.misc.CloseWhenLeft;
+import app.morphe.extension.facebook.misc.IconDensity;
 import app.morphe.extension.facebook.misc.OpeningPause;
 import app.morphe.extension.facebook.misc.ScreenTransitions;
 import app.morphe.extension.facebook.misc.TextSize;
@@ -70,8 +72,10 @@ import app.morphe.extension.facebook.navigation.TranslucentBars;
 import app.morphe.extension.facebook.notifications.PushDiagnostics;
 import app.morphe.extension.facebook.reels.BurnInGuard;
 import app.morphe.extension.facebook.reels.FeedVideoAlone;
+import app.morphe.extension.facebook.reels.GrayReels;
 import app.morphe.extension.facebook.reels.ViewerTopBar;
 import app.morphe.extension.facebook.stories.StorySeenButton;
+import app.morphe.extension.facebook.stories.StoryTaps;
 import app.morphe.extension.facebook.theme.AccentResources;
 import app.morphe.extension.facebook.theme.AmoledResources;
 import app.morphe.extension.facebook.theme.MaterialYouTheme;
@@ -165,6 +169,8 @@ public final class SettingsEntry {
             AppLock.watch(context);
             // Close Facebook when you leave it (#202): when the last screen goes to the background.
             CloseWhenLeft.watch(context);
+            // Hide pictures on the Blocked list (#361): when the Blocking page comes to the front.
+            BlockedListPictures.watch(context);
             // The opening pause, after the lock's, so on a resume it knows whether the lock covers.
             OpeningPause.watch(context);
             // Take breaks (#248), after both, so a break waits for their covers.
@@ -186,10 +192,13 @@ public final class SettingsEntry {
             // Open feed videos on their own, a Clean up Reels switch: which screen is in front.
             // And the top bar of the full-screen player, another (#311): looked through after each layout.
             // And Burn-in guard (#288): the activity in front, for a video filling the screen.
+            // And Show Reels in gray: the same screen, grayed while it shows, when Turn off HDR
+            // brightness can move its video into the window (its row shows only then too).
             if (SettingsStatus.reelDeclutter()) {
                 FeedVideoAlone.watch(context);
                 ViewerTopBar.watch(context);
                 BurnInGuard.install(context);
+                if (SettingsStatus.turnOffHdrBrightness()) GrayReels.install(context);
             }
             // An Audience Network component an earlier install turned on goes back off (#168).
             if (SettingsStatus.audienceNetwork()) AudienceNetwork.keepOff(context);
@@ -203,6 +212,7 @@ public final class SettingsEntry {
         }
         ReleaseCheck.onFacebookStart();
         StartsOffNote.onFacebookStart(context);
+        IconDensity.onFacebookStart(context);
         SaveLeftovers.sweepAfterStart(context);
         ResumePlayback.onFacebookStart();
         publishShortcut(context);
@@ -557,6 +567,24 @@ public final class SettingsEntry {
     }
 
     /**
+     * The patch hands each new bar across the top of Facebook's tabs here as its constructor ends
+     * (#374). Notifications, Friends, Marketplace and the other tabs show a menu button and their
+     * title in it, with no Facebook logo, so a long press on the title opens the settings too.
+     *
+     * <p>A touch listener on the bar only hears touches none of its buttons took, so the buttons
+     * keep their taps and the feed's logo keeps its own press. The same switch as the logo's
+     * decides, read on every touch. Anything that goes wrong leaves the bar as Facebook built it.
+     */
+    public static void watchTitleBar(View bar) {
+        try {
+            bar.setOnTouchListener(new LogoPress(false, true));
+            Logger.printInfo(() -> "Settings entry: a long press on a tab's title bar opens the settings");
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Settings entry: could not watch a title bar", failure);
+        }
+    }
+
+    /**
      * Whether a long press on the Facebook logo opens the settings. Its switch, except that when
      * every one of the three ways in is stored off (a backup imported that way, say) the press
      * stays on, so there is always a way back in. The Menu row only counts as a way in on a build
@@ -610,6 +638,12 @@ public final class SettingsEntry {
          * wouldn't hear past the finger going down otherwise.
          */
         private final boolean claims;
+        /**
+         * Whether this times presses on a tab's title bar ({@link #watchTitleBar}). A bar Facebook
+         * made clickable hears the whole touch anyway. One it didn't needs the whole touch taken,
+         * like a logo with no tap.
+         */
+        private final boolean titleBar;
         /** The logo while a press on it is being timed. */
         private View pressed;
         private float downX;
@@ -622,7 +656,12 @@ public final class SettingsEntry {
         }
 
         LogoPress(boolean claims) {
+            this(claims, false);
+        }
+
+        LogoPress(boolean claims, boolean titleBar) {
             this.claims = claims;
+            this.titleBar = titleBar;
         }
 
         /** Whether a press on the logo is being timed for a long press. Package-visible for tests. */
@@ -645,7 +684,7 @@ public final class SettingsEntry {
                         downX = event.getX();
                         downY = event.getY();
                         logo.postDelayed(fire, ViewConfiguration.getLongPressTimeout());
-                        return claims;
+                        return claims || (titleBar && !logo.isClickable());
                     case MotionEvent.ACTION_MOVE:
                         // The same leeway the logo gives its own press before it lets go.
                         if (pressed != null && !within(logo, event)) stop();
@@ -685,6 +724,7 @@ public final class SettingsEntry {
             try {
                 // Switched off while the finger was down: still Facebook's.
                 if (!logoPressOn()) return;
+                if (titleBar) Logger.printInfo(() -> "Settings entry: a long press on a tab's title bar");
                 // Not asked for, and letting go is Facebook's tap, as it is on a Facebook without this.
                 if (!requestFromLogo(logo)) return;
                 opened = true;
@@ -746,6 +786,7 @@ public final class SettingsEntry {
             // Only with Download any video in the build, whose switch it is an option of.
             if (SettingsStatus.videoDownload()) ClipboardLink.onResumed(activity);
             if (SettingsStatus.storySeen()) StorySeenButton.activityResumed(activity);
+            if (SettingsStatus.storyTaps()) StoryTaps.activityResumed(activity);
             if (openPending) openWhenSettled(activity);
             relabelIfStale(activity);
             SavedShortcut.refresh(activity);
@@ -760,6 +801,7 @@ public final class SettingsEntry {
             SavedFileActions.onPaused(activity);
             ClipboardLink.onPaused(activity);
             StorySeenButton.activityPaused(activity);
+            if (SettingsStatus.storyTaps()) StoryTaps.activityPaused(activity);
             ScreenTransitions.activityPaused(activity);
             ScreenLog.paused(activity);
             if (resumed != null && resumed.get() == activity) resumed = null;
@@ -898,6 +940,13 @@ public final class SettingsEntry {
      */
     public static void openIfRequested(Activity activity) {
         if (openPending) OpenWhenResumed.openWhenSettled(activity);
+    }
+
+    /** Whether the screen is over [activity] or waiting to open, so a page opened now would cover it. */
+    public static boolean upOrComing(Activity activity) {
+        if (openPending) return true;
+        WeakReference<Activity> shownOver = host;
+        return shownOver != null && shownOver.get() == activity;
     }
 
     /** Called by the screen when the person closes it, so it isn't reopened. */

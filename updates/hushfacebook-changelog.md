@@ -1,3 +1,8 @@
+# 0.21.0-nivqo.1 (2026-11-08)
+
+* **Facebook：** 繁體中文：更新至 HushFacebook 0.21.0（117 個補丁），支援 Facebook 585.0.0.47.54。新增照片輪播、貼文翻譯、限時動態進度列與播放控制、搜尋貼文分頁，改善留言及返回動態消息的問題。保留 Nivqo Messenger 按鈕與繁體中文設定。
+* **Facebook:** English: HushFacebook 0.21.0 (117 patches) for Facebook 585.0.0.47.54. Photo carousel, post translation, Stories controls and search posts tab, with Nivqo routing and localization.
+
 # 0.20.0-nivqo.1 (2026-11-03)
 
 * **Facebook:** 繁體中文：正式 HushFacebook 0.20.0（109 個補丁），支援 Facebook 585.0.0.47.54。新增直播回放播放速度、Reels 影片日期、圓形限時動態縮圖、首頁返回保留位置、留言／搜尋介面控制。保留 Nivqo 介面繁中與 Messenger 按鈕路由，補丁說明全繁中。

@@ -54,7 +54,8 @@ param(
     # The walk, step by step. A link is opened and swiped -Swipes times. "tap:<label>" taps the
     # node whose text or description is exactly <label>, from a fresh dump, scrolling back up to
     # find it, and only labels that open or expand something belong here: never Like, Follow,
-    # Add friend, Send or a person. "longpress" holds the middle of the screen, "back" goes back.
+    # Add friend, Send or a person. "longpress" holds the screen's center line 3/8 of the way down,
+    # "back" goes back.
     # "query" types $AuditQuery into the search field fb://search just opened and submits it.
     # No fb://groups or fb://friends: all-on hides those tabs, and their links then land nowhere
     # or on Android's app chooser.
@@ -87,11 +88,13 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-# Read-SmokeReport alone: dot-sourcing all of phone-smoke would bind its parameters over these.
+# Read-SmokeReport and Read-CrashBuffer alone: dot-sourcing all of phone-smoke would bind its parameters over these.
 $smokeAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'phone-smoke.ps1'), [ref]$null, [ref]$null)
-$smokeReader = $smokeAst.Find({ param($node)
-        $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Read-SmokeReport' }, $true)
-. ([scriptblock]::Create($smokeReader.Extent.Text))
+foreach ($smokeFunction in @('Read-SmokeReport', 'Read-CrashBuffer')) {
+    $smokeReader = $smokeAst.Find({ param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq $smokeFunction }, $true)
+    . ([scriptblock]::Create($smokeReader.Extent.Text))
+}
 # Use-Utf8ConsoleOutput alone, the same way: adb writes UTF-8, and Invoke-Adb reads it through this.
 $commonAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'common.ps1'), [ref]$null, [ref]$null)
 $utf8Reader = $commonAst.Find({ param($node)
@@ -300,8 +303,9 @@ function Get-AuditCrashes([long]$SinceEpoch) {
     $crashes = @(Invoke-Adb shell logcat -b crash -d -v epoch) | Where-Object {
         $_ -match '^\s*(\d+)\.\d+\s' -and [long]$Matches[1] -ge $SinceEpoch
     }
-    $fatal = @($crashes | Where-Object { $_ -match "Process: $([regex]::Escape($Package))(?=[:,\s]|$)" })
-    return [pscustomobject]@{ Lines = @($crashes); Fatal = $fatal }
+    # Java crashes and native ones (a tombstone's signal and top frame), minus emulator translation aborts.
+    $read = Read-CrashBuffer -Lines @($crashes) -Package $Package
+    return [pscustomobject]@{ Lines = @($crashes); Fatal = @($read.Fatal); EmulatorNotes = @($read.EmulatorNotes) }
 }
 
 # Whether the keyboard is on screen. A dump that doesn't say is no answer either way.
@@ -489,11 +493,25 @@ function Open-AuditRoute([string]$Route, [bool]$Reel) {
 # The one node a "tap:<label>" step may tap, or $null. A row can repeat its label on a child that
 # isn't clickable (the menu's Settings and privacy row on the S22), so several matches still
 # name one target when exactly one is clickable and every other match sits inside it.
-function Select-AuditTapNode([string]$Label, [object[]]$Nodes) {
+# Comment sits under every post, so two short posts put two on one screen, and any of them opens a
+# comment sheet: the topmost clickable one a tap may reach is taken. Every other label must name
+# one target.
+function Select-AuditTapNode([string]$Label, [object[]]$Nodes, [string[]]$Repeated = @('Comment')) {
     $boundsPattern = '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$'
     $found = @($Nodes | Where-Object { $_.text -ceq $Label -or $_.'content-desc' -ceq $Label } |
         Where-Object { $_.package -ceq $Package -and $_.bounds -match $boundsPattern })
     if ($found.Count -eq 1) { return $found[0] }
+    if ($found.Count -gt 1 -and $Repeated -ccontains $Label) {
+        $reachable = @($found | Where-Object { $_.clickable -ceq 'true' } | ForEach-Object {
+            $null = $_.bounds -match $boundsPattern
+            $box = @([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], [int]$Matches[4])
+            if ($box[2] -gt $box[0] -and $box[3] -gt $box[1] -and [int](($box[1] + $box[3]) / 2) -ge $MinimumTapY) {
+                [pscustomobject]@{ Node = $_; Top = $box[1] }
+            }
+        })
+        if ($reachable.Count -eq 0) { return $null }
+        return @($reachable | Sort-Object Top)[0].Node
+    }
     $rows = @($found | Where-Object { $_.clickable -ceq 'true' })
     if ($found.Count -lt 2 -or $rows.Count -ne 1) { return $null }
     $null = $rows[0].bounds -match $boundsPattern
@@ -559,7 +577,7 @@ function Send-Profile([string]$Json) {
 }
 
 # The keys to turn off: [WalkKeys] that -On didn't ask for, then every -Off key, each once. The
-# walk's hold in the middle of a reel reaches Hold a reel for 2x only with Long press opens
+# walk's hold on a reel reaches Hold a reel for 2x only with Long press opens
 # comments and Only on the right edge off: either one sends it to the comment sheet or Facebook's
 # menu instead. With the reel waiting for Tap to play, that hold is the only thing on the walk that
 # sets a reel's speed (585 sets none for a reel that hasn't started), so Hold a reel for 2x and
@@ -848,12 +866,29 @@ function Get-SettingsPages {
     return @('') + @($pages) + @('support')
 }
 
+# The Hush settings screen by its own words. The Hushfacebook name scrolls away with the header, so
+# a page opened at its section, or scrolled to the bottom, shows only the fixed toolbar's list
+# toggle, under either of its labels and in the page's language.
+function Test-SettingsScreen([string[]]$Text, [object]$Rows) {
+    foreach ($label in @('Hushfacebook', 'Show all settings as a list', 'Show settings by category')) {
+        $words = $label
+        if ($Rows -is [Collections.IDictionary] -and $Rows.Contains($label) -and -not [string]::IsNullOrEmpty([string]$Rows[$label])) {
+            $words = [string]$Rows[$label]
+        }
+        if ($Text -ccontains $words) { return $true }
+    }
+    return $false
+}
+
+# Back until no Hush settings screen is left. Back first takes a page back from its section jump,
+# then closes the screen.
 function Close-Settings {
-    for ($i = 0; $i -lt 3; $i++) {
-        $text = Get-ScreenText
+    for ($i = 0; $i -lt 4; $i++) {
+        $text = @(Get-ScreenText)
         $record = ((Invoke-Adb shell "cat $AuditDir/page.json 2>/dev/null; true") -join "`n").Trim()
         $shown = if ($record) { $record | ConvertFrom-Json } else { $null }
-        if (-not ($text -contains 'Hushfacebook' -or $text -contains 'Search settings' -or
+        $table = if ($shown) { Get-AuditLocaleTable ([string]$shown.locale) $shown.localeTags } else { $null }
+        if (-not ((Test-SettingsScreen $text $(if ($table) { $table.Rows } else { $null })) -or $text -contains 'Search settings' -or
                 ($shown -and $shown.schema -in @(2, 3) -and $text -contains $shown.title))) { return }
         Invoke-Adb shell input keyevent KEYCODE_BACK | Out-Null
         Start-Sleep -Milliseconds 900
@@ -954,7 +989,7 @@ function Save-SettingsPages([string]$Pass, [string]$RequestedLocale = '') {
             }
         }
         $opened = (Test-AuditSectionShown $shown $page) -and $localeMatches -and
-            $allText.Contains('Hushfacebook') -and $allText.Contains($shown.title)
+            (Test-SettingsScreen @($allText) $(if ($table) { $table.Rows } else { $null })) -and $allText.Contains($shown.title)
         $results.Add([pscustomobject]@{ Page = $(if ($page) { $page } else { 'Home' }); Name = $name; Shots = $shots
             Opened = $opened; Locale = $shown.locale; TextLocale = $(if ($table) { $table.Tag } else { $null })
             ExpandedSections = $shown.expandedSections; SectionRows = $shown.sectionRows; TargetExpanded = $shown.targetExpanded })
@@ -989,6 +1024,10 @@ if ($size -notmatch '(\d+)x(\d+)\s*$') { throw "Could not read the screen size: 
 $width = [int]$Matches[1]; $height = [int]$Matches[2]
 if ($MinimumTapY -ge $height) { throw 'MinimumTapY must be below the bottom of the screen.' }
 $swipeX = [int]($width / 2); $swipeFrom = [int]($height * 0.75); $swipeTo = [int]($height * 0.3)
+# A reel waiting for Tap to play has Facebook's play button at the middle of the screen, which takes
+# a hold there as a press of its own: the reel stays paused and Hold a reel for 2x never hears it.
+# 3/8 of the way down is still the reel and clear of that button.
+$holdY = [int]($height * 0.375)
 $sdk = [int](((Invoke-Adb shell getprop ro.build.version.sdk) -join '').Trim())
 if ($Locales.Count -gt 0 -and $sdk -lt 33) { throw 'App-locale passes require Android 13 or newer.' }
 $stateBefore = [ordered]@{ schema = 1; serial = $Serial; device = $deviceIdentity; package = $Package
@@ -1088,7 +1127,7 @@ try {
             } elseif ($step -eq 'longpress') {
                 $inputReel = $routeReel
                 $inputWindow = if ($routeReel) { $routeWindow }
-                try { Invoke-Adb shell input swipe $swipeX ([int]($height / 2)) $swipeX ([int]($height / 2)) 2500 | Out-Null }
+                try { Invoke-Adb shell input swipe $swipeX $holdY $swipeX $holdY 2500 | Out-Null }
                 finally { $inputReel = $false; $inputWindow = $null }
                 Start-Sleep -Seconds 1
                 $inputReel = $routeReel
@@ -1245,6 +1284,7 @@ if ($startedEpoch -gt 0) {
         }
         $walkCrashes = $finalCrashes.Fatal.Count
         if ($walkCrashes -gt 0) { $problems.Add("Facebook crashed during the audit: $($finalCrashes.Fatal[0].Trim())") }
+        foreach ($note in $finalCrashes.EmulatorNotes) { $summary.Add("Emulator note, not Facebook's crash: $note") }
     } catch { $problems.Add("Could not read the final crash buffer: $($_.Exception.Message)") }
 }
 

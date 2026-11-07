@@ -68,8 +68,6 @@ fun HomeScreen(
     homeAppButtonPrefs: HomeAppButtonPreferences = koinInject(),
     bundleUpdateProgress: PatchBundleRepository.BundleUpdateProgress?,
     onboardingState: OnboardingState? = null,
-    patchTriggerPackage: String? = null,
-    onPatchTriggerHandled: () -> Unit = {},
     appInfoTriggerPackage: String? = null,
     onAppInfoTriggerHandled: () -> Unit = {},
     installViewModel: InstallViewModel = koinViewModel()
@@ -78,6 +76,7 @@ fun HomeScreen(
     val messages = koinInject<UserMessages>()
     val scope = rememberCoroutineScope()
     val sourcesLoadingText = stringResource(R.string.home_sources_are_loading)
+    val manualSortHint = stringResource(R.string.home_app_sort_manual_hint)
     val otherAppsText = stringResource(R.string.home_other_apps)
     val settingsLabel = stringResource(R.string.settings)
     val expertModeLabel = stringResource(R.string.settings_advanced_expert_mode)
@@ -243,14 +242,6 @@ fun HomeScreen(
         openBatchQueue(items.map { it.batchTarget() })
     }
 
-    // Handle patch trigger from dialog
-    LaunchedEffect(patchTriggerPackage) {
-        patchTriggerPackage?.let { packageName ->
-            homeViewModel.patchFlow.showPatchDialog(packageName)
-            onPatchTriggerHandled()
-        }
-    }
-
     // Handle app info trigger (e.g. from mount replaced notification)
     LaunchedEffect(appInfoTriggerPackage) {
         appInfoTriggerPackage?.let { packageName ->
@@ -409,7 +400,8 @@ fun HomeScreen(
                         categoryState = homeAppCategoryState,
                         categoryViewMode = homeAppCategoryViewMode,
                         sourceGroups = homeAppSourceGroups,
-                        batchQueuePending = savedBatchQueue != null,
+                        // A queue nobody chose to keep yet is not stored, but selected apps still join it
+                        batchQueuePending = savedBatchQueue != null || batchRun?.isPending == true,
                         showMoreAppsCard = showMoreAppsCard
                     ),
                     appActions = HomeAppActions(
@@ -449,7 +441,10 @@ fun HomeScreen(
                         onSaveSourceGroupOrder = { sourceUids ->
                             homeViewModel.apps.saveAppSourceGroupOrder(sourceUids)
                         },
-                        onSortModeChange = { mode -> homeViewModel.apps.setAppSortMode(mode) },
+                        onSortModeChange = { mode ->
+                            if (mode == HomeAppSortMode.MANUAL) messages.show(manualSortHint)
+                            homeViewModel.apps.setAppSortMode(mode)
+                        },
                         onFilterModeChange = { mode ->
                             homeAppButtonPrefs.setFilterMode(mode.name.takeIf { mode.isActive })
                         },

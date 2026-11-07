@@ -566,6 +566,10 @@ public final class FeedFilter {
             if (reason == null && wordsPatched && Settings.HIDE_PAGE_POSTS.get()) {
                 reason = pagesReason(feedUnit, PostSources.ACTORS);
             }
+            if (reason == null && wordsPatched && Settings.HIDE_OTHER_LANGUAGES.get()) {
+                reason = languageReason(feedUnit, messageAccessor, attachedAccessor, PostSources.ATTACHMENTS,
+                        PostText.ACTION_LINKS);
+            }
             if (reason == null && wordsPatched && typeReaders != null) {
                 reason = typesReason(feedUnit, typeReaders, attachedAccessor);
             }
@@ -583,9 +587,10 @@ public final class FeedFilter {
                 reason = SeenPosts.hideReason(feedUnit);
             }
             // The first post after a link lands Home on it is that post (#306): the person asked
-            // for it, so whatever rule would hide it stands aside. Ads are hidden still, and a link
-            // never lands on one, so an ad judged first doesn't spend the link's one post.
-            if (!adReason(reason) && LinkedPost.isPost(feedUnit) && LinkedPost.takeFirst()) {
+            // for it, so whatever rule would hide it stands aside, the ad rules too. Facebook serves
+            // a boosted page post the link opens as a sponsored edge, so holding ads back hid the
+            // linked post and spent the link on the suggested post after it.
+            if (LinkedPost.isPost(feedUnit) && LinkedPost.takeFirst()) {
                 if (reason == null) return false;
                 FeedFilterCounters.sawKind(FEED_ROUTE, LinkedPost.KEPT_KIND);
                 final String setAside = reason;
@@ -855,6 +860,22 @@ public final class FeedFilter {
     }
 
     /**
+     * Hide posts in other languages: {@link PostLanguages#REASON} when the phone is sure the words the
+     * word filter reads of a post are in languages that aren't kept, otherwise null. Every story it's
+     * asked about is counted on its route under what it decided, or why nothing was read, and a post
+     * whose words can't be read is kept.
+     */
+    static String languageReason(Object feedUnit, StoryFlag.Accessor message, StoryFlag.Accessor attached,
+            StoryFlag.Accessor links, StoryFlag.Accessor actionLinks) {
+        FeedFilterCounters.sawList(PostLanguages.ROUTE, 1);
+        String kind = PostLanguages.storyKind(feedUnit, message, attached, links, actionLinks);
+        FeedFilterCounters.sawKind(PostLanguages.ROUTE, kind);
+        if (!PostLanguages.REASON.equals(kind)) return null;
+        FeedFilterCounters.removed(PostLanguages.ROUTE, 1, kind);
+        return PostLanguages.REASON;
+    }
+
+    /**
      * Hide posts from groups you're not in: the group type and the join state, such as
      * {@code Group:CAN_JOIN}, when the post was posted in a group Facebook would show a Join button
      * for, or wraps one a friend commented on or shared ({@code Group:wrapped CAN_JOIN}), otherwise
@@ -991,11 +1012,6 @@ public final class FeedFilter {
         if (SPONSORED.equals(name)) return Settings.HIDE_SPONSORED_POSTS.get();
         if (PROMOTION.equals(name)) return Settings.HIDE_PROMOTED_POSTS.get();
         return false;
-    }
-
-    /** Whether [reason] is one of the sponsored rule's: an ad, a promoted post or a carousel of ads. */
-    static boolean adReason(@Nullable String reason) {
-        return SPONSORED.equals(reason) || PROMOTION.equals(reason) || MULTI_ADS_TYPE.equals(reason);
     }
 
     /** Whether a story category is one Facebook files the feed's rows of reels under. */

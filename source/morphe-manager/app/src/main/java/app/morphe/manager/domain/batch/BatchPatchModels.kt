@@ -155,6 +155,12 @@ data class BatchPatchItem(
     val source: BatchApkSource?,
     val selection: PatchSelection,
     val options: Options,
+    /**
+     * Whether [selection] is set up by hand rather than taken from the source defaults. Only such
+     * a selection can be edited in simple mode, and only its [options] are saved with it: the
+     * ones simple mode keeps on its preference screen stay there.
+     */
+    val selectedByHand: Boolean = false,
     val bundles: List<BatchBundleRef>,
     val state: BatchItemState,
     val useMount: Boolean = false,
@@ -163,8 +169,11 @@ data class BatchPatchItem(
     val failedPatch: String? = null,
     /** True when the sources mark this APK version as experimental. */
     val experimentalVersion: Boolean = false,
-    /** Version the sources recommend, offered for download when the APK is missing or wrong. */
-    val suggestedVersion: String? = null,
+    /**
+     * Newer app version the sources the app is patched from support, when [source] is behind it
+     * and the user has not turned that version down.
+     */
+    val newerVersion: String? = null,
     val forceVersionMismatch: Boolean = false,
     val forceUnverifiedSignature: Boolean = false,
     /** The one source simple mode was told to patch this app from, null to use every source. */
@@ -251,7 +260,12 @@ data class BatchRunState(
     val activeRun: PatchRunProgress? = null,
     val finishedInForeground: Boolean = false,
     /** Set once the summary started installing on its own, which a reopened summary must not repeat. */
-    val autoInstallStarted: Boolean = false
+    val autoInstallStarted: Boolean = false,
+    /**
+     * Set once the user chose to keep the queue for later, or it came back from storage. Until
+     * then leaving the queue asks, and it is not stored.
+     */
+    val kept: Boolean = false
 ) {
     val activeItem get() = activeIndex?.let(items::getOrNull)
     val runnable get() = items.filter { it.state.isRunnable }
@@ -285,9 +299,15 @@ data class BatchRunState(
     /** Successful items that still have their patched APK on disk, in queue order. */
     val patchedItems get() = items.filter { it.state == BatchItemState.SUCCEEDED && it.patchedFile != null }
 
-    /** What is kept of a queue that has not started yet, null once it has. */
+    /** A queue that has not started yet. */
+    val isPending get() = phase == BatchPhase.PLANNING || phase == BatchPhase.PREFLIGHT
+
+    /** A queue that has not started yet and that leaving would lose, since nobody chose to keep it. */
+    val asksBeforeLeaving get() = isPending && !kept
+
+    /** What is stored of a queue kept for later, null for any other. */
     val savedQueue: SavedBatchQueue?
-        get() = if (phase == BatchPhase.PLANNING || phase == BatchPhase.PREFLIGHT) {
+        get() = if (isPending && kept) {
             SavedBatchQueue(
                 targets = targets,
                 excluded = items.filter { it.state == BatchItemState.EXCLUDED }.mapTo(mutableSetOf()) { it.id },

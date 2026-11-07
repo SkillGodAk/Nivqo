@@ -9,6 +9,7 @@ package app.morphe.extension.facebook.settings;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInGuardRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInWaitRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.category;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.reelDateStyleRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.downloadActionRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.fileNameRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.folderRow;
@@ -122,6 +123,10 @@ final class VideoPages {
             reels.addPreference(toggle(context, Settings.HIDE_REEL_THREADS_CARDS,
                     L10n.t("Hides the \"Threads you might like\" card between reels. Off by default, since it hasn't "
                             + "been tried on a real account yet.")));
+            // Read as each batch of reels arrives, so a change shows from the next batch.
+            reels.addPreference(toggle(context, Settings.FOLLOWED_REELS_ONLY,
+                    L10n.t("The Reels tab only shows reels from people and Pages you follow, starting with the next "
+                            + "batch Facebook loads. The tab can take longer to fill. Off by default.")));
             reels.addPreference(toggle(context, Settings.REEL_CLEAN_MODE,
                     L10n.t("Opens reels and videos in Facebook's Clean mode, which hides the buttons down the side. You can "
                             + "still leave Clean mode as usual. Off by default, since it hasn't been tried on a real "
@@ -140,15 +145,27 @@ final class VideoPages {
                     L10n.t("Hides the search suggestion under a reel's caption, the magnifier with a question to look up, "
                             + "the one at the top of its comments and the search bar over reels you open from a profile.")));
             // Asked after each layout of the full-screen player, so a change shows right away.
+            reels.addPreference(toggle(context, Settings.HIDE_REELS_TAB_TITLE,
+                    L10n.t("Takes the word Reels off the top of the Reels tab. The buttons beside it stay.")));
             reels.addPreference(toggle(context, Settings.HIDE_VIEWER_TOP_BUTTONS,
-                    L10n.t("Takes Search and the button next to it off the top of a video or reel you open. Back "
-                            + "stays, and so does More at the bottom of the side buttons, where Download is.")));
+                    L10n.t("Takes Search and the button next to it off the top of a video or reel you open, and off the "
+                            + "Reels tab. Back and Menu stay, and so does More at the bottom of the side buttons, where "
+                            + "Download is.")));
             // Burn-in guard (#288): read on each pass, so a change shows right away.
             reels.addPreference(burnInGuardRow(context));
             reels.addPreference(burnInWaitRow(context));
             reels.addPreference(toggle(context, Settings.BURN_IN_STAY_DIM,
                     L10n.t("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, "
                             + "the next reel too. They still work. Leaving Reels brings them back.")));
+            // The gray needs the reel's player on a TextureView, a Turn off HDR brightness hook that
+            // works as each player is built, and the screen stays in color over one that isn't, so
+            // it starts from the next reel.
+            if (build.contains(PatchFamily.HDR_BRIGHTNESS)) {
+                reels.addPreference(toggle(context, Settings.GRAY_REELS,
+                        L10n.t("Reels and their buttons show in black and white, which makes them easier to put down. "
+                                + "Your feed, stories, photos and chats keep their colors. It starts from the next reel, "
+                                + "and Reels use a little more battery.")));
+            }
             // The sidebar buttons are built as each reel is, so a change shows from the next reel.
             reels.addPreference(toggle(context, Settings.HIDE_REEL_COUNTS,
                     L10n.t("Takes the numbers away from under a reel's Like, Comment and Share icons. "
@@ -171,8 +188,13 @@ final class VideoPages {
             reels.addPreference(toggle(context, Settings.SHOW_REEL_POST_DATE,
                     L10n.t("Shows when a reel or a video you open full screen was posted, under the name of "
                             + "who posted it. A change shows from the next reel.")));
+            // Asked as each reel's date is worded, so a change shows from the next reel (#357).
+            reels.addPreference(reelDateStyleRow(context));
             reels.addPreference(toggle(context, Settings.HIDE_REEL_SOUND_BUTTON,
                     L10n.t("Takes the speaker button off the bottom of the side of reels. "
+                            + "A change shows from the next reel.")));
+            reels.addPreference(toggle(context, Settings.REEL_SPEAKER_ABOVE_MENU,
+                    L10n.t("Puts the speaker button in the side column of reels, right above the three dots. "
                             + "A change shows from the next reel.")));
             // The audio line is one of the chips, built as each reel's footer is.
             reels.addPreference(toggle(context, Settings.HIDE_REEL_AUDIO_LINE,
@@ -182,6 +204,12 @@ final class VideoPages {
             reels.addPreference(toggle(context, Settings.HIDE_SLOW_CONNECTION_MESSAGE,
                     L10n.t("Stops the \"This is taking a while\" message about your network connection when a video "
                             + "or GIF is slow to load. It keeps loading as before.")));
+            // Asked as each video opened from the feed looks up the next one, as the bar is drawn and
+            // as the player measures the room it keeps for the bar.
+            reels.addPreference(toggle(context, Settings.HIDE_UP_NEXT,
+                    L10n.t("Takes the UP NEXT bar with the next video off the bottom of a video you open from the "
+                            + "feed, and the empty space kept for it, so the seek bar stays at the bottom. A change "
+                            + "shows from the next video you open.")));
             // Asked as a feed video's player asks for more, so a change shows from the next feed video.
             reels.addPreference(toggle(context, Settings.FEED_VIDEOS_ALONE,
                     L10n.t("A video you tap in the feed opens full screen by itself, with no reels to swipe to after it. "
@@ -261,11 +289,15 @@ final class VideoPages {
                     L10n.t("With the switch above on, only a hold on the right third of a reel plays it at double "
                             + "speed. Hold anywhere else and Facebook's long-press menu opens.")));
             reels.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_FOR_2X,
-                    L10n.t("Holding a video in the feed or in Watch plays it at double speed until you let go. It works "
-                            + "without the switches above.")));
+                    L10n.t("Holding a video in the feed or in Watch plays it at double speed until you let go. Pull down "
+                            + "before you let go to keep it at 2x, then tap the video to go back. It works without the "
+                            + "switches above.")));
             reels.addPreference(toggle(context, Settings.HIDE_2X_LOCK_HINT,
                     L10n.t("Holding a video for 2x shows the plain 2x pill, without the \"Pull down to lock 2x speed\" "
                             + "hint. Pulling down still locks it. It works without the switches above.")));
+            reels.addPreference(toggle(context, Settings.HIDE_2X_POPUPS,
+                    L10n.t("Holding a video for 2x shows no pill at all, so no \"Speed: 2x\", \"Release to lock\" or "
+                            + "\"Locked at 2x speed\". The hold and the lock still work.")));
         }
         if (build.contains(PatchFamily.REEL_DOWNLOAD)) {
             subheading(reels, L10n.t("Saving reels"));
@@ -301,14 +333,28 @@ final class VideoPages {
                 playback.addPreference(toggle(context, Settings.TAP_TO_PLAY_STORIES,
                         L10n.t("Video stories don't start by themselves. Touch and hold a story, then let go, to play it. "
                                 + "Works with Tap to play on or off.")));
+                // Asked at each start, so it applies to the next video that tries to play in search.
+                playback.addPreference(toggle(context, Settings.TAP_TO_PLAY_SEARCH,
+                        L10n.t("Videos in search results don't start by themselves. Tap one to play it. "
+                                + "Works with Tap to play on or off.")));
                 playback.addPreference(toggle(context, Settings.INLINE_FEED_VIDEO_CONTROLS,
-                        L10n.t("Adds a play/pause button to feed videos. Tap the video itself to open it full screen. Live videos and ads keep their own controls. "
+                        L10n.t("Adds a play/pause button to feed videos. Tap the video itself to open it full screen. Ads keep their own controls. "
                                 + "With Tap to play on too, Facebook's own Autoplay setting stays as you set it so the button can show, and videos still wait for your tap.")));
+                playback.addPreference(toggle(context, Settings.FEED_VIDEO_FULL_PLAYER_BUTTON,
+                        L10n.t("Adds a button to feed videos that opens the video in Facebook's own full player, with all its controls. "
+                                + "Live videos get it too. With Tap to play on, it needs Inline feed video controls on too.")));
+                playback.addPreference(toggle(context, Settings.FEED_VIDEO_SEEK_BAR,
+                        L10n.t("Shows a bar along the bottom of a feed video. Drag it and let go to jump to that point. Live videos and ads keep their own controls. "
+                    + "With Tap to play on, it needs Inline feed video controls on too.")));
                 // The tap hands over the file the video patch's player record found.
                 if (build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
                     playback.addPreference(toggle(context, Settings.FEED_VIDEO_CAST_BUTTON,
                             L10n.t("Adds a cast button to feed videos. It hands the video to a casting app you have, such as Web Video Caster, which sends it to your TV. Facebook has no casting of its own anymore.")));
                 }
+                // Asked as the full screen player sets each video up, so it applies to the next one you open.
+                playback.addPreference(toggle(context, Settings.CENTER_FULL_SCREEN_VIDEOS,
+                        L10n.t("Videos you open full screen, from a comment or a link, start with their details and comments folded away, "
+                                + "so the video sits in the middle of the screen. The arrow under it still brings them back.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS,
@@ -344,7 +390,7 @@ final class VideoPages {
                 playback.addPreference(toggle(context, Settings.DRAW_VIDEOS_WITH_THE_SCREEN,
                         L10n.t("Videos and reels draw together with the rest of the screen, like Disable HW overlays "
                                 + "in developer options. Try it if reels look pale until something covers them. "
-                                + "Uses a little more battery.")));
+                                + "Uses a little more battery and can make videos stutter, mostly high frame rate ones.")));
             }
             subheading(playback, L10n.t("Sound"));
             if (build.contains(PatchFamily.SKIP_SILENCE)) {
@@ -362,6 +408,10 @@ final class VideoPages {
                 playback.addPreference(toggle(context, Settings.MUTE_STORIES,
                         L10n.t("Stories start with the sound off every time you open Facebook. Tap a speaker or press "
                                 + "volume up to hear them, and they stay on until you mute again.")));
+                // Asked as each opened video closes, so the next one you open shows it.
+                playback.addPreference(toggle(context, Settings.RESTORE_FEED_SOUND,
+                        L10n.t("A video you open plays with its sound as usual. Back in the feed, the sound is what it "
+                                + "was before you opened it, even after a long watch.")));
             }
             subheading(playback, L10n.t("Controls and picture-in-picture"));
             if (build.contains(PatchFamily.FRAME_STEP)) {
@@ -432,6 +482,8 @@ final class VideoPages {
                                 + " " + L10n.t("A GIF comment gets Save GIF when you long-press it.")));
                 downloads.addPreference(toggle(context, Settings.POST_MENU_PHOTO_SAVE,
                         L10n.t("With Save any photo on, a post with photos gets Save photo in its three-dot menu too. A post with several saves each one, one after another.")));
+                downloads.addPreference(toggle(context, Settings.POST_MENU_PHOTO_SEARCH,
+                        L10n.t("With Save any photo on, a post with one photo gets Search photo in its three-dot menu. It hands the photo to the app you pick, such as Google Lens, to look up what's in it or copy its text.")));
             }
             // Every save reads these, a story's and a reel's as much as a feed video's, so they're here
             // whichever download patch is in, the compatible ones above the quality they keep within.

@@ -179,6 +179,7 @@ internal fun inboxItemsMethod(
         const-string v1, "$trace"
         invoke-static {v1}, LX/0Bv;->A01(Ljava/lang/String;)V
         iget v0, $owner, $INBOX_SUPPLIER->$listed:I
+        iget-object v1, $owner, $INBOX_SUPPLIER->A04:$IMMUTABLE_LIST
         ${if (jumpToStart) "if-eqz v0, :start" else "if-nez v0, :listed"}
         :listed
         const/4 v0, 0x0
@@ -332,7 +333,7 @@ internal fun peopleStoryMethod(
 internal fun peopleJewelMethod(
     key: String = "LX/JTx;->A01:LX/1BL;",
     resultRegister: String = "v0",
-    serverFlag: String = "72344162845931861L",
+    serverFlag: String = "72344145666062935L",
     serverTarget: String = ":shown",
     flags: Int = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
     inlinedReset: Boolean = false,

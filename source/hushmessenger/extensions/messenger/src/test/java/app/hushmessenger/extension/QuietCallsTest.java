@@ -7,6 +7,7 @@ import android.app.Person;
 import android.content.Intent;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Switch;
 import java.time.Duration;
 import java.util.Arrays;
@@ -215,6 +216,33 @@ public class QuietCallsTest {
         }
     }
 
+    @Test public void aChatThatCalledWhileSettingsSatBehindMessengerIsListedOnReturn() {
+        Settings.preferences.edit().putBoolean(QuietCalls.KEY, true).commit();
+        try (var screen = Robolectric.buildActivity(SettingsActivity.class).setup()) {
+            View root = screen.get().getWindow().getDecorView();
+            assertNotNull(root.findViewWithTag("quiet_calls_recent_empty"));
+            // Settings stays open under Messenger, a call comes in, then Back returns here.
+            screen.pause().stop();
+            QuietCalls.incoming("1001", 2002);
+            QuietCalls.incomingNotification(ringing("Ana Lopez"), app);
+            screen.restart().resume();
+            Switch ana = root.findViewWithTag(QuietCalls.CHAT_PREFIX + "1001");
+            assertNotNull("Listed when the page comes back", ana);
+            assertNull(root.findViewWithTag("quiet_calls_recent_empty"));
+            LinearLayout list = root.findViewWithTag("quiet_calls_recent_list");
+            assertEquals("One row for the one caller", 1, list.getChildCount());
+            ana.performClick();
+            assertTrue(Settings.preferences.getBoolean(QuietCalls.CHAT_PREFIX + "1001", false));
+            // The next return builds the row again from what was saved, still once.
+            screen.pause().stop();
+            screen.restart().resume();
+            Switch again = root.findViewWithTag(QuietCalls.CHAT_PREFIX + "1001");
+            assertNotSame(ana, again);
+            assertTrue(again.isChecked());
+            assertEquals(1, list.getChildCount());
+        }
+    }
+
     @Test public void aBackupCarriesOnlyChosenChatsWithTheSwitch() {
         Settings.preferences.edit().putBoolean(QuietCalls.KEY, true).putBoolean(QuietCalls.CHOSEN_ONLY, true).commit();
         String backup = ChoiceCodec.encode(Settings.preferences, Set.of(QuietCalls.KEY));
@@ -304,11 +332,11 @@ public class QuietCallsTest {
         assertTrue(Settings.hookErrors.containsKey("quiet_calls"));
     }
 
-    @Test public void theSwitchSitsUnderConversationsStartsOffIsExperimentalAndStaysOutOfTheQuickSetups() {
+    @Test public void theSwitchSitsUnderCallsStartsOffIsExperimentalAndStaysOutOfTheQuickSetups() {
         assertTrue(Settings.installed.contains("quiet_calls"));
         String[] row = Arrays.stream(SettingsActivity.CONTROLS).filter(c -> c[0].equals("quiet_calls")).findFirst().orElseThrow();
         assertEquals("Quiet incoming calls", row[1]);
-        assertEquals("conversations", row[3]);
+        assertEquals("calls", row[3]);
         assertTrue(SettingsActivity.EXPERIMENTAL.contains("quiet_calls"));
         assertFalse(Settings.preferences.contains("quiet_calls"));
         assertFalse(Settings.wouldUse("quiet_calls"));

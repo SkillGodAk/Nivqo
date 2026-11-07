@@ -92,10 +92,12 @@ class NativeBubblesTest {
         assertTrue(found(nativeBubbleModeMethod().apply {
             replaceInstruction(19, "const-wide v0, ${BUBBLE_ROLLOUT + 1}L")
         }).getValue("bubble_mode").isEmpty())
-        // 582's number for the same read is refused, even with every other instruction in place.
-        val old = nativeBubbleModeMethod().apply { replaceInstruction(19, "const-wide v0, 36312020047499274L") }
-        assertTrue(found(old).getValue("bubble_mode").isEmpty())
-        assertFailsWith<PatchException> { old.validateNativeBubbleMode() }
+        // 585's and 582's numbers for the same read are refused, even with every other instruction in place.
+        for (number in listOf(36312002867630111L, 36312020047499274L)) {
+            val old = nativeBubbleModeMethod().apply { replaceInstruction(19, "const-wide v0, ${number}L") }
+            assertTrue(found(old).getValue("bubble_mode").isEmpty(), "$number")
+            assertFailsWith<PatchException>("$number") { old.validateNativeBubbleMode() }
+        }
         // DEX class definitions deduplicate identical signatures, so ambiguity needs a distinct method.
         val duplicate = MutableMethod(ImmutableMethod(mode.definingClass, "anotherBubbleMode", mode.parameters,
             mode.returnType, mode.accessFlags, null, null, mode.implementation))
@@ -157,8 +159,9 @@ class NativeBubblesTest {
     private val metadata = "Landroid/app/Notification${'$'}BubbleMetadata;"
     private val compatMetadata = "Lfixture/Metadata;"
     private val container = "Lfixture/Container;"
+    /** 586 armv7's holder that carries the built shortcut into the container's constructor. */
     private val holderType = "Lfixture/Holder;"
-    private val thread = "Lcom/facebook/messaging/model/threadkey/ThreadKey;"
+    private val thread ="Lcom/facebook/messaging/model/threadkey/ThreadKey;"
     private val shortcut = "Landroid/content/pm/ShortcutInfo;"
     private val pending = "Landroid/app/PendingIntent;"
     private val field = "Lfixture/Notification;->bubble:$compatMetadata"
@@ -337,10 +340,18 @@ class NativeBubblesTest {
 
     @Test fun aShortcutHolderCopiedOntoTheContainerKeepsTheConnectedRoute() {
         val gate = SYNTHETIC_PROFILE.hooks.getValue("bubble_mode").single()
-        val valid = routes(holder = true)
-        assertNotNull(mirroredBubbleRoutes(valid, gate))
+        // 586's armv7 build parks the built shortcut on a holder that the container's constructor copies from.
+        assertNotNull(mirroredBubbleRoutes(routes(holder = true), gate))
         assertNull(mirroredBubbleRoutes(routes(holder = true, longLived = 0), gate))
         assertNull(mirroredBubbleRoutes(routes(holder = true, shortcutIdApi = false), gate))
+        val holderCtor = "$container-><init>($holderType$thread)V"
+        // The holder takes something other than the built shortcut, or the container copies a field the shortcut isn't in.
+        assertNull(mirroredBubbleRoutes(routes(holder = true, changed = create,
+            from = "iput-object v0, v2, $holderType->info:$shortcut", to = "iput-object p4, v2, $holderType->info:$shortcut"), gate))
+        assertNull(mirroredBubbleRoutes(routes(holder = true, changed = holderCtor,
+            from = "iget-object v0, p1, $holderType->info:$shortcut", to = "iget-object v0, p1, $holderType->other:$shortcut"), gate))
+        // The container returned isn't the one built round the holder.
+        assertNull(mirroredBubbleRoutes(routes(holder = true, changed = create, from = "return-object v3", to = "return-object v2"), gate))
     }
 
     @Test fun verifiedShortcutOverloadsShareTheReturnedContainerContract() {

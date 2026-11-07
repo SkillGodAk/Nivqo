@@ -90,6 +90,14 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyTaps() {
+        return false;
+    }
+
+    public static boolean storyViewerCleanup() {
+        return false;
+    }
+
     public static boolean storiesTrayCircles() {
         return false;
     }
@@ -294,6 +302,14 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean gmsCore() {
+        return false;
+    }
+
+    public static boolean openInFacebook() {
+        return false;
+    }
+
     public static boolean amoledTheme() {
         return false;
     }
@@ -342,6 +358,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean listingGap() {
+        return false;
+    }
+
     public static boolean reelsTab() {
         return false;
     }
@@ -386,7 +406,15 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean translatePosts() {
+        return false;
+    }
+
     public static boolean whoShared() {
+        return false;
+    }
+
+    public static boolean photoCarousel() {
         return false;
     }
 
@@ -435,6 +463,10 @@ public final class SettingsStatus {
     }
 
     public static boolean searchDateRange() {
+        return false;
+    }
+
+    public static boolean searchPostsTab() {
         return false;
     }
 

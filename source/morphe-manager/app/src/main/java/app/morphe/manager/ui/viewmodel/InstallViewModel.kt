@@ -22,7 +22,9 @@ import app.morphe.manager.data.room.apps.installed.InstallType
 import app.morphe.manager.domain.installer.*
 import app.morphe.manager.domain.repository.InstalledAppRepository
 import app.morphe.manager.domain.repository.OriginalApkRepository
+import app.morphe.manager.domain.manager.AfterPatching
 import app.morphe.manager.domain.manager.PreferencesManager
+import app.morphe.manager.service.ForegroundHoldService
 import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.util.*
 import kotlinx.coroutines.*
@@ -204,23 +206,36 @@ class InstallViewModel(
         applicationScope.launch(Dispatchers.Main.immediate, block = block)
 
     /**
+     * [launchDetached] for the install itself, held in the foreground as [title] for as long as
+     * it runs, since the system ends a process left without one once the user walks away.
+     */
+    private fun launchInstall(@StringRes title: Int, block: suspend CoroutineScope.() -> Unit): Job {
+        val hold = ForegroundHoldService.Hold(app, app.getText(title))
+        return launchDetached {
+            try {
+                block()
+            } finally {
+                hold.release()
+            }
+        }
+    }
+
+    /**
      * Start installation process using user's preferred installer or prompt for selection.
      *
      * @param allowSignatureMismatch Skips the signature pre-check and lets the platform decide,
      * for rooted devices where a module removes the signature verification.
-     * @param askInstaller Whether the installer prompt may come up, which an install started on
-     * its own after patching skips for the default installer.
      */
     fun install(
         outputFile: File,
         originalPackageName: String,
         onPersistApp: suspend (String, InstallType) -> Boolean,
         autoUninstallOnConflict: Boolean = false,
-        allowSignatureMismatch: Boolean = false,
-        askInstaller: Boolean = true
+        allowSignatureMismatch: Boolean = false
     ) {
         // A second tap lands before the first one's checks report Installing
         if (installState is InstallState.Installing || installStart?.isActive == true) return
+        dropHandedOffInstall()
 
         // Store for potential retry
         pendingInstallFile = outputFile
@@ -230,14 +245,11 @@ class InstallViewModel(
         pendingAutoUninstallOnConflict = autoUninstallOnConflict
         pendingAllowSignatureMismatch = allowSignatureMismatch
 
-        installStart = launchDetached {
-            // Check if we should prompt for installer selection
-            val shouldPrompt = askInstaller && prefs.promptInstallerOnInstall.get()
-
-            if (shouldPrompt && oneTimeInstallerToken == null) {
+        installStart = launchInstall(R.string.installing_ellipsis) {
+            if (prefs.afterPatching.get() == AfterPatching.ASK_INSTALLER && oneTimeInstallerToken == null) {
                 // Show installer selection dialog
                 showInstallerSelectionDialog = true
-                return@launchDetached
+                return@launchInstall
             }
 
             installState = InstallState.Installing()
@@ -257,7 +269,7 @@ class InstallViewModel(
                     if (pm.getVersionCode(packageInfo) < pm.getVersionCode(existingInfo)) {
                         Log.i(TAG, "Version downgrade detected - showing conflict")
                         installState = InstallState.Conflict(targetPackageName)
-                        return@launchDetached
+                        return@launchInstall
                     }
                     // Check signature mismatch before launching the installer - avoids
                     // INSTALL_FAILED_UPDATE_INCOMPATIBLE from the system PackageInstaller
@@ -269,7 +281,7 @@ class InstallViewModel(
                             if (!tryAutoUninstallSignatureConflict(targetPackageName)) {
                                 Log.i(TAG, "Signature mismatch detected for $targetPackageName - showing conflict")
                                 installState = signatureConflictState(targetPackageName)
-                                return@launchDetached
+                                return@launchInstall
                             }
                         }
                     }
@@ -277,29 +289,14 @@ class InstallViewModel(
 
                 // Plan resolution probes installer availability on disk; keep off main
                 val resolved = withContext(Dispatchers.IO) {
-                    fun regularInstallToken(token: InstallerManager.Token) =
-                        if (token == InstallerManager.Token.AutoSaved) {
-                            InstallerManager.Token.Internal
-                        } else {
-                            token
-                        }
-
-                    val token = oneTimeInstallerToken
-                    val primaryToken = if (token != null) {
-                        selectedInstallerToken = token.takeUnless { it == InstallerManager.Token.AutoSaved }
-                        oneTimeInstallerToken = null
-                        token
-                    } else {
-                        selectedInstallerToken = null
-                        installerManager.getPrimaryToken()
-                    }
-
+                    selectedInstallerToken = oneTimeInstallerToken
+                    oneTimeInstallerToken = null
                     installerManager.resolvePlanWithStatus(
                         InstallerManager.InstallTarget.PATCHER,
                         outputFile,
                         targetPackageName,
                         null,
-                        primaryTokenOverride = regularInstallToken(primaryToken)
+                        primaryTokenOverride = selectedInstallerToken
                     )
                 }
 
@@ -319,9 +316,9 @@ class InstallViewModel(
                             )
                             installState = InstallState.Ready
                             selectedInstallerToken = null
-                            return@launchDetached
+                            return@launchInstall
                         }
-                        InstallerManager.Token.AutoSaved,
+                        InstallerManager.Token.Root,
                         InstallerManager.Token.RootPlayStore -> {
                             Log.d(TAG, "Root unavailable, showing dialog")
                             installerUnavailableDialog = InstallerUnavailableState(
@@ -331,7 +328,7 @@ class InstallViewModel(
                             )
                             installState = InstallState.Ready
                             selectedInstallerToken = null
-                            return@launchDetached
+                            return@launchInstall
                         }
                         else -> {
                             // For other installers, proceed with fallback
@@ -377,9 +374,14 @@ class InstallViewModel(
                 performPlayStoreInstall(outputFile, onPersistApp)
             }
 
+            is InstallerManager.InstallPlan.Root -> {
+                Log.d(TAG, "Using root installer")
+                performRootInstall(outputFile, asPlayStore = false, onPersistApp)
+            }
+
             is InstallerManager.InstallPlan.RootPlayStore -> {
                 Log.d(TAG, "Using root Play Store installer")
-                performRootPlayStoreInstall(outputFile, onPersistApp)
+                performRootInstall(outputFile, asPlayStore = true, onPersistApp)
             }
 
             is InstallerManager.InstallPlan.Shizuku -> {
@@ -392,12 +394,6 @@ class InstallViewModel(
                 performShizukuInstall(outputFile, asPlayStore = true, onPersistApp)
             }
 
-            is InstallerManager.InstallPlan.Mount -> {
-                Log.w(TAG, "Root mount plan resolved for regular install; using internal installer")
-                currentInstallType = InstallType.DEFAULT
-                performStandardInstall(outputFile, onPersistApp)
-            }
-
             is InstallerManager.InstallPlan.External -> {
                 Log.d(TAG, "Using external installer: ${plan.installerLabel}")
                 launchExternalInstaller(plan)
@@ -408,20 +404,20 @@ class InstallViewModel(
     private fun InstallerManager.InstallPlan.installerToken(): InstallerManager.Token = when (this) {
         is InstallerManager.InstallPlan.Internal -> InstallerManager.Token.Internal
         is InstallerManager.InstallPlan.PlayStore -> InstallerManager.Token.PlayStore
+        is InstallerManager.InstallPlan.Root -> InstallerManager.Token.Root
         is InstallerManager.InstallPlan.RootPlayStore -> InstallerManager.Token.RootPlayStore
         is InstallerManager.InstallPlan.Shizuku -> InstallerManager.Token.Shizuku
         is InstallerManager.InstallPlan.ShizukuPlayStore -> InstallerManager.Token.ShizukuPlayStore
-        is InstallerManager.InstallPlan.Mount -> InstallerManager.Token.AutoSaved
         is InstallerManager.InstallPlan.External -> token
     }
 
     private fun InstallerManager.InstallPlan.installType(): InstallType = when (this) {
         is InstallerManager.InstallPlan.Internal -> InstallType.DEFAULT
         is InstallerManager.InstallPlan.PlayStore -> InstallType.PLAY_STORE
+        is InstallerManager.InstallPlan.Root -> InstallType.ROOT
         is InstallerManager.InstallPlan.RootPlayStore -> InstallType.ROOT_PLAY_STORE
         is InstallerManager.InstallPlan.Shizuku -> InstallType.SHIZUKU
         is InstallerManager.InstallPlan.ShizukuPlayStore -> InstallType.SHIZUKU_PLAY_STORE
-        is InstallerManager.InstallPlan.Mount -> InstallType.MOUNT
         is InstallerManager.InstallPlan.External ->
             if (token is InstallerManager.Token.Component) InstallType.CUSTOM else InstallType.DEFAULT
     }
@@ -487,25 +483,24 @@ class InstallViewModel(
         }
     }
 
-    /**
-     * Root install that asks PackageManager to record Google Play Store as the installer.
-     */
-    private suspend fun performRootPlayStoreInstall(
+    /** Silent root install, which records Google Play Store as the installer when [asPlayStore]. */
+    private suspend fun performRootInstall(
         outputFile: File,
+        asPlayStore: Boolean,
         onPersistApp: suspend (String, InstallType) -> Boolean
     ) {
         val targetPackageName = readPackageName(outputFile)
 
         try {
             unmountIfMounted(targetPackageName)
-            rootInstaller.installAsPlayStore(outputFile)
+            rootInstaller.installPackage(outputFile, asPlayStore)
         } catch (e: Exception) {
             if (!e.isSignatureRejection()) throw e
             handleConflict(targetPackageName, e.simpleMessage())
             return
         }
 
-        onPersistApp(targetPackageName, InstallType.ROOT_PLAY_STORE)
+        onPersistApp(targetPackageName, if (asPlayStore) InstallType.ROOT_PLAY_STORE else InstallType.ROOT)
         handleInstallSuccess(targetPackageName)
     }
 
@@ -585,9 +580,6 @@ class InstallViewModel(
      * Launch external installer app.
      */
     private fun launchExternalInstaller(plan: InstallerManager.InstallPlan.External) {
-        pendingExternalInstall?.let(installerManager::cleanup)
-        externalInstallTimeoutJob?.cancel()
-
         pendingExternalInstall = plan
         externalInstallStartTime = System.currentTimeMillis()
 
@@ -609,28 +601,38 @@ class InstallViewModel(
             return
         }
 
-        // Monitor for install completion
-        externalInstallTimeoutJob = launchDetached {
-            val timeoutAt = System.currentTimeMillis() + EXTERNAL_INSTALL_TIMEOUT_MS
-            while (true) {
-                if (pendingExternalInstall != plan) return@launchDetached
-
-                val info = withContext(Dispatchers.IO) { pm.getPackageInfo(plan.expectedPackage) }
-                if (info != null && isUpdatedSinceBaseline(info)) {
-                    handleExternalInstallSuccess(plan.expectedPackage)
-                    return@launchDetached
-                }
-
-                if (System.currentTimeMillis() >= timeoutAt) break
-                delay(INSTALL_MONITOR_POLL_MS)
-            }
-
-            if (pendingExternalInstall == plan) {
-                installerManager.cleanup(plan)
-                pendingExternalInstall = null
+        monitorHandedOffInstall(
+            packageName = plan.expectedPackage,
+            isPending = { pendingExternalInstall == plan },
+            onInstalled = { handleExternalInstallSuccess(plan.expectedPackage) },
+            onTimeout = {
                 handleInstallError(
                     app.getString(R.string.installer_external_timeout, plan.installerLabel)
                 )
+            }
+        )
+    }
+
+    /**
+     * Watches [packageName] while [isPending] holds, for an install handed to another app that a
+     * package broadcast may never report, such as one finished after this screen went away.
+     * A timeout leaves the install pending, so [packageReceiver] still records one the other app
+     * finishes late, until [dropHandedOffInstall] gives up on it.
+     */
+    private fun monitorHandedOffInstall(
+        packageName: String,
+        isPending: () -> Boolean,
+        onInstalled: () -> Unit,
+        onTimeout: () -> Unit
+    ) {
+        externalInstallTimeoutJob = launchDetached {
+            val installed = awaitHandedOffInstall {
+                !isPending() || isUpdatedSinceBaseline(packageName)
+            }
+            when {
+                !isPending() -> Unit
+                installed -> onInstalled()
+                else -> onTimeout()
             }
         }
     }
@@ -662,7 +664,6 @@ class InstallViewModel(
         onPersistApp: suspend (String, InstallType) -> Boolean,
         launchInstaller: () -> Unit
     ) {
-        externalInstallTimeoutJob?.cancel()
         pendingPersistCallback = onPersistApp
         currentInstallType = installType
 
@@ -688,24 +689,26 @@ class InstallViewModel(
             return
         }
 
-        externalInstallTimeoutJob = launchDetached {
-            val timeoutAt = System.currentTimeMillis() + EXTERNAL_INSTALL_TIMEOUT_MS
-            while (true) {
-                if (pendingIntentFallbackPackage == null) return@launchDetached
-                val info = withContext(Dispatchers.IO) { pm.getPackageInfo(targetPackageName) }
-                if (info != null && isUpdatedSinceBaseline(info)) {
-                    handleIntentFallbackSuccess(targetPackageName)
-                    return@launchDetached
-                }
-                if (System.currentTimeMillis() >= timeoutAt) break
-                delay(INSTALL_MONITOR_POLL_MS)
-            }
-            if (pendingIntentFallbackPackage != null) {
-                pendingIntentFallbackPackage = null
-                pendingIntentFallbackInstallType = InstallType.DEFAULT
+        monitorHandedOffInstall(
+            packageName = targetPackageName,
+            isPending = { pendingIntentFallbackPackage == targetPackageName },
+            onInstalled = { handleIntentFallbackSuccess(targetPackageName) },
+            onTimeout = {
                 handleInstallError(app.getString(R.string.installer_external_timeout, installerLabel))
             }
-        }
+        )
+    }
+
+    /**
+     * Gives up on an install handed to another app, before another attempt starts, so a result
+     * the earlier one reports late is not taken for the new one.
+     */
+    private fun dropHandedOffInstall() {
+        externalInstallTimeoutJob?.cancel()
+        pendingExternalInstall?.let(installerManager::cleanup)
+        pendingExternalInstall = null
+        pendingIntentFallbackPackage = null
+        pendingIntentFallbackInstallType = InstallType.DEFAULT
     }
 
     private fun handleIntentFallbackSuccess(packageName: String) {
@@ -727,6 +730,11 @@ class InstallViewModel(
             runCatching { callback(packageName, installType) }
                 .onFailure { Log.e(TAG, "Failed to persist app data", it) }
         }
+    }
+
+    private suspend fun isUpdatedSinceBaseline(packageName: String): Boolean {
+        val info = withContext(Dispatchers.IO) { pm.getPackageInfo(packageName) } ?: return false
+        return isUpdatedSinceBaseline(info)
     }
 
     private fun isUpdatedSinceBaseline(info: PackageInfo): Boolean {
@@ -781,10 +789,11 @@ class InstallViewModel(
         waitForStockInstall: Boolean = false
     ) {
         if (installState is InstallState.Installing) return
+        dropHandedOffInstall()
 
         // Leaving the screen must not stop the install between writing the module and
         // recording it, or the app runs a build the record does not know
-        launchDetached {
+        launchInstall(R.string.mounting_ellipsis) {
             currentInstallType = InstallType.MOUNT
             installState = InstallState.Installing()
             var recordCreated = false
@@ -845,14 +854,14 @@ class InstallViewModel(
                             stockVersion ?: "unknown"
                         )
                     )
-                    return@launchDetached
+                    return@launchInstall
                 }
 
                 // Check for base APK - app must be installed for mount
                 if (stockInfo == null) {
                     if (stockCandidate == null || packageInfo.splitNames.isNotEmpty()) {
                         handleInstallError(app.getString(R.string.installer_hint_generic))
-                        return@launchDetached
+                        return@launchInstall
                     }
                 }
 
@@ -914,8 +923,9 @@ class InstallViewModel(
      */
     fun restoreMountFromModule(packageName: String, version: String) {
         if (installState is InstallState.Installing) return
+        dropHandedOffInstall()
 
-        launchDetached {
+        launchInstall(R.string.mounting_ellipsis) {
             currentInstallType = InstallType.MOUNT
             installState = InstallState.Installing()
             try {
@@ -1245,24 +1255,16 @@ class InstallViewModel(
         installedPackageName?.let { pm.launch(it) }
     }
 
-    /**
-     * Installer the one-time selection dialog starts on: the default one, with the system installer
-     * in place of root mount, which mounts builds and never installs one.
-     */
-    fun getPromptInstallerToken(): InstallerManager.Token =
-        installerManager.getPrimaryToken().let {
-            if (it == InstallerManager.Token.AutoSaved) InstallerManager.Token.Internal else it
-        }
-
-    /** Installer entries for the one-time selection dialog shown during install, root mount left out. */
-    fun getInstallerOptions(): List<InstallerManager.Entry> {
-        val raw = installerManager.listEntries(InstallerManager.InstallTarget.PATCHER, includeNone = false)
-            .filterNot { it.token == InstallerManager.Token.AutoSaved }
-        return installerManager.ensureValidEntries(raw, getPromptInstallerToken(), InstallerManager.InstallTarget.PATCHER)
-    }
-
     fun getPrimaryInstallerToken(): InstallerManager.Token =
         installerManager.getPrimaryToken()
+
+    /** Installer entries for the one-time selection dialog shown during install. */
+    fun getInstallerOptions(): List<InstallerManager.Entry> {
+        val raw = installerManager.listEntries(InstallerManager.InstallTarget.PATCHER, includeNone = false)
+        return installerManager.ensureValidEntries(raw, getPrimaryInstallerToken(), InstallerManager.InstallTarget.PATCHER)
+    }
+
+    fun mountsByDefault(): Boolean = installerManager.mountsByDefault()
 
     fun openShizukuApp(): Boolean = installerManager.openShizukuApp()
 
@@ -1400,10 +1402,8 @@ class InstallViewModel(
 
     companion object {
         private const val TAG = "Morphe Install"
-        private const val EXTERNAL_INSTALL_TIMEOUT_MS = 60_000L
         private const val UNINSTALL_VERIFY_TIMEOUT_MS = 10_000L
         private const val UNINSTALL_VERIFY_POLL_MS = 250L
-        private val INSTALL_MONITOR_POLL_MS = 1.seconds
         private val STOCK_INSTALL_SETTLE_TIMEOUT = 30.seconds
         private val STOCK_INSTALL_SETTLE_POLL = 1.seconds
     }

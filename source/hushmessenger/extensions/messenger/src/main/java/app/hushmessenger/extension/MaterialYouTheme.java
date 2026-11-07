@@ -5,9 +5,10 @@
  * palette's neutral at the same L*, and one of Messenger's blues becomes the palette's accent at
  * the same L*, so text and icons keep the contrast Messenger gave them.
  *
- * Light mode is left alone. In the Mig dark scheme every grey and blue is recoloured. In the FDS
- * resolvers a token is recoloured only when it carries Messenger's dark-theme colour for that
- * token. The server-colour and literal routes use a known set of dark surface values.
+ * In the Mig dark scheme every grey and blue is recoloured. In the FDS resolvers a token is
+ * recoloured only when it carries Messenger's dark-theme colour for that token. The server-colour
+ * and literal routes use a known set of dark surface values. Light mode is left alone unless the
+ * light mode switch is on (#132), and then only its blues take the accent: greys and whites stay.
  */
 package app.hushmessenger.extension;
 
@@ -28,11 +29,15 @@ public final class MaterialYouTheme {
     static final String KEY = "material_you";
     /** Runtime switch: with Material You on, Messenger's darkest backgrounds become #000000. Off by default. */
     static final String BLACK_KEY = "material_you_black";
+    /** Runtime switch: with Material You on, light mode's blues take the accent too (#132). Off by default. */
+    static final String LIGHT_KEY = "material_you_light";
 
     // --- Dark mode detection ---
 
     /** Whether Messenger's dark mode is on, as it last answered. Defaults to true (dark) until Messenger answers. */
     private static final AtomicBoolean DARK = new AtomicBoolean(true);
+    /** Whether Messenger has answered at all. Only the Material You patch hooks its dark mode controller. */
+    private static volatile boolean answered;
 
     /**
      * Called with each answer Messenger's dark mode controller gives, right before it returns it.
@@ -41,6 +46,7 @@ public final class MaterialYouTheme {
      * @return {@code dark}, for the controller to return
      */
     public static boolean darkModeAnswer(boolean dark) {
+        answered = true;
         if (DARK.get() != dark && DARK.getAndSet(dark) != dark) {
             publish();
         }
@@ -50,6 +56,22 @@ public final class MaterialYouTheme {
     /** Whether Messenger's dark mode is on, as it last answered. */
     public static boolean isDarkMode() {
         return DARK.get();
+    }
+
+    /**
+     * Whether a bar Hush puts inside a chat should be light: Messenger's own theme once it has answered, and Hush's
+     * Light theme switch before that or without the Material You patch.
+     */
+    static boolean chatIsLight() {
+        return answered ? !DARK.get() : Settings.preferences.getBoolean("light", false);
+    }
+
+    /**
+     * The theme for a question Hush asks over a chat, light or dark with the chat like its bars. One UI's DeviceDefault
+     * alert stays dark in a light chat and draws its title dark on that dark sheet.
+     */
+    static int chatDialogTheme() {
+        return chatIsLight() ? android.R.style.Theme_Material_Light_Dialog_Alert : android.R.style.Theme_Material_Dialog_Alert;
     }
 
     // --- Dark surfaces ---
@@ -107,16 +129,23 @@ public final class MaterialYouTheme {
         return (color >>> 24) == 0xFF && isDarkMode() ? dark(color) : color;
     }
 
+    /** The colour the Mig light scheme resolves for a token. Its blues take the accent while the light mode switch is on. */
+    public static int migLight(int color) {
+        if (!Settings.enabled(KEY)) return color;
+        return (color >>> 24) == 0xFF && lightOn() ? light(color) : color;
+    }
+
     // --- Route 1: FDS colours ---
 
     /**
      * The colour an FDS resolver returns. In dark mode, greys and blues are recoloured to the
-     * palette at the same lightness. Light mode colours pass through.
+     * palette at the same lightness. In light mode only blues are, and only with the light mode switch on.
      */
     public static int fds(int color) {
         if (!Settings.enabled(KEY)) return color;
-        if ((color >>> 24) != 0xFF || !isDarkMode()) return color;
-        return dark(color);
+        if ((color >>> 24) != 0xFF) return color;
+        if (isDarkMode()) return dark(color);
+        return lightOn() ? light(color) : color;
     }
 
     // --- Route 4: server colours and resource reads ---
@@ -161,6 +190,17 @@ public final class MaterialYouTheme {
     private static boolean blackOn() {
         SharedPreferences prefs = Settings.preferences;
         return prefs != null && prefs.getBoolean(BLACK_KEY, false);
+    }
+
+    /** Whether the light mode switch is on. Only read after the Material You switch has been checked. */
+    private static boolean lightOn() {
+        SharedPreferences prefs = Settings.preferences;
+        return prefs != null && prefs.getBoolean(LIGHT_KEY, false);
+    }
+
+    /** A light mode colour: one of Messenger's blues becomes the accent at the same lightness, anything else stays. */
+    static int light(int color) {
+        return isMessengerBlue(color) ? palette().sameLightness(TonePalette.ACCENT, color) : color;
     }
 
     /** Messenger's darkest backgrounds: 0xFF080809 and any grey no brighter than 0x0F. */

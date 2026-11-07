@@ -124,13 +124,86 @@ public class MarkReadButtonTest {
         assertFalse(MarkReadButton.isDetails(new Object()));
     }
 
-    @Test public void withoutADetailsButtonItOnlyTakesAFreeSlot() throws Exception {
-        Object a = new Button("a"), b = new Button("b"), c = new Button("c");
-        Object ours = new Object();
-        List<Object> full = new ArrayList<>(Arrays.asList(a, b, c, null));
-        assertFalse(MarkReadButton.place(full, ours));
-        assertEquals("no call button is pushed out", Arrays.asList(a, b, c, null), full);
+    /** #122: the chats with no button. Their bars were full with no details button, or had details past the three it shows. */
+    @Test public void aFullBarWithoutADetailsButtonGivesUpItsLastButtonThatIsntForCalls() throws Exception {
+        Object voice = new Button("audio_call_button"), video = new Button("video_call_button");
+        Object friend = new Button("friendship_status_button"), details = new DetailsButton();
+        Object ours = new Button("hush_mark_read_button");
 
+        List<Object> noDetails = new ArrayList<>(Arrays.asList(friend, voice, video, null));
+        assertTrue(MarkReadButton.place(noDetails, ours));
+        assertEquals(Arrays.asList(ours, voice, video, null), noDetails);
+
+        List<Object> detailsCutOff = new ArrayList<>(Arrays.asList(friend, voice, video, details));
+        assertTrue(MarkReadButton.place(detailsCutOff, ours));
+        assertEquals("it shows, among the first three", Arrays.asList(ours, voice, video, details), detailsCutOff);
+
+        // Messenger's chat Label button (its TAG icon) is the bar's own button class and sets no test tag at all.
+        Object label = new Button(null);
+        List<Object> labeled = new ArrayList<>(Arrays.asList(label, voice, video, details));
+        assertTrue(MarkReadButton.place(labeled, ours));
+        assertEquals(Arrays.asList(ours, voice, video, details), labeled);
+
+        Object share = new Button("broadcast_channel_share_button"), bell = new Button("notification_button");
+        Object invite = new Button("thread_view_title_bar_channel_invite_button");
+        List<Object> channel = new ArrayList<>(Arrays.asList(share, invite, bell));
+        assertTrue(MarkReadButton.place(channel, ours));
+        assertEquals(Arrays.asList(share, invite, ours), channel);
+    }
+
+    @Test public void noCallButtonIsEverGivenUp() throws Exception {
+        Object ours = new Button("hush_mark_read_button");
+        for (String tag : MarkReadButton.CALL_TAGS) assertTrue(tag, MarkReadButton.isCall(new Button(tag)));
+        assertFalse(MarkReadButton.isCall(new Button("friendship_status_button")));
+        assertFalse(MarkReadButton.isCall(new Object()));
+
+        Object voice = new Button("audio_call_button"), dot = new Button("audio_call_button_green_dot"), video = new Button("video_call_button");
+        List<Object> calls = new ArrayList<>(Arrays.asList(voice, dot, video, new Button("friendship_status_button")));
+        List<Object> same = new ArrayList<>(calls);
+        assertFalse(MarkReadButton.place(calls, ours));
+        assertEquals(same, calls);
+
+        // Messenger's join a call button is another class with no tag to read.
+        Object join = new Object(), friend = new Button("friendship_status_button");
+        List<Object> joining = new ArrayList<>(Arrays.asList(friend, voice, join));
+        assertTrue(MarkReadButton.place(joining, ours));
+        assertEquals(Arrays.asList(ours, voice, join), joining);
+    }
+
+    /**
+     * #122: a chat with call buttons and no Mark as read. Messenger's Meta AI chat button and a group's home button are
+     * classes of their own ahead of the call buttons, and the bar drops details to keep three, so nothing could give way.
+     */
+    @Test public void theMetaAiOrGroupHomeButtonGivesWayAheadOfTheCallButtons() throws Exception {
+        Object voice = new Button("audio_call_button"), video = new Button("video_call_button");
+        Object ours = new Button("hush_mark_read_button");
+        Object metaAi = new MetaAiButton(), groupHome = new GroupHomeButton();
+        assertTrue(MarkReadButton.givesWay(metaAi));
+        assertTrue(MarkReadButton.givesWay(groupHome));
+
+        List<Object> chat = new ArrayList<>(Arrays.asList(metaAi, voice, video));
+        assertTrue(MarkReadButton.place(chat, ours));
+        assertEquals(Arrays.asList(ours, voice, video), chat);
+
+        List<Object> group = new ArrayList<>(Arrays.asList(groupHome, voice, video));
+        assertTrue(MarkReadButton.place(group, ours));
+        assertEquals(Arrays.asList(ours, voice, video), group);
+
+        // The join a call button, or any other class nobody named, still stays.
+        Object join = new Object(), unknown = new Other();
+        assertFalse(MarkReadButton.givesWay(join));
+        assertFalse(MarkReadButton.givesWay(unknown));
+        List<Object> joining = new ArrayList<>(Arrays.asList(metaAi, join, unknown));
+        assertTrue(MarkReadButton.place(joining, ours));
+        assertEquals(Arrays.asList(ours, join, unknown), joining);
+        List<Object> neither = new ArrayList<>(Arrays.asList(unknown, voice, video));
+        assertFalse(MarkReadButton.place(neither, ours));
+        assertEquals(Arrays.asList(unknown, voice, video), neither);
+    }
+
+    @Test public void withRoomItsAddedAndNothingIsGivenUp() throws Exception {
+        Object a = new Button("a");
+        Object ours = new Button("hush_mark_read_button");
         List<Object> roomy = new ArrayList<>(Arrays.asList(a, null, null));
         assertTrue(MarkReadButton.place(roomy, ours));
         assertEquals(Arrays.asList(a, null, null, ours), roomy);
@@ -183,6 +256,27 @@ public class MarkReadButtonTest {
     /** The details button, whose tag sits in its superclass's field. */
     static final class DetailsButton extends Button {
         DetailsButton() { super("settings_button"); }
+    }
+
+    /** Messenger's Meta AI chat button: its own class, with a label, the tag and its tap handlers. */
+    static final class MetaAiButton {
+        final int icon = 1;
+        final String label = "Meta AI";
+        final String tag = "thread_view_meta_ai_button";
+        final Object onTap = new Object();
+    }
+
+    /** A group's home button: its own class holding the group's home repository, the chat and two inner buttons. */
+    static final class GroupHomeButton {
+        final HomebaseRepository repository = new HomebaseRepository();
+        final Object thread = new Object();
+        final Object first = new Button(null), second = new Button(null);
+    }
+
+    static final class HomebaseRepository { }
+
+    static final class Other {
+        final String label = "Something new";
     }
 
     private static final class ThreadKey {

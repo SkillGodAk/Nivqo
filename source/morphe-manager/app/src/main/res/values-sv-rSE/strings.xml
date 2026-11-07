@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Dölj den här appen?</string>
     <string name="home_more_apps_title">Fler appar</string>
     <string name="home_more_apps_hide_title">Dölj det här kortet?</string>
-    <string name="home_more_apps_hide_message">Du kan återställa det när som helst i Inställningar &gt; Utseende &gt; Startskärm</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Du kan ta tillbaka den när som helst i %1$s</string>
     <string name="home_app_hide_message">Den här appen döljs från startskärmen. Du kan återställa den senare från de dolda apparna med knappen längst ned i listan</string>
     <string name="home_app_will_be_hidden">Den här appen döljs</string>
     <string name="home_app_hidden_named">%s har dolts</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">Sök efter appar</string>
     <string name="list_options_title">Sortera och filtrera</string>
     <string name="list_options_state_description">Sorterad efter %1$s, filtrerad efter %2$s</string>
-    <string name="home_app_filter_all_description">Alla appar på startskärmen</string>
-    <string name="home_app_filter_patched_description">Appar som du har modifierat eller sparat med Nivqo</string>
-    <string name="home_app_filter_not_patched_description">Appar som du ännu inte har modifierat i Morphe</string>
-    <string name="home_app_filter_installed_description">Appar som för närvarande är installerade på den här enheten</string>
-    <string name="home_app_filter_uninstalled_description">Appar modifierade med Morphe som inte längre finns på den här enheten</string>
     <string name="home_app_filter_clones">Kloner</string>
-    <string name="home_app_filter_clones_description">Appar byggda under eget paketnamn, installerade bredvid originalet</string>
     <string name="home_app_grouping_none">Ingen</string>
-    <string name="home_app_grouping_all_apps_description">En lista över alla appar</string>
-    <string name="home_app_grouping_sources_description">Appar under tilläggskällan som tillhandahåller dem</string>
-    <string name="home_app_grouping_custom_description">Appar i kategorier som du skapar</string>
-    <string name="home_app_sort_manual_description">Tryck länge på en app och tryck sedan på knappen för att ändra ordning</string>
+    <string name="home_app_sort_manual_hint">Tryck länge på en app och tryck sedan på knappen för att ändra ordning</string>
     <string name="home_app_sort_recommended">Rekommenderad ordning</string>
-    <string name="home_app_sort_recommended_description">Installerade och fästa appar först</string>
-    <string name="home_app_sort_name_asc_description">Alfabetisk ordning, A till Ö</string>
-    <string name="home_app_sort_name_desc_description">Omvänd alfabetisk ordning, Ö till A</string>
     <string name="home_app_sort_updates_first">Tilläggsuppdateringar först</string>
-    <string name="home_app_sort_updates_first_description">Appar med nyare tillägg först, sedan den rekommenderade ordningen</string>
     <string name="home_app_sort_recently_patched">Nyligen modifierade</string>
-    <string name="home_app_sort_recently_patched_description">Senast modifierade apparna först</string>
     <string name="home_no_apps_title">Inga appar är tillgängliga</string>
     <string name="home_no_apps_subtitle">Lägg till en källa eller aktivera en befintlig i %s</string>
     <string name="home_no_apps_search_subtitle">Inga appar matchar \"%s\"</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">Ingenting matchade %s</string>
     <string name="home_category_add">Lägg till kategori</string>
     <string name="home_category_all_apps">Alla appar</string>
-    <string name="home_category_custom">Anpassat</string>
+    <string name="home_app_grouping_categories">Kategorier</string>
     <string name="home_category_uncategorized">Okategoriserat</string>
     <string name="home_category_new_title">Ny kategori</string>
     <string name="home_category_rename_title">Byt namn på kategori</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">Tilläggskällor</string>
     <string name="sources_search">Sök efter källor och tillägg</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Alla källor</string>
-    <string name="sources_filter_enabled_description">Källor som tillägg hämtas från</string>
-    <string name="sources_filter_disabled_description">Inaktiverade källor</string>
     <string name="sources_filter_issues">Åtgärd krävs</string>
-    <string name="sources_filter_issues_description">Källor som har blockerats, inte gick att läsa in eller behöver en nyare version av Morphe</string>
     <string name="sources_sort_manual">Manuell ordning</string>
     <string name="sources_sort_manual_hint">Tryck länge på en källa för att ändra ordning</string>
     <string name="sources_sort_last_updated">Senast uppdaterade</string>
-    <string name="sources_sort_last_updated_description">Nyaste källuppdateringarna först</string>
     <string name="sources_sort_enabled_first">Aktiverade först</string>
-    <string name="sources_sort_enabled_first_description">Visa aktiva källor före inaktiverade källor</string>
     <string name="sources_patches_source_disabled_hint">Den här källan är inaktiverad. Dess tillägg listas som referens och tillämpas inte</string>
     <string name="sources_management_open_in_browser">Öppna i webbläsare</string>
     <string name="sources_management_report_issue">Rapportera ett problem</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">Betrodd nyckel</string>
     <string name="sources_signing_key_new">Ny nyckel</string>
     <string name="sources_patch_expert_badge">Expert</string>
-    <string name="sources_patch_expert_badge_tooltip">Aktivera Expertläge i inställningarna för att inkludera det här tillägget manuellt</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Aktivera %1$s för att inkludera det här tillägget manuellt</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">Behöver du hjälp med att hitta APK-filen?</string>
     <string name="home_apk_availability_dialog_simple">Om du vill modifiera &lt;b&gt;%s&lt;/b&gt; behöver du en omodifierad APK-fil med följande version:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">Rekommenderas</string>
     <string name="home_apk_availability_unpatched_label">Omodifierad</string>
     <string name="home_apk_availability_incompatible_label">Inkompatibel</string>
-    <string name="home_apk_availability_installed_version">Installerad på den här enheten: %s</string>
     <string name="home_apk_availability_find">Ja, hjälp mig att hitta den</string>
     <string name="home_apk_availability_have">Nej, jag har den redan</string>
     <string name="home_apk_helper_download">Använd en hjälpapp</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">Söker efter nedladdningssidan …</string>
     <string name="home_download_instructions_step1">Tryck på knappen %s nedan</string>
     <string name="home_download_instructions_step2_part1">Skrolla ned på webbsidan och tryck på</string>
+    <string name="home_download_instructions_step2_apkcube">Scrolla ner på webbsidan, välj version &lt;b&gt;%s&lt;/b&gt; och tryck på</string>
     <string name="home_download_instructions_step2_generic">Skrolla ned på webbsidan och tryck på dess nedladdningsknapp</string>
     <string name="home_download_instructions_step2_variant">Skrolla ned på webbsidan och tryck på nedladdningsknappen för den översta &lt;b&gt;APK-varianten&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Öppna ett sökresultat från en webbplats du litar på</string>
     <string name="home_download_instructions_step2_search_note">Morphe kan inte gå i god för dessa webbplatser. Hoppa över de som erbjuder sin egen appbutik istället för en APK-fil.</string>
     <string name="home_download_instructions_step3_search">På den webbplatsen, ladda ned APK-filen för version &lt;b&gt;%s&lt;/b&gt;, inte den nyaste</string>
     <string name="home_download_instructions_step3_search_any">På den webbplatsen, ladda ned APK-filen för appen. &lt;b&gt;Vilken version som helst&lt;/b&gt; kan modifieras</string>
+    <string name="home_download_instructions_step2_github">Under &lt;b&gt;Assets&lt;/b&gt; för version &lt;b&gt;%s&lt;/b&gt;, tryck på filen som slutar på &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_latest">Under &lt;b&gt;Assets&lt;/b&gt; för den senaste versionen, tryck på filen som slutar på &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_note">Om det finns flera APK-filer, välj den som är namngiven efter %s eller den universella</string>
     <string name="home_download_instructions_download_button_toast">Tryck på nedladdningsknappen på webbplatsen, inte här 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Toppen! Tryck nu på knappen för att fortsätta till webbplatsen 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Övning ger färdighet, och du är på god väg 💪</string>
@@ -378,7 +363,7 @@ Välj var dess APK ska hämtas ifrån"</string>
     <string name="home_invalid_signature_badge">Den här APK-filen kanske inte är den ursprungliga</string>
     <string name="home_split_apk_warning_title">Delad APK-fil upptäckt</string>
     <string name="home_split_apk_warning_message">"Den här filen är ett APK-arkiv
-(&lt;b&gt;APKM/APKS/XAPK&lt;/b&gt;).
+(&lt;b&gt;APKM/APKS/XAPK&lt;/b&gt;). 
 
 För bästa resultat rekommenderar den här appen att du modifierar en &lt;b&gt;fullständig APK-fil&lt;/b&gt;"</string>
     <string name="home_split_apk_warning_pick_another">Välj en annan APK-fil</string>
@@ -518,11 +503,13 @@ För bästa resultat rekommenderar den här appen att du modifierar en &lt;b&gt;
     <string name="batch_queue_pending_subtitle">Tryck för att granska och starta</string>
     <string name="batch_queue_clear_title">Rensa kön?</string>
     <string name="batch_queue_clear_description">Alla appar tas bort från kön</string>
+    <string name="batch_queue_keep_title">Behåll kön?</string>
+    <string name="batch_queue_keep_description">De köade apparna kommer att vänta på startskärmen för att startas senare</string>
+    <string name="batch_queue_keep">Behåll</string>
     <string name="shortcut_repatch_short">Modifiera igen</string>
     <string name="shortcut_repatch_long">Modifiera inaktuella appar igen</string>
     <string name="shortcut_check_updates_short">Sök efter uppdateringar</string>
     <string name="shortcut_check_updates_long">Sök efter tilläggsuppdateringar</string>
-    <string name="shortcut_patch_app">Modifiera %s</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Avinstallera den här appen?</string>
     <string name="home_app_info_uninstall_removes_data">Appen och dess data tas bort från den här enheten</string>
@@ -543,6 +530,7 @@ För bästa resultat rekommenderar den här appen att du modifierar en &lt;b&gt;
     <string name="home_app_info_install_type_custom_installer">Anpassad installerare</string>
     <string name="home_app_info_install_type_system_installer">Systemets installerare</string>
     <string name="home_app_info_install_type_play_store">Play Butik-installation</string>
+    <string name="home_app_info_install_type_root">Root-installation</string>
     <string name="home_app_info_install_type_root_play_store">Play Butik-installation med rotbehörigheter</string>
     <string name="home_app_info_install_type_shizuku_play_store">Play Butik-installation med Shizuku</string>
     <string name="home_app_info_patch_update_available">Tilläggsuppdatering är tillgänglig</string>
@@ -584,7 +572,8 @@ För bästa resultat rekommenderar den här appen att du modifierar en &lt;b&gt;
     <string name="root_mount_module_unmount_warning">Om KernelSU har \"Unmount modules by default\" aktiverat öppnar du KernelSU &gt; Superuser &gt; appen som du har monterat &gt; Profile &gt; Custom och inaktivera \"Unmount modules\". Annars kan det hända att den modifierade APK-filen som har monterats inte träder i kraft, även om Morphe visar att den är monterad</string>
     <string name="root_pre_patch_installer_standard_title">Standardinstallationsläge</string>
     <string name="root_pre_patch_installer_standard_description">Modifierar som en vanlig APK-fil med stöd för GmsCore. Din installerarinställning används efter modifieringen</string>
-    <string name="root_pre_patch_installer_hint">Frågas om Inställningar &gt; Modifiering &gt; Installation &gt; Uppmaning om val av installerare har aktiverats. Modifieringsläget går inte att ändra efter modifiering</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">Frågades medan %1$s är inställd på %2$s. Modifieringsläget kan inte ändras efter modifiering</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Felmeddelande kopierades till urklipp</string>
     <string name="patcher_error_log">Fellogg</string>
@@ -683,6 +672,14 @@ Om du avinstallerar raderas alla appdata permanent"</string>
     <string name="patcher_step_group_saving">Sparar</string>
     <string name="patcher_step_write_patched">Skriver modifierad APK-fil</string>
     <string name="patcher_step_sign_apk">Signerar modifierad APK-fil</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">Läser DEX-filer</string>
+    <string name="patcher_task_extracting_resources">Extraherar resurser</string>
+    <string name="patcher_task_decoding_resources">Avkodar resurser</string>
+    <string name="patcher_task_indexing_classes">Indexerar klasser</string>
+    <string name="patcher_task_compiling_dex">Kompilerar DEX-filer</string>
+    <string name="patcher_task_compiling_resources">Kompilerar resurser</string>
+    <string name="patcher_task_writing_apk">Skriver APK-fil</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Skydd för modifiering i bakgrunden</string>
     <string name="battery_optimization_dialog_description">Vissa enheter kan stoppa modifieringsverktyget när appen minimeras. Tillåt att Morphe körs utan batteribegränsningar för att säkerställa att modifieringen slutförs tillförlitligt</string>
@@ -731,7 +728,8 @@ Om du avinstallerar raderas alla appdata permanent"</string>
     <string name="patched_app_save_failed_toast">Det gick inte att spara den modifierade appen</string>
     <string name="plugin_activity_dialog_body">Användarinteraktion krävs för att fortsätta med den här insticksmodulen</string>
     <string name="patcher_process_killed_message">Systemet stoppade modifieringsverktyget innan det var klart, oftast för att frigöra minne. Stäng andra appar och försök igen</string>
-    <string name="patcher_process_crashed_message">Modifieringsverktyget kraschade innan det var klart. Om det händer igen inaktiverar du \"Använd inbäddad VM\" i inställningarna och rapporterar problemet med loggen</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">Modifieringsverktyget kraschade innan det var klart. Om det händer igen, inaktivera %1$s och rapportera problemet med loggen</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">Modifieringsverktygets minne tog slut med en heap på %1$s MB. Den här appen är för stor för de valda tilläggen. Försök att modifiera med färre tilläggskällor eller välj färre tillägg</string>
     <string name="install_app_success">Installationen lyckades</string>
@@ -919,6 +917,8 @@ Tillägg påverkas inte: aktivera förhandsversioner av tillägg för varje käl
     <string name="notification_channel_patch_updates">Tilläggsuppdateringar</string>
     <string name="notification_channel_patch_updates_description">Aviseringar om nya tilläggsversioner</string>
     <string name="notification_channel_patcher_description">Visas när Morphe modifierar en app i bakgrunden</string>
+    <string name="notification_channel_patching_results">Resultat för modifiering</string>
+    <string name="notification_channel_patching_results_description">När modifieringen avslutas eller en installation väntar på dig medan Morphe är i bakgrunden</string>
     <string name="notification_channel_mounted_apps">Monterade appar</string>
     <string name="notification_channel_mounted_apps_description">När en annan version har ersatt en monterad app och dess modifiering inte längre gäller</string>
     <string name="notification_mount_replaced_title">%1$s är inte längre modifierad</string>
@@ -1029,9 +1029,8 @@ Bildernas mått ska vara följande:
     <string name="installer_title">Välj installerare</string>
     <string name="installer_internal_description">Använder Androids paketinstallerare</string>
     <string name="installer_play_store_description">Använder systemets installerare och anger Google Play Butik som installationskälla</string>
+    <string name="installer_root_description">Installeras tyst med root</string>
     <string name="installer_root_play_store_description">Installerar tyst med rotbehörigheter och anger Google Play Butik som installationskälla</string>
-    <string name="installer_auto_saved_name">Rotmontering</string>
-    <string name="installer_auto_saved_description">Monterar appar som har modifierats i rotmonteringsläget. Standardmässigt modifierade APK-filer använder en annan installerare</string>
     <string name="installer_shizuku_description">Installerar tyst med Shizuku eller Sui</string>
     <string name="installer_shizuku_play_store_description">Installerar tyst genom Shizuku eller Sui och anger Google Play Butik som installationskälla</string>
     <string name="installer_option_none">Ingen alternativ installerare</string>
@@ -1041,7 +1040,7 @@ Bildernas mått ska vara följande:
     <string name="installer_status_shizuku_not_installed">Installera Shizuku eller Sui för att använda det här alternativet</string>
     <string name="installer_status_shizuku_not_running">Starta Shizuku eller Sui och försök igen</string>
     <string name="installer_status_shizuku_permission">Ge behörighet till Nivqo från Shizuku-appen</string>
-    <string name="installer_mount_warning_install">Din primära installerare har angetts till den rootade monteringsinstalleraren. Den här sparade appen installerades inte med montering</string>
+    <string name="installer_mount_warning_install">Modifieringsläget är inställt på root-montering. Den här sparade appen installerades inte med montering</string>
     <string name="mount_version_mismatch_message">Den ursprungliga appens version (%2$s) matchar inte den modifierade appens version (%1$s). Montera den matchande ursprungliga versionen och försök igen</string>
     <string name="mount_stock_restore_failed_message">Android avvisade den sparade ursprungliga APK-filen. Installera den matchande ursprungliga versionen och försök sedan montera igen</string>
     <string name="installer_status_shizuku_unsupported">Den installerade Shizuku-versionen stöds inte</string>
@@ -1063,11 +1062,17 @@ Bildernas mått ska vara följande:
     <string name="installer_play_store_warning_continue">Jag förstår, fortsätt</string>
     <string name="installer_play_store_mode">Installera som Play Butik</string>
     <string name="installer_play_store_mode_description">Markerar Google Play Butik som installationskälla</string>
+    <string name="settings_section_patch_mode">Modifieringsläge</string>
+    <string name="settings_patch_mode_ask">Fråga varje gång</string>
+    <string name="settings_patch_mode_ask_description">Frågar innan varje app modifieras om den ska modifieras för root-montering eller en standardinstallation</string>
+    <string name="settings_section_after_patching">Efter modifiering</string>
+    <string name="settings_after_patching_install">Installera automatiskt</string>
+    <string name="settings_after_patching_ask">Fråga vilken installerare</string>
+    <string name="settings_after_patching_ask_description">Frågar vilken installerare som ska användas varje gång en app installeras</string>
+    <string name="settings_after_patching_manual">Installera manuellt</string>
+    <string name="settings_after_patching_manual_description">Installeras med standardinstalleraren när du trycker på Installera</string>
     <string name="settings_nomount_only">Endast NoMount</string>
     <string name="settings_nomount_only_description">Monterar endast appar med NoMount och återgår aldrig till en bind-mount, så att de förblir omonterade utan det</string>
-    <string name="settings_prompt_installer_on_install">Uppmaning om val av installerare</string>
-    <string name="settings_prompt_installer_on_install_description">Frågar hur varje app ska installeras: med rotbehörigheter före modifieringen, annars därefter</string>
-    <string name="settings_auto_install_with_shizuku">Installera automatiskt efter modifiering</string>
     <string name="settings_auto_install_with_shizuku_description">Installerar eller monterar den modifierade APK-filen så fort modifieringen är klar</string>
     <string name="settings_auto_uninstall_with_shizuku">Avinstallera automatiskt vid konflikt</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Avinstallerar befintlig app vid signaturkonflikt. Detta kan ta bort appdata</string>
@@ -1137,7 +1142,6 @@ Information: %2$s"</string>
     <string name="settings_system_import_keystore_dialog_description">Du måste ange nyckellagrets uppgifter för att importera det</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Användarnamn (alias)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Lösenord</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Nyckellagerformat</string>
     <string name="settings_system_import_keystore_wrong_credentials">Felaktiga nyckellageruppgifter</string>
     <string name="settings_system_import_keystore_success">Nyckellager importerades</string>
     <string name="settings_system_import_keystore_failed">Det gick inte att importera nyckellager</string>
@@ -1291,6 +1295,7 @@ Information: %2$s"</string>
     <string name="credits_prior_development">Tidigare utveckling</string>
     <string name="opensource_licenses">Licenser för öppen källkod</string>
     <string name="opensource_licenses_description">De bibliotek som Morphe bygger på</string>
+    <string name="opensource_licenses_search">Sök efter bibliotek och licenser</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Ett val</string>
     <string name="easter_egg_pill_message">Ta det blå pillret så förblir annonserna precis där de är. Ta det röda och se hur djupt bytekoden går</string>
@@ -1517,8 +1522,7 @@ Vill du fortsätta ändå?"</string>
     <string name="tour_prompt_confirm">Visa mig runt</string>
     <string name="onboarding_restart_title">Funktionsgenomgång</string>
     <string name="onboarding_restart_desc">En guidad genomgång av de grundläggande funktionerna</string>
-
-    <!-- Preserved Nivqo localization -->
+    <string name="home_app_filter_patched_description">Appar som du har modifierat eller sparat med Nivqo</string>
     <string name="home_category_delete_confirm_title">Radera kategori</string>
     <string name="home_category_delete_confirm_message">Radera kategorin &lt;b&gt;%1$s&lt;/b&gt;? Appar i den flyttas tillbaka till &lt;b&gt;%2$s&lt;/b&gt;</string>
     <string name="expert_mode_prerelease_notice">Den här källan använder förhandsversioner av tillägg. Modifiering kan misslyckas eller bete sig på oväntade sätt</string>

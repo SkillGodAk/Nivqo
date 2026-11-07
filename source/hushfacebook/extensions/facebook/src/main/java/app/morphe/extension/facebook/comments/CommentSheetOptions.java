@@ -9,13 +9,23 @@ import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
+import android.view.View;
 
 import androidx.annotation.Nullable;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
+import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.diagnostics.HookStatus;
@@ -47,7 +57,9 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * itself or draws View more replies; the patch asks {@link #loadWholeReplyThreads} which, just
  * before Facebook sets it. A View more replies row reads a flag that makes only its words take a
  * tap, and the patch hands {@link #viewMoreRepliesTextOnly} that flag right after. Each comment is drawn by a section that the patch asks {@link #hidesComment} first, with the
- * comment it draws; a yes draws nothing for it.
+ * comment it draws; a yes draws nothing for it. Facebook has no way to close a thread once it's
+ * open, so the patch asks {@link #drawsHideRepliesRow} as one is drawn and on a yes draws a row over
+ * it that clears the flag, with {@link #hideRepliesWords} on it.
  *
  * <p>Off, paused, before the settings are ready, or when anything here fails, the answers are
  * Facebook's own and its code runs as written.
@@ -134,6 +146,9 @@ public final class CommentSheetOptions {
     /** Counted each time a View more replies row is built to take a tap anywhere on it. */
     static final String WHOLE_ROW_TAPS = "View more replies row takes a tap anywhere";
 
+    /** Counted each time an open reply thread is drawn with a Hide replies row above it. */
+    static final String HIDE_ROWS_DRAWN = "Hide replies row drawn";
+
     /** Counted each time a comment is left out for a link to a shop. */
     static final String SHOP_LINK_HIDDEN = "Comment with a shop link left out";
 
@@ -164,11 +179,63 @@ public final class CommentSheetOptions {
     static final String VIEWER_COMPOSER = "video viewer comment composer";
     static final String COMPOSER_HIDDEN = "Video comment composer hidden";
 
+    /** The member the report names once the Shorts viewer has asked about the comment bar it built (#375). */
+    static final String SHORTS_BAR = "Shorts viewer comment bar";
+
+    /** The member the report names once the Shorts viewer's root has handed over the bar its pick got back (#375). */
+    static final String PICKED_BAR = "Shorts viewer bar pick";
+
+    /** The member the report names once the Shorts viewer has read a video's band through the hook (#375). */
+    static final String VIDEO_HEIGHT = "Shorts viewer video height";
+
+    /** Counted each time that video keeps the height the comment bar's band took off it. */
+    static final String FULL_HEIGHT = "Video kept its full height";
+
+    /** The member the report names once the Shorts viewer has placed its seek bar through the hook (#375). */
+    static final String SEEK_BAR = "Shorts viewer seek bar";
+
+    /** Counted each time that seek bar goes down to the bottom with the video. */
+    static final String SEEK_BAR_LOWERED = "Seek bar moved down with the video";
+
+    /**
+     * How far up, in dp, the Shorts viewer puts its seek bar when it shows no bar under the video:
+     * the 3 its root uses on 585 where the viewer has no bottom bar.
+     */
+    static final int NO_BAR_SEEK_BAR_DP = 3;
+
+    /**
+     * Whether the Shorts viewer root rendering on this thread had its pick of a bottom bar hand back
+     * nothing while Hide the video comment box was on (#375): the comment bar it dropped, or no bar at
+     * all, where its list gives the video its full height just the same. Each root render starts it
+     * over. Its other bars, such as the reply bar under a reel shared in a chat, stay, and so does their
+     * band, so the seek bar follows this, not the switch alone.
+     */
+    private static final ThreadLocal<Boolean> shortsBarDropped = new ThreadLocal<>();
+
+    /**
+     * The Shorts viewer configs whose root last got a bar back from its pick (#375): the reply bar
+     * under a reel shared in a chat, the drafts bar, or the comment bar while the switch was off. Held
+     * weakly and told apart by identity, since a config's equals may compare contents. A viewer's list
+     * sizes its videos with the same config before any root has picked, so a config nothing marked is
+     * taken to have no bar, and a viewer keeps its band once its own root kept one, whatever another
+     * viewer open beside it picked.
+     */
+    private static final List<WeakReference<Object>> barConfigs = new ArrayList<>();
+
     /** The member the report names once the socket over the comment box has asked about the emoji row (#290). */
     static final String EMOJI_ROW = "emoji row over the comment box";
 
     /** Counted each time the emoji row is kept out from over the comment box. */
     static final String EMOJI_ROW_HIDDEN = "Comment emoji row kept out";
+
+    /** The member the report names once the comment box has set its background (#344). */
+    static final String BOX_LINE = "line over the comment box";
+
+    /** The member the report names once the socket over the comment box has loaded its background (#344). */
+    static final String SOCKET_LINE = "line over the emoji row";
+
+    /** Counted each time the line along the top of the comment box, or of the socket over it, is taken off. */
+    static final String BOX_LINE_HIDDEN = "Comment box line kept out";
 
     /** The member the report names once the socket under a post's comments has asked about Related groups. */
     static final String BOTTOM = "related groups under comments";
@@ -184,6 +251,9 @@ public final class CommentSheetOptions {
 
     /** The member the report names once a View more replies row has been drawn through the hook. */
     static final String REPLY_ROWS = "View more replies rows";
+
+    /** The member the report names once an open reply thread has asked about its Hide replies row. */
+    static final String HIDE_ROWS = "Hide replies rows";
 
     /**
      * Facebook's own settings, a route its links table carries on 577, 580 and 581. Reaction
@@ -310,6 +380,69 @@ public final class CommentSheetOptions {
     }
 
     /**
+     * The hook, right after the comment box sets its background as it's built (#344). Facebook
+     * draws the box as layers: the line's color filling the whole box, and the box's own color over
+     * it, pushed down from the top, so the strip left showing is the line. While the switch is on,
+     * the box's layer goes back to the top and the layers under it stop drawing, on this box's own
+     * copy of the drawable. Any other background, off, paused, or before the settings are ready,
+     * the box stays as Facebook drew it.
+     */
+    public static void flattenCommentBox(@Nullable View box) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, BOX_LINE);
+            if (box == null || !Utils.settingsReady() || !Settings.HIDE_COMMENT_BOX_LINE.get()) return;
+            if (flatten(box.getBackground(), "box")) HookStatus.counted(FAMILY, BOX_LINE_HIDDEN);
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, BOX_LINE, failure);
+        }
+    }
+
+    /**
+     * The hook, right after the socket over the comment box's text field, the one holding the emoji
+     * row and Meta AI's pills, loads the drawable it draws behind itself (#344). It's the same
+     * layers as the box's, so the line shows along the top of the socket when the socket is there.
+     * While the switch is on, the socket's own copy gets the same treatment as the box's; it's
+     * handed back either way, and as it came off, paused, before the settings are ready or on a
+     * throw.
+     */
+    @Nullable
+    public static Drawable flattenSocketLine(@Nullable Drawable background) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, SOCKET_LINE);
+            if (background == null || !Utils.settingsReady() || !Settings.HIDE_COMMENT_BOX_LINE.get()) return background;
+            if (flatten(background, "socket")) HookStatus.counted(FAMILY, BOX_LINE_HIDDEN);
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, SOCKET_LINE, failure);
+        }
+        return background;
+    }
+
+    /**
+     * Takes the line off [background], a line-colored layer under the top layer pushed down from
+     * the top: the top layer goes back to the top and the layers under it stop drawing, on
+     * [background]'s own copy. True when it did; any other drawable is left as it is.
+     */
+    static boolean flatten(@Nullable Drawable background, String whose) {
+        if (!(background instanceof LayerDrawable)) {
+            Logger.printDebug(() -> "Comment box line: the " + whose + "'s background is "
+                    + (background == null ? "nothing" : background.getClass().getName()) + ", left as it is");
+            return false;
+        }
+        LayerDrawable layers = (LayerDrawable) background;
+        int top = layers.getNumberOfLayers() - 1;
+        if (top < 1 || layers.getLayerInsetTop(top) <= 0) {
+            Logger.printDebug(() -> "Comment box line: the " + whose + "'s " + (top + 1) + " layers leave no strip at the top");
+            return false;
+        }
+        layers.mutate();
+        layers.setLayerInsetTop(top, 0);
+        for (int layer = 0; layer < top; layer++) layers.getDrawable(layer).setAlpha(0);
+        return true;
+    }
+
+    /**
      * The hook immediately before the full-screen video's comment bar returns its rendered object.
      * True replaces that object with null while Hide the video comment box is on; false preserves
      * Facebook's original render result.
@@ -323,6 +456,113 @@ public final class CommentSheetOptions {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "video viewer comment composer", failure);
+            return false;
+        }
+    }
+
+    /** The hook, first thing in the Shorts viewer root's render (#375): this render hasn't dropped a bar yet. */
+    public static void pickingShortsBar() {
+        shortsBarDropped.remove();
+    }
+
+    /**
+     * The hook right before the Shorts viewer a feed video opens in hands back the comment bar it
+     * built for the bottom of the screen (#375). True hands back null instead while Hide the video
+     * comment box is on, and the video and its seek bar then take the bar's band; false keeps the bar.
+     */
+    public static boolean dropsShortsCommentBar() {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, SHORTS_BAR);
+            if (!Utils.settingsReady() || !Settings.HIDE_VIDEO_COMMENT_COMPOSER.get()) return false;
+            HookStatus.counted(FAMILY, COMPOSER_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, SHORTS_BAR, failure);
+            return false;
+        }
+    }
+
+    /**
+     * The hook right after the Shorts viewer's root gets its bottom bar back from the pick (#375),
+     * with that bar, null where it shows none or the comment bar was dropped, and the viewer's config.
+     * A bar marks the config, so the viewer's videos keep Facebook's band from their next layout on;
+     * no bar clears the mark, and while Hide the video comment box is on this render's seek bar then
+     * goes down with the full-height video instead of staying where the caption now ends.
+     */
+    public static void keptShortsBar(@Nullable Object bar, @Nullable Object config) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, PICKED_BAR);
+            if (config != null) markKeepsBar(config, bar != null);
+            if (bar == null && Utils.settingsReady() && Settings.HIDE_VIDEO_COMMENT_COMPOSER.get()) {
+                shortsBarDropped.set(Boolean.TRUE);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, PICKED_BAR, failure);
+        }
+    }
+
+    /**
+     * The hook on each band height, in dp, the Shorts viewer's root places its seek bar and time
+     * above (#375). Once this render's pick came back with no bar while the switch is on they go down
+     * with the video to {@link #NO_BAR_SEEK_BAR_DP}, where Facebook puts them with no bar, instead of
+     * staying over the caption; otherwise the band is Facebook's.
+     */
+    public static int shortsSeekBarBand(int band) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, SEEK_BAR);
+            if (!Boolean.TRUE.equals(shortsBarDropped.get()) || !Utils.settingsReady()
+                    || !Settings.HIDE_VIDEO_COMMENT_COMPOSER.get()) return band;
+            HookStatus.counted(FAMILY, SEEK_BAR_LOWERED);
+            return NO_BAR_SEEK_BAR_DP;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, SEEK_BAR, failure);
+            return band;
+        }
+    }
+
+    /**
+     * The hook on the band height, in dp, the Shorts viewer's list takes off each video's full height
+     * (#375), with the viewer's config. It sizes the videos before any of their roots has picked a
+     * bar, so while Hide the video comment box is on the video keeps its full height and 0 comes back,
+     * unless the config's root kept a bar ({@link #keptShortsBar}). A list handed no config keeps
+     * Facebook's band.
+     */
+    public static int shortsVideoBand(int band, @Nullable Object config) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, VIDEO_HEIGHT);
+            if (config == null || !Utils.settingsReady() || !Settings.HIDE_VIDEO_COMMENT_COMPOSER.get()
+                    || keepsBar(config)) return band;
+            HookStatus.counted(FAMILY, FULL_HEIGHT);
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, VIDEO_HEIGHT, failure);
+            return band;
+        }
+    }
+
+    /** Keeps whether {@code config}'s root got a bar back, letting go of configs no longer held. */
+    private static void markKeepsBar(Object config, boolean keeps) {
+        synchronized (barConfigs) {
+            boolean held = false;
+            for (Iterator<WeakReference<Object>> each = barConfigs.iterator(); each.hasNext(); ) {
+                Object kept = each.next().get();
+                if (kept == null || (kept == config && !keeps)) each.remove();
+                else if (kept == config) held = true;
+            }
+            if (keeps && !held) barConfigs.add(new WeakReference<>(config));
+        }
+    }
+
+    /** Whether {@code config}'s root last got a bar back. */
+    private static boolean keepsBar(Object config) {
+        synchronized (barConfigs) {
+            for (WeakReference<Object> each : barConfigs) {
+                if (each.get() == config) return true;
+            }
             return false;
         }
     }
@@ -497,6 +737,39 @@ public final class CommentSheetOptions {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "View more replies row", failure);
             return textOnly;
+        }
+    }
+
+    /**
+     * The hook, as a comment is drawn with its reply thread open, handed what the thread is open
+     * for: {@code open}, the comment's reply flag, which a tap on View replies and Open every reply
+     * thread set; {@code opensItself}, Facebook's own answer for where the comment sits;
+     * {@code localReplies}, replies written on this phone; and {@code keptOpen}, the props' answer
+     * for replies the server already sent along (#325). True draws a Hide replies row over the
+     * thread. Only a thread the flag alone holds open gets one, because clearing the flag closes no
+     * other. Off, paused, before the settings are ready or for a throw, false.
+     */
+    public static boolean drawsHideRepliesRow(boolean open, boolean opensItself, Collection<?> localReplies, Object keptOpen) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, HIDE_ROWS);
+            if (!open || opensItself || (localReplies != null && !localReplies.isEmpty())
+                    || Boolean.TRUE.equals(keptOpen) || !Utils.settingsReady() || !Settings.HIDE_REPLIES_BUTTON.get()) return false;
+            HookStatus.counted(FAMILY, HIDE_ROWS_DRAWN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "Hide replies row", failure);
+            return false;
+        }
+    }
+
+    /** The hook, as a Hide replies row picks its words: what it shows and what it reads out. */
+    public static String hideRepliesWords() {
+        try {
+            return L10n.t("Hide replies");
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "Hide replies words", failure);
+            return "Hide replies";
         }
     }
 

@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Ocultar esta aplicación?</string>
     <string name="home_more_apps_title">Máis aplicacións</string>
     <string name="home_more_apps_hide_title">Ocultar esta tarxeta?</string>
-    <string name="home_more_apps_hide_message">Podes recuperalo en calquera momento en Ajustes &gt; Apariencia &gt; Pantalla de inicio</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Podes recuperalo en calquera momento en %1$s</string>
     <string name="home_app_hide_message">Esta aplicación ocultarse na pantalla de inicio. Podes cambialo máis tarde dende aplicacións escondidas utilizando o botón ao final da lista.</string>
     <string name="home_app_will_be_hidden">Ocultarase esta aplicación</string>
     <string name="home_app_hidden_named">%s oculta</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">Buscar apps</string>
     <string name="list_options_title">Ordenar e filtrar</string>
     <string name="list_options_state_description">Ordenado por %1$s, filtrado por %2$s</string>
-    <string name="home_app_filter_all_description">Todas as aplicacións na pantalla de inicio</string>
-    <string name="home_app_filter_patched_description">Aplicacións que parcheaste ou gardaste con Morphe</string>
-    <string name="home_app_filter_not_patched_description">Aplicacións que aínda non parcheaste en Morphe</string>
-    <string name="home_app_filter_installed_description">Aplicacións instaladas actualmente neste dispositivo</string>
-    <string name="home_app_filter_uninstalled_description">Aplicacións parcheadas con Morphe que xa non están neste dispositivo</string>
     <string name="home_app_filter_clones">Clones</string>
-    <string name="home_app_filter_clones_description">Apps construídas baixo un nome de paquete propio, instaladas xunto coa orixinal</string>
     <string name="home_app_grouping_none">Ningún</string>
-    <string name="home_app_grouping_all_apps_description">Unha lista con todas as aplicacións</string>
-    <string name="home_app_grouping_sources_description">Aplicacións baixo a fonte do parche que as proporciona</string>
-    <string name="home_app_grouping_custom_description">Aplicacións en categorías creadas por ti</string>
-    <string name="home_app_sort_manual_description">Mantén premida unha aplicación e, a continuación, toca no botón de reordenar</string>
+    <string name="home_app_sort_manual_hint">Mantén premida unha aplicación e logo toca o botón de reordenar</string>
     <string name="home_app_sort_recommended">Orde recomendada</string>
-    <string name="home_app_sort_recommended_description">Aplicacións instaladas e fixadas primeiro</string>
-    <string name="home_app_sort_name_asc_description">Alfabética, de A a Z</string>
-    <string name="home_app_sort_name_desc_description">Alfabética inversa, de Z a A</string>
     <string name="home_app_sort_updates_first">Actualizacións de parches primeiro</string>
-    <string name="home_app_sort_updates_first_description">Aplicacións con parches máis recentes primeiro, logo a orde recomendada</string>
     <string name="home_app_sort_recently_patched">Parcheados recentemente</string>
-    <string name="home_app_sort_recently_patched_description">As aplicacións parcheadas máis recentemente primeiro</string>
     <string name="home_no_apps_title">Non hai apps dispoñibles</string>
     <string name="home_no_apps_subtitle">Engade unha fonte de parche ou activa unha existente en %s</string>
     <string name="home_no_apps_search_subtitle">Non existen aplicacións que coincidan con \"%s\".</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">Nada coincidiu con %s</string>
     <string name="home_category_add">Engadir categoría</string>
     <string name="home_category_all_apps">Todas as aplicacións</string>
-    <string name="home_category_custom">Personalizado</string>
+    <string name="home_app_grouping_categories">Categorías</string>
     <string name="home_category_uncategorized">Sen categorizar</string>
     <string name="home_category_new_title">Nova categoría</string>
     <string name="home_category_rename_title">Renomear categoría</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">Fonte de parches</string>
     <string name="sources_search">Buscar orixes e parches</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Cada fonte</string>
-    <string name="sources_filter_enabled_description">As fontes de onde se toman os parches</string>
-    <string name="sources_filter_disabled_description">Fontes desactivadas</string>
     <string name="sources_filter_issues">Necesitan atención</string>
-    <string name="sources_filter_issues_description">Fontes que están bloqueadas, fallaron ao cargar ou necesitan un Morphe máis recente</string>
     <string name="sources_sort_manual">Orde manual</string>
     <string name="sources_sort_manual_hint">Mantén premida unha fonte para reordenala</string>
     <string name="sources_sort_last_updated">Última actualización</string>
-    <string name="sources_sort_last_updated_description">Actualizacións de fonte máis recentes primeiro</string>
     <string name="sources_sort_enabled_first">Habilitadas primeiro</string>
-    <string name="sources_sort_enabled_first_description">Mostrar fontes activas antes que as fontes deshabilitadas</string>
     <string name="sources_patches_source_disabled_hint">Este orixe está desactivado. Os seus parches móstranse como referencia e non se aplican</string>
     <string name="sources_management_open_in_browser">Abrir no navegador</string>
     <string name="sources_management_report_issue">Informar dun problema</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">Clave de confianza</string>
     <string name="sources_signing_key_new">Nova clave</string>
     <string name="sources_patch_expert_badge">Experto</string>
-    <string name="sources_patch_expert_badge_tooltip">Activar o modo Experto en Configuración para incluír o parche manualmente</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Activa %1$s para incluír este parche manualmente</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">Necesitas axuda para atopar o APK?</string>
     <string name="home_apk_availability_dialog_simple">Para parchear &lt;b&gt;%s&lt;/b&gt; necesitas a versión non parcheada da APK:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">Recomendado</string>
     <string name="home_apk_availability_unpatched_label">Sen parchear</string>
     <string name="home_apk_availability_incompatible_label">Incompatible</string>
-    <string name="home_apk_availability_installed_version">Instalado neste dispositivo: %s</string>
     <string name="home_apk_availability_find">Sí, axúdame a atopalo</string>
     <string name="home_apk_availability_have">Non, xa o teño</string>
     <string name="home_apk_helper_download">Usa unha aplicación de axuda</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">Buscando a páxina de descarga…</string>
     <string name="home_download_instructions_step1">Prema o botón \'%s\' de abaixo</string>
     <string name="home_download_instructions_step2_part1">Desprácese cara abaixo no sitio web e pulse</string>
+    <string name="home_download_instructions_step2_apkcube">Desiza a páxina web cara abaixo, escolle a versión &lt;b&gt;%s&lt;/b&gt; e preme</string>
     <string name="home_download_instructions_step2_generic">Desprácese cara abaixo no sitio web e pulse o seu botón de descarga</string>
     <string name="home_download_instructions_step2_variant">Desprácese cara abaixo no sitio web e pulse o botón de descarga da primeira &lt;b&gt;variante de APK&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Abre un resultado de busca dun sitio web no que confíes</string>
     <string name="home_download_instructions_step2_search_note">Morphe non pode avalar estes sitios web. Salta aqueles que ofrecen a súa propia tenda de aplicacións en lugar dun ficheiro APK</string>
     <string name="home_download_instructions_step3_search">Nese sitio web, descarga o APK da versión &lt;b&gt;%s&lt;/b&gt;, non o máis recente</string>
     <string name="home_download_instructions_step3_search_any">Nese sitio web, descarga o APK da aplicación. &lt;b&gt;Calquera versión&lt;/b&gt; pode ser parcheada</string>
+    <string name="home_download_instructions_step2_github">En &lt;b&gt;Assets&lt;/b&gt; da versión &lt;b&gt;%s&lt;/b&gt;, preme o arquivo que remata en &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_latest">En &lt;b&gt;Assets&lt;/b&gt; da versión máis recente, preme o arquivo que remata en &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_note">Se hai varios arquivos APK, escolle o que leva o nome de %s ou o universal</string>
     <string name="home_download_instructions_download_button_toast">Prema ao botón de descarga no sitio web, e non aquí 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Xenial! Agora preme continuar e vai ao sitio web 👆</string>
     <string name="home_download_instructions_download_button_toast_3">A práctica fai ao mestre e xa estás chegando 💪</string>
@@ -355,8 +340,10 @@ Escolle de onde collegar o seu APK"</string>
     <string name="expert_mode_enable_all_universal_pending">Toca de novo para os parches universais</string>
     <string name="expert_mode_universal_all_warning_title">Activar todos os parches universais?</string>
     <string name="expert_mode_universal_all_warning_message">Os parches universais non foron probados xuntos. Activalos todos a veza pode causar conflitos, fallos no parcheo ou erros do sistema</string>
+    <string name="expert_mode_recommended">Parches recomendados</string>
     <string name="expert_mode_reset_to_default_done">Aplicáronse os parches recomendados</string>
     <string name="expert_mode_selected_count">%1$s de %2$s seleccionado</string>
+    <string name="expert_mode_saved_selection">Selección gardada</string>
     <string name="expert_mode_restore_saved_done">Restaurouse a selección gardada </string>
     <string name="expert_mode_copy_from_bundle_no_patches">Non hai parches correspondentes neste paquete</string>
     <string name="expert_mode_no_results">Non se atoparon parches</string>
@@ -517,11 +504,13 @@ Elixe outro APK</string>
     <string name="batch_queue_pending_subtitle">Toca para revisar e comezar</string>
     <string name="batch_queue_clear_title">Limpar a cola?</string>
     <string name="batch_queue_clear_description">Todas as aplicacións serán eliminadas da cola</string>
+    <string name="batch_queue_keep_title">Manter a cola?</string>
+    <string name="batch_queue_keep_description">As aplicacións na cola agardarán na pantalla de inicio para ser iniciadas máis tarde</string>
+    <string name="batch_queue_keep">Manter</string>
     <string name="shortcut_repatch_short">Volver parchear</string>
     <string name="shortcut_repatch_long">Volver parchear aplicacións obsoletas</string>
     <string name="shortcut_check_updates_short">Comprobar actualizacións</string>
     <string name="shortcut_check_updates_long">Buscar actualizacións do parche</string>
-    <string name="shortcut_patch_app">Parchear %s</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Desinstalar esta aplicación?</string>
     <string name="home_app_info_uninstall_removes_data">A aplicación e os seus datos son eliminados deste dispositivo</string>
@@ -542,6 +531,7 @@ Elixe outro APK</string>
     <string name="home_app_info_install_type_custom_installer">Instalador personalizado</string>
     <string name="home_app_info_install_type_system_installer">Instalador do sistema</string>
     <string name="home_app_info_install_type_play_store">Instalación de Play Store</string>
+    <string name="home_app_info_install_type_root">Instalación root</string>
     <string name="home_app_info_install_type_root_play_store">Instalación de Play Store con Root</string>
     <string name="home_app_info_install_type_shizuku_play_store">Instalación de Play Store con Shizuku</string>
     <string name="home_app_info_patch_update_available">Actualización de parche dispoñible</string>
@@ -583,7 +573,8 @@ Elixe outro APK</string>
     <string name="root_mount_module_unmount_warning">Se KernelSU ten activada a opción \"Desmontar módulos por defecto\", abre KernelSU &gt; Superusuario &gt; a aplicación que montaste &gt; Perfil &gt; Personalizado e desactiva \"Desmontar módulos\". De contrario, é posible que o APK parcheado e montado non surta efecto, aínda que Morphe o mostre como montado</string>
     <string name="root_pre_patch_installer_standard_title">Modo de instalación estándar</string>
     <string name="root_pre_patch_installer_standard_description">Parchea como un APK normal con soporte para GmsCore. O teu axuste do instalador úsase despois do parcheo</string>
-    <string name="root_pre_patch_installer_hint">Pregúntase cando Ajustes &gt; Patching &gt; Instalación &gt; Solicitude de selección do instalador está activo. O modo de patch non pode cambiarse despois do patching</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">Preguntouse mentres %1$s estaba configurado en %2$s. O modo de parcheo non pode cambiarse despois do parcheo</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Error copiado ao portapapeis</string>
     <string name="patcher_error_log">Rexistro de erros</string>
@@ -682,6 +673,14 @@ A desinstalación borrará permanentemente todos os datos da aplicación"</strin
     <string name="patcher_step_group_saving">Gardando</string>
     <string name="patcher_step_write_patched">Escribindo o ficheiro APK parcheado</string>
     <string name="patcher_step_sign_apk">Asinando o ficheiro APK parcheado</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">Lendo ficheiros DEX</string>
+    <string name="patcher_task_extracting_resources">Extraendo recursos</string>
+    <string name="patcher_task_decoding_resources">Decodificando recursos</string>
+    <string name="patcher_task_indexing_classes">Indexando clases</string>
+    <string name="patcher_task_compiling_dex">Compilando ficheiros DEX</string>
+    <string name="patcher_task_compiling_resources">Compilando recursos</string>
+    <string name="patcher_task_writing_apk">Escribindo o ficheiro APK</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Protección do parcheo en segundo plano</string>
     <string name="battery_optimization_dialog_description">Alguns dispositivos poden detener o parcheador cando a aplicación está minimizada. Permita que Morphe se execute sen restricións de batería para garantir que o parcheo se complete de forma fiable</string>
@@ -730,7 +729,8 @@ A desinstalación borrará permanentemente todos os datos da aplicación"</strin
     <string name="patched_app_save_failed_toast">Non se puido gardar a aplicación parcheada</string>
     <string name="plugin_activity_dialog_body">É necesaria a interacción do usuario para continuar con este complemento</string>
     <string name="patcher_process_killed_message">O sistema detivo o patcher antes de rematar, normalmente para liberar memoria. Pecha outras aplicacións e tenta de novo</string>
-    <string name="patcher_process_crashed_message">O patcher fallou antes de rematar. Se volve suceder, desactiva \"Usar VM integrada\" nos axustes e informa do problema co log</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">O parcheador crashou antes de rematar. Se volve suceder, desactiva %1$s e informa do problema co rexistro</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">O patcher quedou sen memoria cun heap de %1$s MB. Esta aplicación é demasiado grande para os patches seleccionados. Tenta facer o patch con menos orixes de patches, ou selecciona menos patches</string>
     <string name="install_app_success">Instalado con éxito</string>
@@ -918,6 +918,8 @@ Os parches non se ven afectados: activa os parches pre-lanzamento para cada font
     <string name="notification_channel_patch_updates">Actualizacións de parches</string>
     <string name="notification_channel_patch_updates_description">Notificacións sobre novas versións de parches</string>
     <string name="notification_channel_patcher_description">Amósase mentres Morphe está parcheando unha aplicación en segundo plano</string>
+    <string name="notification_channel_patching_results">Resultados do parcheado</string>
+    <string name="notification_channel_patching_results_description">Cando remata o parcheado ou unha instalación agarda por ti mentres Morphe está en segundo plano</string>
     <string name="notification_channel_mounted_apps">Aplicacións montadas</string>
     <string name="notification_channel_mounted_apps_description">Cando outra versión substitúe unha aplicación montada e o seu parche xa non se aplica</string>
     <string name="notification_mount_replaced_title">%1$s xa non está parcheado</string>
@@ -1028,9 +1030,8 @@ As dimensións da imaxe deben ser as seguintes:
     <string name="installer_title">Selecciona o instalador</string>
     <string name="installer_internal_description">Usa o instalador de paquetes de Android</string>
     <string name="installer_play_store_description">Usa o instalador do sistema e establece Google Play Store como a fonte de instalación</string>
+    <string name="installer_root_description">Instálase silenciosamente con root</string>
     <string name="installer_root_play_store_description">Instala silenciosamente con root e establece Google Play Store como a fonte de instalación</string>
-    <string name="installer_auto_saved_name">Montaxe root</string>
-    <string name="installer_auto_saved_description">Monta aplicacións que foron parcheadas no modo de montaxe root. Os APKs parcheados estándar usan outro instalador</string>
     <string name="installer_shizuku_description">Instala silenciosamente usando Shizuku ou Sui</string>
     <string name="installer_shizuku_play_store_description">Instálase silenciosamente a través de Shizuku ou Sui e establece Google Play Store como a fonte de instalación</string>
     <string name="installer_option_none">Sen alternativa</string>
@@ -1040,7 +1041,7 @@ As dimensións da imaxe deben ser as seguintes:
     <string name="installer_status_shizuku_not_installed">Instala Shizuku ou Sui para usar esta opción</string>
     <string name="installer_status_shizuku_not_running">Inicia Shizuku ou Sui e tenta de novo</string>
     <string name="installer_status_shizuku_permission">Concede permiso a Morphe desde a aplicación Shizuku</string>
-    <string name="installer_mount_warning_install">O teu instalador principal está configurado como o instalador de montaxe rooted. Esta aplicación gardada non foi instalada usando montaxe</string>
+    <string name="installer_mount_warning_install">O modo de parcheo está configurado en montaxe root. Esta aplicación gardada non se instalou mediante montaxe</string>
     <string name="mount_version_mismatch_message">A versión da aplicación orixinal (%2$s) non coincide coa versión da aplicación parcheada (%1$s). Monta a versión orixinal correspondente e tenta de novo</string>
     <string name="mount_stock_restore_failed_message">Android rexeitou o APK orixinal gardado. Instala a versión de fábrica correspondente e intenta montar de novo</string>
     <string name="installer_status_shizuku_unsupported">A versión de Shizuku instalada non é compatibles</string>
@@ -1062,11 +1063,17 @@ As dimensións da imaxe deben ser as seguintes:
     <string name="installer_play_store_warning_continue">Comprendo, continuar</string>
     <string name="installer_play_store_mode">Instalar como Play Store</string>
     <string name="installer_play_store_mode_description">Marca a Google Play Store como a fonte de instalación</string>
+    <string name="settings_section_patch_mode">Modo de parcheo</string>
+    <string name="settings_patch_mode_ask">Preguntar cada vez</string>
+    <string name="settings_patch_mode_ask_description">Pregunta antes de parchear cada aplicación se desexa parcheala para montaxe root ou unha instalación estándar</string>
+    <string name="settings_section_after_patching">Despois do parcheo</string>
+    <string name="settings_after_patching_install">Instalar automaticamente</string>
+    <string name="settings_after_patching_ask">Preguntar que instalador</string>
+    <string name="settings_after_patching_ask_description">Pregunta que instalador usar cada vez que se instala unha aplicación</string>
+    <string name="settings_after_patching_manual">Instalar manualmente</string>
+    <string name="settings_after_patching_manual_description">Instálase co instalador predefinido unha vez que toques en Instalar</string>
     <string name="settings_nomount_only">Só NoMount</string>
     <string name="settings_nomount_only_description">Monta aplicacións nur con NoMount e nunca recurre a un bind mount, polo que permanecen desmontadas sen el</string>
-    <string name="settings_prompt_installer_on_install">Solicitude de selección do instalador</string>
-    <string name="settings_prompt_installer_on_install_description">Pregunta como instalar cada aplicación: con root antes do patching, ou despois se non</string>
-    <string name="settings_auto_install_with_shizuku">Auto-instalar despois do parcheo</string>
     <string name="settings_auto_install_with_shizuku_description">Instala ou monta o APK parcheado así que remate o parcheo</string>
     <string name="settings_auto_uninstall_with_shizuku">Desinstalar automaticamente en caso de conflito</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Desinstala a aplicación existente nun conflito de sinatura. Isto pode eliminar os datos da aplicación</string>
@@ -1136,7 +1143,6 @@ Detalles: %2$s"</string>
     <string name="settings_system_import_keystore_dialog_description">Precisará introducir as credenciais do almacén de claves para importalo</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Nome de usuario (Alias)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Contrasiña</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Formato do almacén de claves</string>
     <string name="settings_system_import_keystore_wrong_credentials">Credenciais do almacén de claves incorrectas</string>
     <string name="settings_system_import_keystore_success">Almacén de claves importado</string>
     <string name="settings_system_import_keystore_failed">Non se puido importar o almacén de claves</string>
@@ -1290,6 +1296,7 @@ Detalles: %2$s"</string>
     <string name="credits_prior_development">Desenvolvemento previo</string>
     <string name="opensource_licenses">Licenzas de código aberto</string>
     <string name="opensource_licenses_description">As bibliotecas nas que se basea Morphe</string>
+    <string name="opensource_licenses_search">Buscar bibliotecas e licenzas</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Unha elección</string>
     <string name="easter_egg_pill_message">Toma a pílula azul e os anuncios quedan exactamente onde están. Toma a vermella e ve ata onde chega o bytecode</string>

@@ -20,6 +20,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 internal class OnRequestDecodingTest {
@@ -59,10 +60,27 @@ internal class OnRequestDecodingTest {
         getEntry(qualifiers, "string", name)?.takeUnless { it.isNull }?.resValue?.valueAsString
 
     @Test
-    fun `only the manifest is decoded up front`() {
+    fun `the input APK is opened once and its table is parsed by cataloging only`() {
+        val coder = coder("working")
+        assertEquals("com.test.app", coder.getPackageMetadata().packageName)
+
+        val inputModule = ArsclibResourceCoder::class.java.getDeclaredField("inputModule")
+            .apply { isAccessible = true }
+        val module = assertNotNull(inputModule.get(coder) as ApkModule?, "the module read for the package is kept")
+        assertNull(module.loadedTableBlock, "reading the package does not parse the resource table")
+
+        coder.decodeResources(true)
+
+        assertSame(module, inputModule.get(coder), "cataloging reuses the module the package was read from")
+        assertNotNull(module.loadedTableBlock, "cataloging parses the resource table")
+    }
+
+    @Test
+    fun `nothing is decoded up front and the manifest is decoded when it is read`() {
         val coder = decodedCoder()
 
-        assertTrue(coder.workingDir.resolve("AndroidManifest.xml").isFile)
+        assertFalse(coder.workingDir.resolve("AndroidManifest.xml").exists())
+        assertTrue(coder.getFile("AndroidManifest.xml").isFile)
         assertTrue(coder.packageDirectory.resolve("res").files().isEmpty())
         assertTrue(
             coder.packageDirectory.resolve("res/drawable-xxhdpi").isDirectory,

@@ -185,6 +185,7 @@ private fun SourcesPageContent(
     val patchBundleRepository: PatchBundleRepository = koinInject()
     val prefs: PreferencesManager = koinInject()
     val sourceMuteRepository: SourceMuteRepository = koinInject()
+    val messages: UserMessages = koinInject()
     val scope = rememberCoroutineScope()
 
     val sources by patchBundleRepository.sources.collectAsStateWithLifecycle()
@@ -385,12 +386,16 @@ private fun SourcesPageContent(
     // Registered inside the page so it outranks the main screen's own back handling
     SearchFieldBackHandler(search)
     val searchLabel = stringResource(R.string.sources_search)
+    val manualSortHint = stringResource(R.string.sources_sort_manual_hint)
 
-    // What the options panel offers, and what marks the sort button once any is off its default
+    // What the options panel offers
     val listOptions = listOf(
         listOptionSection(
             R.string.sort, MaterialSymbols.Rounded.Sort.autoMirrored, sourceSortMode, SourceBundleSortMode.MANUAL
-        ) { mode -> scope.launch { prefs.sourceBundleSortMode.update(mode.name) } },
+        ) { mode ->
+            if (mode == SourceBundleSortMode.MANUAL) messages.show(manualSortHint)
+            scope.launch { prefs.sourceBundleSortMode.update(mode.name) }
+        },
         listOptionSection(
             R.string.filter, MaterialSymbols.Rounded.Filter_list, sourceFilter, SourceFilterMode.ALL
         ) { sourceFilter = it }
@@ -428,22 +433,11 @@ private fun SourcesPageContent(
                     return@PageHeader
                 }
                 AnimatedVisibility(visible = isSearchable) {
-                    val optionsState = listOptionsStateDescription(
-                        sourceSortMode.labelRes,
-                        sourceFilter.labelRes.takeIf { sourceFilter.isActive }
-                    )
-                    // Engaged while the options are open, and marked while any is off its default
-                    TitleAction(
-                        icon = MaterialSymbols.Rounded.Sort.autoMirrored,
-                        contentDescription = stringResource(R.string.sort),
-                        onClick = state::toggleListOptions,
-                        modifier = Modifier.semantics {
-                            role = Role.Button
-                            stateDescription = optionsState
-                        },
-                        style = TitleActionStyle.Toggle,
-                        active = state.isListOptionsOpen,
-                        marked = listOptions.any { it.isChanged }
+                    ListOptionsButton(
+                        sortRes = sourceSortMode.labelRes,
+                        filterRes = sourceFilter.labelRes.takeIf { sourceFilter.isActive },
+                        open = state.isListOptionsOpen,
+                        onClick = state::toggleListOptions
                     )
                 }
                 TitleAction(
@@ -647,11 +641,7 @@ private fun SourcesPageContent(
 
         ListScrollbar(
             listState = listState,
-            // The same step at both ends as on the screens, so the end shows past rounded corners
-            modifier = Modifier.padding(
-                top = insets.top + Defaults.SpaceMedium,
-                bottom = listBottom + Defaults.SpaceMedium
-            ),
+            modifier = Modifier.padding(insets.scrollbarPadding(bottom = listBottom)),
             alphabetTargets = sourceScrollTargets,
             alphabetMode = alphabetScrollMode
         )
@@ -1148,7 +1138,8 @@ private fun BundleManagementCard(
                                         label = stringResource(R.string.version),
                                         value = bundle.version?.normalizeVersion()?.isolateLtr() ?: "N/A",
                                         onClick = actions.onVersionClick,
-                                        enabled = !info.isUpdating
+                                        enabled = !info.isUpdating,
+                                        copyText = bundle.version?.normalizeVersion()
                                     )
 
                                     bundle.signingKeyFingerprint?.let { fingerprint ->

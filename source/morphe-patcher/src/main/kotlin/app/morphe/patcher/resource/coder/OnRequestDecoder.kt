@@ -5,13 +5,18 @@
 
 package app.morphe.patcher.resource.coder
 
+import app.morphe.patcher.logging.PhaseTimings
+import app.morphe.patcher.logging.measure
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.resource.PathMap
 import app.morphe.patcher.resource.PathPatterns
 import app.morphe.patcher.resource.writeJson
+import app.morphe.patcher.resource.xml.BinaryXmlState
+import app.morphe.patcher.resource.xml.ValuesTable
 import com.reandroid.apk.ApkModule
 import com.reandroid.apk.ResFile
 import com.reandroid.apk.UncompressedFiles
+import com.reandroid.archive.Archive
 import com.reandroid.arsc.chunk.PackageBlock
 import com.reandroid.arsc.chunk.TableBlock
 import com.reandroid.arsc.chunk.xml.AndroidManifestBlock
@@ -23,6 +28,9 @@ import com.reandroid.arsc.container.SpecTypePair
 import com.reandroid.arsc.value.Entry
 import com.reandroid.arsc.value.ResConfig
 import com.reandroid.utils.io.IOUtil
+import com.reandroid.xml.DocumentSerializer
+import com.reandroid.xml.XMLDocument
+import com.reandroid.xml.XMLElement
 import com.reandroid.xml.XMLFactory
 import com.reandroid.xml.XmlIndentingSerializer
 import com.reandroid.xml.XmlSerializerWrapper
@@ -58,7 +66,7 @@ internal class DecodablePackage(val name: String, val id: Int, val directory: Fi
     /** The resource files of the package, mapped to the name of the archive entry they decode from. */
     internal val resourceFiles = HashMap<String, String>()
 
-    /** The values files of the package, mapped to the type and configuration they hold. */
+    /** The `values` files of the package, mapped to the type and configuration they hold. */
     internal val valuesFiles = HashMap<String, ValuesFile>()
 
     internal var hasOverlayables = false
@@ -109,10 +117,12 @@ internal class DecodablePackage(val name: String, val id: Int, val directory: Fi
  * @param workingDir The working directory to decode to.
  * @param module The input APK with its parsed resource table. It may be released and loaded again between
  * requests, which must give a table with the same resource names.
+ * @param timings The timings the catalog is measured into, if any.
  */
 internal class OnRequestDecoder(
     private val workingDir: File,
     private val module: () -> ApkModule,
+    timings: PhaseTimings? = null,
 ) {
     /** The packages of the resource table by their name. */
     val packages: Map<String, DecodablePackage>
@@ -129,13 +139,14 @@ internal class OnRequestDecoder(
     val pathMap: PathMap
 
     /**
-     * The coder setting values are decoded with. The encoder installs its own on the shared instance, which
-     * must not change how a file decoded afterward reads.
+     * The coder setting values are decoded with, the one a new process starts out with. The encoder installs
+     * its own on the shared instance, which must not change how a file decoded afterward reads, nor may a
+     * setting an earlier patching run of the process left.
      */
-    private val decodeSetting: CoderSetting = XmlCoder.getInstance().setting
+    private val decodeSetting: CoderSetting = XmlCoderSettings.decoding()
 
     /** Dropped when the module is released, so that it does not keep the module in memory. */
-    private var state: ModuleState? = ModuleState(module())
+    private var state: ModuleState? = ModuleState(module(), timings)
 
     /**
      * The entries decoded as files rather than into values, by resource id to the qualifiers of their
@@ -160,40 +171,46 @@ internal class OnRequestDecoder(
             ).also { it.hasOverlayables = !packageBlock.overlayableList.isEmpty }
         }
 
-        val pathMapEntries = mutableListOf<Pair<String, String>>()
-        state.resourceFiles.forEach { (archiveName, resFile) ->
-            val entry = resFile.pickOne()
-            if (!entry.isNull) fileEntries.getOrPut(entry.resourceId) { HashSet() } += entry.resConfig.qualifiers
-            val alias = resFile.buildPath(PackageBlock.RES_DIRECTORY_NAME)
-            packages[entry.packageBlock.name]?.resourceFiles?.put(alias, archiveName)
-            pathMapEntries += archiveName to alias
+        pathMap = timings.measure("aliases") {
+            val pathMapEntries = mutableListOf<Pair<String, String>>()
+            state.resourceFiles.forEach { (archiveName, resFile) ->
+                val entry = resFile.pickOne()
+                if (!entry.isNull) fileEntries.getOrPut(entry.resourceId) { HashSet() } += entry.resConfig.qualifiers
+                val alias = resFile.buildPath(PackageBlock.RES_DIRECTORY_NAME)
+                packages[entry.packageBlock.name]?.resourceFiles?.put(alias, archiveName)
+                pathMapEntries += archiveName to alias
+            }
+            PathMap(pathMapEntries)
         }
-        pathMap = PathMap(pathMapEntries)
-        resourceArchiveNames = state.resourceFiles.keys.toHashSet()
+        resourceArchiveNames = timings.measure("aliases") { state.resourceFiles.keys.toHashSet() }
 
-        tableBlock.listPackages().forEach { packageBlock ->
-            val decodablePackage = packages.getValue(packageBlock.name)
-            packageBlock.listSpecTypePairs().forEach { specTypePair ->
-                specTypePair.listResConfig().forEach { resConfig ->
-                    if (specTypePair.hasValues(resConfig, isFileEntry)) {
-                        val qualifiers = resConfig.qualifiers
-                        decodablePackage.valuesFiles[valuesPath(specTypePair.typeName, qualifiers)] =
-                            DecodablePackage.ValuesFile(specTypePair.typeName, qualifiers)
+        timings.measure("valuesIndex") {
+            tableBlock.listPackages().forEach { packageBlock ->
+                val decodablePackage = packages.getValue(packageBlock.name)
+                packageBlock.listSpecTypePairs().forEach { specTypePair ->
+                    specTypePair.listResConfig().forEach { resConfig ->
+                        if (specTypePair.hasValues(resConfig, isFileEntry)) {
+                            val qualifiers = resConfig.qualifiers
+                            decodablePackage.valuesFiles[valuesPath(specTypePair.typeName, qualifiers)] =
+                                DecodablePackage.ValuesFile(specTypePair.typeName, qualifiers)
+                        }
                     }
                 }
             }
         }
 
-        rootEntries = state.module.inputSources.mapNotNullTo(HashSet()) { source ->
-            source.alias.takeIf { name ->
-                !name.endsWith("/") &&
-                        name != AndroidManifestBlock.FILE_NAME &&
-                        name != TableBlock.FILE_NAME &&
-                        name !in resourceArchiveNames &&
-                        // Collides with the paths of the decoded resources, which take precedence.
-                        !name.startsWith("${PackageBlock.RES_DIRECTORY_NAME}/") &&
-                        !name.startsWith("lib/") &&
-                        !DEX_FILE_NAME.matches(name)
+        rootEntries = timings.measure("rootEntries") {
+            state.module.inputSources.mapNotNullTo(HashSet()) { source ->
+                source.alias.takeIf { name ->
+                    !name.endsWith("/") &&
+                            name != AndroidManifestBlock.FILE_NAME &&
+                            name != TableBlock.FILE_NAME &&
+                            name !in resourceArchiveNames &&
+                            // Collides with the paths of the decoded resources, which take precedence.
+                            !name.startsWith("${PackageBlock.RES_DIRECTORY_NAME}/") &&
+                            !name.startsWith("lib/") &&
+                            !DEX_FILE_NAME.matches(name)
+                }
             }
         }
     }
@@ -203,18 +220,28 @@ internal class OnRequestDecoder(
 
     /**
      * The resource files of a module as it was loaded, by the name of the archive entry they decode from.
+     *
+     * @param timings The timings listing the resource files is measured into, if any. They also count how
+     * many of the files the archive stores and how many it compresses.
      */
-    private class ModuleState(val module: ApkModule) {
+    private class ModuleState(val module: ApkModule, timings: PhaseTimings? = null) {
         val resourceFiles = LinkedHashMap<String, ResFile>()
 
         init {
-            module.listResFiles().forEach { resFile ->
-                // As the decoder of every resource does, a file named as XML that is not binary XML is
-                // not decoded, and the entries naming it stay in the values.
-                if (!resFile.isBinaryXml && resFile.filePath.endsWith(".xml")) return@forEach
-                if (resFile.pickOne() == null) return@forEach
+            timings.measure("resFiles") {
+                module.listResFiles().forEach { resFile ->
+                    // As the decoder of every resource does, a file named as XML that is not binary XML is
+                    // not decoded, and the entries naming it stay in the values.
+                    if (!resFile.isBinaryXml && resFile.filePath.endsWith(".xml")) return@forEach
+                    if (resFile.pickOne() == null) return@forEach
 
-                resourceFiles[resFile.filePath] = resFile
+                    resourceFiles[resFile.filePath] = resFile
+                }
+            }
+            if (timings != null) {
+                val stored = resourceFiles.values.count { it.inputSource.method == Archive.STORED }
+                timings.count("stored", stored.toLong())
+                timings.count("deflated", (resourceFiles.size - stored).toLong())
             }
         }
     }
@@ -237,6 +264,12 @@ internal class OnRequestDecoder(
     private fun ApkModule.packageBlock(decodablePackage: DecodablePackage): PackageBlock =
         tableBlock.listPackages().firstOrNull { it.matches(decodablePackage) }
             ?: throw PatchException("Package ${decodablePackage.name} not found in the resource table")
+
+    /**
+     * The package of the resource table files of [decodablePackage] are decoded from.
+     */
+    fun packageBlockOf(decodablePackage: DecodablePackage): PackageBlock =
+        currentState().module.packageBlock(decodablePackage)
 
     /**
      * Writes the `package.json` of every package, which tells packages apart in the working directory.
@@ -264,7 +297,7 @@ internal class OnRequestDecoder(
         val packageBlock = manifestBlock.packageBlock ?: module.tableBlock.let { tableBlock ->
             tableBlock.pickOne(manifestBlock.guessCurrentPackageId()) ?: tableBlock.pickOne()
         }
-        if (packageBlock != null && manifestBlock.packageBlock == null) manifestBlock.setPackageBlock(packageBlock)
+        if (packageBlock != null && manifestBlock.packageBlock == null) manifestBlock.packageBlock = packageBlock
 
         workingDir.resolve(AndroidManifestBlock.FILE_NAME).createOutputStream().use { output ->
             val serializer = XMLFactory.newSerializer(output, manifestBlock.encoding)
@@ -286,13 +319,13 @@ internal class OnRequestDecoder(
         paths.mapNotNull { path ->
             val file = decodablePackage.directory.resolve(path)
             try {
-                when {
-                    path == PUBLIC_XML -> decodePublicXml(packageBlock, file)
-                    path == OVERLAYABLE_XML -> decodeOverlayables(packageBlock, file)
-                    path in decodablePackage.valuesFiles ->
+                when (path) {
+                    PUBLIC_XML -> decodePublicXml(packageBlock, file)
+                    OVERLAYABLE_XML -> decodeOverlayables(packageBlock, file)
+                    in decodablePackage.valuesFiles ->
                         decodeValues(packageBlock, decodablePackage.valuesFiles.getValue(path), file)
 
-                    path in decodablePackage.resourceFiles ->
+                    in decodablePackage.resourceFiles ->
                         decodeResourceFile(state, decodablePackage.resourceFiles.getValue(path), file)
 
                     else -> throw PatchException("$path is not a resource of ${decodablePackage.name}")
@@ -305,6 +338,106 @@ internal class OnRequestDecoder(
             file.takeIf { it.isFile }
         }
     }
+
+    /**
+     * The package of the resource table the manifest refers to, as [decodeManifest] decodes it with.
+     */
+    private fun manifestPackageBlock(module: ApkModule): PackageBlock? {
+        val manifestBlock = module.androidManifest
+        return manifestBlock.packageBlock ?: module.tableBlock.let { tableBlock ->
+            tableBlock.pickOne(manifestBlock.guessCurrentPackageId()) ?: tableBlock.pickOne()
+        }
+    }
+
+    /**
+     * Reads the manifest of the APK in its binary form, bound to the package it refers to.
+     */
+    @Synchronized
+    fun manifestXml(): BinaryXmlState {
+        val module = currentState().module
+        val manifestBlock = AndroidManifestBlock()
+        val source = module.zipEntryMap.getInputSource(AndroidManifestBlock.FILE_NAME)
+        if (source != null) {
+            source.openStream().use { manifestBlock.readBytes(it) }
+        } else {
+            manifestBlock.readBytes(module.androidManifest.bytes.inputStream())
+        }
+        val packageBlock = manifestPackageBlock(module)
+        manifestBlock.packageBlock = packageBlock
+        return BinaryXmlState(
+            AndroidManifestBlock.FILE_NAME,
+            AndroidManifestBlock.FILE_NAME,
+            packageBlock?.name.orEmpty(),
+            manifestBlock,
+        )
+    }
+
+    /**
+     * The package of the current resource table the manifest refers to, to bind a manifest read before to.
+     */
+    @Synchronized
+    fun manifestPackageBlock(): PackageBlock? = manifestPackageBlock(currentState().module)
+
+    /**
+     * Reads a resource file of a package in its binary form, bound to its package.
+     *
+     * @param path A path of [DecodablePackage.resourceFiles].
+     * @return The file, or null if it is not compiled XML.
+     */
+    @Synchronized
+    fun binaryXml(decodablePackage: DecodablePackage, path: String): BinaryXmlState? {
+        val archiveName = decodablePackage.resourceFiles[path] ?: return null
+        val state = currentState()
+        val resFile = state.resourceFiles[archiveName] ?: return null
+        if (!resFile.isBinaryXml) return null
+
+        val document = ResXmlDocument()
+        resFile.inputSource.openStream().use { document.readBytes(it) }
+        document.packageBlock = state.module.packageBlock(decodablePackage)
+        return BinaryXmlState(path, archiveName, decodablePackage.name, document)
+    }
+
+    /**
+     * The resources of a values file of a package in the resource table, decoded as [decode] decodes them
+     * into the file.
+     */
+    fun valuesTable(decodablePackage: DecodablePackage, valuesFile: DecodablePackage.ValuesFile): ValuesTable =
+        object : ValuesTable {
+            private fun locate(): Pair<SpecTypePair, ResConfig>? {
+                val packageBlock = currentState().module.packageBlock(decodablePackage)
+                val specTypePair = packageBlock.getSpecTypePair(valuesFile.type) ?: return null
+                val resConfig = specTypePair.listResConfig().firstOrNull { it.qualifiers == valuesFile.qualifiers }
+                    ?: return null
+                return specTypePair to resConfig
+            }
+
+            override fun names(): List<String> = synchronized(this@OnRequestDecoder) {
+                val (specTypePair, resConfig) = locate() ?: return emptyList()
+                val names = mutableListOf<String>()
+                val resources = specTypePair.resources
+                while (resources.hasNext()) {
+                    val resourceEntry = resources.next()
+                    val entry = resourceEntry.get(resConfig) ?: continue
+                    if ((entry.isComplex || !entry.isNull) && !isFileEntry.test(entry)) {
+                        resourceEntry.name?.let(names::add)
+                    }
+                }
+                names
+            }
+
+            override fun decode(names: Collection<String>?): List<XMLElement> = synchronized(this@OnRequestDecoder) {
+                withDecodeSetting {
+                    val (specTypePair, resConfig) = locate() ?: return emptyList()
+                    val document = XMLDocument()
+                    val serializer = ArchiveNameAliasingSerializer(DocumentSerializer(document))
+                    serializer.startTag(null, PackageBlock.TAG_resources)
+                    val resources = names?.mapNotNull { specTypePair.getResource(it) }?.iterator() ?: specTypePair.resources
+                    XmlCoder.getInstance().VALUES_XML.decode(serializer, resources, resConfig, isFileEntry)
+                    serializer.endTag(null, PackageBlock.TAG_resources)
+                    document.documentElement?.childElementList.orEmpty()
+                }
+            }
+        }
 
     private fun decodePublicXml(packageBlock: PackageBlock, file: File) {
         file.parentFile.mkdirs()
@@ -352,7 +485,7 @@ internal class OnRequestDecoder(
             if (resFile.isBinaryXml) {
                 val document = ResXmlDocument()
                 source.openStream().use { document.readBytes(it) }
-                document.setPackageBlock(resFile.pickOne().packageBlock)
+                document.packageBlock = resFile.pickOne().packageBlock
 
                 val serializer = XMLFactory.newSerializer(output, document.encoding)
                 document.serialize(serializer)
@@ -375,16 +508,7 @@ internal class OnRequestDecoder(
         }
     }
 
-    private inline fun <T> withDecodeSetting(block: () -> T): T {
-        val coder = XmlCoder.getInstance()
-        val setting = coder.setting
-        coder.setting = decodeSetting
-        try {
-            return block()
-        } finally {
-            coder.setting = setting
-        }
-    }
+    private inline fun <T> withDecodeSetting(block: () -> T): T = XmlCoderSettings.withSetting(decodeSetting, block)
 
     private fun File.createOutputStream(): OutputStream {
         parentFile?.mkdirs()

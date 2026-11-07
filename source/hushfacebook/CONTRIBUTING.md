@@ -98,13 +98,13 @@ For DEX edits, check the utilities in `patches/src/main/kotlin/app/morphe/util/`
 
 ## Translating
 
-Hushfacebook's own text (its settings, toasts and the menu rows it adds) comes from one table per language in `extensions/shared/library/src/main/l10n/`. Facebook's own text isn't in them. There's `de.tsv`, `es.tsv`, `in.tsv` (Indonesian, under Android's older code), `pt-rBR.tsv`, `tr.tsv`, `vi.tsv`, `zh-rCN.tsv` and `zh-rTW.tsv`.
+Hushfacebook's own text (its settings, toasts and the menu rows it adds) comes from one table per language in `extensions/shared/library/src/main/l10n/`. Facebook's own text isn't in them. There's `de.tsv`, `es.tsv`, `in.tsv` (Indonesian, under Android's older code), `pt-rBR.tsv`, `ru.tsv`, `tr.tsv`, `vi.tsv`, `zh-rCN.tsv` and `zh-rTW.tsv`.
 
 Each row is the English exactly as the code hands it to `L10n.t`, `L10n.f` or `L10n.quantity`, then one tab, then the translation. Lines starting with `#` are comments, and a `# context:` line above a row says where the text shows and what it does. Write a line break as `\n`. The English is the whole sentence, so change only the right-hand column. A row can keep the English as its translation, and that's how a string sits until someone translates it.
 
 Placeholders have to survive. When the English has numbered ones like `%1$s` and `%2$d`, the translation needs the same set and can put them in any order, so `%1$s of %2$s` may become `%2$s: %1$s`. Bare `%s` and `%d` have to stay in the same order, because they're filled by position. A count uses two English keys, the singular and the plural, and `L10n.quantity` picks by the language's plural rule. A language with more plural forms adds a row for each one, keyed by the plural English plus `|` and the CLDR name (`few`, `many`, `two` or `zero`). Use straight apostrophes, and no em or en dash anywhere. A hyphen standing in for one fails too.
 
-After editing a table, run this from the repository root and commit the table together with the regenerated `L10nTranslations.java`:
+After editing a table, run this from the repository root and commit the table together with the regenerated `L10nTranslations.java` and `L10nTable*.java` files:
 
 ```
 python scripts/gen-l10n.py

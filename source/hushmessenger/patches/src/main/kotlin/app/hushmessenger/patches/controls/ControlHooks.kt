@@ -193,6 +193,8 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
     var changedViewer = false
     val drawerReaders = mutableListOf<Method>()
     val drawerAnchors = mutableListOf<Method>()
+    val searchIconReaders = mutableListOf<Method>()
+    val searchIconAnchors = mutableListOf<Method>()
     for (cls in classes) {
         val original = cls.fields.firstOrNull { it.name == "__redex_internal_original_name" }
             ?.initialValue.let { (it as? StringEncodedValue)?.value }
@@ -215,6 +217,8 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             val gate = method.returnType == "Z" && method.parameterTypes.isEmpty()
             if (instructions.any { it.isEmojiDrawerFlag() }) drawerReaders.add(method)
             if (EMOJI_DRAWER_ANCHOR in strings) drawerAnchors.add(method)
+            if (instructions.any { it.isSearchIconFlag() }) searchIconReaders.add(method)
+            if (SEARCH_ICON_ANCHOR in strings) searchIconAnchors.add(method)
             if (method.returnType == "Z" && (method.parameterTypes.isEmpty() ||
                 (AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes == listOf(cls.type)))) {
                 val anchors = strings + method.tableStrings(stringTables)
@@ -222,6 +226,7 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             }
             if (gate && "com.facebook.messaging.friendsinboxunit.plugins.inboxunit.FriendsInboxUnitKillSwitch" in strings) add("stories")
             if (cls.type in appIconManagers && method.isAppIconGate()) add(APP_ICONS)
+            if (method.isAppThemeGate()) add(APP_THEMES)
             if (gate) {
                 val shortcuts = instructions.filter { it.opcode == Opcode.NEW_INSTANCE }
                     .mapNotNull { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type }
@@ -262,7 +267,7 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
                 STORY_SUGGESTIONS_QUERY in strings + method.tableStrings(stringTables)) add("people_story")
             // The chat list supplier's items read, which first traces under its own name.
             if (cls.type == INBOX_SUPPLIER && !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == IMMUTABLE_LIST &&
-                method.parameterTypes.isEmpty() && INBOX_ITEMS_TRACE in strings) add(INBOX_REFRESH_HOOK)
+                method.parameterTypes.isEmpty() && INBOX_ITEMS_TRACE in strings) { add(INBOX_REFRESH_HOOK); add(PIN_LIST); add(HIDDEN_CHAT_LIST) }
             if (cls.type == "Lcom/facebook/screenshot/ScreenshotContentObserver;" && method.name == "onChange" &&
                 method.returnType == "V") add("allow_screenshot")
             // Android 14 and newer report a screenshot here, and Messenger turns it into the in-chat notice.
@@ -286,8 +291,8 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             if (messageIsUnsentGetterName.isNotEmpty() && method.name == messageIsUnsentGetterName &&
                 method.returnType == "Z" && method.parameterTypes == listOf("I") &&
                 cls.isRowWrapper() && cls.hasMessageIdGetter()) add("delta_unsent")
-            if (method.returnType == "Z" && AccessFlags.STATIC.isSet(method.accessFlags) &&
-                method.parameterTypes == listOf(cls.type) &&
+            // The gates are private instance methods with no parameter.
+            if (method.returnType == "Z" && method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) &&
                 strings.any { "SearchAiagentImplementationsKillSwitch" in it }) add("ai_search")
             if (method.returnType == "Landroid/graphics/Typeface;" && method.parameterTypes.isEmpty() &&
                 !AccessFlags.STATIC.isSet(method.accessFlags) &&
@@ -333,9 +338,10 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             // The chat and the inbox under it inherit that answer. androidx needs each fragment's no-argument
             // constructor, so it names the class the animation hook tells apart.
             if (method.name == "<init>" && method.parameterTypes.isEmpty()) {
-                if (original == "MsysThreadViewFragment") add("chat_fragment")
+                if (original == CHAT_FRAGMENT_NAME) add("chat_fragment")
                 if (original == "M4TabNavigationFragment") add("chat_inbox")
             }
+            if (original == CHAT_FRAGMENT_NAME && method.isChatJumpView()) add(CHAT_JUMP)
             // Chats on Messenger's older route open in this fragment, which loads its own animation.
             if (original == "ThreadViewFragment" && method.name == "onCreateAnimation" &&
                 method.hookId() == "${cls.type}->onCreateAnimation(IZI)$ANIMATION") add("chat_legacy")
@@ -372,6 +378,7 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
     }
     if (changedViewer) found.getValue("screenshot_viewers").clear() else screenshotViewerRefusal = null
     found.getValue(EMOJI_DRAWER).addAll(connectEmojiDrawer(drawerReaders, drawerAnchors))
+    found.getValue(INBOX_SEARCH_BAR).addAll(connectSearchBar(searchIconReaders, searchIconAnchors))
     found.getValue(EMOJI_SEARCH).addAll(findEmojiSearch(classes))
     found.getValue(TAB_BADGES).addAll(findTabBadges(classes))
     found.getValue(FACEBOOK_BADGE).addAll(findFacebookBadge(classes))
@@ -383,40 +390,61 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
     found.getValue(AI_SEARCH_HINT).addAll(searchBars)
     found.getValue(AI_SEARCH_SCREEN_HINT).addAll(findAiSearchScreenHint(classes, searchBars))
     found.getValue(AI_MENTION_ROWS).addAll(findAiMentionRows(classes))
+    found.getValue(AI_SUMMARY).addAll(findAiSummary(classes))
     found.getValue(XHE_AUDIO).addAll(findXheAudio(classes))
     found.getValue(DISAPPEARING_SWIPE).addAll(findDisappearingSwipe(classes))
     found.getValue(RECENT_MEDIA).addAll(findRecentMedia(classes))
     found.getValue(INSTANTS_BUTTON).addAll(findInstantsButton(classes))
     found.getValue(SAVE_VOICE).addAll(findSaveVoice(classes))
+    found.getValue(SAVE_VOICE_MENU).addAll(findSaveVoiceMenu(classes))
+    found.getValue(MESSAGE_ACTIONS).addAll(findMessageActions(classes))
+    found.getValue(MESSAGE_ACTIONS_MORE).addAll(findMessageActionsMore(classes))
     found.getValue(ANALYTICS_UPLOADS).addAll(findAnalyticsUploads(classes) + findBoundUploadTasks(classes) +
         findXAnalyticsUploadTimers(classes) + findInProcessUploadStarts(classes))
     found.getValue(ATTRIBUTION_UPLOADS).addAll(findAttributionUploads(classes))
     found.getValue(AD_EVENTS).addAll(findAdEvents(classes))
     found.getValue(MQTT_TELEMETRY).addAll(findMqttTelemetry(classes))
-    found.getValue(PINNED_CHATS).addAll(findPinnedChatLimit(classes))
+    findPinnedChats(classes).forEach { (hook, methods) -> found.getValue(hook).addAll(methods) }
+    findHiddenChats(classes).forEach { (hook, methods) -> found.getValue(hook).addAll(methods) }
     found.getValue(NEARBY_SCANS).addAll(patchStage("Find nearby scans") { findNearbyScans(classes) })
     found.getValue(WIFI_IDENTITY).addAll(patchStage("Find Wi-Fi identity reads") { findWifiIdentityReads(classes) })
     found.getValue(PHONE_ID_SYNC).addAll(findPhoneIdSync(classes))
     found.getValue(STORY_HOLD).addAll(findStoryHold(classes))
+    found.getValue(CHAT_PREVIEW).addAll(findChatPreview(classes))
+    found.getValue(LANDSCAPE_LOCK).addAll(findPortraitLock(classes))
+    found.getValue(LANDSCAPE_MEDIA).addAll(findMediaOrientation(classes))
+    found.getValue(BLOCKED_LIST_PICTURES).addAll(findBlockedListPictures(classes))
+    found.getValue(RESTRICTED_NOTIFY).addAll(findRestrictedNotify(classes))
     found.getValue(SHARE_STORY).addAll(findShareStory(classes))
     found.getValue(AVATAR_SHAPE).addAll(findAvatarShape(classes))
     found.getValue(STORY_RING).addAll(findStoryRing(classes))
     found.getValue(QUIET_CALL_RING).addAll(findQuietCallRing(classes))
     found.getValue(QUIET_CALL_NOTIFICATION).addAll(findQuietCallNotification(classes))
     found.getValue(CAR_MESSAGES).addAll(findCarMessages(classes))
+    found.getValue(LOCAL_CHAT_SEARCH).addAll(findLocalChatSearch(classes))
+    found.getValue(CALL_RECORDING).addAll(findCallRecording(classes))
+    found.getValue(HOME_HEADER).addAll(findHomeHeader(classes))
     found.getValue(TEXT_STYLE).addAll(findTextStyleField(classes))
     found.getValue(MESSAGE_LOG).addAll(findMessageLogHook(classes))
     found.getValue(AUTO_REPLY).addAll(findMessageLogHook(classes))
     found.getValue(UNSENT_RECALL).addAll(findUnsentRecall(classes))
     found.getValue(UNSENT_CLEAR).addAll(findUnsentClear(classes))
+    found.getValue(CHAT_CHANNEL_KEEP).addAll(findChatChannelKeep(classes))
+    found.getValue(CHAT_CHANNEL_RAISE).addAll(findChatChannelRaise(classes))
     autoReplyPictureRecipe = resolveAutoReplyPictureRecipe(classes)
     messageLogContract = resolveMessageLogContract(classes)
     readReceiptThreadFields = resolveReadReceiptThreadFields(classes)
     val (markReadBar, markReadClick) = findMarkReadButton(classes)
     found.getValue(MARK_READ_BAR).addAll(markReadBar)
+    found.getValue(HIDE_CALL_BAR).addAll(markReadBar)
     found.getValue(MARK_READ_CLICK).addAll(markReadClick)
+    val (logBar, logClick) = findMessageLogButton(classes)
+    found.getValue(MESSAGE_LOG_BUTTON).addAll(logBar)
+    found.getValue(MESSAGE_LOG_CLICK).addAll(logClick)
+    found.getValue(APP_THEME_PICK).addAll(findAppThemePick(classes))
     found.getValue(SYSTEM_CAMERA).addAll(findSystemCamera(classes))
     found.getValue(EXTERNAL_GALLERY).addAll(findExternalGallery(classes))
+    found.getValue(GALLERY_TEMP_FILE).addAll(findGalleryTempFile(classes))
     found.getValue(GALLERY_TO_CHAT).addAll(findGalleryToChat(classes))
     for ((hook, methods) in findCustomFont(classes)) found.getValue(hook).addAll(methods)
     return found
@@ -821,8 +849,8 @@ internal fun ClassDef.isRowWrapper(): Boolean =
 internal fun ClassDef.hasMessageIdGetter(): Boolean = messageIdGetterName.isNotEmpty() &&
     methods.any { it.name == messageIdGetterName && it.returnType == "Ljava/lang/String;" && it.parameterTypes == listOf("I") }
 
-/** The Notifications tab's server flag ID as 585 numbers it. Meta renumbers it with each release. */
-private const val PEOPLE_SERVER_FLAG = 72344162845931861L
+/** The Notifications tab's server flag ID as 586 numbers it. Meta renumbers it with each release. */
+private const val PEOPLE_SERVER_FLAG = 72344145666062935L
 
 /**
  * Where the Notifications tab loads its server flag: the method's only constant with that value, at 17, after the
@@ -844,8 +872,8 @@ private fun Method.isPeopleSectionShape() = parameterTypes.map(CharSequence::toS
 /**
  * The Notifications tab reads its stock "section hidden" preference into v0 and branches on it. A hidden
  * section is still shown when a server flag (v0, three instructions after its constant) is on; both branches
- * land on the final false return. The false value is a local loaded at 9: v3 of the eight-register body every 585
- * build compiles, or v5 of the ten-register one older builds had. The body logs a skipped impression under a monitor after the
+ * land on the final false return. The false value is a local loaded at 9: v3 of the eight-register body 586
+ * compiles, or v5 of the ten-register one older builds had. The body logs a skipped impression under a monitor after the
  * server branch.
  */
 internal fun MutableMethod.validatePeopleSection() {
@@ -1081,7 +1109,7 @@ internal fun MutableMethod.injectMenuDrawerAdd() {
 private const val IMMUTABLE_LIST_BUILDER = "Lcom/google/common/collect/ImmutableList\$Builder;"
 
 /**
- * 585 fills the keyboard's tab list inline and returns it: a local ArrayList of tab items goes into a fresh
+ * The composer fills the keyboard's tab list inline and returns it: a local ArrayList of tab items goes into a fresh
  * ImmutableList.Builder through one addAll that is built on the very next instruction:
  *
  *     invoke-static {}, ImmutableList;->builder()
@@ -1618,9 +1646,8 @@ internal class StorySave(
     val fragmentType: String,
     val menuType: String,
     val controller: String,
-    /** Card controllers the item is offered for, in builds that list them; empty where [canSave] answers instead. */
+    /** Card controllers the item is offered for. */
     val saveable: List<String>,
-    val canSave: String?,
     val id: Long,
     val label: Long,
     val labelOf: String,
@@ -1651,8 +1678,8 @@ internal fun MutableMethod.validateStorySave(): StorySave {
     fun answer(check: Int) = (check - 1 downTo 0).firstOrNull { op(it) !in RESOURCE_CONSTS && op(it) != Opcode.CONST_STRING } ?: -1
 
     // "Is this your story?" and a second flag both branch to your own story's items; what follows them is for anyone else's.
-    // 585's arm64 builds ask their fragment manager the same way later in this onClick, so only the question asked right
-    // after the menu is built counts.
+    // Only the question asked right after the menu is built counts, since a build may ask its fragment manager the same way
+    // later in this onClick.
     val own = code.indices.filter { i ->
         if (op(i) != Opcode.IF_NEZ || op(i + 1) != Opcode.IGET_BOOLEAN || op(i + 2) != Opcode.IF_NEZ || reg(i + 2) != reg(i + 1) ||
             branch(i) < 0 || branch(i) != branch(i + 2)) return@filter false
@@ -1688,32 +1715,19 @@ internal fun MutableMethod.validateStorySave(): StorySave {
     }
     val card = reg(entry + 3)
     val saveable = mutableListOf<String>()
-    var canSave: String? = null
     var add = entry + 4
-    if (op(add) == Opcode.INSTANCE_OF) {
-        // 585's 347014990 lists the card types: a match jumps to the item, the last miss skips it.
-        while (op(add) == Opcode.INSTANCE_OF) {
-            val test = code[add] as TwoRegisterInstruction
-            if (test.registerB != card || reg(add + 1) != test.registerA) fail("Save item's card test no longer matches the tested build")
-            saveable += ((code[add] as ReferenceInstruction).reference as TypeReference).type
-            add += 2
-            if (op(add - 1) == Opcode.IF_EQZ && branch(add - 1) == skip) break
-            if (op(add - 1) != Opcode.IF_NEZ) fail("Save item's card test no longer matches the tested build")
-        }
-        if (op(add - 1) != Opcode.IF_EQZ || (entry + 5 until add - 1 step 2).any { branch(it) != add }) {
-            fail("Save item's card test no longer matches the tested build")
-        }
-    } else {
-        // The other 585 builds moved that list into a method on the card's controller and ask it.
-        val test = call(add)
-        if (op(add) != Opcode.INVOKE_VIRTUAL || test == null || test.definingClass != controller.returnType ||
-            test.returnType != "Z" || test.parameterTypes.isNotEmpty() || args(add) != listOf(card) ||
-            op(add + 1) != Opcode.MOVE_RESULT || op(add + 2) != Opcode.IF_EQZ || reg(add + 2) != reg(add + 1) ||
-            branch(add + 2) != skip) {
-            fail("Save item's card test no longer matches the tested build")
-        }
-        canSave = test.toString()
-        add += 3
+    if (op(add) != Opcode.INSTANCE_OF) fail("Save item's card test no longer matches the tested build")
+    // The card types are listed: a match jumps to the item, the last miss skips it.
+    while (op(add) == Opcode.INSTANCE_OF) {
+        val test = code[add] as TwoRegisterInstruction
+        if (test.registerB != card || reg(add + 1) != test.registerA) fail("Save item's card test no longer matches the tested build")
+        saveable += ((code[add] as ReferenceInstruction).reference as TypeReference).type
+        add += 2
+        if (op(add - 1) == Opcode.IF_EQZ && branch(add - 1) == skip) break
+        if (op(add - 1) != Opcode.IF_NEZ) fail("Save item's card test no longer matches the tested build")
+    }
+    if (op(add - 1) != Opcode.IF_EQZ || (entry + 5 until add - 1 step 2).any { branch(it) != add }) {
+        fail("Save item's card test no longer matches the tested build")
     }
     val id = literal(add)
     val label = literal(add + 1)
@@ -1737,7 +1751,7 @@ internal fun MutableMethod.validateStorySave(): StorySave {
     }
     val handler = handlers.singleOrNull() ?: fail("no longer sends its clicks to one handler")
     return StorySave(
-        others, fragment, menu, fragmentType, menuType, controller.toString(), saveable, canSave, id, label,
+        others, fragment, menu, fragmentType, menuType, controller.toString(), saveable, id, label,
         labelOf.toString(), icon.toString(), addItem.toString(), ((code[handler] as ReferenceInstruction).reference as TypeReference).type,
     )
 }
@@ -1761,10 +1775,9 @@ internal fun ClassDef.validateStoryMenuHandler(save: StorySave) {
 
 /** Offers Save on someone else's story the way the menu offers it on yours, while the switch is on. */
 internal fun storySaveHelper(definingClass: String, save: StorySave): MutableMethod {
-    val test = save.canSave?.let { "invoke-virtual {v0}, $it\nmove-result v1\nif-eqz v1, :done" }
-        ?: save.saveable.mapIndexed { i, type ->
-            "instance-of v1, v0, $type\n" + if (i == save.saveable.lastIndex) "if-eqz v1, :done" else "if-nez v1, :add"
-        }.joinToString("\n")
+    val test = save.saveable.mapIndexed { i, type ->
+        "instance-of v1, v0, $type\n" + if (i == save.saveable.lastIndex) "if-eqz v1, :done" else "if-nez v1, :add"
+    }.joinToString("\n")
     val parameters = listOf(save.fragmentType, save.menuType).map { ImmutableMethodParameter(it, null, null) }
     return MutableMethod(ImmutableMethod(definingClass, STORY_SAVE_HELPER, parameters, "V",
         AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, ImmutableMethodImplementation(6, emptyList(), null, null)))

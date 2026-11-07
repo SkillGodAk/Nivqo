@@ -21,16 +21,17 @@ public class ToastLengthTest {
         "safe_mode_save_failed", "safe_mode_cleared", "changes_paused", "changes_resumed",
         "font_file_no_picker", "font_file_picker_failed", "font_file_busy", "font_file_finishing", "font_file_unreadable",
         "font_file_not_font", "font_file_wont_load", "font_file_not_saved", "font_file_stopped", "font_file_timeout",
-        "font_adjust_failed", "bubble_settings_missing", "export_failed", "exported", "choices_file_no_picker",
+        "font_adjust_failed", "bubble_settings_missing", "export_failed", "choices_file_save_failed", "exported", "choices_file_no_picker",
         "choices_file_saved", "choices_file_changed", "choices_file_timeout", "choices_file_timeout_read",
         "restore_failed", "quick_unchanged", "font_file_set", "font_file_set_off",
-        "quick_missing", "copied", "copy_failed", "message_log_set_aside_failed", "message_log_cleared",
+        "quick_missing", "local_search_open_failed", "call_recording_failed", "copied", "copy_failed", "message_log_set_aside_failed", "message_log_cleared",
         "message_log_clear_failed", "auto_reply_saved_none", "import_empty", "import_invalid", "import_no_choices",
         "import_auto_reply_off", "open_help", "no_browser", "page_blocked", "camera_missing", "camera_failed",
         "camera_permission", "gallery_missing", "gallery_failed", "restart_save_failed", "restart_unavailable",
         "text_style_read_only", "text_style_bold_none", "text_style_italic_none", "mark_read_done", "mark_read_nothing",
         "settings_open_failed", "settings_open_instead", "message_log_restored", "message_log_restore_failed",
-        "import_same",
+        "import_same", "save_voice_menu_failed", "home_header_saved", "home_header_removed", "home_header_remove_failed",
+        "home_header_not_picture", "home_header_unreadable", "home_header_not_saved", "home_header_busy", "home_header_timeout",
     };
 
     @Test public void everyToastFitsOnTwoLines() {
@@ -39,7 +40,10 @@ public class ToastLengthTest {
         for (String key : PLAIN) check(cut, key, words.get(key));
         check(cut, "quick_setups_hidden", words.get("quick_setups_hidden", words.format("quick_setups_home"), words.format("choices")));
         check(cut, "font_file_too_large", words.get("font_file_too_large", FontFile.MAX_MEGABYTES));
+        check(cut, "home_header_too_large", words.get("home_header_too_large", HomeHeaderPicture.MAX_MEGABYTES));
         check(cut, "auto_reply_saved", words.get("auto_reply_saved", 12));
+        check(cut, "call_recording_saved", words.get("call_recording_saved", "Recordings/" + CallRecording.FOLDER));
+        check(cut, "save_voice_menu_saved", words.get("save_voice_menu_saved", "Recordings/" + VoiceMessages.FOLDER));
         // A restored or lifted pause adds its own sentence to the restore toast.
         for (String paused : new String[] {" " + words.get("changes_paused") + ".", " " + words.get("changes_resumed") + "."}) {
             for (int count : new int[] {1, 12}) check(cut, "imported", words.count("imported", count) + paused);

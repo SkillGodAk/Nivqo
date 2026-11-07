@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Home Screen -->
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">உங்களால் இதை எப்போது வேண்டுமானாலும் %1$s மூலம் மீண்டும் கொண்டு வர முடியும்</string>
     <!-- Shown under the app a link was opened for -->
     <!-- Shown when the link was opened for the universal patches of a source, which no app is added with -->
     <!-- Asked when the link names an app of a source that is already added -->
     <!-- Asked when a .mpp file opened from a file manager is another version of a local source, %s being its name -->
     <!-- Home Screen - Update Notifications -->
+    <string name="home_app_sort_manual_hint">ஒரு செயலியை நீண்ட நேரம் அழுத்திப் பிடித்து, பின் மறுவரிசைப்படுத்தும் பொத்தானைத் தட்டவும்</string>
+    <string name="home_app_grouping_categories">வகைகள்</string>
     <!-- %s is the name of the category -->
     <!-- %s is the name of the category the apps fall back to -->
     <!-- Home Screen - Home Greetings -->
@@ -36,16 +40,28 @@
     <!-- Under an app left out of a source that keeps its home screen card because the user has patched it -->
     <!-- Marks an app (not a patch) the source started supporting since its app list was last opened -->
     <!-- Under the Bring new apps switch in a source's app list, whichever way it is set. "It" is the patch source -->
+    <string name="expert_mode_unstable_notice">முன்பதிவு அல்லது சோதனை முயற்சியிலான பேட்ச்கள் நிலையற்றதாக இருக்கலாம்</string>
     <!-- Actions of the panel for several selected sources at once -->
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">பேட்ச் பண்டிலை பதிவிறக்க முடியவில்லை. மூல URL தவறாக இருக்கலாம் அல்லது கோப்பு இல்லை. அதை மாற்ற தட்டவும்</string>
     <!-- Home Screen - Sources Dialogs -->
+    <string name="sources_dialog_change_url">பேட்ச் மூலப்பொருள் பதிவிறக்கம் செய்யப்படும் இடத்தை மாற்றவும்</string>
     <!-- %s is the name of the local source that another version of the same bundle replaces -->
     <!-- Shown before leaving Morphe for the community patches website. The sources listed there are not reviewed by Morphe -->
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">இந்த பேட்ச்-ஐ கைமுறையாகச் சேர்க்க %1$s-ஐ ஆன் செய்யவும்</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Home Screen - Dialog 2: Download Instructions -->
+    <string name="home_download_instructions_step2_apkcube">இணையப் பக்கத்தை கீழே நகர்த்தி, பதிப்பு &lt;b&gt;%s&lt;/b&gt;-ஐத் தேர்ந்தெடுத்து அழுத்தவும்</string>
+    <string name="home_download_instructions_step2_github">வெளியீடு &lt;b&gt;%s&lt;/b&gt;-ன் &lt;b&gt;Assets&lt;/b&gt; பிரிவில், &lt;b&gt;.apk&lt;/b&gt; என முடியும் கோப்பை அழுத்தவும்</string>
+    <string name="home_download_instructions_step2_github_latest">புதிய வெளியீட்டின் &lt;b&gt;Assets&lt;/b&gt; பிரிவில், &lt;b&gt;.apk&lt;/b&gt; என முடியும் கோப்பை அழுத்தவும்</string>
+    <string name="home_download_instructions_step2_github_note">பல APK கோப்புகள் இருந்தால், %s எனப் பெயரிடப்பட்ட அல்லது பொதுவான கோப்பைத் தேர்ந்தெடுக்கவும்</string>
     <!-- Home Screen - Dialog 3: File Picker Prompt -->
     <!-- %s is the name of the app whose APK was just downloaded -->
     <!-- Home Screen - Dialog 4: Expert Mode Dialog -->
+    <string name="expert_mode_recommended">பரிந்துரைக்கப்பட்ட பேட்ச்கள்</string>
+    <string name="expert_mode_selected_count">%2$s இல் %1$s தேர்ந்தெடுக்கப்பட்டது</string>
+    <string name="expert_mode_saved_selection">சேமிக்கப்பட்ட தேர்வு</string>
     <!-- Home Screen - Home Sub-Dialogs -->
     <!-- Label of a footer button beside "Cancel". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- "Build" here refers to a specific compiled version of the app (versionCode) -->
@@ -64,8 +80,14 @@
     <!-- Batch patching -->
     <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->
     <!-- Label of a footer button beside "Done". Keep it short, a longer one moves the buttons onto two rows -->
+    <string name="batch_queue_keep_title">வரிசையைத் தக்கவைக்க வேண்டுமா?</string>
+    <string name="batch_queue_keep_description">வரிசைப்படுத்தப்பட்ட செயலிகள் பின்னர் தொடங்குவதற்காக முகப்புத் திரையில் காத்திருக்கும்</string>
+    <string name="batch_queue_keep">தக்கவை</string>
     <!-- Home Screen - App Info Screen -->
+    <string name="home_app_info_install_type_root">ரூட் நிறுவல்</string>
     <!-- Home Screen - Root Mode -->
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">%1$s ஆனது %2$s என அமைக்கப்பட்டிருக்கும் போது கேட்கப்பட்டது. பேட்ச் செய்த பிறகு பேட்ச் பயன்முறையை மாற்ற முடியாது</string>
     <!-- Patcher Screen -->
     <!-- Titles of the cards the expert log shows in place of the raw start and success log lines -->
     <!-- Field labels, shown in a column beside their values. Keep them short, a long one is cut off rather than wrapped -->
@@ -78,6 +100,14 @@
     <!-- Value of "Libraries": the libraries this device cannot use were dropped from the patched APK -->
     <!-- Value of "Libraries": every library was left in the patched APK -->
     <!-- Patcher Screen - Patcher Steps -->
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">DEX கோப்புகளைப் படிக்கிறது</string>
+    <string name="patcher_task_extracting_resources">வளங்களை வெளியே எடுக்கிறது</string>
+    <string name="patcher_task_decoding_resources">வளங்களை டிகோடிங் செய்கிறது</string>
+    <string name="patcher_task_indexing_classes">வகுப்புகளை வரிசைப்படுத்துகிறது</string>
+    <string name="patcher_task_compiling_dex">DEX கோப்புகளை தொகுக்கிறது</string>
+    <string name="patcher_task_compiling_resources">வளங்களை தொகுக்கிறது</string>
+    <string name="patcher_task_writing_apk">APK கோப்பை எழுதுகிறது</string>
     <!-- Battery optimization pre-flight dialog -->
     <!-- Patcher Screen - Patcher Worker -->
     <!-- Keeps the run going, the way out of a dialog that asks whether to stop it -->
@@ -89,6 +119,8 @@
     <!-- Throw away reference to a Saturday Night Live sketch. "fever" means sickness or the flu. "prescription" means medical treatment or can be translated from "cure" -->
     <!-- Expert patcher Screen -->
     <!-- Patcher Screen - Other hidden strings -->
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">பேட்சர் முடிவடைவதற்கு முன்பே செயலிழந்தது. இது மீண்டும் நடந்தால், %1$s-ஐ ஆஃப் செய்து லாக் உடன் பிரச்சனையைப் புகாரளிக்கவும்</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <!-- Patcher Screen - Mini-games -->
     <!-- Settings -->
@@ -105,6 +137,8 @@
     <!-- "Morphe" here is the app itself, not the patches. Do not translate this as pre-release patches -->
     <!-- Shown before pre-release updates are turned on for the app itself. Patches have their own toggle in each patch source -->
     <!-- Notification content -->
+    <string name="notification_channel_patching_results">பேட்ச் செய்யும் முடிவுகள்</string>
+    <string name="notification_channel_patching_results_description">Morphe பின்னணியில் இருக்கும்போது, பேட்ச் செய்தல் முடிந்தாலோ அல்லது நிறுவல் உங்களுக்காகக் காத்திருக்கும்போதோ</string>
     <!-- Settings - Advanced Tab - Expert settings Section -->
     <!-- Settings - Advanced Tab - GitHub PAT Settings -->
     <!-- "%s" is the GitHub scope name, keep it as is -->
@@ -116,6 +150,17 @@
     <!-- Settings - Advanced Tab - Patch Options Section: Custom Header -->
     <!-- Settings - Advanced Tab - Patch Options Section: Hide Shorts -->
     <!-- Settings - System Tab - Installer Section -->
+    <string name="installer_root_description">ரூட் மூலம் அமைதியாக நிறுவுகிறது</string>
+    <string name="installer_mount_warning_install">பேட்ச் பயன்முறை ரூட் மவுண்டிற்கு அமைக்கப்பட்டுள்ளது. இந்த சேமிக்கப்பட்ட ஆப் மவுண்ட் மூலம் நிறுவப்படவில்லை</string>
+    <string name="settings_section_patch_mode">பேட்ச் பயன்முறை</string>
+    <string name="settings_patch_mode_ask">ஒவ்வொரு முறையும் கேட்கவும்</string>
+    <string name="settings_patch_mode_ask_description">ஒவ்வொரு ஆப்பையும் பேட்ச் செய்வதற்கு முன்னால், அதை ரூட் மவுண்ட் அல்லது நிலையான நிறுவலுக்கு பேட்ச் செய்ய வேண்டுமா என்று கேட்கும்</string>
+    <string name="settings_section_after_patching">பேட்ச் செய்த பிறகு</string>
+    <string name="settings_after_patching_install">தானாகவே நிறுவவும்</string>
+    <string name="settings_after_patching_ask">எந்த நிறுவி என்று கேட்கவும்</string>
+    <string name="settings_after_patching_ask_description">ஒரு ஆப் நிறுவப்படும் போதெல்லாம் எந்த நிறுவியைப் பயன்படுத்த வேண்டும் என்று கேட்கும்</string>
+    <string name="settings_after_patching_manual">கைமுறையாக நிறுவவும்</string>
+    <string name="settings_after_patching_manual_description">நீங்கள் நிறுவி (Install) என்பதைத் தட்டியவுடன் இயல்புநிலை நிறுவியைக் கொண்டு நிறுவுகிறது</string>
     <!-- Settings - System Tab - Performance Section -->
     <!-- Settings - System Tab - Notifications Section -->
     <!-- Settings - System Tab - Import and Export Section -->
@@ -130,6 +175,7 @@
     <!-- Settings - System Tab - APK download helper -->
     <!-- File Picker -->
     <!-- Settings - System Tab - About Section -->
+    <string name="opensource_licenses_search">நூலகங்கள் மற்றும் உரிமங்களைத் தேடுங்கள்</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <!-- Shared strings -->
     <!-- Label of a footer button beside "Close". Keep it short, a longer one moves the buttons onto two rows -->

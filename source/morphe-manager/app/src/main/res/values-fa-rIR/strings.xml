@@ -8,9 +8,10 @@
     <string name="home_unpatched_badge">پچ‌نشده</string>
     <string name="home_no_patches_available">هیچ پچی در دسترس نیست</string>
     <string name="home_app_hide_title">این برنامه پنهان شود؟ </string>
-    <string name="home_more_apps_title">More apps</string>
-    <string name="home_more_apps_hide_title">Hide this card?</string>
-    <string name="home_more_apps_hide_message">You can bring it back anytime in Settings &gt; Appearance &gt; Home screen</string>
+    <string name="home_more_apps_title">برنامه‌های بیشتر</string>
+    <string name="home_more_apps_hide_title">این کارت پنهان شود؟</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">می‌توانید در هر زمان آن را از %1$s بازگردانید</string>
     <string name="home_app_hide_message">این برنامه از صفحهٔ اصلی پنهان خواهد شد. بعداً می‌توانید آن را با دکمهٔ انتهای فهرست، از بخش برنامه‌های پنهان بازیابی کنید.</string>
     <string name="home_app_will_be_hidden">این برنامه پنهان خواهد شد</string>
     <string name="home_app_hidden_named">%s hidden</string>
@@ -18,7 +19,7 @@
     <string name="home_app_no_hidden">هیچ برنامهٔ پنهانی وجود ندارد</string>
     <string name="home_app_hidden_apps_title">برنامه‌های پنهان</string>
     <string name="home_app_hidden_apps_hint">برای آشکارسازی ضربه بزنید</string>
-    <string name="home_apps_unhide_message">Unhidden apps return to the home screen</string>
+    <string name="home_apps_unhide_message">برنامه‌های پنهان‌نشده به صفحه اصلی باز می‌گردند</string>
     <string name="home_app_patch_sources_description">منابعی که تیک نخورده بمانند هنگام پچ کردن این برنامه‌ها ارائه نمی‌شوند و پچ‌های آن‌ها هرگز خودبه‌خود به انتخاب اضافه نمی‌شوند. هر منبع برای سایر برنامه‌ها فعال می‌ماند.</string>
     <string name="home_app_patch_sources_mixed">ارائه‌شده برای %1$s از %2$s</string>
     <string name="home_app_patch_sources_covers">دارای پچ برای %1$s از %2$s</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">جستجوی برنامه‌ها</string>
     <string name="list_options_title">مرتب‌سازی و فیلتر</string>
     <string name="list_options_state_description">مرتب‌شده بر اساس %1$s، فیلترشده بر اساس %2$s</string>
-    <string name="home_app_filter_all_description">همهٔ برنامه‌های صفحهٔ اصلی</string>
-    <string name="home_app_filter_patched_description">برنامه‌هایی که با Nivqo پچ یا ذخیره کرده‌اید</string>
-    <string name="home_app_filter_not_patched_description">برنامه‌هایی که هنوز در Morphe پچ نکرده‌اید</string>
-    <string name="home_app_filter_installed_description">برنامه‌های نصب‌شده روی این دستگاه</string>
-    <string name="home_app_filter_uninstalled_description">برنامه‌های پچ‌شده با Morphe که دیگر روی این دستگاه نیستند</string>
     <string name="home_app_filter_clones">نسخه‌های کلون</string>
-    <string name="home_app_filter_clones_description">برنامه‌هایی که با نام بستهٔ اختصاصی ساخته شده‌اند و در کنار نسخهٔ اصلی نصب شده‌اند</string>
     <string name="home_app_grouping_none">هیچ‌کدام</string>
-    <string name="home_app_grouping_all_apps_description">یک فهرست با همه برنامه‌ها</string>
-    <string name="home_app_grouping_sources_description">برنامه‌هایی در منبع پچ که آن‌ها را فراهم می‌کند</string>
-    <string name="home_app_grouping_custom_description">برنامه‌هایی در دسته‌هایی که شما ایجاد می‌کنید</string>
-    <string name="home_app_sort_manual_description">روی یک برنامه لمس طولانی کنید، سپس دکمهٔ مرتب‌سازی مجدد را بزنید</string>
+    <string name="home_app_sort_manual_hint">روی یک برنامه لمس طولانی کنید، سپس دکمهٔ مرتب‌سازی مجدد را بزنید</string>
     <string name="home_app_sort_recommended">ترتیب پیشنهادی</string>
-    <string name="home_app_sort_recommended_description">ابتدا برنامه‌های نصب‌شده و سنجاق‌شده</string>
-    <string name="home_app_sort_name_asc_description">حروف الفبا، از A تا Z</string>
-    <string name="home_app_sort_name_desc_description">حروف الفبا به‌صورت معکوس، از Z تا A</string>
     <string name="home_app_sort_updates_first">ابتدا به‌روزرسانی‌های پچ</string>
-    <string name="home_app_sort_updates_first_description">ابتدا برنامه‌هایی که پچ جدیدتر دارند، سپس به ترتیب پیشنهادی</string>
     <string name="home_app_sort_recently_patched">به‌تازگی پچ‌شده</string>
-    <string name="home_app_sort_recently_patched_description">ابتدا برنامه‌هایی که اخیراً پچ شده‌اند</string>
     <string name="home_no_apps_title">برنامه‌ای در دسترس نیست</string>
     <string name="home_no_apps_subtitle">یک منبع پچ اضافه کنید یا منبع موجود را در %s فعال کنید</string>
     <string name="home_no_apps_search_subtitle">هیچ برنامه‌ای با «%s» مطابقت ندارد</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">هیچ موردی با %s مطابقت نداشت</string>
     <string name="home_category_add">افزودن دسته</string>
     <string name="home_category_all_apps">همهٔ برنامه‌ها</string>
-    <string name="home_category_custom">سفارشی</string>
+    <string name="home_app_grouping_categories">دسته‌بندی‌ها</string>
     <string name="home_category_uncategorized">بدون دسته</string>
     <string name="home_category_new_title">دستهٔ جدید</string>
     <string name="home_category_rename_title">تغییر نام دسته</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">منابع پچ </string>
     <string name="sources_search">جستجوی منابع و پچ‌ها</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">هر منبع</string>
-    <string name="sources_filter_enabled_description">پچ‌های منابع از</string>
-    <string name="sources_filter_disabled_description">منابع غیرفعال شده</string>
     <string name="sources_filter_issues">نیازمند توجه</string>
-    <string name="sources_filter_issues_description">منابعی که مسدود شده‌اند، بارگذاری آن‌ها ناموفق بود یا نیاز به Morphe جدیدتری دارند</string>
     <string name="sources_sort_manual">ترتیب دستی</string>
     <string name="sources_sort_manual_hint">روی یک منبع لمس طولانی کنید تا ترتیبش را تغییر دهید</string>
     <string name="sources_sort_last_updated">آخرین به‌روزرسانی</string>
-    <string name="sources_sort_last_updated_description">ابتدا جدیدترین به‌روزرسانی‌های منابع</string>
     <string name="sources_sort_enabled_first">ابتدا فعال‌شده‌ها</string>
-    <string name="sources_sort_enabled_first_description">منابع فعال را پیش از منابع غیرفعال نشان می‌دهد</string>
     <string name="sources_patches_source_disabled_hint">این منبع غیرفعال است. پچ‌های آن فقط برای مرجع فهرست شده‌اند و اعمال نمی‌شوند</string>
     <string name="sources_management_open_in_browser">باز کردن در مرورگر</string>
     <string name="sources_management_report_issue">گزارش مشکل</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">کلید مورد اعتماد</string>
     <string name="sources_signing_key_new">کلید جدید</string>
     <string name="sources_patch_expert_badge">حرفه‌ای</string>
-    <string name="sources_patch_expert_badge_tooltip">برای افزودن دستی این پچ، حالت حرفه‌ای را در تنظیمات فعال کنید</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">برای افزودن دستی این پچ، %1$s را فعال کنید</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">برای پیدا کردن APK نیاز به کمک دارید؟</string>
     <string name="home_apk_availability_dialog_simple">برای پچ &lt;b&gt;%s&lt;/b&gt;، به نسخه APK بدون پچ نیاز دارید:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">توصیه شده </string>
     <string name="home_apk_availability_unpatched_label">پچ نشده</string>
     <string name="home_apk_availability_incompatible_label">ناسازگار</string>
-    <string name="home_apk_availability_installed_version">نصب شده روی این دستگاه: %s</string>
     <string name="home_apk_availability_find">بله، کمکم کن پیداش کنم</string>
     <string name="home_apk_availability_have">نه، من قبلاً آن را دارم</string>
     <string name="home_apk_helper_download">استفاده از برنامهٔ کمکی</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">در حال یافتن صفحهٔ دانلود…</string>
     <string name="home_download_instructions_step1">دکمهٔ «%s» را در پایین بزنید</string>
     <string name="home_download_instructions_step2_part1">به آخر صفحه برو و بزن</string>
+    <string name="home_download_instructions_step2_apkcube">صفحه وب را به پایین اسکرول کنید، نسخه &lt;b&gt;%s&lt;/b&gt; را انتخاب کرده و فشار دهید</string>
     <string name="home_download_instructions_step2_generic">صفحهٔ وب را به پایین پیمایش کنید و دکمهٔ دانلود آن را بزنید</string>
     <string name="home_download_instructions_step2_variant">صفحهٔ وب را به پایین پیمایش کنید و دکمهٔ &lt;b&gt;گونهٔ APK&lt;/b&gt; بالایی را بزنید</string>
     <string name="home_download_instructions_step2_search">یکی از نتایج جست‌وجو را از وب‌سایتی که به آن اعتماد دارید باز کنید</string>
     <string name="home_download_instructions_step2_search_note">Morphe این وب‌سایت‌ها را تأیید نمی‌کند. وب‌سایت‌هایی را که به‌جای فایل APK فروشگاه برنامهٔ خودشان را پیشنهاد می‌دهند، نادیده بگیرید</string>
     <string name="home_download_instructions_step3_search">در آن وب‌سایت، APK نسخهٔ &lt;b&gt;%s&lt;/b&gt; را دانلود کنید، نه جدیدترین نسخه را</string>
     <string name="home_download_instructions_step3_search_any">در آن وب‌سایت، APK برنامه را دانلود کنید. &lt;b&gt;هر نسخه‌ای&lt;/b&gt; را می‌توان پچ کرد</string>
+    <string name="home_download_instructions_step2_github">در بخش &lt;b&gt;Assets&lt;/b&gt; از نسخه &lt;b&gt;%s&lt;/b&gt;، روی فایلی که به &lt;b&gt;.apk&lt;/b&gt; ختم می‌شود بزنید</string>
+    <string name="home_download_instructions_step2_github_latest">در بخش &lt;b&gt;Assets&lt;/b&gt; از جدیدترین نسخه، روی فایلی که به &lt;b&gt;.apk&lt;/b&gt; ختم می‌شود بزنید</string>
+    <string name="home_download_instructions_step2_github_note">اگر چندین فایل APK وجود دارد، فایلی که به نام %s است یا فایل universal را انتخاب کنید</string>
     <string name="home_download_instructions_download_button_toast">دکمه دانلود رو توی وبسایتش بزن، نه اینجا ☺️</string>
     <string name="home_download_instructions_download_button_toast_2">عالی است! حالا ادامه را بزنید و به وب‌سایت بروید 👆</string>
     <string name="home_download_instructions_download_button_toast_3">کار نیکو کردن از پر کردن است؛ دارید پیشرفت می‌کنید 💪</string>
@@ -518,11 +503,13 @@
     <string name="batch_queue_pending_subtitle">برای بررسی و شروع، ضربه بزنید</string>
     <string name="batch_queue_clear_title">صف پاک شود؟</string>
     <string name="batch_queue_clear_description">تمام برنامه‌ها از صف حذف خواهند شد</string>
+    <string name="batch_queue_keep_title">صف حفظ شود؟</string>
+    <string name="batch_queue_keep_description">برنامه‌های موجود در صف در صفحه اصلی منتظر می‌مانند تا بعداً اجرا شوند</string>
+    <string name="batch_queue_keep">حفظ</string>
     <string name="shortcut_repatch_short">دوباره پچ کن</string>
     <string name="shortcut_repatch_long">دوباره پچ‌کردن برنامه‌های قدیمی</string>
     <string name="shortcut_check_updates_short">بررسی به‌روزرسانی‌ها</string>
     <string name="shortcut_check_updates_long">بررسی به‌روزرسانی پچ‌ها</string>
-    <string name="shortcut_patch_app">پچ‌کردن %s</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">این برنامه حذف شود؟</string>
     <string name="home_app_info_uninstall_removes_data">برنامه و داده‌های آن از این دستگاه پاک می‌شوند</string>
@@ -543,6 +530,7 @@
     <string name="home_app_info_install_type_custom_installer">نصب‌کنندهٔ سفارشی</string>
     <string name="home_app_info_install_type_system_installer">نصب‌کنندهٔ سیستم</string>
     <string name="home_app_info_install_type_play_store">نصب از Play Store</string>
+    <string name="home_app_info_install_type_root">نصب روت</string>
     <string name="home_app_info_install_type_root_play_store">نصب از Play Store در حالت روت</string>
     <string name="home_app_info_install_type_shizuku_play_store">نصب از Play Store با Shizuku</string>
     <string name="home_app_info_patch_update_available">به‌روزرسانی پچ در دسترس است</string>
@@ -584,7 +572,8 @@
     <string name="root_mount_module_unmount_warning">اگر KernelSU گزینه \"Unmount modules by default\" فعال باشد، به KernelSU &gt; Superuser &gt; برنامه‌ای که مونت کرده‌اید &gt; Profile &gt; Custom بروید و \"Unmount modules\" را غیرفعال کنید. در غیر این صورت، APK پچ‌شدهٔ مونت‌شده ممکن است اعمال نشود؛ حتی اگر Morphe آن را مونت‌شده نشان دهد</string>
     <string name="root_pre_patch_installer_standard_title">حالت نصب استاندارد</string>
     <string name="root_pre_patch_installer_standard_description">مثل یک APK معمولی و با پشتیبانی GmsCore پچ می‌کند. تنظیم نصب‌کنندهٔ شما پس از پچ‌کردن استفاده می‌شود</string>
-    <string name="root_pre_patch_installer_hint">در حالی که تنظیمات &gt; پچ‌گذاری &gt; نصب &gt; انتخاب نصب‌کننده فعال است. حالت پچ پس از پچ کردن قابل تغییر نیست</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">در حالی که %1$s روی %2$s تنظیم شده است، پرسیده شد. حالت پچ پس از پچ کردن قابل تغییر نیست</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">خطا در کلیپ‌بورد کپی شد</string>
     <string name="patcher_error_log">گزارش خطا</string>
@@ -683,6 +672,14 @@
     <string name="patcher_step_group_saving">در حال ذخیره‌سازی</string>
     <string name="patcher_step_write_patched">در حال نوشتن فایل APK پچ‌شده</string>
     <string name="patcher_step_sign_apk">در حال امضای فایل APK پچ‌شده</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">در حال خواندن فایل‌های DEX</string>
+    <string name="patcher_task_extracting_resources">در حال استخراج منابع</string>
+    <string name="patcher_task_decoding_resources">در حال رمزگشایی منابع</string>
+    <string name="patcher_task_indexing_classes">در حال ایندکس کردن کلاس‌ها</string>
+    <string name="patcher_task_compiling_dex">در حال کامپایل فایل‌های DEX</string>
+    <string name="patcher_task_compiling_resources">در حال کامپایل منابع</string>
+    <string name="patcher_task_writing_apk">در حال نوشتن فایل APK</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">محافظت از پچ‌کردن در پس‌زمینه</string>
     <string name="battery_optimization_dialog_description">برخی دستگاه‌ها ممکن است وقتی برنامه کوچک می‌شود، پچر را متوقف کنند. به Morphe اجازه دهید بدون محدودیت باتری اجرا شود تا پچ‌کردن با اطمینان کامل شود</string>
@@ -731,7 +728,8 @@
     <string name="patched_app_save_failed_toast">ذخیرهٔ برنامهٔ پچ‌شده ناموفق بود</string>
     <string name="plugin_activity_dialog_body">برای ادامهٔ کار این افزونه، تعامل کاربر لازم است</string>
     <string name="patcher_process_killed_message">سیستم قبل از اتمام فرآیند لکه‌گیر، آن را متوقف کرد، معمولاً برای آزادسازی حافظه. برنامه‌های دیگر را ببندید و دوباره تلاش کنید</string>
-    <string name="patcher_process_crashed_message">پچر پیش از اتمام متوقف شد. اگر این اتفاق دوباره رخ داد، گزینه \"Use embedded VM\" را در تنظیمات خاموش کرده و مشکل را به همراه لاگ گزارش دهید</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">پچر پیش از اتمام کرش کرد. اگر دوباره اتفاق افتاد، %1$s را خاموش کرده و مشکل را همراه با لاگ گزارش دهید</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">پچر با هیپ %1$s مگابایتی حافظه‌اش را تمام کرد. این برنامه برای پچ‌های انتخاب‌شده بیش از حد بزرگ است. با منابع پچ کمتر یا پچ‌های کمتری دوباره تلاش کنید</string>
     <string name="install_app_success">با موفقیت نصب شد</string>
@@ -919,6 +917,8 @@
     <string name="notification_channel_patch_updates">به‌روزرسانی پچ‌ها</string>
     <string name="notification_channel_patch_updates_description">اعلان‌های مربوط به انتشار پچ‌های جدید</string>
     <string name="notification_channel_patcher_description">وقتی Nivqo برنامه‌ای را در پس‌زمینه پچ می‌کند نمایش داده می‌شود</string>
+    <string name="notification_channel_patching_results">نتایج پچ‌کردن</string>
+    <string name="notification_channel_patching_results_description">هنگامی که پچ‌کردن به پایان می‌رسد یا در حالی که Morphe در پس‌زمینه است، نصبی منتظر شماست</string>
     <string name="notification_channel_mounted_apps">برنامه‌های نصب‌شده</string>
     <string name="notification_channel_mounted_apps_description">زمانی که نسخهٔ دیگری جایگزین برنامهٔ نصب‌شده با روت شود و پچ آن دیگر اعمال نشود</string>
     <string name="notification_mount_replaced_title">%1$s دیگر پچ‌شده نیست</string>
@@ -1029,9 +1029,8 @@ morphe_header_custom_dark.png
     <string name="installer_title">انتخاب نصب‌کننده</string>
     <string name="installer_internal_description">از نصب‌کنندهٔ بستهٔ Android استفاده می‌کند</string>
     <string name="installer_play_store_description">از نصب‌کنندهٔ سیستم استفاده می‌کند و Google Play Store را به‌عنوان منبع نصب تنظیم می‌کند</string>
+    <string name="installer_root_description">به‌صورت بی‌صدا با روت نصب می‌کند</string>
     <string name="installer_root_play_store_description">با روت به‌صورت بی‌صدا نصب می‌کند و Google Play Store را به‌عنوان منبع نصب تنظیم می‌کند</string>
-    <string name="installer_auto_saved_name">مانت روت</string>
-    <string name="installer_auto_saved_description">برنامه‌هایی را که در حالت مانت روت پچ شده‌اند مانت می‌کند. APKهای پچ‌شدهٔ استاندارد از نصب‌کنندهٔ دیگری استفاده می‌کنند</string>
     <string name="installer_shizuku_description">با استفاده از Shizuku یا Sui به‌صورت بی‌صدا نصب می‌کند</string>
     <string name="installer_shizuku_play_store_description">از طریق Shizuku یا Sui به‌صورت بی‌صدا نصب می‌کند و Google Play Store را به‌عنوان منبع نصب تنظیم می‌کند</string>
     <string name="installer_option_none">بدون جایگزین</string>
@@ -1041,7 +1040,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_installed">برای استفاده از این گزینه، Shizuku یا Sui را نصب کنید</string>
     <string name="installer_status_shizuku_not_running">Shizuku یا Sui را اجرا و دوباره تلاش کنید</string>
     <string name="installer_status_shizuku_permission">از برنامهٔ Shizuku به Nivqo مجوز بدهید</string>
-    <string name="installer_mount_warning_install">نصب‌کنندهٔ اصلی شما روی نصب‌کنندهٔ مانت روت تنظیم شده است. این برنامهٔ ذخیره‌شده با استفاده از مانت نصب نشده است</string>
+    <string name="installer_mount_warning_install">حالت پچ روی مانت روت تنظیم شده است. این برنامهٔ ذخیره‌شده با استفاده از مانت نصب نشده است</string>
     <string name="mount_version_mismatch_message">نسخهٔ برنامهٔ سیستمی (%2$s) با نسخهٔ برنامهٔ پچ‌شده (%1$s) مطابقت ندارد. نسخهٔ سیستمی منطبق را مانت کنید و سپس دوباره تلاش کنید</string>
     <string name="mount_stock_restore_failed_message">Android APK اصلی ذخیره‌شده را رد کرد. نسخهٔ سیستمی منطبق را نصب کنید و سپس دوباره مانت را بزنید</string>
     <string name="installer_status_shizuku_unsupported">نسخهٔ نصب‌شدهٔ Shizuku پشتیبانی نمی‌شود</string>
@@ -1063,11 +1062,17 @@ morphe_header_custom_dark.png
     <string name="installer_play_store_warning_continue">متوجه شدم، ادامه بده</string>
     <string name="installer_play_store_mode">نصب به‌عنوان Play Store</string>
     <string name="installer_play_store_mode_description">علامت‌گذاری Google Play Store به عنوان منبع نصب</string>
+    <string name="settings_section_patch_mode">حالت پچ</string>
+    <string name="settings_patch_mode_ask">هربار پرسیده شود</string>
+    <string name="settings_patch_mode_ask_description">پیش از پچ کردن هر برنامه، می‌پرسد که آیا آن را برای مانت روت یا نصب استاندارد پچ کند</string>
+    <string name="settings_section_after_patching">بعد از پچ کردن</string>
+    <string name="settings_after_patching_install">نصب خودکار</string>
+    <string name="settings_after_patching_ask">پرسش در مورد نصب‌کننده</string>
+    <string name="settings_after_patching_ask_description">هر بار هنگام نصب برنامه، می‌پرسد که از کدام نصب‌کننده استفاده شود</string>
+    <string name="settings_after_patching_manual">نصب دستی</string>
+    <string name="settings_after_patching_manual_description">پس از ضربه زدن روی نصب، با نصب‌کنندهٔ پیش‌فرض نصب می‌کند</string>
     <string name="settings_nomount_only">فقط NoMount</string>
     <string name="settings_nomount_only_description">برنامه‌ها را فقط با NoMount مونت می‌کند و هرگز به bind mount باز نمی‌گردد، بنابراین بدون آن بدون مونت باقی می‌مانند</string>
-    <string name="settings_prompt_installer_on_install">درخواست انتخاب نصب‌کننده</string>
-    <string name="settings_prompt_installer_on_install_description">پرسش درباره نحوه نصب هر برنامه: با روت قبل از پچ‌گذاری، در غیر این صورت بعد از آن</string>
-    <string name="settings_auto_install_with_shizuku">نصب خودکار پس از پچ‌کردن</string>
     <string name="settings_auto_install_with_shizuku_description">APK پچ‌شده را به محض تکمیل پچ‌گذاری نصب یا متصل می‌کند</string>
     <string name="settings_auto_uninstall_with_shizuku">حذف خودکار هنگام تداخل</string>
     <string name="settings_auto_uninstall_with_shizuku_description">حذف برنامه موجود در صورت تداخل امضا. این کار ممکن است داده‌های برنامه را حذف کند</string>
@@ -1137,7 +1142,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_keystore_dialog_description">برای واردکردن مخزن کلید، باید اطلاعات آن را وارد کنید</string>
     <string name="settings_system_import_keystore_dialog_alias_field">نام کاربری (نام مستعار)</string>
     <string name="settings_system_import_keystore_dialog_password_field">گذرواژه</string>
-    <string name="settings_system_import_keystore_dialog_format_field">قالب مخزن کلید</string>
     <string name="settings_system_import_keystore_wrong_credentials">اطلاعات مخزن کلید نادرست است</string>
     <string name="settings_system_import_keystore_success">مخزن کلید وارد شد</string>
     <string name="settings_system_import_keystore_failed">واردکردن مخزن کلید ناموفق بود</string>
@@ -1293,6 +1297,7 @@ adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="credits_prior_development">توسعهٔ پیشین</string>
     <string name="opensource_licenses">مجوزهای متن‌باز</string>
     <string name="opensource_licenses_description">کتابخانه‌هایی که مورفه بر آن‌ها ساخته شده است</string>
+    <string name="opensource_licenses_search">جستجوی کتابخانه‌ها و مجوزها</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">یک انتخاب</string>
     <string name="easter_egg_pill_message">قرص آبی را بردارید تا تبلیغات دقیقاً سر جای خود بمانند. قرص قرمز را بردارید و ببینید بایت‌کد تا کجا پیش می‌رود</string>
@@ -1519,15 +1524,13 @@ adb shell appops set %1$s MANAGE_EXTERNAL_STORAGE allow</string>
     <string name="tour_prompt_confirm">راهنما را نشانم بده</string>
     <string name="onboarding_restart_title">تور ویژگی‌ها</string>
     <string name="onboarding_restart_desc">تور راهنمای ویژگی‌های اصلی</string>
-
-    <!-- Nivqo additions preserved from the previously signed Manager -->
+    <string name="home_app_filter_patched_description">برنامه‌هایی که با Nivqo پچ یا ذخیره کرده‌اید</string>
     <string name="home_app_list_options_title">مرتب‌سازی و فیلتر</string>
     <string name="home_app_list_options_state_description">مرتب‌شده بر اساس %1$s، فیلترشده بر اساس %2$s</string>
     <string name="sources_sort_title">مرتب‌سازی منابع پچ</string>
     <string name="sources_apps_leave_out">کنار بگذار</string>
     <string name="sources_apps_leave_out_done">کنار گذاشته شد</string>
     <string name="sources_apps_bring_back">بازگردان</string>
-
     <string name="hex_color">رنگ شش ضلعی </string>
     <string name="patcher_memory_adjustment_title">حافظه کافی نیست</string>
     <string name="patcher_memory_adjustment_description">سیستم هنگام اجرای پچر با محدودیت حافظهٔ %1$d مگابایت، آن را متوقف کرد. کاهش محدودیت به %2$d مگابایت هدف کوچک‌تری برای سیستم ایجاد می‌کند و ممکن است اجرا را به پایان برساند</string>

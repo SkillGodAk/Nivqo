@@ -28,11 +28,13 @@ import java.util.logging.Logger
  * Null, the default, decides each behavior that changed in a way older patches may not expect by the
  * versions the patch bundles of the added patches were built for, as the `Patcher-Version` attribute of
  * their manifests declares it. Some apply once any bundle is built for the version that changed it, others
- * only if every bundle is. Without any bundle, patching uses the behavior of the oldest version.
+ * only if every bundle is. Patches not loaded from a bundle, or loaded from a bundle that does not declare
+ * its version, use the newest fingerprint matching behavior and the oldest version of every other behavior.
  * @param validate If extra validation checks are done. Currently, every [Fingerprint.match] and
  * [Fingerprint.matchOrNull] must match at most one method, the same as using `matchSingle()`.
  * Slow fingerprints and patches are also logged.
- * Patches can check [app.morphe.patcher.patch.PatchContext.validate] to do their own validation checks.
+ * Patches can check [app.morphe.patcher.patch.validate] to do their own validation checks.
+ * @param progress Receives how far the patcher got with the work it does besides executing patches.
  */
 class PatcherConfig(
     internal val apkFile: File,
@@ -43,6 +45,7 @@ class PatcherConfig(
     private val fileWorkspacePath: File? = null,
     internal val targetPatcherVersion: String? = null,
     internal val validate: Boolean = false,
+    internal val progress: PatcherProgress? = null,
 ) {
     private val logger = Logger.getLogger(PatcherConfig::class.java.name)
 

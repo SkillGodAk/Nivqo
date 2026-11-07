@@ -18,7 +18,7 @@ body:
     attributes:
       label: HushMessenger and Messenger versions
       description: HushMessenger's version is under **App > About** in its settings (long-press Messenger's icon and tap **Patch controls**). Messenger's is on its App info page in Android's settings.
-      placeholder: HushMessenger 0.28.0 on Messenger 585.0.0.53.94
+      placeholder: HushMessenger 0.29.0 on Messenger 586.0.0.55.92
     validations:
       required: true
   - type: dropdown
@@ -38,7 +38,7 @@ body:
     attributes:
       label: Which version of it, or where did the APK come from?
       description: Manager and Desktop show their version in their own settings. For a prebuilt APK, link the page you downloaded it from.
-      placeholder: Morphe Manager 2.2.0
+      placeholder: Morphe Manager x.y.z, or the page the APK came from
   - type: input
     id: patches_source
     attributes:

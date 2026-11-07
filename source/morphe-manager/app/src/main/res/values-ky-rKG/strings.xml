@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Бул колдонмону жашыруу керекпи?</string>
     <string name="home_more_apps_title">Көбүрөөк колдонмолор</string>
     <string name="home_more_apps_hide_title">Бул картаны жашыруу керекпи?</string>
-    <string name="home_more_apps_hide_message">Сиз аны каалаган убакта Жөндөөлөр &gt; Сырткы көрүнүш &gt; Башкы экран бөлүмүнөн кайтарып алсаңыз болот</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Сиз аны каалаган убакта %1$s бөлүмүнөн кайтарып алсаңыз болот</string>
     <string name="home_app_hide_message">Бул тиркеме башкы экрандан жашырылат. Кийин аны жашырылган тиркемелерден тизменин төмөгүндөгү баскычтун жардамы менен калыбына келтирсеңиз болот</string>
     <string name="home_app_will_be_hidden">Бул колдонмо жашырылат</string>
     <string name="home_app_hidden_named">%s жашырылды</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">Тиркемелерди издөө</string>
     <string name="list_options_title">Сорттоо жана фильтрлөө</string>
     <string name="list_options_state_description">%1$s боюнча сорттолду, %2$s боюнча чыпкаланды</string>
-    <string name="home_app_filter_all_description">Башкы экрандагы бардык колдонмолор</string>
-    <string name="home_app_filter_patched_description">Сиз Morphe аркылуу патч жасаган же сактаган колдонмолор</string>
-    <string name="home_app_filter_not_patched_description">Morphe программасында патчталбаган колдонмолор</string>
-    <string name="home_app_filter_installed_description">Учурда бул түзүлүшкө орнотулган тиркемелер</string>
-    <string name="home_app_filter_uninstalled_description">Morphe менен патчталган, бирок бул түзүлүштө жок тиркемелер</string>
     <string name="home_app_filter_clones">Клондор</string>
-    <string name="home_app_filter_clones_description">Өзүнчө пакеттик ат менен түзүлгөн жана түп нускасынын жанына орнотулган тиркемелер</string>
     <string name="home_app_grouping_none">Эч бири</string>
-    <string name="home_app_grouping_all_apps_description">Бардык тиркемелери бар бир тизме</string>
-    <string name="home_app_grouping_sources_description">Тиркемелер аларды камсыз кылган патч булагынын алдында</string>
-    <string name="home_app_grouping_custom_description">Сиз түзгөн категориялардагы тиркемелер</string>
-    <string name="home_app_sort_manual_description">Тиркемени узак басып, андан кийин кайра жайгаштыруу баскычын басыңыз</string>
+    <string name="home_app_sort_manual_hint">Тиркемени узак басып, андан соң кайра жайгаштыруу баскычын басыңыз</string>
     <string name="home_app_sort_recommended">Сунушталган тартип</string>
-    <string name="home_app_sort_recommended_description">Орнотулган жана бекитилген тиркемелер биринчи</string>
-    <string name="home_app_sort_name_asc_description">Алфавит боюнча, A-дан Z-ге чейин</string>
-    <string name="home_app_sort_name_desc_description">Тескери алфавиттик тартип, Zден Aга чейин</string>
     <string name="home_app_sort_updates_first">Патч жаңыртуулары биринчи</string>
-    <string name="home_app_sort_updates_first_description">Алгач жаңыраак патчтары бар колдонмолор, андан кийин сунушталган тартипте</string>
     <string name="home_app_sort_recently_patched">Жакында патчталган</string>
-    <string name="home_app_sort_recently_patched_description">Эң акыркы патчталган колдонмолор биринчи</string>
     <string name="home_no_apps_title">Тиркемелер жок</string>
     <string name="home_no_apps_subtitle">%s бөлүмүндө патч булагын кошуңуз же колдонуудагыны активдештириңиз</string>
     <string name="home_no_apps_search_subtitle">\"%s\" боюнча колдонмолор табылган жок</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">%s боюнча эч нерсе табылган жок</string>
     <string name="home_category_add">Категорияны кошуу</string>
     <string name="home_category_all_apps">Бардык тиркемелер</string>
-    <string name="home_category_custom">Ыйыкталган</string>
+    <string name="home_app_grouping_categories">Категориялар</string>
     <string name="home_category_uncategorized">Категорияга кирбегендер</string>
     <string name="home_category_new_title">Жаңы категория</string>
     <string name="home_category_rename_title">Категорияны кайра аттоо</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">Патч булактары</string>
     <string name="sources_search">Булактарды жана патчтарды издөө</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Ар бир булак</string>
-    <string name="sources_filter_enabled_description">Булактар патчилер алынган жер</string>
-    <string name="sources_filter_disabled_description">Өчүрүлгөн булактар</string>
     <string name="sources_filter_issues">Көңүл буруу керек</string>
-    <string name="sources_filter_issues_description">Блоктолгон, жүктөй албаган же Morphe\'нин жаңыраак версиясы керек болгон булактар</string>
     <string name="sources_sort_manual">Колдонуучунун тартиби</string>
     <string name="sources_sort_manual_hint">Тартибин өзгөртүү үчүн булакты узак басыңыз</string>
     <string name="sources_sort_last_updated">Акыркы жолу жаңыртылган</string>
-    <string name="sources_sort_last_updated_description">Эң акыркы булак жаңыртуулары биринчи</string>
     <string name="sources_sort_enabled_first">Иштетилгендери биринчи</string>
-    <string name="sources_sort_enabled_first_description">Активдүү булактарды өчүрүлгөн булактардан мурун көрсөтүү</string>
     <string name="sources_patches_source_disabled_hint">Бул булак өчүрүлгөн. Анын патчтары маалымат үчүн көрсөтүлгөн жана колдонулбайт</string>
     <string name="sources_management_open_in_browser">Браузерде ачуу</string>
     <string name="sources_management_report_issue">Көйгөйдү билдирүү</string>
@@ -198,6 +179,7 @@
     <string name="sources_management_prerelease_toggle_description">Жаңы эксперименталдык патч версияларына эрте мүмкүнчүлүк алат</string>
     <string name="sources_prerelease_warning_title">Алдын ала чыгарылган патчтарды иштетүүнү каалайсызбы?</string>
     <string name="sources_prerelease_warning_message">Алдын ала чыгарылган версиялар дагы деле иштелип жатат. Патчтар иштебей калышы же колдонмону бузушу мүмкүн, ошондой эле функциялар эскертүүсүз өзгөрүшү мүмкүн</string>
+    <string name="expert_mode_unstable_notice">Релизга чейинки же эксперименталдык патчтар туруксуз болушу мүмкүн</string>
     <string name="sources_management_experimental_versions_toggle">Тиркеменин эксперименталдык версиялары</string>
     <string name="sources_management_experimental_versions_toggle_description">Эксперименталдык тиркеме максаттарын көрсөтөт жана патчтайт</string>
     <!-- Actions of the panel for several selected sources at once -->
@@ -212,6 +194,7 @@
     <string name="sources_management_metadata_unavailable">Метамаалымат жок</string>
     <string name="sources_management_metadata_unavailable_hint">Алыстагы метамаалымат файлы жеткиликсиз. Орнотулган пакет менен патч жасоо дагы деле иштейт, бирок бул булак үчүн авто-жаңыртуу өчүрүлгөн</string>
     <string name="sources_management_metadata_unavailable_hint_missing">Патч пакетин жүктөө мүмкүн болгон жок. Булактын URL дареги ката болушу мүмкүн же файл жок</string>
+    <string name="sources_management_metadata_unavailable_hint_missing_editable">Патч топтомун жүктөө мүмкүн болгон жок. Булак URL-дарегі туура эмес болушу мүмкүн же файл жок. Өзгөртүү үчүн басыңыз</string>
     <string name="sources_management_outdated_manager_badge">Morphe колдонмосун жаңыртоо</string>
     <string name="sources_management_outdated_manager_hint">Бул булак %1$s патчери үчүн түзүлгөн, бирок Morphe %2$s патчер %3$s камтыйт. Аны колдонуу үчүн Morphe\'ни жаңылаңыз</string>
     <string name="sources_management_held_back_badge">Бузулду</string>
@@ -225,6 +208,7 @@
     <!-- Home Screen - Sources Dialogs -->
     <string name="sources_dialog_display_name">Көрсөтүлүүчү ат</string>
     <string name="sources_dialog_rename">Патч булагын кайра аттоо</string>
+    <string name="sources_dialog_change_url">Патч булагы жүктөлүүчү жерди өзгөртүү</string>
     <string name="sources_dialog_duplicate_name_error">Бул аттуу патч булагы буга чейин эле бар</string>
     <string name="sources_dialog_missing_error">Бул патч булагын жаңыртуу мүмкүн болбоду</string>
     <string name="sources_dialog_add_source">Патч булагын кошуу</string>
@@ -260,7 +244,8 @@
     <string name="sources_signing_key_trusted">Ишенимдүү ачкыч</string>
     <string name="sources_signing_key_new">Жаңы ачкыч</string>
     <string name="sources_patch_expert_badge">Эксперт</string>
-    <string name="sources_patch_expert_badge_tooltip">Бул патчты кол менен кошуу үчүн Жөндөөлөрдөн Эксперт режимин иштетиңиз</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Бул патчты кол менен кошуу үчүн %1$s бөлүмүн күйгүзүңүз</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">APK файлын табууга жардам керекпи?</string>
     <string name="home_apk_availability_dialog_simple">&lt;b&gt;%s&lt;/b&gt; тиркемесин патчтөө үчүн, сизге патчтелбеген APK версиясы керек:</string>
@@ -268,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">Сунушталган</string>
     <string name="home_apk_availability_unpatched_label">Патчтелбеген</string>
     <string name="home_apk_availability_incompatible_label">Шайкеш эмес</string>
-    <string name="home_apk_availability_installed_version">Бул түзүлүшкө орнатылган: %s</string>
     <string name="home_apk_availability_find">Ооба, аны табууга жардам бериңиз</string>
     <string name="home_apk_availability_have">Жок, ал менде бар</string>
     <string name="home_apk_helper_download">Жардамчы колдонмону колдонуу</string>
@@ -302,12 +286,16 @@
     <string name="home_download_instructions_finding">Жүктөө баракчасы изделип жатат…</string>
     <string name="home_download_instructions_step1">Төмөндөгү \'%s\' баскычын басыңыз</string>
     <string name="home_download_instructions_step2_part1">Веб-баракчаны төмөн түшүрүп, басыңыз</string>
+    <string name="home_download_instructions_step2_apkcube">Веб-баракчаны төмөн карай жылдырыңыз, &lt;b&gt;%s&lt;/b&gt; версиясын тандаңыз жана басыңыз</string>
     <string name="home_download_instructions_step2_generic">Веб-баракчаны төмөн жылдырып, жүктөө баскычын басыңыз</string>
     <string name="home_download_instructions_step2_variant">Веб-баракчаны төмөн жылдырып, эң жогорку &lt;b&gt;APK вариантынын&lt;/b&gt; жүктөө баскычын басыңыз</string>
     <string name="home_download_instructions_step2_search">Ишенген веб-сайтыңыздан издөө жыйынтыгын ачыңыз</string>
     <string name="home_download_instructions_step2_search_note">Morphe бул веб-сайттар үчүн кепилдик бере албайт. APK файлынын ордуна өзүнүн колдонмолор дүкөнүн сунуштаган сайттарды өткөрүп жибериңиз</string>
     <string name="home_download_instructions_step3_search">Ал сайттан эң акыркысын эмес, &lt;b&gt;%s&lt;/b&gt; версиясынын APK файлын жүктөп алыңыз</string>
     <string name="home_download_instructions_step3_search_any">Ал сайттан тиркеменин APK файлын жүктөп алыңыз. &lt;b&gt;Каалаган версияны&lt;/b&gt; патчтоого болот</string>
+    <string name="home_download_instructions_step2_github">%s чыгарылышынын &lt;b&gt;Assets&lt;/b&gt; бөлүмүнөн &lt;b&gt;.apk&lt;/b&gt; менен бүткөн файлды басыңыз</string>
+    <string name="home_download_instructions_step2_github_latest">Эң акыркы чыгарылыштын &lt;b&gt;Assets&lt;/b&gt; бөлүмүнөн &lt;b&gt;.apk&lt;/b&gt; менен бүткөн файлды басыңыз</string>
+    <string name="home_download_instructions_step2_github_note">Эгерде бир нече APK файлдары болсо, %s деп аталганды же универсалдуусун тандаңыз</string>
     <string name="home_download_instructions_download_button_toast">Жүктөөнү бул жерден эмес, веб-сайттан басыңыз 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Керемет! Эми \"улантуу\" баскычын басып, веб-сайттын беттине өтүңүз 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Көнүгүү mükemmelдикке жеткирет жана сиз алгачкы кадамдарды жасап жатасыз 💪</string>
@@ -352,8 +340,10 @@
     <string name="expert_mode_enable_all_universal_pending">Универсалдуу патчтар үчүн кайра басыңыз</string>
     <string name="expert_mode_universal_all_warning_title">Бардык универсалдуу патчтарды күydүрүү?</string>
     <string name="expert_mode_universal_all_warning_message">Универсалдуу патчтар бирге тестирленген эмес. Бардыгын бир убакта күydүрүү чыр-чатактарга, патчтоонун иштебей калышына же программанын бузулушуна алып келиши мүмкүн</string>
+    <string name="expert_mode_recommended">Сунушталган патчтар</string>
     <string name="expert_mode_reset_to_default_done">Сунушталган патчтер колдонулду</string>
     <string name="expert_mode_selected_count">%2$s санын ичинен %1$s тандалды</string>
+    <string name="expert_mode_saved_selection">Сакталган тандоо</string>
     <string name="expert_mode_restore_saved_done">Сакталган тандоо калыбына келтирилди</string>
     <string name="expert_mode_copy_from_bundle_no_patches">Бул пакетте тиешелүү патчтар жок</string>
     <string name="expert_mode_no_results">Патчтар табылган жок</string>
@@ -513,11 +503,13 @@
     <string name="batch_queue_pending_subtitle">Кароо жана баштоо үчүн басыңыз</string>
     <string name="batch_queue_clear_title">Кезекти тазалоо керекпи?</string>
     <string name="batch_queue_clear_description">Бардык тиркемелер кезектен алынат</string>
+    <string name="batch_queue_keep_title">Кезекти сактоо керекпи?</string>
+    <string name="batch_queue_keep_description">Кезекке алынган тиркемелер кийин баштоо үчүн башкы экранда күтөт</string>
+    <string name="batch_queue_keep">Сактоо</string>
     <string name="shortcut_repatch_short">Кайра патчилөө</string>
     <string name="shortcut_repatch_long">Эскирген колдонмолорду кайра патчилөө</string>
     <string name="shortcut_check_updates_short">Жаңыртууларды текшерүү</string>
     <string name="shortcut_check_updates_long">Патч жаңыртууларын текшерүү</string>
-    <string name="shortcut_patch_app">%s патчилөө</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Бул тиркемени өчүрөсүзбү?</string>
     <string name="home_app_info_uninstall_removes_data">Тиркеме жана анын маалыматтары бул түзүлүштөн өчүрүлөт</string>
@@ -538,6 +530,7 @@
     <string name="home_app_info_install_type_custom_installer">Ыйыкталган орноткуч</string>
     <string name="home_app_info_install_type_system_installer">Системалык орноткуч</string>
     <string name="home_app_info_install_type_play_store">Play Store орнотуусу</string>
+    <string name="home_app_info_install_type_root">Root орнотуу</string>
     <string name="home_app_info_install_type_root_play_store">Root Play Store орнотуу</string>
     <string name="home_app_info_install_type_shizuku_play_store">Shizuku Play Store орнотуу</string>
     <string name="home_app_info_patch_update_available">Патч жаңыртуусу жеткиликтүү</string>
@@ -579,7 +572,8 @@
     <string name="root_mount_module_unmount_warning">Эгерде KernelSU\'да \"Модулдарды стандарттык түрдө размонтировать кылуу\" күйгүзүлгөн болсо, KernelSU &gt; Superuser &gt; сиз монтировать кылган колдонмо &gt; Profile &gt; Custom бөлүмүн ачып, \"Unmount modules\" функциясын өчүрүңүз. Болбосо, монтировать кылынган патчтелген APK иштебеши мүмкүн, атүгүл Morphe аны монтировать кылынган деп көрсөтсө да</string>
     <string name="root_pre_patch_installer_standard_title">Стандарттуу орнотуу режими</string>
     <string name="root_pre_patch_installer_standard_description">GmsCore колдоосу менен кадимки APK катары патчилет. Патчилгенден кийин сиздин орноткуч жөндөөлөрүңүз колдонулат</string>
-    <string name="root_pre_patch_installer_hint">Параметрлери &gt; Патчтоо &gt; Орнотуу &gt; Орнотуучуну тандоо суроосу күйгүзүлгөндө суралат. Патчтоодон кийин патч режиминин өзгөртүлбөйт</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">%1$s бөлүмү %2$s деп коюлганда суралды. Патчтоодон кийин патч режиминин өзгөртүүгө мүмкүн эмес</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Ката алмаштыргычка көчүрүлдү</string>
     <string name="patcher_error_log">Каталардын журналы</string>
@@ -678,6 +672,14 @@
     <string name="patcher_step_group_saving">Сакталууда</string>
     <string name="patcher_step_write_patched">Патчталган APK файлы жазылууда</string>
     <string name="patcher_step_sign_apk">Патчталган APK файлы кол коюлууда</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">DEX файлдарын окуу</string>
+    <string name="patcher_task_extracting_resources">Ресурстарды чыгаруу</string>
+    <string name="patcher_task_decoding_resources">Ресурстарды декоддоо</string>
+    <string name="patcher_task_indexing_classes">Класстарды индексациялоо</string>
+    <string name="patcher_task_compiling_dex">DEX файлдарын компиляциялоо</string>
+    <string name="patcher_task_compiling_resources">Ресурстарды компиляциялоо</string>
+    <string name="patcher_task_writing_apk">APK файлын жазуу</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Фондук патчингди коргоо</string>
     <string name="battery_optimization_dialog_description">Кээ бир түзүлүштөр тиркеме минималдаштырылганда патчерди токтотушу мүмкүн. Патчингдин ишенимдүү бүтүшүн камсыз кылуу үчүн Morphe\'ге батарея чектөөлөрсүз иштөөгө уруксат бериңиз</string>
@@ -726,7 +728,8 @@
     <string name="patched_app_save_failed_toast">Патчталган колдонмону сактоо мүмкүн болгон жок</string>
     <string name="plugin_activity_dialog_body">Бул плагин менен улантуу үчүн колдонуучунун өз ара аракеттенүүсү талап кылынат</string>
     <string name="patcher_process_killed_message">Система патчерди бүтөрүнө чейин токтотту, адатта бул эс тутумду бошотуу үчүн жасалат. Башка колдонмолорду жаап, кайра аракет кылып көрүңүз</string>
-    <string name="patcher_process_crashed_message">Патчер бүтөрүнө чейин бузулду. Эгерде бул кайрадан болсо, жөндөөлөрдөн \"Кириktirүүчү VM колдонуу\" функциясын өчүрүңүз жана лог менен бирге маселе жөнүндө билдирүү жөнөтүңүз</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">Патчер бүтө электе ката берип жабылды. Эгер бул кайрадан болсо, %1$s бөлүмүн өчүрүңүз жана лог менен бирге маселе жөнүндө билдириңиз</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">Патчердин %1$s MB үйрүк эс тутуму түгөндү. Бул колдонмо тандалган патчтар үчүн өтө чоң. Азыраак патч булактарын колдонуп көрүңүз же патчтардын санын азайтыңыз</string>
     <string name="install_app_success">Ийгиликтүү орнотулду</string>
@@ -914,6 +917,8 @@
     <string name="notification_channel_patch_updates">Патч жаңыртуулары</string>
     <string name="notification_channel_patch_updates_description">Жаңы патч версиялары жөнүндө билдирүүлөр</string>
     <string name="notification_channel_patcher_description">Morphe фондо тиркемени патчтап жаткан учурда көрсөтүлөт</string>
+    <string name="notification_channel_patching_results">Патчтоо натыйжалары</string>
+    <string name="notification_channel_patching_results_description">Патчтоо аяктаганда же Morphe фондук режимде жүргөндө орнотуу сизди күткөндө</string>
     <string name="notification_channel_mounted_apps">Орнатылган колдонмолор</string>
     <string name="notification_channel_mounted_apps_description">Орнатылган колдонмо башка версия менен алмашканда жана анын патчы колдонулбай калганда</string>
     <string name="notification_mount_replaced_title">%1$s эми патчтелген эмес</string>
@@ -1024,9 +1029,8 @@ morphe_header_custom_dark.png
     <string name="installer_title">Орноткучну тандаңыз</string>
     <string name="installer_internal_description">Android пакет орнотуучусун колдонот</string>
     <string name="installer_play_store_description">Системалык орнотуучуну колдонот жана орнотуу булагы катары Google Play Store\'ду белгилейт</string>
+    <string name="installer_root_description">Root менен унчукпай орнотулат</string>
     <string name="installer_root_play_store_description">Root аркылуу унчукпай орнотот жана орнотуу булагы катары Google Play Store\'ду белгилейт</string>
-    <string name="installer_auto_saved_name">Root mount</string>
-    <string name="installer_auto_saved_description">Root mount режиминде патчталган колдонмолорду орнотут. Стандарттык патчталган APK-лар башка орнотуучуну колдонушат</string>
     <string name="installer_shizuku_description">Shizuku же Sui аркылуу унчукпай орнотот</string>
     <string name="installer_shizuku_play_store_description">Shizuku же Sui аркылуу унчукпай орнотот жана орнотуу булагы катары Google Play Store\'ду белгилейт</string>
     <string name="installer_option_none">Резерв жок</string>
@@ -1036,7 +1040,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_installed">Бул опцияны колдонуу үчүн Shizuku же Sui орнотуңуз</string>
     <string name="installer_status_shizuku_not_running">Shizuku же Sui иштетиңиз жана кайра аракет кылыңыз</string>
     <string name="installer_status_shizuku_permission">Shizuku тиркемесинен Morphe\'ге уруксат бериңиз</string>
-    <string name="installer_mount_warning_install">Сиздин негизги орноткучуңуз rooted mount орноткучуна коюлган. Бул сакталган тиркеме mount аркылуу орнотулган эмес</string>
+    <string name="installer_mount_warning_install">Патч режими root mount режимине коюлган. Бул сакталган колдонмо mount аркылуу орнотулган эмес</string>
     <string name="mount_version_mismatch_message">Стоктун тиркеме версиясы (%2$s) патчталган тиркеме версиясына (%1$s) дал келбейт. Тиешелүү сток версиясын mount кылып, андан кийин кайра аракет кылыңыз</string>
     <string name="mount_stock_restore_failed_message">Android сакталган түпкүл APK-ны четке acordoтту. Тиешелүү сток версиясын орнотуп, андан кийин кайра Mount кылууга аракет кылыңыз</string>
     <string name="installer_status_shizuku_unsupported">Орнотулган Shizuku версиясы колдогуမဟုတ်</string>
@@ -1058,11 +1062,17 @@ morphe_header_custom_dark.png
     <string name="installer_play_store_warning_continue">Түшүндүм, улантуу</string>
     <string name="installer_play_store_mode">Play Store катары орнотуу</string>
     <string name="installer_play_store_mode_description">Орнотуу булагы катары Google Play Store\'ду белгилейт</string>
+    <string name="settings_section_patch_mode">Патч режими</string>
+    <string name="settings_patch_mode_ask">Ар бир жолу суроо</string>
+    <string name="settings_patch_mode_ask_description">Ар бир колдонмону патчтөөдөн мурун аны root mount үчүн же стандарттуу орнотуу үчүн патчтөөнү сурайт</string>
+    <string name="settings_section_after_patching">Патчтөөдөн кийин</string>
+    <string name="settings_after_patching_install">Автоматтык түрдө орнотуу</string>
+    <string name="settings_after_patching_ask">Кайсы орноткуч экенин суроо</string>
+    <string name="settings_after_patching_ask_description">Колдонмо орнотулган сайын кайсы орноткучту колдонууну сурайт</string>
+    <string name="settings_after_patching_manual">Кол менен орнотуу</string>
+    <string name="settings_after_patching_manual_description">Орнотуу баскычын баскандан кийин стандарттуу орноткуч менен орнотулат</string>
     <string name="settings_nomount_only">NoMount гана</string>
     <string name="settings_nomount_only_description">Тиркемелерди NoMount менен гана монтаж жасайт жана bind mount\'ка эч качан кайрылбайт, ошондуктан алар алсыз монтаждалбаган бойдон калат</string>
-    <string name="settings_prompt_installer_on_install">Орноткондо орнотуучуну тандоо суроосу</string>
-    <string name="settings_prompt_installer_on_install_description">Ар бир тиркемени кантип орноту luxurious сурайт: патчтоодон мурун root менен, же болбосо андан кийин</string>
-    <string name="settings_auto_install_with_shizuku">Патчтоодон кийин автоматтык түрдө орнотуу</string>
     <string name="settings_auto_install_with_shizuku_description">Патчтоо аяктагандан кийин дароо патчталган APK файлын орнотот же монтирует</string>
     <string name="settings_auto_uninstall_with_shizuku">Конфликт болгондо автоматтык түрдө өчүрүү</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Кол тамгалардын карама-каршылыгы болгондо mevcut колдонмону өчүрөт. Бул колдонмонун маалыматтарын өчүрүп салышы мүмкүн</string>
@@ -1132,7 +1142,6 @@ morphe_header_custom_dark.png
     <string name="settings_system_import_keystore_dialog_description">Аны импорттоо үчүн keystore\'дун идентификациялык маалыматтарын киргизишиңиз керек</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Колдонуучунун аты (Alias)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Сырсөз</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Keystore форматы</string>
     <string name="settings_system_import_keystore_wrong_credentials">Keystore\'дин туура эмес идентификациялык маалыматтары</string>
     <string name="settings_system_import_keystore_success">Keystore импортталды</string>
     <string name="settings_system_import_keystore_failed">Keystore\'ду импорттоо мүмкүн болгон жок</string>
@@ -1286,6 +1295,7 @@ morphe_header_custom_dark.png
     <string name="credits_prior_development">Мурунку иштемелер</string>
     <string name="opensource_licenses">Ачык булак лицензиялары</string>
     <string name="opensource_licenses_description">Morphe түзүлгөн китепканалар</string>
+    <string name="opensource_licenses_search">Китепканаларды жана лицензияларды издөө</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Тандоо</string>
     <string name="easter_egg_pill_message">Көк таблетканы ичсеңиз, жарнамалар өз ордунда калат. Кызыл таблетканы ичип, байт-код канчалык терең экенин көрүңүз</string>

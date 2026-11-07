@@ -55,27 +55,33 @@ public enum PatchFamily {
     FEED_REELS(FamilyNames.FEED_REELS, "feedReels", null,
             Settings.HIDE_FEED_REELS),
     RETURN_REFRESH(FamilyNames.RETURN_REFRESH, "returnRefresh", null,
-            Settings.BLOCK_RETURN_REFRESH, Settings.RETURN_REFRESH_NO_LIMIT, Settings.BACK_KEEPS_HOME),
+            Settings.BLOCK_RETURN_REFRESH, Settings.RETURN_REFRESH_NO_LIMIT, Settings.BACK_KEEPS_HOME,
+            Settings.HIDE_BACK_REMINDER),
     AI_DETECTED_POSTS(FamilyNames.AI_DETECTED_POSTS, "aiDetectedPosts", null,
             Settings.HIDE_AI_DETECTED_POSTS, Settings.HIDE_AI_LABELLED_POSTS, Settings.HIDE_AI_DETECTED_REELS,
             Settings.HIDE_META_AI_FEED_UNITS, Settings.HIDE_AI_CHARACTER_POSTS),
     POST_WORDS(FamilyNames.POST_WORDS, "postWords", null,
             Settings.HIDE_POSTS_WITH_WORDS, Settings.POST_WORDS_WHOLE_WORDS, Settings.HIDE_POSTS_FROM_SOURCES,
             Settings.HIDE_PHOTO_POSTS, Settings.HIDE_VIDEO_POSTS, Settings.HIDE_LINK_POSTS,
-            Settings.HIDE_BACKGROUND_POSTS, Settings.HIDE_REPOSTS, Settings.HIDE_PAGE_POSTS),
+            Settings.HIDE_BACKGROUND_POSTS, Settings.HIDE_REPOSTS, Settings.HIDE_PAGE_POSTS,
+            Settings.HIDE_OTHER_LANGUAGES),
     POST_PROMPTS(FamilyNames.POST_PROMPTS, "postPrompts", null,
-            Settings.HIDE_POST_PROMPTS, Settings.HIDE_POST_FOLLOW_LINK, Settings.HIDE_POST_COUNTS,
+            Settings.HIDE_POST_PROMPTS, Settings.HIDE_POST_FOLLOW_LINK, Settings.HIDE_POST_JOIN_BUTTON, Settings.HIDE_POST_COUNTS,
             Settings.HIDE_POST_REACTIONS, Settings.HIDE_COMMENT_REACTIONS),
     SEEN_POSTS(FamilyNames.SEEN_POSTS, "seenPosts", null,
-            Settings.HIDE_SEEN_POSTS),
+            Settings.HIDE_SEEN_POSTS, Settings.SEEN_POSTS_COME_BACK_ONCE),
     META_AI_QUESTIONS(FamilyNames.META_AI_QUESTIONS, "metaAiQuestions", null,
             Settings.HIDE_META_AI_QUESTIONS),
     POST_DATES(FamilyNames.POST_DATES, "postDates", null,
             Settings.KEEP_POST_DATES),
     FULL_POST_TEXT(FamilyNames.FULL_POST_TEXT, "fullPostText", null,
             Settings.SHOW_FULL_POST_TEXT),
+    TRANSLATE_POSTS(FamilyNames.TRANSLATE_POSTS, "translatePosts", null,
+            Settings.TRANSLATE_POST_LINK, Settings.TRANSLATE_POSTS_BY_THEMSELVES),
     WHO_SHARED(FamilyNames.WHO_SHARED, "whoShared", null,
             Settings.SEE_WHO_SHARED),
+    PHOTO_CAROUSEL(FamilyNames.PHOTO_CAROUSEL, "photoCarousel", null,
+            Settings.PHOTO_CAROUSEL),
     AUTO_TRANSLATION(FamilyNames.AUTO_TRANSLATION, "autoTranslation", null,
             Settings.TURN_OFF_AUTO_TRANSLATION),
     FEEDS_HEADER(FamilyNames.FEEDS_HEADER, "feedsHeader", null,
@@ -84,7 +90,7 @@ public enum PatchFamily {
             Settings.HIDE_SPONSORED_STORIES),
     SUGGESTED_STORIES(FamilyNames.SUGGESTED_STORIES, "suggestedStories", null,
             Settings.HIDE_SUGGESTED_STORIES, Settings.HIDE_CONTACT_IMPORT_CARD, Settings.HIDE_STORY_PROMPTS,
-            Settings.HIDE_PAGE_STORIES, Settings.HIDE_SEEN_STORIES),
+            Settings.HIDE_PAGE_STORIES, Settings.HIDE_SEEN_STORIES, Settings.SHOW_ONLY_WATCHED_STORIES),
     STORY_AUTO_ADVANCE(FamilyNames.STORY_AUTO_ADVANCE, "storyAutoAdvance", null,
             Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.LOOP_STORIES),
     STORY_SEEN(FamilyNames.STORY_SEEN, "storySeen", null,
@@ -95,8 +101,13 @@ public enum PatchFamily {
             Settings.LONGER_STORY_MUSIC),
     STORIES_TRAY_CIRCLES(FamilyNames.STORIES_TRAY_CIRCLES, "storiesTrayCircles", null,
             Settings.STORIES_TRAY_CIRCLES),
+    STORY_TAPS(FamilyNames.STORY_TAPS, "storyTaps", null,
+            Settings.STORY_PLAY_BUTTON, Settings.STORY_DOUBLE_TAP),
+    STORY_VIEWER_CLEANUP(FamilyNames.STORY_VIEWER_CLEANUP, "storyViewerCleanup", null,
+            Settings.HIDE_STORY_CREDITS, Settings.HIDE_STORY_REPLY_SUGGESTIONS, Settings.STORY_PROGRESS_BAR),
     PINCH_TO_ZOOM(FamilyNames.PINCH_TO_ZOOM, "pinchToZoom", null,
-            Settings.PINCH_TO_ZOOM, Settings.PINCH_TO_ZOOM_KEEP, Settings.PINCH_TO_ZOOM_DOUBLE_TAP),
+            Settings.PINCH_TO_ZOOM, Settings.PINCH_TO_ZOOM_KEEP, Settings.PINCH_TO_ZOOM_DOUBLE_TAP,
+            Settings.PINCH_TO_ZOOM_DIM, Settings.PINCH_TO_ZOOM_LIVE),
     SPONSORED_REELS(FamilyNames.SPONSORED_REELS, "sponsoredReels", "Part of the Reels ad blocking",
             Settings.HIDE_SPONSORED_REELS),
     SPONSORED_SEARCH(FamilyNames.SPONSORED_SEARCH, "sponsoredSearch", null,
@@ -116,17 +127,18 @@ public enum PatchFamily {
     GAME_ADS(FamilyNames.GAME_ADS, "gameAds", null,
             Settings.BLOCK_GAME_ADS, Settings.ANSWER_REWARDED_GAME_ADS),
     AFFILIATE_LINKS(FamilyNames.AFFILIATE_LINKS, "affiliateLinks", null,
-            Settings.HIDE_AFFILIATE_LINKS),
+            Settings.HIDE_AFFILIATE_LINKS, Settings.HIDE_COMMISSION_LABEL),
     REEL_DECLUTTER(FamilyNames.REEL_DECLUTTER, "reelDeclutter", null,
             Settings.HIDE_REEL_CHIPS, Settings.HIDE_REEL_FOLLOW_BUTTON, Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON,
-            Settings.HIDE_REEL_SOCIAL_FOOTER, Settings.HIDE_REEL_THREADS_CARDS, Settings.REEL_CLEAN_MODE, Settings.PLAY_REELS_ONCE,
-            Settings.ORIGINAL_AUDIO, Settings.HIDE_REEL_SEARCH_PILL, Settings.HIDE_VIEWER_TOP_BUTTONS, Settings.BURN_IN_STAY_DIM,
-            Settings.HIDE_REEL_COUNTS,
+            Settings.HIDE_REEL_SOCIAL_FOOTER, Settings.HIDE_REEL_THREADS_CARDS, Settings.FOLLOWED_REELS_ONLY,
+            Settings.REEL_CLEAN_MODE, Settings.PLAY_REELS_ONCE,
+            Settings.ORIGINAL_AUDIO, Settings.HIDE_REEL_SEARCH_PILL, Settings.HIDE_VIEWER_TOP_BUTTONS, Settings.HIDE_REELS_TAB_TITLE, Settings.BURN_IN_STAY_DIM,
+            Settings.GRAY_REELS, Settings.HIDE_REEL_COUNTS,
             Settings.HIDE_REEL_SAVE_BUTTON, Settings.HIDE_REEL_WHATSAPP_BUTTON, Settings.HIDE_REEL_LIKE_BUTTON,
             Settings.HIDE_REEL_COMMENT_BUTTON, Settings.HIDE_REEL_SHARE_BUTTON, Settings.SHOW_REEL_COMMENT_BUTTON,
             Settings.SHOW_REEL_POST_DATE,
-            Settings.HIDE_REEL_SOUND_BUTTON, Settings.HIDE_REEL_AUDIO_LINE,
-            Settings.HIDE_SLOW_CONNECTION_MESSAGE, Settings.FEED_VIDEOS_ALONE, Settings.PLAY_FEED_REELS_WHOLE),
+            Settings.HIDE_REEL_SOUND_BUTTON, Settings.REEL_SPEAKER_ABOVE_MENU, Settings.HIDE_REEL_AUDIO_LINE,
+            Settings.HIDE_SLOW_CONNECTION_MESSAGE, Settings.HIDE_UP_NEXT, Settings.FEED_VIDEOS_ALONE, Settings.PLAY_FEED_REELS_WHOLE),
     REEL_PROMPTS(FamilyNames.REEL_PROMPTS, "reelPrompts", null,
             Settings.HIDE_REEL_PROMPTS),
     REEL_WATCH_HISTORY(FamilyNames.REEL_WATCH_HISTORY, "reelWatchHistory", null,
@@ -146,29 +158,31 @@ public enum PatchFamily {
             Settings.SPEED_ON_REPLAYS),
     REEL_HOLD(FamilyNames.HOLD_REEL_FOR_2X, "reelHold", null,
             Settings.HOLD_REEL_FOR_2X, Settings.HOLD_REEL_RIGHT_EDGE, Settings.HOLD_FEED_VIDEO_FOR_2X,
-            Settings.HIDE_2X_LOCK_HINT),
+            Settings.HIDE_2X_LOCK_HINT, Settings.HIDE_2X_POPUPS),
     DEFAULT_COMMENT_ORDER(FamilyNames.DEFAULT_COMMENT_ORDER, "defaultCommentOrder", null,
             Settings.DEFAULT_COMMENT_ORDER),
     META_AI_SUMMARIES(FamilyNames.META_AI_SUMMARIES, "metaAiSummaries", null,
             Settings.HIDE_META_AI_SUMMARIES),
     COMMENT_SHEET_OPTIONS(FamilyNames.COMMENT_SHEET_OPTIONS, "commentSheetOptions", null,
             Settings.LIKE_ONLY, Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS, Settings.OPEN_REPLY_THREADS,
-            Settings.LOAD_WHOLE_REPLY_THREADS, Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
+            Settings.LOAD_WHOLE_REPLY_THREADS, Settings.HIDE_REPLIES_BUTTON, Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
             Settings.HIDE_SHOP_LINK_COMMENTS, Settings.HIDE_COMMENTS_WITH_WORDS,
             Settings.HIDE_INCOMING_COMMENT_TYPING, Settings.HIDE_NEW_COMMENTS_PILL,
             Settings.HIDE_VIDEO_COMMENT_COMPOSER, Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES,
             Settings.HIDE_POST_COMMENT_PREVIEWS, Settings.HIDE_COMMENT_DOWNVOTE_BUTTON,
-            Settings.HIDE_COMMENT_LIKE_BUTTON, Settings.HIDE_COMMENT_EMOJI_ROW, Settings.COMMENT_BLOCK_BUTTON),
+            Settings.HIDE_COMMENT_LIKE_BUTTON, Settings.HIDE_COMMENT_EMOJI_ROW, Settings.HIDE_COMMENT_BOX_LINE,
+            Settings.COMMENT_BLOCK_BUTTON, Settings.REACTOR_BLOCK_BUTTON),
     FULL_HEIGHT_COMMENTS(FamilyNames.FULL_HEIGHT_COMMENTS, "fullHeightComments", null,
             Settings.OPEN_COMMENTS_FULL_HEIGHT, Settings.PAUSE_REELS_UNDER_COMMENTS, Settings.TAP_REELS_ABOVE_COMMENTS),
     TAG_SUGGESTIONS(FamilyNames.TAG_SUGGESTIONS, "tagSuggestions", null,
             Settings.TAG_SUGGESTIONS_ONLY_AFTER_AT),
     TAP_TO_PLAY(FamilyNames.TAP_TO_PLAY, "tapToPlay", null,
-            Settings.TAP_TO_PLAY, Settings.TAP_TO_PLAY_REELS_AFTER_FIRST, Settings.TAP_TO_PLAY_STORIES,
+            Settings.TAP_TO_PLAY, Settings.TAP_TO_PLAY_REELS_AFTER_FIRST, Settings.TAP_TO_PLAY_STORIES, Settings.TAP_TO_PLAY_SEARCH,
             Settings.INLINE_FEED_VIDEO_CONTROLS,
-            Settings.FEED_VIDEO_CAST_BUTTON),
+            Settings.FEED_VIDEO_CAST_BUTTON, Settings.FEED_VIDEO_SEEK_BAR, Settings.FEED_VIDEO_FULL_PLAYER_BUTTON,
+            Settings.CENTER_FULL_SCREEN_VIDEOS),
     RESUME_LONG_VIDEOS(FamilyNames.RESUME_LONG_VIDEOS, "resumeLongVideos", null,
-            Settings.RESUME_LONG_VIDEOS, Settings.RECENTLY_WATCHED),
+            Settings.RESUME_LONG_VIDEOS, Settings.RECENTLY_WATCHED, Settings.BREAK_AFTER_REELS),
     FRAME_STEP(FamilyNames.FRAME_STEP, "frameStep", null,
             Settings.FRAME_STEP),
     PLAYBACK_QUALITY(FamilyNames.PLAYBACK_QUALITY, "defaultPlaybackQuality", null,
@@ -180,7 +194,7 @@ public enum PatchFamily {
     SKIP_SILENCE(FamilyNames.SKIP_SILENCE, "skipSilentParts", null,
             Settings.SKIP_SILENT_PARTS),
     KEEP_FEED_VIDEOS_MUTED(FamilyNames.KEEP_FEED_VIDEOS_MUTED, "keepFeedVideosMuted", null,
-            Settings.KEEP_FEED_VIDEOS_MUTED, Settings.MUTE_STORIES),
+            Settings.KEEP_FEED_VIDEOS_MUTED, Settings.MUTE_STORIES, Settings.RESTORE_FEED_SOUND),
     PROGRESS_BAR(FamilyNames.PROGRESS_BAR, "keepProgressBar", null,
             Settings.KEEP_PROGRESS_BAR, Settings.KEEP_PROGRESS_BAR_TIME, Settings.KEEP_REEL_OVERLAY, Settings.TAP_TO_SEEK),
     SYSTEM_FONT(FamilyNames.SYSTEM_FONT, "systemFont", null,
@@ -212,7 +226,7 @@ public enum PatchFamily {
             Settings.DOWNLOAD_VIDEOS, Settings.CLIPBOARD_DOWNLOAD, Settings.POST_MENU_DOWNLOAD_FIRST,
             Settings.OPEN_IN_ANOTHER_APP),
     PHOTO_DOWNLOAD(FamilyNames.PHOTO_DOWNLOAD, "photoDownload", null,
-            Settings.DOWNLOAD_PHOTOS, Settings.POST_MENU_PHOTO_SAVE),
+            Settings.DOWNLOAD_PHOTOS, Settings.POST_MENU_PHOTO_SAVE, Settings.POST_MENU_PHOTO_SEARCH),
     START_TAB(FamilyNames.START_TAB, "startTab", null,
             Settings.OPEN_ON_CHOSEN_TAB),
     FOLLOWING_HOME(FamilyNames.FOLLOWING_HOME, "followingHome", null,
@@ -222,6 +236,8 @@ public enum PatchFamily {
             Settings.MARKETPLACE_SKIP_FEED_PREFETCH),
     SELLER_VIEW_PROFILE(FamilyNames.SELLER_VIEW_PROFILE, "sellerViewProfile", null,
             Settings.SHOW_SELLER_VIEW_PROFILE),
+    LISTING_GAP(FamilyNames.LISTING_GAP, "listingGap", null,
+            Settings.REMOVE_LISTING_GAP),
     REELS_TAB(FamilyNames.REELS_TAB, "reelsTab", null,
             Settings.HIDE_REELS_TAB),
     REELS_TAB_DOT(FamilyNames.REELS_TAB_DOT, "reelsTabDot", null,
@@ -238,7 +254,7 @@ public enum PatchFamily {
     BOTTOM_TAB_BAR(FamilyNames.BOTTOM_TAB_BAR, "bottomTabBar", null,
             Settings.BOTTOM_TAB_BAR, Settings.TOP_TAB_BAR, Settings.TAB_BAR_SCROLL_AWAY, Settings.KEEP_TAB_BAR,
             Settings.KEEP_TOP_BAR,
-            Settings.PHONE_LAYOUT_ON_BIG_SCREENS, Settings.TRANSLUCENT_BARS, Settings.HIDE_STATUS_BAR,
+            Settings.PHONE_LAYOUT_ON_BIG_SCREENS, Settings.TRANSLUCENT_BARS, Settings.ROUNDED_TAB_BAR, Settings.HIDE_STATUS_BAR,
             Settings.HIDE_MESSENGER_BUTTON, Settings.HIDE_MESSENGER_COUNT, Settings.HIDE_FACEBOOK_LOGO,
             Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SEARCH_BUTTON, Settings.SEARCH_WITH_PICTURE),
     FORCE_DARK_MODE(FamilyNames.FORCE_DARK_MODE, "forceDarkMode", null,
@@ -264,6 +280,8 @@ public enum PatchFamily {
             Settings.DONT_SAVE_SEARCH_HISTORY),
     SEARCH_DATE_RANGE(FamilyNames.SEARCH_DATE_RANGE, "searchDateRange", null,
             Settings.SEARCH_DATE_RANGE),
+    SEARCH_POSTS_TAB(FamilyNames.SEARCH_POSTS_TAB, "searchPostsTab", null,
+            Settings.SEARCH_POSTS_TAB),
     ANALYTICS_UPLOADS(FamilyNames.ANALYTICS_UPLOADS, "analyticsUploads", null,
             Settings.HOLD_ANALYTICS_UPLOADS, Settings.HOLD_CAMERA_ROLL_PROCESSING),
     SCREENSHOTS(FamilyNames.SCREENSHOTS, "allowScreenshots", null,
@@ -304,6 +322,11 @@ public enum PatchFamily {
     // The version code is in the manifest, and Facebook's reads of it have to keep answering the
     // real one whether or not Hushfacebook is paused.
     PLAY_STORE_UPDATES(FamilyNames.PLAY_STORE_UPDATES, "playStoreUpdates", "Version number Google Play sees"),
+    // The manifest and Facebook's own code name microG-RE in place of Play services, so push keeps
+    // coming through it whether or not Hushfacebook is paused.
+    GMS_CORE(FamilyNames.GMS_CORE, "gmsCore", FamilyNames.GMS_CORE),
+    // The share target is declared in the manifest, so it stays in Android's share menu while paused (#111).
+    OPEN_IN_FACEBOOK(FamilyNames.OPEN_IN_FACEBOOK, "openInFacebook", FamilyNames.OPEN_IN_FACEBOOK),
     // The settings entry's own way in, like the logo long press and the launcher shortcut, which
     // stay reachable while paused because the settings screen is where a pause is lifted.
     MENU_SETTINGS_ROW(FamilyNames.MENU_SETTINGS_ROW, "menuSettingsRow", FamilyNames.MENU_SETTINGS_ROW);
@@ -350,7 +373,7 @@ public enum PatchFamily {
                     Settings.SETTINGS_LOGO_PRESS,
                     Settings.SETTINGS_MENU_ROW, Settings.APP_LOCK,
                     Settings.SAVE_CRASH_FILE, Settings.CLOSE_WHEN_LEFT, Settings.OPENING_PAUSE,
-                    Settings.TAKE_BREAKS));
+                    Settings.TAKE_BREAKS, Settings.HIDE_BLOCKED_LIST_PICTURES));
 
     /**
      * The switches the download patches share and none of them owns: each shapes what every
@@ -371,10 +394,11 @@ public enum PatchFamily {
      * The patches Morphe Manager leaves out of its default selection. Each one goes in when you
      * patch with no switch to leave Facebook as it ships: the two themes rewrite dark mode's colours,
      * and Disable Play Store updates raises the version number, which a Root Mount install can't
-     * take and every later build has to keep. Everything else is in the default selection, with any
-     * switch a patch brought in from this list starting off.
+     * take and every later build has to keep. GmsCore support stops Facebook asking Google Play
+     * services, so it's only for phones with microG-RE. Everything else is in the default selection,
+     * with any switch a patch brought in from this list starting off.
      */
-    private static final EnumSet<PatchFamily> OPT_IN = EnumSet.of(AMOLED_THEME, MATERIAL_YOU_THEME, PLAY_STORE_UPDATES);
+    private static final EnumSet<PatchFamily> OPT_IN = EnumSet.of(AMOLED_THEME, MATERIAL_YOU_THEME, PLAY_STORE_UPDATES, GMS_CORE);
 
     /**
      * The patches Morphe Manager selects by default. One of them left out is the usual answer to a
@@ -536,7 +560,8 @@ public enum PatchFamily {
                 || Settings.REEL_CAST_BUTTON.savedValue();
         if (this == VIDEO_DOWNLOAD) anyOn = Settings.DOWNLOAD_VIDEOS.savedValue() || Settings.OPEN_IN_ANOTHER_APP.savedValue();
         if (this == TAP_TO_PLAY) anyOn = Settings.TAP_TO_PLAY.savedValue() || Settings.INLINE_FEED_VIDEO_CONTROLS.savedValue()
-                || Settings.FEED_VIDEO_CAST_BUTTON.savedValue();
+                || Settings.FEED_VIDEO_CAST_BUTTON.savedValue() || Settings.FEED_VIDEO_SEEK_BAR.savedValue()
+                || Settings.FEED_VIDEO_FULL_PLAYER_BUTTON.savedValue() || Settings.CENTER_FULL_SCREEN_VIDEOS.savedValue();
         // The time switch starts on, and does nothing without the bar kept; Tap the bar to seek works alone.
         if (this == PROGRESS_BAR) anyOn = Settings.KEEP_PROGRESS_BAR.savedValue() || Settings.TAP_TO_SEEK.savedValue();
         if (this == PROMO_NOTIFICATIONS) {
@@ -556,7 +581,8 @@ public enum PatchFamily {
             anyOn = Settings.HIDE_POSTS_WITH_WORDS.savedValue() || Settings.HIDE_POSTS_FROM_SOURCES.savedValue()
                     || Settings.HIDE_PHOTO_POSTS.savedValue() || Settings.HIDE_VIDEO_POSTS.savedValue()
                     || Settings.HIDE_LINK_POSTS.savedValue() || Settings.HIDE_BACKGROUND_POSTS.savedValue()
-                    || Settings.HIDE_REPOSTS.savedValue() || Settings.HIDE_PAGE_POSTS.savedValue();
+                    || Settings.HIDE_REPOSTS.savedValue() || Settings.HIDE_PAGE_POSTS.savedValue()
+                    || Settings.HIDE_OTHER_LANGUAGES.savedValue();
         }
         // The theme runs with its switches off and while paused: they only flatten the cards and draw the lines.
         if (this == AMOLED_THEME) {
@@ -573,6 +599,11 @@ public enum PatchFamily {
                         .append(Settings.BURN_IN_WAIT.key).append('=').append(Settings.BURN_IN_WAIT.savedValue()).append(", ");
             }
             line.append(setting.key).append(setting.savedValue() ? "=on" : "=off");
+            // How the post date is worded follows its switch (#357).
+            if (setting == Settings.SHOW_REEL_POST_DATE) {
+                line.append(", ").append(Settings.REEL_POST_DATE_STYLE.key).append('=')
+                        .append(Settings.REEL_POST_DATE_STYLE.savedValue());
+            }
         }
         line.append(')');
         if (staysWhilePaused != null) line.append("; stays in while paused: ").append(staysWhilePaused);

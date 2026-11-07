@@ -9,6 +9,7 @@ import app.morphe.manager.patcher.PatchingListener
 import app.morphe.manager.patcher.logger.LogLevel
 import app.morphe.manager.patcher.runtime.isHeapExhausted
 import app.morphe.manager.patcher.split.SplitPreparationEvent
+import app.morphe.patcher.PatcherTask
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -36,9 +37,19 @@ sealed interface HostEvent {
     @SerialName("patches")
     data object PatchesStarted : HostEvent
 
+    /** [PatchingListener.patchExecuting]. */
+    @Serializable
+    @SerialName("patch_executing")
+    data class PatchExecuting(val name: String) : HostEvent
+
     @Serializable
     @SerialName("patch")
     data class PatchSucceeded(val name: String) : HostEvent
+
+    /** [PatchingListener.taskProgress]. */
+    @Serializable
+    @SerialName("task")
+    data class TaskProgress(val task: PatcherTask, val done: Long, val total: Long) : HostEvent
 
     @Serializable
     @SerialName("patch_failed")

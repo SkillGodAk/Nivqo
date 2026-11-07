@@ -5,13 +5,19 @@
 
 package app.morphe.patcher.resource.coder
 
+import app.morphe.patcher.logging.PhaseTimings
+import app.morphe.patcher.logging.measure
+import app.morphe.patcher.logging.toLogString
 import app.morphe.patcher.patch.PatchException
 import com.reandroid.apk.ApkModule
 import com.reandroid.apk.ApkUtil
 import com.reandroid.apk.UncompressedFiles
 import com.reandroid.apk.xmlencoder.EncodeUtil
 import com.reandroid.apk.xmlencoder.XMLEncodeSource
+import app.morphe.patcher.resource.xml.BinaryXmlState
+import app.morphe.patcher.resource.xml.ValuesEdits
 import com.reandroid.archive.Archive
+import com.reandroid.archive.ByteInputSource
 import com.reandroid.archive.FileInputSource
 import com.reandroid.arsc.chunk.PackageBlock
 import com.reandroid.arsc.chunk.TypeBlock
@@ -40,8 +46,8 @@ import kotlin.time.measureTime
  * rebuilding that table from every decoded values file.
  *
  * The table an app ships is the authority for everything a patch left alone. Only the values
- * files a patch touched are re-encoded, each replacing the entries of its type in its
- * configuration, or only adding to them if the file was never decoded, and only new or changed
+ * files a patch touched are re-encoded. Each replaces the entries of its type in its
+ * configuration, or only adds to them if the file was never decoded. Only new or changed
  * files under `res/` are added to the archive. The rest of the archive is the input APK, which
  * [module] already holds.
  *
@@ -53,6 +59,7 @@ import kotlin.time.measureTime
  * @param originalNameOf The archive entry name a decoded path stands for, or null if it is not an alias.
  * @param isAddition Whether a values file was written by a patch without being decoded. Such a file
  * only adds resources to its configuration or replaces them, as it never held the others.
+ * @param timings The timings the steps of encoding are measured into, if any.
  */
 internal class IncrementalResourceEncoder(
     private val module: ApkModule,
@@ -62,6 +69,7 @@ internal class IncrementalResourceEncoder(
     private val isNewFile: (File) -> Boolean,
     private val originalNameOf: (String) -> String?,
     private val isAddition: (File) -> Boolean = { false },
+    private val timings: PhaseTimings? = null,
 ) {
     private val logger = Logger.getLogger(IncrementalResourceEncoder::class.java.name)
 
@@ -75,10 +83,17 @@ internal class IncrementalResourceEncoder(
      * from their configuration. Patches strip translations this way.
      * @param patchedConfigurations Values directories of resource configurations patches added,
      * which are encoded sparse.
-     * @param publicIds Every resource id of the package as `public.xml` now declares them, which
-     * includes ids patches declared there themselves.
+     * @param publicIds The resource ids to declare in the table, by type and name: every id of
+     * `public.xml`, which includes ids patches declared there themselves, or only the ids given to
+     * new resources when the ids were read from the table.
      * @param originalPackageName The package name of the app as decoded.
      * @param newPackageName The package name the manifest now declares.
+     * @param packagesToEncode The names of the packages of [packageDirectories] to encode. The others
+     * are left as the table has them.
+     * @param onProgress Called with how many values files of a package are encoded.
+     * @param heldValues Values files patches changed as documents, which were never written as files.
+     * @param heldFiles Compiled resource files patches changed in their binary form.
+     * @param heldManifest The manifest, if a patch changed it in its binary form and it was never decoded.
      */
     fun encode(
         modifiedResources: Set<File>,
@@ -88,6 +103,11 @@ internal class IncrementalResourceEncoder(
         publicIds: Map<Pair<String, String>, Int>,
         originalPackageName: String,
         newPackageName: String,
+        packagesToEncode: Set<String>,
+        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+        heldValues: List<ValuesEdits> = emptyList(),
+        heldFiles: List<BinaryXmlState> = emptyList(),
+        heldManifest: BinaryXmlState? = null,
     ) {
         val tableBlock = module.tableBlock ?: throw PatchException("The APK has no resource table")
 
@@ -113,14 +133,14 @@ internal class IncrementalResourceEncoder(
         if (uncompressedFiles.isFile) module.uncompressedFiles.fromJson(uncompressedFiles)
 
         packageDirectories.forEach { (packageName, packageDirectory) ->
+            if (packageName !in packagesToEncode) return@forEach
             val resDirectory = packageDirectory.resolve("res")
-            if (!resDirectory.resolve("values/public.xml").isFile) return@forEach
 
             val packageBlock = tableBlock.firstOrNull { it.name == packageName }
                 ?: tableBlock.pickOne()
                 ?: throw PatchException("No resource package for $packageName in the table")
 
-            val registered = measureTime { packageBlock.declareIds(publicIds) }
+            val registered = measureTime { timings.measure("declareIds") { packageBlock.declareIds(publicIds) } }
             if (packageName == originalPackageName && packageBlock.name != newPackageName) {
                 packageBlock.name = newPackageName
             }
@@ -137,92 +157,123 @@ internal class IncrementalResourceEncoder(
                         it.parentFile !in patchedDirectories
             }
             val configurations = patchedConfigurations.filter { it.startsWith(resDirectory) }
+            val (heldConfigurations, packageHeldValues) = heldValues.filter { it.packageName == packageName }
+                .partition { isPatchedConfiguration(it.qualifiers) }
+            val packageHeldFiles = heldFiles.filter { it.packageName == packageName }
 
             var encoded = 0
             var declared = 0
             val values = measureTime {
-                // Attributes first: styles and enums are encoded against attribute names.
-                val (attrs, others) = appValuesFiles.partition { it.name == "attrs.xml" }
-                (attrs + others).forEach { valuesFile ->
-                    val typeBlock = packageBlock.getOrCreateTypeBlock(
-                        XmlEncodeUtil.getQualifiersFromValuesXml(valuesFile),
-                        XmlEncodeUtil.getTypeFromValuesXml(valuesFile),
-                    )
-                    val counts = encodeValuesFile(
-                        valuesFile,
-                        typeBlock,
-                        valuesCoder,
-                        isDefinedByFile,
-                        isAddition(valuesFile),
-                    )
-                    encoded += counts.first
-                    declared += counts.second
-                }
-
-                deletedValuesFiles.filter { it.startsWith(resDirectory) }.forEach { valuesFile ->
-                    val typeBlock = packageBlock.getSpecTypePair(XmlEncodeUtil.getTypeFromValuesXml(valuesFile))
-                        ?.getTypeBlock(ResConfig.parse(XmlEncodeUtil.getQualifiersFromValuesXml(valuesFile)))
-                        ?: return@forEach
-                    typeBlock.listEntries(true).forEach { if (!isDefinedByFile(it)) it.empty() }
-                }
-
-                if (overlayable in modifiedResources && overlayable.isFile) {
-                    if (isAddition(overlayable)) {
-                        // Adds to the overlayables the app declares, which the file never held.
-                        packageBlock.overlayableList.parseAddition(overlayable)
-                    } else {
-                        packageBlock.overlayableList.clearChildes()
-                        packageBlock.overlayableList.parse(XMLFactory.newPullParser(overlayable))
+                timings.measure("values") {
+                    // Files and documents, ordered as if the documents were files, so the table comes out the same.
+                    val units: List<Pair<String, Any>> = appValuesFiles.map { it.relativeTo(packageDirectory).invariantSeparatorsPath to it } +
+                            packageHeldValues.map { it.path to it }
+                    // Attributes first: styles and enums are encoded against attribute names.
+                    val (attrs, others) = units.sortedBy { it.first }.partition { it.first.endsWith("/attrs.xml") }
+                    val ordered = attrs + others
+                    ordered.forEachIndexed { index, (_, unit) ->
+                        val counts = if (unit is ValuesEdits) {
+                            encodeValuesEdits(unit, packageBlock.getOrCreateTypeBlock(unit.qualifiers, unit.type), valuesCoder, isDefinedByFile)
+                        } else {
+                            val valuesFile = unit as File
+                            val typeBlock = packageBlock.getOrCreateTypeBlock(
+                                XmlEncodeUtil.getQualifiersFromValuesXml(valuesFile),
+                                XmlEncodeUtil.getTypeFromValuesXml(valuesFile),
+                            )
+                            encodeValuesFile(valuesFile, typeBlock, valuesCoder, isDefinedByFile, isAddition(valuesFile))
+                        }
+                        encoded += counts.first
+                        declared += counts.second
+                        onProgress(index + 1, ordered.size)
                     }
                 }
 
-                configurations.forEach { valuesDirectory ->
-                    valuesDirectory.listFiles { file: File -> file.isFile && file.extension == "xml" }
-                        .orEmpty().sortedBy { it.name }.forEach { valuesFile ->
-                            val typeBlock = packageBlock.patchedTypeBlock(valuesFile, useSparseEntries)
-                            valuesCoder.encode(XMLFactory.newPullParser(valuesFile), typeBlock)
+                timings.measure("deletedValues") {
+                    deletedValuesFiles.filter { it.startsWith(resDirectory) }.forEach { valuesFile ->
+                        val typeBlock = packageBlock.getSpecTypePair(XmlEncodeUtil.getTypeFromValuesXml(valuesFile))
+                            ?.getTypeBlock(ResConfig.parse(XmlEncodeUtil.getQualifiersFromValuesXml(valuesFile)))
+                            ?: return@forEach
+                        typeBlock.listEntries(true).forEach { if (!isDefinedByFile(it)) it.empty() }
+                    }
+                }
+
+                timings.measure("overlayable") {
+                    if (overlayable in modifiedResources && overlayable.isFile) {
+                        if (isAddition(overlayable)) {
+                            // Adds to the overlayables the app declares, which the file never held.
+                            packageBlock.overlayableList.parseAddition(overlayable)
+                        } else {
+                            packageBlock.overlayableList.clearChildes()
+                            packageBlock.overlayableList.parse(XMLFactory.newPullParser(overlayable))
                         }
+                    }
+                }
+
+                timings.measure("configurations") {
+                    configurations.forEach { valuesDirectory ->
+                        valuesDirectory.listFiles { file: File -> file.isFile && file.extension == "xml" }
+                            .orEmpty().sortedBy { it.name }.forEach { valuesFile ->
+                                val typeBlock = packageBlock.patchedTypeBlock(valuesFile, useSparseEntries)
+                                valuesCoder.encode(XMLFactory.newPullParser(valuesFile), typeBlock)
+                            }
+                    }
+                    heldConfigurations.forEach { edits ->
+                        val typeBlock = packageBlock.patchedTypeBlock(packageDirectory.resolve(edits.path), useSparseEntries)
+                        edits.encodableElements().forEach { valuesCoder.encodeEntry(it, typeBlock) }
+                    }
                 }
             }
 
-            resFiles.forEach { file -> addResFile(packageBlock, file) }
-            packageBlock.sortTypes()
+            timings.measure("resFiles") {
+                resFiles.forEach { file -> addResFile(packageBlock, file) }
+                packageHeldFiles.forEach { state -> addHeldFile(packageBlock, state) }
+                packageBlock.sortTypes()
+            }
 
             // Most packages of a split or multi package table are untouched, so only log the ones that changed.
-            if (appValuesFiles.isNotEmpty() || resFiles.isNotEmpty() || configurations.isNotEmpty()) {
+            val configurationCount = configurations.size + heldConfigurations.size
+            if (appValuesFiles.isNotEmpty() || packageHeldValues.isNotEmpty() || resFiles.isNotEmpty() ||
+                packageHeldFiles.isNotEmpty() || configurationCount != 0
+            ) {
                 logger.info(
-                    "Encoded $encoded of $declared values in ${appValuesFiles.size} files, ${resFiles.size} " +
-                            "resource files and ${configurations.size} configurations of patches for $packageName"
+                    "Encoded $encoded of $declared values in ${appValuesFiles.size + packageHeldValues.size} files, " +
+                            "${resFiles.size + packageHeldFiles.size} resource files and $configurationCount " +
+                            "configurations of patches for $packageName"
                 )
             }
-            logger.fine { "Resource table update timings for $packageName: ids=$registered, values=$values" }
+            logger.fine { "Resource table update timings for $packageName: ids=${registered.toLogString()}, values=${values.toLogString()}" }
         }
 
         // Empties the entries of a deleted file and drops its archive entry.
-        deletedEntries.forEach { module.removeResFile(it, true) }
+        timings.measure("deletedEntries") { deletedEntries.forEach { module.removeResFile(it, true) } }
 
-        tableBlock.forEach { it.compactSparseTypeBlocks() }
+        timings.measure("compactSparse") { tableBlock.forEach { it.compactSparseTypeBlocks() } }
 
-        val manifest = workingDir.resolve(AndroidManifestBlock.FILE_NAME)
-        if (manifest.isFile) {
+        timings.measure("manifest") {
+            val manifest = workingDir.resolve(AndroidManifestBlock.FILE_NAME)
             val packageBlock = tableBlock.firstOrNull { it.name == newPackageName } ?: tableBlock.pickOne()
-            module.add(
-                XMLEncodeSource(packageBlock, XMLFileParserSource(AndroidManifestBlock.FILE_NAME, manifest)).also {
-                    it.method = Archive.STORED
-                    it.sort = 0
-                }
-            )
-            encodedEntries += AndroidManifestBlock.FILE_NAME
+            val source = if (manifest.isFile) {
+                XMLEncodeSource(packageBlock, XMLFileParserSource(AndroidManifestBlock.FILE_NAME, manifest))
+            } else {
+                // A manifest no patch changed is not encoded, and stays as the input APK has it.
+                heldManifest?.let { ByteInputSource(it.encode(packageBlock), AndroidManifestBlock.FILE_NAME) }
+            }
+            if (source != null) {
+                source.method = Archive.STORED
+                source.sort = 0
+                module.add(source)
+                encodedEntries += AndroidManifestBlock.FILE_NAME
+            }
         }
 
         // The table starts as the input's, so the strings of emptied entries, such as a removed
         // locale's, would stay in the pool unreferenced. They are emptied rather than removed,
         // which would move every string after them. A styled one keeps its text for its spans.
-        tableBlock.stringPool.listUnused().forEach { if (!it.hasStyle()) it.set("") }
+        timings.measure("stringPool") { tableBlock.stringPool.listUnused().forEach { if (!it.hasStyle()) it.set("") } }
 
         // Written without this, the table's styled strings came out misaligned, although the
         // archive refreshes the table again when it writes it.
-        tableBlock.refresh()
+        timings.measure("refresh") { tableBlock.refresh() }
         encodedEntries += "resources.arsc"
     }
 
@@ -289,7 +340,7 @@ internal class IncrementalResourceEncoder(
                 }
                 if (definedIds.size == entries.size()) return@forEach
 
-                val pairs = entries.getOffsetReferenceList()
+                val pairs = entries.offsetReferenceList
                 pairs.clearChildes()
                 pairs.setSize(definedIds.size)
                 definedIds.forEachIndexed { index, id -> pairs.get(index).idx = id }
@@ -323,6 +374,65 @@ internal class IncrementalResourceEncoder(
     }
 
     /**
+     * Adds a compiled resource file a patch changed in its binary form, in place of the original entry,
+     * compressed as the input APK compresses it.
+     */
+    private fun addHeldFile(packageBlock: PackageBlock, state: BinaryXmlState) {
+        val method = module.zipEntryMap.getInputSource(state.archiveName)?.method ?: Archive.DEFLATED
+        module.add(ByteInputSource(state.encode(packageBlock), state.archiveName).also { it.method = method })
+        encodedEntries += state.archiveName
+    }
+
+    /**
+     * Encodes what patches changed of a values file as a document: the resources they added or changed
+     * replace those of the table, and the resources they removed are emptied, unless a file under `res/`
+     * defines them.
+     *
+     * @return How many entries were encoded, and how many the edits declare.
+     */
+    private fun encodeValuesEdits(
+        edits: ValuesEdits,
+        typeBlock: TypeBlock,
+        valuesCoder: XmlCoder.ValuesXml,
+        isDefinedByFile: (Entry) -> Boolean,
+    ): Pair<Int, Int> {
+        val existing = typeBlock.listEntries(true).associateByTo(HashMap()) { it.name }
+        var encoded = 0
+        val elements = edits.encodableElements()
+        elements.forEach { element ->
+            if (encodeElement(element, typeBlock, valuesCoder, existing) != null) encoded++
+        }
+        edits.removed.forEach { name ->
+            existing[name]?.let { if (!isDefinedByFile(it)) it.empty() }
+        }
+        return encoded to elements.size
+    }
+
+    /**
+     * Encodes a resource of a values file into its entry, unless the entry already holds the string it declares.
+     *
+     * @param existing The entries of the configuration, by name.
+     * @return The entry if it was encoded, or null if it already held the value.
+     */
+    private fun encodeElement(
+        element: XMLElement,
+        typeBlock: TypeBlock,
+        valuesCoder: XmlCoder.ValuesXml,
+        existing: Map<String?, Entry>,
+    ): Entry? {
+        val name = element.getAttributeValue("name")
+        if (existing[name]?.takeIf { it.holdsString(element) } != null) return null
+
+        val entry = typeBlock.getOrCreateDefinedEntry(name)
+            ?: throw XmlEncodeException("Undefined entry name: " + element.debugText)
+        // Encoding a bag over an existing one appends its children instead.
+        if (entry.isComplex) entry.empty()
+        valuesCoder.encodeEntry(element, typeBlock)
+        entry.restoreArchiveName()
+        return entry
+    }
+
+    /**
      * Encodes a values file over the entries of its type in its configuration. A string the file
      * declares as the table already holds it is left alone, which is most of a strings file a
      * patch added a few strings to. An entry the file no longer declares is emptied, unless a
@@ -351,22 +461,13 @@ internal class IncrementalResourceEncoder(
         try {
             while (XMLUtil.ensureStartTag(parser) == XmlPullParser.START_TAG) {
                 val element = XMLElement.parseElement(parser)
-                val name = element.getAttributeValue("name")
-
-                val unchanged = existing[name]?.takeIf { it.holdsString(element) }
-                if (unchanged != null) {
-                    declared += unchanged
-                    continue
+                val entry = encodeElement(element, typeBlock, valuesCoder, existing)
+                if (entry == null) {
+                    declared += existing.getValue(element.getAttributeValue("name"))
+                } else {
+                    declared += entry
+                    encoded += entry
                 }
-
-                val entry = typeBlock.getOrCreateDefinedEntry(name)
-                    ?: throw XmlEncodeException("Undefined entry name: " + element.debugText)
-                declared += entry
-                // Encoding a bag over an existing one appends its children instead.
-                if (entry.isComplex) entry.empty()
-                valuesCoder.encodeEntry(element, typeBlock)
-                entry.restoreArchiveName()
-                encoded += entry
             }
         } catch (exception: XmlEncodeException) {
             throw XmlEncodeException(parser, exception.message)
@@ -401,8 +502,8 @@ internal class IncrementalResourceEncoder(
         val current = value.valueAsString ?: return false
 
         // Text without an escape or quoting encodes to itself.
-        if (text == current && text[0] != '"' && text.indexOf('\\') < 0) return true
-        return current == XmlSanitizer.unEscapeUnQuote(StyleDocument.copyInner(element).getXml(false))
+        return (text == current && text[0] != '"' && text.indexOf('\\') < 0) ||
+            current == XmlSanitizer.unEscapeUnQuote(StyleDocument.copyInner(element).getXml(false))
     }
 
     /**
@@ -423,7 +524,7 @@ internal class IncrementalResourceEncoder(
      */
     private fun Entry.empty() {
         val name = name
-        setNull(true)
+        isNull = true
         // An emptied entry drops its name with its value; hold it so the name still resolves.
         if (name != null) setName(name, true)
     }
@@ -432,6 +533,14 @@ internal class IncrementalResourceEncoder(
 /**
  * Whether the app may use sparse entry tables, which cannot be read below Android 8.
  */
+/**
+ * Whether a configuration is one a patch added, told apart by a mobile country or network code no device reports.
+ */
+internal fun isPatchedConfiguration(qualifiers: String): Boolean {
+    val config = ResConfig.parse(qualifiers)
+    return config.mcc in PATCH_MOBILE_CODES || config.mnc in PATCH_MOBILE_CODES
+}
+
 internal fun ApkModule.useSparseEntries(): Boolean {
     val minSdk = androidManifest.minSdkVersion
     return minSdk != null && minSdk >= SPARSE_ENTRIES_MIN_SDK

@@ -19,6 +19,7 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.startTabRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.subheading;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.toggle;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.translateToRow;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -27,8 +28,10 @@ import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
+import android.text.TextUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -36,6 +39,7 @@ import app.morphe.extension.facebook.comments.CommentSheetOptions;
 import app.morphe.extension.facebook.feed.FeedTypeNames;
 import app.morphe.extension.facebook.feed.HiddenTally;
 import app.morphe.extension.facebook.feed.SeenPosts;
+import app.morphe.extension.facebook.feed.TranslateLanguages;
 import app.morphe.extension.facebook.misc.BreakTimer;
 import app.morphe.extension.facebook.navigation.MarketplaceOnly;
 import app.morphe.extension.facebook.profile.LocalProfileCounts;
@@ -43,6 +47,7 @@ import app.morphe.extension.facebook.settings.SettingsRows.Row;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.BaseSettings;
+import app.morphe.extension.shared.settings.StringSetting;
 
 /**
  * The category pages for the feed: Opening Facebook, News feed, Stories, and Comments and writing. Each method adds its section to the page
@@ -94,6 +99,13 @@ final class FeedPages {
         opening.addPreference(breaks);
         opening.addPreference(breakAfter);
         opening.addPreference(breakLength);
+        if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
+            // Reels are counted from that family's player hook.
+            opening.addPreference(toggle(context, Settings.BREAK_AFTER_REELS,
+                    L10n.t("A break also starts once you've watched 20 reels, if that comes first. "
+                            + "A reel counts once it's played for 3 seconds, and ads and live videos don't count."))
+                    .needs(Settings.TAKE_BREAKS));
+        }
         if (build.contains(PatchFamily.MARKETPLACE_ONLY)) {
             // Facebook builds the tab bar once, and the hook is asked then and not again.
             opening.addPreference(toggle(context, Settings.MARKETPLACE_ONLY, ""));
@@ -189,8 +201,9 @@ final class FeedPages {
             // One switch covers the cards on reels and in the comment sheet too.
             if (build.contains(PatchFamily.AFFILIATE_LINKS)) {
                 feed.addPreference(toggle(context, Settings.HIDE_AFFILIATE_LINKS,
-                        L10n.t("Hides product cards from shopping links that creators add to posts, reels and comments. The "
-                                + "\"Commission eligible\" label stays.")));
+                        L10n.t("Hides product cards from shopping links that creators add to posts, reels and comments.")));
+                feed.addPreference(toggle(context, Settings.HIDE_COMMISSION_LABEL,
+                        L10n.t("Hides the \"Commission eligible\" label under the creator's name on reels.")));
             }
             if (build.contains(PatchFamily.SUGGESTED_POSTS)) {
                 feed.addPreference(toggle(context, Settings.HIDE_SUGGESTED_POSTS,
@@ -259,6 +272,9 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.HIDE_POST_FOLLOW_LINK,
                         L10n.t("Hides the \"Follow\" link next to the name on posts from Pages and people you don't follow. "
                                 + "Tapping the name still opens the profile. A change shows on the posts drawn after it.")));
+                feed.addPreference(toggle(context, Settings.HIDE_POST_JOIN_BUTTON,
+                        L10n.t("Hides the Join button next to the group's name on posts from groups you haven't joined, "
+                                + "and the Join group bar under their videos. A change shows on the posts drawn after it.")));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_COUNTS,
                         L10n.t("Takes the numbers off the Like, Comment and Share buttons under posts, so each shows "
                                 + "just its word. The buttons stay where they are. A change shows on the posts drawn after it.")));
@@ -295,23 +311,40 @@ final class FeedPages {
             }
             if (build.contains(PatchFamily.FULL_POST_TEXT)) {
                 feed.addPreference(toggle(context, Settings.SHOW_FULL_POST_TEXT,
-                        L10n.t("Posts in the feed show all of their text, so there's no See more to tap.")));
+                        L10n.t("Posts in the feed and captions on reels show all of their text, so there's no See more to tap. "
+                                + "Tap the text to fold it back.")));
+            }
+            if (build.contains(PatchFamily.TRANSLATE_POSTS)) {
+                feed.addPreference(toggle(context, Settings.TRANSLATE_POST_LINK,
+                        L10n.t("Posts in another language get a Translate link under their text. A tap sends that post's "
+                                + "text to Google Translate.")));
+                feed.addPreference(toggle(context, Settings.TRANSLATE_POSTS_BY_THEMSELVES,
+                        L10n.t("Posts in another language show translated, with See original under them. Each post's "
+                                + "text goes to Google Translate as it's drawn.")));
+                feed.addPreference(translateToRow(context));
+                feed.addPreference(leaveAloneRow(page, context));
             }
             if (build.contains(PatchFamily.REEL_GESTURES)) {
                 // Read on each long press, so a change shows on the next one.
                 feed.addPreference(toggle(context, Settings.SELECT_POST_TEXT,
-                        L10n.t("Holding a post's text still copies all of it, and also opens the text in a box where you "
-                                + "can select just the part you want and copy that.")));
+                        L10n.t("Holding a post's text opens it in a box where you can select just the part you want "
+                                + "and copy that, or copy all of it. The hold itself copies nothing.")));
             }
             if (build.contains(PatchFamily.WHO_SHARED)) {
                 feed.addPreference(toggle(context, Settings.SEE_WHO_SHARED,
                         L10n.t("Adds See who shared to a post's menu. It opens Facebook's list of the people who shared it.")));
             }
+            if (build.contains(PatchFamily.PHOTO_CAROUSEL)) {
+                // Asked as each post is drawn, so a change shows on the posts drawn after it.
+                feed.addPreference(toggle(context, Settings.PHOTO_CAROUSEL,
+                        L10n.t("A post with several photos or videos shows them in a row you swipe through, one at a "
+                                + "time, instead of a grid.")));
+            }
             if (build.contains(PatchFamily.AUTO_TRANSLATION)) {
-                // Each post and reel reads the answer as it's drawn, so a change shows on the next ones.
+                // Each post, comment and reel reads the answer as it's drawn, so a change shows on the next ones.
                 feed.addPreference(toggle(context, Settings.TURN_OFF_AUTO_TRANSLATION,
-                        L10n.t("Posts and reel captions stay in the language they were written in. Facebook's "
-                                + "See translation link stays under them.")));
+                        L10n.t("Posts, comments and reel captions stay in the language they were written in. "
+                                + "Facebook's See translation link stays under them.")));
             }
             if (build.contains(PatchFamily.FEEDS_HEADER)) {
                 // Facebook settles the Feeds tab's header as the tab is built, so a change waits for a restart.
@@ -345,6 +378,9 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.BACK_KEEPS_HOME,
                         L10n.t("Pressing Back on a scrolled Home no longer jumps to the top and reloads the feed. "
                                 + "Press Back again within two seconds to do that.")));
+                feed.addPreference(toggle(context, Settings.HIDE_BACK_REMINDER,
+                        L10n.t("Back keeps your place without saying \"Press Back again to go to the top\"."))
+                        .needs(Settings.BACK_KEEPS_HOME));
             }
             subheading(feed, L10n.t("Content filters"));
             if (build.contains(PatchFamily.SEEN_POSTS)) {
@@ -390,6 +426,11 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.HIDE_PAGE_POSTS,
                         L10n.t("Hides posts written by Pages, the ones you follow too. Posts from friends and groups "
                                 + "stay, and so does a friend's share of a Page's post.")));
+                feed.addPreference(toggle(context, Settings.HIDE_OTHER_LANGUAGES,
+                        L10n.t("Hides posts and Reels tab reels in a language you don't keep, going by the phone's own "
+                                + "guess at each post's words or reel's caption. Ones it isn't sure about stay, and nothing "
+                                + "leaves the phone.")));
+                feed.addPreference(keptLanguagesRow(page, context));
                 feed.addPreference(reactionCeilingRow(context));
                 // For people who read Debug reports, where the type names come from, so it shows
                 // with Debug logging on, and from then on while anything's picked.
@@ -403,7 +444,93 @@ final class FeedPages {
     /** The row's key, for the settings search. No setting is behind it. */
     static final String FEED_TYPES_ROW = "action_feed_types";
 
+    /** The row's key, for the settings search. The setting it writes is a list of codes. */
+    static final String LEAVE_ALONE_ROW = "action_translate_leave_alone";
+
     /** Feed types to hide: units hidden by the type name Debug logging records, picked from a list. */
+    /** The languages Translate posts leaves as they are, picked from a list. */
+    static Preference leaveAloneRow(HushfacebookPreferenceFragment page, Context context) {
+        Row row = new Row(context);
+        row.setKey(LEAVE_ALONE_ROW);
+        row.setTitle(L10n.t("Languages to leave alone"));
+        row.setPersistent(false);
+        row.setSummary(leaveAloneSummary());
+        row.setOnPreferenceClickListener(p -> {
+            showLanguages(page, context, Settings.TRANSLATE_LEAVE_ALONE, L10n.t("Languages to leave alone"),
+                    () -> row.setSummary(leaveAloneSummary()));
+            return true;
+        });
+        return row;
+    }
+
+    /** A list of every language Translate posts knows, ticked as [setting] holds them, that saves the ticks to it. */
+    private static void showLanguages(HushfacebookPreferenceFragment page, Context context, StringSetting setting,
+            String title, Runnable saved) {
+        List<String> codes = TranslateLanguages.codes();
+        List<String> picked = Arrays.asList(setting.get().split(","));
+        CharSequence[] names = new CharSequence[codes.size()];
+        boolean[] ticked = new boolean[codes.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = TranslateLanguages.name(codes.get(i));
+            ticked[i] = picked.contains(codes.get(i));
+        }
+        AlertDialog list = page.show(new AlertDialog.Builder(context)
+                .setTitle(title)
+                .setMultiChoiceItems(names, ticked, (shown, which, isTicked) -> ticked[which] = isTicked)
+                .setPositiveButton(L10n.t("Save"), null)
+                .setNegativeButton(L10n.t("Cancel"), null));
+        if (list == null) return;
+        list.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(button -> {
+            List<String> kept = new ArrayList<>();
+            for (int i = 0; i < ticked.length; i++) {
+                if (ticked[i]) kept.add(codes.get(i));
+            }
+            setting.save(TextUtils.join(",", kept));
+            saved.run();
+            list.dismiss();
+        });
+    }
+
+    private static List<String> languageNames(StringSetting setting) {
+        List<String> names = new ArrayList<>();
+        for (String code : setting.get().split(",")) {
+            if (!code.isEmpty()) names.add(TranslateLanguages.name(code));
+        }
+        return names;
+    }
+
+    private static String leaveAloneSummary() {
+        List<String> names = languageNames(Settings.TRANSLATE_LEAVE_ALONE);
+        if (names.isEmpty()) return L10n.t("None picked. Posts in every language can be translated.");
+        return L10n.f("Left alone: %s", L10n.join(names));
+    }
+
+    /** The row's key, for the settings search. The setting it writes is a list of codes. */
+    static final String KEPT_LANGUAGES_ROW = "action_kept_languages";
+
+    /** The languages Hide posts in other languages keeps, picked from the same list. */
+    static Preference keptLanguagesRow(HushfacebookPreferenceFragment page, Context context) {
+        Row row = new Row(context);
+        row.setKey(KEPT_LANGUAGES_ROW);
+        row.setTitle(L10n.t("Languages to keep"));
+        row.setPersistent(false);
+        row.setSummary(keptLanguagesSummary());
+        row.setOnPreferenceClickListener(p -> {
+            showLanguages(page, context, Settings.KEPT_LANGUAGES, L10n.t("Languages to keep"),
+                    () -> row.setSummary(keptLanguagesSummary()));
+            return true;
+        });
+        return row;
+    }
+
+    private static String keptLanguagesSummary() {
+        List<String> names = languageNames(Settings.KEPT_LANGUAGES);
+        if (names.isEmpty()) {
+            return L10n.f("None picked, so posts in %s stay.", TranslateLanguages.name(TranslateLanguages.phone()));
+        }
+        return L10n.f("Kept: %s", L10n.join(names));
+    }
+
     static Preference feedTypesRow(HushfacebookPreferenceFragment page, Context context) {
         Row row = new Row(context);
         row.setKey(FEED_TYPES_ROW);
@@ -470,14 +597,20 @@ final class FeedPages {
     }
 
     /**
-     * Hide posts you've already seen, with how long they stay hidden and a row that forgets them.
-     * The keep time is greyed out while the switch is off, Forget seen posts never is, and turning
-     * the switch off forgets the list.
+     * Hide posts you've already seen, with the switch that lets each post back once, how long they
+     * stay hidden and a row that forgets them. The two under the switch are greyed out while it's
+     * off, Forget seen posts never is, and turning the switch off forgets the list.
      */
     private static void seenPosts(PreferenceCategory feed, Context context) {
         SwitchPreference seen = toggle(context, Settings.HIDE_SEEN_POSTS,
                 L10n.t("Posts you've scrolled past stay out of the feed when it loads again. The list stays on this phone. "
                         + "Turning this off empties it."));
+        // #186: a post only flicked past isn't lost for good. It shows once more, and the next
+        // scroll past it hides it.
+        SwitchPreference onceMore = toggle(context, Settings.SEEN_POSTS_COME_BACK_ONCE,
+                L10n.t("A post you scrolled past shows up one more time, and scrolling past it again hides it. "
+                        + "Fewer posts go missing after a quick scroll."))
+                .needs(Settings.HIDE_SEEN_POSTS);
         Preference keep = seenKeepRow(context);
         Row forget = new Row(context);
         forget.setTitle(L10n.t("Forget seen posts"));
@@ -491,15 +624,18 @@ final class FeedPages {
         });
         // The keep time follows the switch and is greyed out until it's on. Forget seen posts
         // works either way, so a list is never out of reach.
+        onceMore.setEnabled(Settings.HIDE_SEEN_POSTS.savedValue());
         keep.setEnabled(Settings.HIDE_SEEN_POSTS.savedValue());
         seen.setOnPreferenceChangeListener((preference, value) -> {
             boolean now = Boolean.TRUE.equals(value);
+            onceMore.setEnabled(now);
             keep.setEnabled(now);
             // Off forgets the list. The file goes on a background thread.
             if (!now) SeenPosts.clear();
             return true;
         });
         feed.addPreference(seen);
+        feed.addPreference(onceMore);
         feed.addPreference(keep);
         feed.addPreference(forget);
     }
@@ -511,6 +647,7 @@ final class FeedPages {
                 || build.contains(PatchFamily.STORY_AUTO_ADVANCE) || build.contains(PatchFamily.STORY_SEEN)
                 || build.contains(PatchFamily.STORY_DOWNLOAD) || build.contains(PatchFamily.STORY_UPLOAD_HD)
                 || build.contains(PatchFamily.STORY_MUSIC_LENGTH) || build.contains(PatchFamily.STORIES_TRAY_CIRCLES)
+                || build.contains(PatchFamily.STORY_TAPS) || build.contains(PatchFamily.STORY_VIEWER_CLEANUP)
                 || build.contains(PatchFamily.PINCH_TO_ZOOM)) {
             PreferenceCategory stories = category(screen, L10n.t("Stories"));
             if (build.contains(PatchFamily.SPONSORED_STORIES)) {
@@ -534,6 +671,11 @@ final class FeedPages {
                                 + "Facebook next loads the tray.")));
                 stories.addPreference(toggle(context, Settings.HIDE_SEEN_STORIES,
                         L10n.t("Stories you've already watched leave the Stories tray until there's a new one. Applies when "
+                                + "Facebook next loads the tray.")));
+                // The other way round, so the tray flips between the two with one switch (#340).
+                stories.addPreference(toggle(context, Settings.SHOW_ONLY_WATCHED_STORIES,
+                        L10n.t("The Stories tray keeps only the stories you've already watched, so you can find one again. "
+                                + "Turn it off to see the new ones. Hide seen stories waits while this is on. Applies when "
                                 + "Facebook next loads the tray.")));
             }
             if (build.contains(PatchFamily.STORY_AUTO_ADVANCE)) {
@@ -581,6 +723,27 @@ final class FeedPages {
                                 + "Home loads its stories.")));
                 stories.addPreference(HushfacebookPreferenceFragment.sizeRow(context));
             }
+            if (build.contains(PatchFamily.STORY_TAPS)) {
+                // Read on each tap, so a change shows from the next one.
+                stories.addPreference(toggle(context, Settings.STORY_PLAY_BUTTON,
+                        L10n.t("A tap in the middle of a story shows a play and pause button, like Reels. Taps on the "
+                                + "sides still change stories.")));
+                stories.addPreference(toggle(context, Settings.STORY_DOUBLE_TAP,
+                        L10n.t("Stories change only on a double tap, the left side for the one before and anywhere else "
+                                + "for the next. A single tap pauses or plays the story, or shows the play button when "
+                                + "that's on.")));
+            }
+            if (build.contains(PatchFamily.STORY_VIEWER_CLEANUP)) {
+                // Read each time the part draws, so a change shows from the next story.
+                stories.addPreference(toggle(context, Settings.HIDE_STORY_CREDITS,
+                        L10n.t("Takes the song and effect credits off the line under the poster's name on a story. "
+                                + "Applies from the next story you open.")));
+                stories.addPreference(toggle(context, Settings.HIDE_STORY_REPLY_SUGGESTIONS,
+                        L10n.t("Takes the row of suggested replies off the bottom of a story. The reply box stays. "
+                                + "Applies from the next story you open.")));
+                stories.addPreference(toggle(context, Settings.STORY_PROGRESS_BAR,
+                        L10n.t("Shows a thin bar along the bottom of a story that fills as it plays, like the one on Reels.")));
+            }
             if (build.contains(PatchFamily.PINCH_TO_ZOOM)) {
                 // Asked as each second finger lands, so a change shows from the next pinch.
                 stories.addPreference(toggle(context, Settings.PINCH_TO_ZOOM,
@@ -592,6 +755,15 @@ final class FeedPages {
                 stories.addPreference(toggle(context, Settings.PINCH_TO_ZOOM_DOUBLE_TAP,
                         L10n.t("With Pinch to zoom on, double tap a photo on a profile to zoom in where you tapped, "
                                 + "and double tap again to put it back. A single tap still opens the photo, a moment later."))
+                        .needs(Settings.PINCH_TO_ZOOM));
+                stories.addPreference(toggle(context, Settings.PINCH_TO_ZOOM_DIM,
+                        L10n.t("With Pinch to zoom on, the screen around a photo or story darkens as you zoom in. "
+                                + "Turn it off to keep the rest of the screen as it is."))
+                        .needs(Settings.PINCH_TO_ZOOM));
+                stories.addPreference(toggle(context, Settings.PINCH_TO_ZOOM_LIVE,
+                        L10n.t("With Pinch to zoom on, a video you zoom on a profile or Page keeps playing. "
+                                + "With Stay zoomed on too, press and hold the zoom to pause the video, and again to play it. "
+                                + "Stories hold still while you zoom."))
                         .needs(Settings.PINCH_TO_ZOOM));
             }
         }
@@ -633,12 +805,16 @@ final class FeedPages {
                     L10n.t("The comment box loses its GIF and sticker buttons. Typing, photos and posting work as before.")));
             comments.addPreference(toggle(context, Settings.HIDE_COMMENT_EMOJI_ROW,
                     L10n.t("The row of emoji over the comment box goes away. You can still type emoji from your keyboard.")));
+            comments.addPreference(toggle(context, Settings.HIDE_COMMENT_BOX_LINE,
+                    L10n.t("The thin line along the top of the comment box goes away.")));
             comments.addPreference(toggle(context, Settings.HIDE_VIDEO_COMMENT_COMPOSER,
                     L10n.t("The Add a comment box under a full-screen video goes away. Comment boxes on posts stay.")));
             comments.addPreference(toggle(context, Settings.OPEN_REPLY_THREADS,
                     L10n.t("Comments show their replies right away, so there's no View replies to tap.")));
             comments.addPreference(toggle(context, Settings.LOAD_WHOLE_REPLY_THREADS,
                     L10n.t("An open reply thread keeps loading as you scroll, so there's no View more replies to tap.")));
+            comments.addPreference(toggle(context, Settings.HIDE_REPLIES_BUTTON,
+                    L10n.t("An open reply thread gets a Hide replies button, so you can close it again after reading.")));
             comments.addPreference(toggle(context, Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES,
                     L10n.t("The whole View more replies row opens the replies, not just its words.")));
             comments.addPreference(toggle(context, Settings.HIDE_POST_COMMENT_PREVIEWS,
@@ -649,6 +825,8 @@ final class FeedPages {
                     L10n.t("Takes Like off the row under comments. Reply and the reaction count stay.")));
             comments.addPreference(toggle(context, Settings.COMMENT_BLOCK_BUTTON,
                     L10n.t("The thumbs-down on a comment becomes Block. One tap opens Facebook's own block screen for that person.")));
+            comments.addPreference(toggle(context, Settings.REACTOR_BLOCK_BUTTON,
+                    L10n.t("In the list of people who reacted to a post, the button on each row, like Add friend or Message, becomes Block. One tap opens Facebook's own block screen.")));
             comments.addPreference(toggle(context, Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
                     L10n.t("A group post's comments end without the Related groups list and its Join buttons.")));
             comments.addPreference(toggle(context, Settings.HIDE_SHOP_LINK_COMMENTS,

@@ -641,20 +641,25 @@ $unchanged = Get-ManifestDelta -Stock $facts -Patched $facts
 Assert-True (@(ConvertTo-ManifestDeltaEntries -Delta $unchanged).Count -eq 0) `
     'An unchanged manifest produced a delta.'
 
-# The checked-in allowlist approves one change and nothing else: Install beside Meta's apps renames
-# the two permissions Facebook shares with Messenger, Lite, Business Suite and Workplace, which the
-# receipt reads as the two new names asked for and the two old ones no longer asked for.
+# The checked-in allowlist approves three reviewed changes and nothing else. Install beside Meta's
+# apps renames the two permissions Facebook shares with Messenger, Lite, Business Suite and
+# Workplace, which the receipt reads as the two new names asked for and the two old ones no longer
+# asked for. Open in Facebook exports its share target, and GmsCore support swaps Google's push
+# RECEIVE permission for microG-RE's.
 $checkedInAllowlist = @(Read-ManifestDeltaAllowlist -Path (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt') |
     Where-Object { $_ })
-$renameEntries = @(
+$reviewedEntries = @(
     'permission-added app.hushfacebook.permission.prod.FB_APP_COMMUNICATION',
     'permission-added app.hushfacebook.receiver.permission.ACCESS',
     'permission-removed com.facebook.permission.prod.FB_APP_COMMUNICATION',
-    'permission-removed com.facebook.receiver.permission.ACCESS')
+    'permission-removed com.facebook.receiver.permission.ACCESS',
+    'exported-added activity:app.morphe.extension.facebook.misc.OpenInFacebook',
+    'permission-added app.revanced.android.c2dm.permission.RECEIVE',
+    'permission-removed com.google.android.c2dm.permission.RECEIVE')
 Assert-True ((@($checkedInAllowlist | Sort-Object -CaseSensitive) -join "`n") -ceq
-        (@($renameEntries | Sort-Object -CaseSensitive) -join "`n")) `
-    ('The checked-in manifest delta allowlist approves something besides the permission rename, or ' +
-     "less than all of it: $($checkedInAllowlist -join ', ')")
+        (@($reviewedEntries | Sort-Object -CaseSensitive) -join "`n")) `
+    ('The checked-in manifest delta allowlist approves something besides the three reviewed changes, or ' +
+     "less than all of them: $($checkedInAllowlist -join ', ')")
 
 $allowlistRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("receipt-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $allowlistRoot | Out-Null
@@ -1192,20 +1197,22 @@ try {
     Assert-True ($stale.Reason -like '*any more*') `
         "The stale allowlist entry was refused for the wrong reason: $($stale.Reason)"
 
-    # The checked-in allowlist, against receipts that carry the permission rename on both builds.
-    # The rename passes. The rename plus any other change is refused, naming only the other, and a
-    # rename that stopped halfway is refused for the half no patch makes any more.
+    # The checked-in allowlist, against receipts that carry its three reviewed changes on both
+    # builds: the permission rename, the share target export and the microG push permission. They
+    # pass. They plus any other change are refused, naming only the other, and a rename that
+    # stopped halfway is refused for the half no patch makes any more.
     $withRename = {
         param($r)
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsAdded = @('app.hushfacebook.permission.prod.FB_APP_COMMUNICATION',
-                'app.hushfacebook.receiver.permission.ACCESS')
+                'app.hushfacebook.receiver.permission.ACCESS', 'app.revanced.android.c2dm.permission.RECEIVE')
             $target.manifestDelta.permissionsRemoved = @('com.facebook.permission.prod.FB_APP_COMMUNICATION',
-                'com.facebook.receiver.permission.ACCESS')
+                'com.facebook.receiver.permission.ACCESS', 'com.google.android.c2dm.permission.RECEIVE')
+            $target.manifestDelta.exportedComponentsAdded = @('activity:app.morphe.extension.facebook.misc.OpenInFacebook')
         }
     }
     $renamed = Test-TestReceipt -Receipt (New-TestReceipt -Mutate $withRename) -Approved $checkedInAllowlist
-    Assert-True $renamed.Valid "A receipt carrying the approved permission rename was refused: $($renamed.Reason)"
+    Assert-True $renamed.Valid "A receipt carrying the approved manifest changes was refused: $($renamed.Reason)"
     $unrenamed = Test-TestReceipt -Receipt (New-TestReceipt) -Approved $checkedInAllowlist
     Assert-True (-not $unrenamed.Valid -and $unrenamed.Reason -like '*any more*') `
         "A receipt without the rename passed the allowlist that approves it: $($unrenamed.Reason)"
@@ -1217,7 +1224,7 @@ try {
             @{ Name = 'another permission dropped'; Entry = 'permission-removed android.permission.CAMERA'
                 Change = { param($t) $t.manifestDelta.permissionsRemoved = @($t.manifestDelta.permissionsRemoved) + 'android.permission.CAMERA' } },
             @{ Name = 'a component exported'; Entry = 'exported-added receiver:com.facebook.device_id.UniqueIdSupplier'
-                Change = { param($t) $t.manifestDelta.exportedComponentsAdded = @('receiver:com.facebook.device_id.UniqueIdSupplier') } },
+                Change = { param($t) $t.manifestDelta.exportedComponentsAdded = @($t.manifestDelta.exportedComponentsAdded) + 'receiver:com.facebook.device_id.UniqueIdSupplier' } },
             @{ Name = 'a component no longer exported'; Entry = 'exported-removed activity:com.facebook.katana.ProxyAuth'
                 Change = { param($t) $t.manifestDelta.exportedComponentsRemoved = @('activity:com.facebook.katana.ProxyAuth') } })) {
         $receipt = New-TestReceipt -Mutate { param($r) & $withRename $r; & $other.Change $r.targets[1] }
@@ -1230,12 +1237,15 @@ try {
         param($r)
         & $withRename $r
         foreach ($target in $r.targets) {
-            $target.manifestDelta.permissionsAdded = @('app.hushfacebook.permission.prod.FB_APP_COMMUNICATION')
-            $target.manifestDelta.permissionsRemoved = @('com.facebook.permission.prod.FB_APP_COMMUNICATION')
+            $target.manifestDelta.permissionsAdded = @('app.hushfacebook.permission.prod.FB_APP_COMMUNICATION',
+                'app.revanced.android.c2dm.permission.RECEIVE')
+            $target.manifestDelta.permissionsRemoved = @('com.facebook.permission.prod.FB_APP_COMMUNICATION',
+                'com.google.android.c2dm.permission.RECEIVE')
         }
     }
     $half = Test-TestReceipt -Receipt $halfway -Approved $checkedInAllowlist
-    Assert-True (-not $half.Valid -and $half.Reason -like '*any more*receiver.permission.ACCESS*') `
+    Assert-True (-not $half.Valid -and $half.Reason -like '*any more*receiver.permission.ACCESS*' -and
+            $half.Reason -notlike '*c2dm*' -and $half.Reason -notlike '*OpenInFacebook*') `
         "A rename of one permission of the two passed the allowlist of both: $($half.Reason)"
 
     # The SBOM a receipt names. Each refusal has to name the SBOM fact that failed rather than trip
@@ -1816,7 +1826,15 @@ $ErrorActionPreference = 'Stop'
 function Try-Change([scriptblock]$Change) { try { & $Change; 'went' } catch { 'refused' } }
 function Try-Hold([string]$Path, [switch]$Directory) {
     try { (Open-HeldFile -Path $Path -Directory:$Directory).Dispose(); 'held' }
-    catch { if ($_.Exception.Message -like '*is a link*') { 'refused' } else { 'threw ' + $_.Exception.Message } }
+    catch {
+        if ($_.Exception.Message -like '*is a link*') { return 'refused' }
+        # Windows with redirection guard on won't follow a link an ordinary user made, from any process
+        # (ERROR_UNTRUSTED_MOUNT_POINT, 448), so the open fails before the link check can see it.
+        for ($e = $_.Exception; $e; $e = $e.InnerException) {
+            if (($e -is [ComponentModel.Win32Exception] -and $e.NativeErrorCode -eq 448) -or ($e.HResult -band 0xFFFF) -eq 448) { return 'untrusted' }
+        }
+        'threw ' + $_.Exception.Message
+    }
 }
 $lines = @()
 $outside = Join-Path $Work 'outside'
@@ -1891,11 +1909,12 @@ Set-Content -LiteralPath $Result -Value $lines
             "A held folder under $heldShell could be renamed, kept files from being copied in and removed, or the control failed: $heldSays"
         Assert-True ($heldLines[3] -ceq 'file refused refused checked went') `
             "A held file under $heldShell could be written or deleted, or the control failed: $heldSays"
-        Assert-True ($heldLines[4] -ceq 'junction refused' -and $heldLines[5] -ceq 'through held') `
+        Assert-True ($heldLines[4] -cin @('junction refused', 'junction untrusted') -and $heldLines[5] -cin @('through held', 'through untrusted')) `
             "Open-HeldFile under $heldShell held a junction as a folder, or refused a real file reached through one: $heldSays"
-        Assert-True ($heldLines[6] -in @('symlink refused', 'symlink unavailable')) `
+        Assert-True ($heldLines[6] -cin @('symlink refused', 'symlink unavailable', 'symlink untrusted')) `
             "Open-HeldFile under $heldShell held a file symbolic link as the file: $heldSays"
         if ($heldLines[6] -ceq 'symlink unavailable') { Write-Host "[scripts] no file symbolic links here, so that hold case was skipped under $heldShell" }
+        if ($heldLines[5] -ceq 'through untrusted') { Write-Host "[scripts] Windows here won't follow a junction an ordinary user made, so holding a file through one went unchecked under $heldShell" }
         Remove-TreeWithoutFollowingLinks -Path $heldWork
     }
     $atNoAllowlist = Resolve-ReceiptManifestAllowlist -Root $toolchainRoot -Commit $releaseCommitSha -WorkingPath $allowlistFile
@@ -2435,7 +2454,7 @@ Write-Host '[scripts] advisory gate contracts passed'
     # sees that candidate as the published baseline and must remove the consumed allowance.
     $candidate = Catalog '0.7.0' @((Patch 'Gamma' $false), (Patch 'Beta' $true))
     $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $renameNote)) '0.7.0'
-    $notes = "## 0.7.0 (2026-10-02)`n* **Facebook:** $renameNote`n## Unreleased`nOther changes."
+    $notes = "## 0.7.0 (2026-10-02)`n* $renameNote`n## Unreleased`nOther changes."
     Assert-Accept 'Publication did not compare to the predecessor.'
     $stale = Test-PatchCatalogCompatibility -BaselinePatchList $candidate -BaselineVersion '0.7.0' `
         -BaselineCommit ('b' * 40) -CandidatePatchList $candidate -CandidateVersion '0.7.0' -Compatibility $compatibility -Changelog $notes
@@ -2578,7 +2597,7 @@ Write-Host '[scripts] advisory gate contracts passed'
     # The working index is already 0.7.0, as it is on the later publication/index push.
     $candidate = Catalog '0.7.0' @((Patch 'Gamma' $false), (Patch 'Beta' $true))
     $compatibility = Allow @((Declaration $baseline.patches[0] $candidate.patches[0] $renameNote)) '0.7.0'
-    $notes = "## 0.7.0 (2026-10-02)`n* **Facebook:** $renameNote"
+    $notes = "## 0.7.0 (2026-10-02)`n* $renameNote"
     Set-Content -LiteralPath (Join-Path $fixtureRoot 'patches-list.json') -Value ($candidate | ConvertTo-Json -Depth 6) -Encoding UTF8
     Set-Content -LiteralPath (Join-Path $fixtureRoot 'patches-bundle.json') -Value ($index | ConvertTo-Json -Depth 5) -Encoding UTF8
     Fixture-Git @('add', '--', 'patches-list.json', 'patches-bundle.json') | Out-Null
@@ -3020,7 +3039,7 @@ try {
             }
             Set-FactsFile 'CHANGELOG.md' {
                 param($text) ([regex]'(?m)^## ').Replace($text,
-                    "## $nextVersion (2026-09-26)`n`n* **Facebook:** Moves the patches to Facebook $movedBuild.`n`n## ", 1)
+                    "## $nextVersion (2026-09-26)`n`n* Moves the patches to Facebook $movedBuild.`n`n## ", 1)
             }
             # The badge moves with the source; the sentence naming the latest release waits for it.
             Set-FactsFile 'README.md' {
@@ -3189,7 +3208,7 @@ try {
     # The release's CHANGELOG groups follow the facts in the description (#143), and a bullet there
     # may name an older build or another count, so the facts are read up to the first ### line.
     Set-FactsFile 'patches-bundle.json' {
-        param($text) $text -replace '("description":\s*"(?:[^"\\]|\\.)*)"', '$1\n\n### Fixed\n\n* **Facebook:** Builds before Facebook 9.9.9.9.9 kept 3 patches."'
+        param($text) $text -replace '("description":\s*"(?:[^"\\]|\\.)*)"', '$1\n\n### Fixed\n\n* Builds before Facebook 9.9.9.9.9 kept 3 patches."'
     }
     try {
         Assert-True ((Get-Content -LiteralPath (Join-Path $factsRoot 'patches-bundle.json') -Raw | ConvertFrom-Json).description -match
@@ -3906,12 +3925,12 @@ try {
         # underline, not a conflict, and passes.
         Assert-Throws { Push-ListingChange {
                 Set-Content -LiteralPath (Join-Path $listingRepo 'CHANGELOG.md') -Encoding ASCII -Value @(
-                    '## Unreleased', '', '<<<<<<< HEAD', '* **Facebook:** one side.', '||||||| base', '=======',
-                    '* **Facebook:** the other side.', '>>>>>>> 0123abc (the other side)') } } `
+                    '## Unreleased', '', '<<<<<<< HEAD', '* one side.', '||||||| base', '=======',
+                    '* the other side.', '>>>>>>> 0123abc (the other side)') } } `
             '*unresolved merge conflict*CHANGELOG.md:3:<<<<<<< HEAD*' 'A push carrying an unresolved merge conflict went out.'
         $ran = Push-ListingChange {
             Set-Content -LiteralPath (Join-Path $listingRepo 'CHANGELOG.md') -Encoding ASCII -Value @(
-                '## Unreleased', '', '* **Facebook:** one side.', '* **Facebook:** the other side.')
+                '## Unreleased', '', '* one side.', '* the other side.')
             New-Item -ItemType Directory -Path (Join-Path $listingRepo 'docs') -Force | Out-Null
             Set-Content -LiteralPath (Join-Path $listingRepo 'docs/heading.md') -Encoding ASCII -Value @('A heading', '=======', '', 'Text.')
         }
@@ -4841,12 +4860,12 @@ A sentence about the release.
 
 ### Settings
 
-* **Facebook:** one change.
-* **Facebook:** another change.
+* one change.
+* another change.
 
 ### On the video
 
-* **Facebook:** a third.
+* a third.
 
 ## 0.41.0
 
@@ -4864,10 +4883,18 @@ $undated = Test-ChangelogManagerEntry -Current ($readable -replace '## 0\.42\.0 
 Assert-True (-not $undated.Valid) 'An undated heading, which Manager skips, was accepted.'
 Assert-True ($undated.Reason -like '*no date*') "The undated heading was refused for the wrong reason: $($undated.Reason)"
 
-$unscoped = Test-ChangelogManagerEntry -Current ($readable -replace '\* \*\*Facebook:\*\* another', '* another') `
+# A bullet with no label is a Facebook change. The app's own label still counts, a leftover from before
+# the labels were dropped, and any other label is refused as not this app's change.
+$unscoped = Test-ChangelogManagerEntry -Current $readable -ExpectedVersion '0.42.0'
+Assert-True ($unscoped.Valid -and $unscoped.Bullets -eq 3) "Unlabeled bullets were refused or miscounted: $($unscoped.Reason)"
+$leftoverLabel = Test-ChangelogManagerEntry -Current ($readable -replace '\* another', '* **Facebook:** another') `
     -ExpectedVersion '0.42.0'
-Assert-True (-not $unscoped.Valid) 'A bullet Manager does not scope to Facebook was accepted.'
-Assert-True ($unscoped.Reason -like 'Line 12 *') "The unscoped bullet was refused for the wrong reason: $($unscoped.Reason)"
+Assert-True ($leftoverLabel.Valid -and $leftoverLabel.Bullets -eq 3) `
+    "A bullet with a leftover Facebook label was refused or miscounted: $($leftoverLabel.Reason)"
+$foreignLabel = Test-ChangelogManagerEntry -Current ($readable -replace '\* another', '* **Feed:** another') `
+    -ExpectedVersion '0.42.0'
+Assert-True (-not $foreignLabel.Valid) 'A bullet labeled for something other than Facebook was accepted.'
+Assert-True ($foreignLabel.Reason -like 'Line 12 *') "The foreign label was refused for the wrong reason: $($foreignLabel.Reason)"
 
 $wrapped = Test-ChangelogManagerEntry -Current ($readable -replace 'one change\.', "one`n  change.") `
     -ExpectedVersion '0.42.0'
@@ -4877,7 +4904,7 @@ Assert-True ($wrapped.Reason -like '*continues the bullet*') "The wrapped bullet
 $noBullets = Test-ChangelogManagerEntry -Current "## 0.42.0 (2026-09-20)`n`nOnly prose.`n" -ExpectedVersion '0.42.0'
 Assert-True (-not $noBullets.Valid) 'An entry with no scoped bullet, which gets no update badge, was accepted.'
 
-$otherScope = Test-ChangelogManagerEntry -Current ($readable -replace '\*\*Facebook:\*\* a third', '**Instagram:** a third') `
+$otherScope = Test-ChangelogManagerEntry -Current ($readable -replace '\* a third', '* **Instagram:** a third') `
     -ExpectedVersion '0.42.0'
 Assert-True (-not $otherScope.Valid) 'A bullet scoped to another app was accepted.'
 
@@ -4885,14 +4912,14 @@ Assert-True (-not $otherScope.Valid) 'A bullet scoped to another app was accepte
 # under Unreleased carries them. Manager shows a line only to the app it's scoped to, so it shows
 # these to nobody, which is what they're for: allowed, and not counted as Facebook changes. The
 # release check refused every one, so a release had to drop them or relabel them for users.
-$withTooling = Test-ChangelogManagerEntry -Current ($readable -replace '(\* \*\*Facebook:\*\* a third\.)',
+$withTooling = Test-ChangelogManagerEntry -Current ($readable -replace '(\* a third\.)',
     "`$1`n* **Tooling:** a development-only change.") -ExpectedVersion '0.42.0'
 Assert-True ($withTooling.Valid -and $withTooling.Bullets -eq 3) `
     "A Tooling bullet in the released entry was refused or counted: $($withTooling.Reason), $($withTooling.Bullets) bullets"
 $toolingOnly = Test-ChangelogManagerEntry -Current "## 0.42.0 (2026-09-20)`n`n* **Tooling:** only this.`n" -ExpectedVersion '0.42.0'
-Assert-True (-not $toolingOnly.Valid -and $toolingOnly.Reason -like '*no "* **Facebook:** " bullet*') `
+Assert-True (-not $toolingOnly.Valid -and $toolingOnly.Reason -like '*no Facebook change bullet*') `
     "An entry with Tooling bullets alone, which gets no update badge, was not refused for that: $($toolingOnly.Reason)"
-$wrappedTooling = Test-ChangelogManagerEntry -Current ($readable -replace '(\* \*\*Facebook:\*\* a third\.)',
+$wrappedTooling = Test-ChangelogManagerEntry -Current ($readable -replace '(\* a third\.)',
     "`$1`n* **Tooling:** a development-only`n  change.") -ExpectedVersion '0.42.0'
 Assert-True ($wrappedTooling.Reason -like '*continues the bullet*') `
     "A wrapped Tooling bullet was not held to one line like the others: $($wrappedTooling.Reason)"
@@ -5738,12 +5765,14 @@ try {
 
     $androidName = 'http://schemas.android.com/apk/res/android:name(0x01010003)='
     $androidExported = '          A: http://schemas.android.com/apk/res/android:exported(0x01010010)=true'
-    # Facebook asks for the two permissions it shares with Meta's other apps, and the patched build
-    # asks for them under the names Install beside Meta's apps gives them: the change the checked-in
-    # allowlist approves, and the only one the patches make here.
+    # Facebook asks for the two permissions it shares with Meta's other apps and for Google's push,
+    # and the patched build asks for the two under the names Install beside Meta's apps gives them
+    # and for microG-RE's push in place of Google's, and exports Open in Facebook's share target: the
+    # changes the checked-in allowlist approves, and the only ones the patches make here.
     function Get-FixtureManifest([string]$Build, [string]$Code, [switch]$WithSplit, [switch]$Renamed,
             [string]$Package = $releaseTarget.PackageName) {
         $prefix = if ($Renamed) { 'app.hushfacebook.' } else { 'com.facebook.' }
+        $push = if ($Renamed) { 'app.revanced.android.c2dm.' } else { 'com.google.android.c2dm.' }
         $lines = @(
             'N: android=http://schemas.android.com/apk/res/android (line=1)',
             '  E: manifest (line=1)',
@@ -5756,10 +5785,17 @@ try {
             "        A: $androidName`"${prefix}permission.prod.FB_APP_COMMUNICATION`" (Raw: `"${prefix}permission.prod.FB_APP_COMMUNICATION`")",
             '      E: uses-permission (line=12)',
             "        A: $androidName`"${prefix}receiver.permission.ACCESS`" (Raw: `"${prefix}receiver.permission.ACCESS`")",
+            '      E: uses-permission (line=13)',
+            "        A: $androidName`"${push}permission.RECEIVE`" (Raw: `"${push}permission.RECEIVE`")",
             '      E: application (line=20)',
             '        E: activity (line=21)',
             "          A: $androidName`"com.facebook.katana.LoginActivity`" (Raw: `"com.facebook.katana.LoginActivity`")",
             $androidExported)
+        if ($Renamed) {
+            $lines += @('        E: activity (line=30)',
+                "          A: $androidName`"app.morphe.extension.facebook.misc.OpenInFacebook`" (Raw: `"app.morphe.extension.facebook.misc.OpenInFacebook`")",
+                $androidExported)
+        }
         if ($WithSplit) {
             $lines += @('        E: activity (line=40)',
                 "          A: $androidName`"com.facebook.split.FeatureActivity`" (Raw: `"com.facebook.split.FeatureActivity`")",
@@ -5850,7 +5886,7 @@ try {
     }
 
     # A fixture for every declared build and the newer one: one target each, only the newer build
-    # forced, every patch applied, and no manifest change but the rename, because the patched
+    # forced, every patch applied, and no manifest change but the reviewed ones, because the patched
     # manifest is held to the merge and not to the base.
     $builtBuilds = @($releaseTarget.PackageVersions) + @($newerBuild)
     $allFixtures = @($builtBuilds | ForEach-Object { $fixturePaths[$_] })
@@ -5881,10 +5917,10 @@ try {
             "The receipt does not hash the $label fixture it was given."
         Assert-True (@($builtTarget.patches | Where-Object { $_.applied }).Count -eq $releaseNames.Count) `
             "The receipt does not record every patch applied to $label."
-        # The rename is the patches' change. The split's activity the merge brings in is the merge's.
-        $changes = @(ConvertTo-ManifestDeltaEntries -Delta $builtTarget.manifestDelta)
+        # The reviewed changes are the patches'. The split's activity the merge brings in is the merge's.
+        $changes = @(ConvertTo-ManifestDeltaEntries -Delta $builtTarget.manifestDelta | Sort-Object -Unique -CaseSensitive)
         Assert-True (($changes -join "`n") -ceq (@($checkedInAllowlist | Sort-Object -Unique -CaseSensitive) -join "`n")) `
-            "The receipt records other manifest changes for $label than the patches' rename: $($changes -join ', ')"
+            "The receipt records other manifest changes for $label than the patches' reviewed ones: $($changes -join ', ')"
     }
     # Each fixture merged once, and the CLI handed that merge rather than the bundle: the CLI deletes
     # its own merge, and the manifest delta above is taken against this one.
@@ -7461,7 +7497,7 @@ function Invoke-InBuildQueue {
                 $catalogBefore = $catalogCandidate.patches[0] | ConvertTo-Json -Depth 10 | ConvertFrom-Json
                 $catalogCandidate.patches[0].use = -not $catalogBefore.use
                 $catalogNote = "$($catalogBefore.name) changes its default selection."
-                $catalogNotes = $catalogOldNotes -replace ('(?m)^(##\s+\[?v?' + [regex]::Escape($releaseVersionHere) + '(?:\]|\s|$)[^\r\n]*)'), ("`$1`n`n* **Facebook:** $catalogNote")
+                $catalogNotes = $catalogOldNotes -replace ('(?m)^(##\s+\[?v?' + [regex]::Escape($releaseVersionHere) + '(?:\]|\s|$)[^\r\n]*)'), ("`$1`n`n* $catalogNote")
                 Assert-True ($catalogNotes -cne $catalogOldNotes) "The publication fixture's CHANGELOG has no $releaseVersionHere heading to carry the note."
                 $catalogMetadata = @{ baselineVersion = $catalogPreviousVersion; baselineCommit = $catalogPreviousCommit
                     candidateVersion = $releaseVersionHere; changes = @(@{ before = @{ name = $catalogBefore.name; use = $catalogBefore.use }
@@ -7652,7 +7688,7 @@ function Invoke-InBuildQueue {
     Edit-ReleaseFile 'patches-list.json' { param($text) $text.Replace('"v' + $releaseVersionHere + '"', '"v' + $laterVersion + '"') }
     Edit-ReleaseFile 'CHANGELOG.md' {
         param($text) ([regex]'(?m)^## ').Replace($text,
-            "## $laterVersion (2026-09-26)`n`n* **Facebook:** Needs Morphe Manager $laterFloor or newer.`n`n## ", 1)
+            "## $laterVersion (2026-09-26)`n`n* Needs Morphe Manager $laterFloor or newer.`n`n## ", 1)
     }
     Edit-ReleaseFile 'gradle/libs.versions.toml' {
         param($text) $text -replace '(?m)^(\s*manager-floor\s*=\s*")[^"]+', "`${1}$laterFloor"

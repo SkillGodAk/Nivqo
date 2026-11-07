@@ -7,10 +7,14 @@ package app.hushmessenger.patches.coexist
 
 import app.hushmessenger.patches.MessengerTarget
 import app.hushmessenger.patches.controls.BASE_PROFILE
-import app.hushmessenger.patches.controls.PROFILE_347014974
-import app.hushmessenger.patches.controls.PROFILE_347014990
-import app.hushmessenger.patches.controls.PROFILE_347014996
+import app.hushmessenger.patches.controls.DEFAULT_STRINGS
+import app.hushmessenger.patches.controls.MANIFEST_STRINGS
+import app.hushmessenger.patches.controls.PROFILE_347215341
+import app.hushmessenger.patches.controls.SETTINGS_LABEL
+import app.hushmessenger.patches.controls.SETTINGS_LABEL_NAME
 import app.hushmessenger.patches.controls.SHORTCUTS_DIRECTORIES
+import app.hushmessenger.patches.controls.addStrings
+import app.hushmessenger.patches.controls.setString
 import app.hushmessenger.patches.controls.controlProfileFor
 import app.hushmessenger.patches.controls.hookId
 import app.hushmessenger.patches.controls.resolveShortcutsPath
@@ -44,6 +48,8 @@ import org.w3c.dom.Element
 internal const val CLONE_PATCH_NAME = "Clone install under another package name"
 internal const val CLONE_DEFAULT_PACKAGE = "com.facebook.orca.hush"
 internal const val CLONE_DEFAULT_LABEL = "Messenger Clone"
+/** The string resource the clone's app name and launcher icons point at. */
+internal const val CLONE_LABEL = "hush_clone_label"
 private const val ORIGINAL = MessengerTarget.PACKAGE
 private const val GET_PACKAGE_NAME = "Landroid/content/Context;->getPackageName()Ljava/lang/String;"
 private const val SET_PACKAGE = "Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;"
@@ -174,14 +180,20 @@ internal fun Document.renameForClone(newPackage: String, label: String): CloneMa
         }
     }
     for (metadata in all("meta-data")) if (metadata.getAttribute("android:value") == ORIGINAL) metadata.setAttribute("android:value", newPackage)
+    // 586 lists Messenger itself among the apps it asks to see. The copy asks to see itself, not Messenger.
+    for (queries in all("queries")) for (query in queries.children("package")) {
+        if (query.getAttribute("android:name") == ORIGINAL) query.setAttribute("android:name", newPackage)
+    }
 
+    // The labels point at string resources that nameClone writes, since some launchers show text written straight into
+    // the manifest under Messenger's own name (#141). The settings screens keep their own string, which gets the name.
     var labels = 0
-    application.setAttribute("android:label", label)
+    application.setAttribute("android:label", "@string/$CLONE_LABEL")
     for (entry in application.children("activity") + application.children("activity-alias")) {
         when {
             entry.getAttribute("android:name").startsWith(SETTINGS_SCREENS) ->
-                if (entry.hasAttribute("android:label")) entry.setAttribute("android:label", "$label settings") else continue
-            entry.isLauncher() -> entry.setAttribute("android:label", label)
+                if (entry.hasAttribute("android:label")) entry.setAttribute("android:label", "@string/$SETTINGS_LABEL") else continue
+            entry.isLauncher() -> entry.setAttribute("android:label", "@string/$CLONE_LABEL")
             else -> continue
         }
         labels++
@@ -219,7 +231,7 @@ internal fun Method.isAttachmentCheck() = AccessFlags.STATIC.isSet(accessFlags) 
 private fun Instruction.ownName() = (opcode == Opcode.CONST_STRING || opcode == Opcode.CONST_STRING_JUMBO) &&
     ((this as ReferenceInstruction).reference as StringReference).string == ORIGINAL
 
-private fun Instruction.registers(): List<Int> = when (this) {
+internal fun Instruction.registers(): List<Int> = when (this) {
     is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
     is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
     else -> emptyList()
@@ -302,30 +314,26 @@ internal fun findCloneSites(classes: Iterable<ClassDef>, pools: Set<String> = ow
 
 private const val ATTACHMENT_CHECK = "->A00(Ljava/lang/String;)Z"
 private const val BROADCAST = "->A00(Landroid/content/Intent;Landroid/content/Context;)V"
-private const val NOTIFICATION = "->A04(Landroid/os/Bundle;)"
-private const val ARMV7_NOTIFICATION = "->A05(Landroid/os/Bundle;)"
+private const val NOTIFICATION = "(Landroid/os/Bundle;)"
 private const val CLICK = "->onClick(Landroid/view/View;)V"
 
 /**
  * Each build family's backup lookup and attachment check, then every setPackage call that sends Messenger to itself:
  * the in-app broadcast sender, the push notification's click and link intents, the bulk delete link in the inbox and
- * the story link button. Every arm64 build of 585 has the same ones, and each armv7 build its own. The native test
- * checks them on every supported build.
+ * the story link button. 586 has an arm64 and an armv7 build. The native test checks them on every supported build.
  */
 internal fun expectedCloneSitesFor(versionCode: String): Set<String> {
     validateVersionCode(versionCode)
     return when (controlProfileFor(versionCode)) {
-        BASE_PROFILE, PROFILE_347014996 -> setOf("LX/OnZ;-><init>()V", "LX/4ae;$ATTACHMENT_CHECK", "LX/KeQ;$BROADCAST@1",
-            "LX/8cK;${NOTIFICATION}LX/9be;@225", "LX/8cK;${NOTIFICATION}LX/9be;@318", "LX/CVD;$CLICK@81", "LX/Jig;$CLICK@174")
-        PROFILE_347014974 -> setOf("LX/Rwh;-><init>()V", "LX/4dC;$ATTACHMENT_CHECK", "LX/3A4;$BROADCAST@1",
-            "LX/8gl;${ARMV7_NOTIFICATION}LX/9fV;@185", "LX/8gl;${ARMV7_NOTIFICATION}LX/9fV;@282", "LX/Ekg;$CLICK@83", "LX/Joj;$CLICK@174")
-        PROFILE_347014990 -> setOf("LX/J6k;-><init>()V", "LX/4a2;$ATTACHMENT_CHECK", "LX/38w;$BROADCAST@1",
-            "LX/8aO;${ARMV7_NOTIFICATION}LX/9ZI;@184", "LX/8aO;${ARMV7_NOTIFICATION}LX/9ZI;@281", "LX/CTz;$CLICK@81", "LX/MEB;$CLICK@166")
+        BASE_PROFILE -> setOf("LX/Y7a;-><init>()V", "LX/4NY;$ATTACHMENT_CHECK", "LX/391;$BROADCAST@1",
+            "LX/93D;->A04${NOTIFICATION}LX/9Xq;@228", "LX/93D;->A04${NOTIFICATION}LX/9Xq;@323", "LX/Cg3;$CLICK@83", "LX/Jm8;$CLICK@155")
+        PROFILE_347215341 -> setOf("LX/MJk;-><init>()V", "LX/4No;$ATTACHMENT_CHECK", "LX/39H;$BROADCAST@1",
+            "LX/947;->A05${NOTIFICATION}LX/9Z4;@186", "LX/947;->A05${NOTIFICATION}LX/9Z4;@281", "LX/Cgh;$CLICK@83", "LX/Jrm;$CLICK@151")
         else -> fail("version code $versionCode has no checked clone sites")
     }
 }
 
-private fun Method.register(index: Int, what: String): Int {
+internal fun Method.register(index: Int, what: String): Int {
     val register = (implementation!!.instructions.elementAt(index) as OneRegisterInstruction).registerA
     if (register > 255) fail("${hookId()} keeps $what in v$register")
     return register
@@ -462,7 +470,17 @@ internal fun applyCloneSites(
     selfIntents: List<Pair<MutableMethod, Int>> = emptyList(),
     pools: Set<String> = emptySet(),
     dedup: List<Pair<MutableMethod, Int>> = emptyList(),
-) {
+) = cloneSiteEdits(lookup, check, newPackage, selfIntents, pools, dedup)()
+
+/** Checks every clone site, then hands back the edits, so a caller can check its own sites before the first change. */
+private fun cloneSiteEdits(
+    lookup: MutableMethod,
+    check: MutableMethod,
+    newPackage: String,
+    selfIntents: List<Pair<MutableMethod, Int>>,
+    pools: Set<String>,
+    dedup: List<Pair<MutableMethod, Int>>,
+): () -> Unit {
     if (!isClonePackage(newPackage)) fail("$newPackage can't be used as a package name")
     if (selfIntents.map { (method, call) -> method.hookId() to call }.toSet().size != selfIntents.size) fail("an intent site is listed twice")
     // Every site passes before any changes.
@@ -470,17 +488,43 @@ internal fun applyCloneSites(
     val (checkAt, checkRegister) = check.attachmentSite()
     val loads = selfIntents.map { (method, call) -> method to method.selfIntentSite(call, pools) }
     val dedupLoads = if (dedup.isEmpty()) emptyList() else dedup.map { it.first }.zip(dedupLoads(dedup))
-    lookup.addInstruction(lookupAt, "const-string/jumbo v$lookupRegister, \"$ORIGINAL\"")
-    check.replaceInstruction(checkAt, "const-string/jumbo v$checkRegister, \"$newPackage$TAM_SUFFIX\"")
-    // In place of the constant, or of the pool lookup's result, so labels stay put. Last first, as a longer instruction
-    // can move the padding before a switch table.
-    for ((method, site) in loads.sortedByDescending { it.second.first }) {
-        method.replaceInstruction(site.first, "const-string/jumbo v${site.second}, \"$newPackage\"")
+    return {
+        lookup.addInstruction(lookupAt, "const-string/jumbo v$lookupRegister, \"$ORIGINAL\"")
+        check.replaceInstruction(checkAt, "const-string/jumbo v$checkRegister, \"$newPackage$TAM_SUFFIX\"")
+        // In place of the constant, or of the pool lookup's result, so labels stay put. Last first, as a longer instruction
+        // can move the padding before a switch table.
+        for ((method, site) in loads.sortedByDescending { it.second.first }) {
+            method.replaceInstruction(site.first, "const-string/jumbo v${site.second}, \"$newPackage\"")
+        }
+        val cloneAuthority = cloneName(DEDUP_AUTHORITY, newPackage)!!
+        for ((method, site) in dedupLoads.sortedByDescending { it.second.first }) {
+            method.replaceInstruction(site.first, "const-string/jumbo v${site.second}, \"${site.third.replace(DEDUP_AUTHORITY, cloneAuthority)}\"")
+        }
     }
-    val cloneAuthority = cloneName(DEDUP_AUTHORITY, newPackage)!!
-    for ((method, site) in dedupLoads.sortedByDescending { it.second.first }) {
-        method.replaceInstruction(site.first, "const-string/jumbo v${site.second}, \"${site.third.replace(DEDUP_AUTHORITY, cloneAuthority)}\"")
+}
+
+/**
+ * The clone sites, and the Facebook hand-offs when [facebook] isn't the regular app. Every site is checked before the
+ * first edit, so a refused run doesn't leave the clone sites changed in a dex the patcher still writes. The hand-offs
+ * change first, as the lookup's added instruction would move any hand-off after it in the same method.
+ */
+internal fun applyCloneCode(
+    lookup: MutableMethod,
+    check: MutableMethod,
+    newPackage: String,
+    selfIntents: List<Pair<MutableMethod, Int>>,
+    pools: Set<String>,
+    dedup: List<Pair<MutableMethod, Int>>,
+    facebook: String,
+    handOffs: () -> List<Pair<MutableMethod, Int>>,
+) {
+    val sites = if (facebook == FACEBOOK_PACKAGE) emptyList() else {
+        if (facebook == newPackage) fail("the Messenger clone and the Facebook app can't share the name $facebook")
+        handOffs().ifEmpty { fail("Messenger no longer opens the Facebook app by its name") }
     }
+    val edits = cloneSiteEdits(lookup, check, newPackage, selfIntents, pools, dedup)
+    if (sites.isNotEmpty()) applyFacebookHandOffs(sites, facebook)
+    edits()
 }
 
 private class CloneRequest(val packageName: String, val label: String)
@@ -503,9 +547,23 @@ internal val cloneResources = resourcePatch(description = "Move Messenger's mani
         val request = cloneRequest ?: return@finalize
         cloneRequest = null
         val shortcutsPath = resolveShortcutsPath(decode(SHORTCUTS_DIRECTORIES)) { path -> document(path).use { it } }
+        // Settings decoded these already when it's in the patch. Decoding one again would read it back from the APK.
+        val undecoded = MANIFEST_STRINGS.keys.filterNot { get(it, false).exists() }
+        if (undecoded.isNotEmpty()) decode(*undecoded.toTypedArray())
+        if (!get(DEFAULT_STRINGS, false).exists()) fail("Messenger has no $DEFAULT_STRINGS to hold the app name")
         document("AndroidManifest.xml").use { it.renameForClone(request.packageName, request.label) }
         document(shortcutsPath).use { it.retargetShortcuts(request.packageName) }
+        for (path in MANIFEST_STRINGS.keys) if (get(path, false).exists()) document(path).use { it.nameClone(path, request.label) }
     }
+}
+
+/**
+ * The clone's name in the strings file at [path]: its own app name string in the default one, and in every one the
+ * settings label with [label] in HushMessenger's place, so the copy's settings icon reads "Copy settings".
+ */
+internal fun Document.nameClone(path: String, label: String) {
+    if (path == DEFAULT_STRINGS) addStrings(mapOf(CLONE_LABEL to label))
+    MANIFEST_STRINGS[path]?.get(SETTINGS_LABEL)?.let { setString(SETTINGS_LABEL, it.replace(SETTINGS_LABEL_NAME, label)) }
 }
 
 @Suppress("unused")
@@ -534,6 +592,14 @@ val cloneInstallPatch = bytecodePatch(
         required = true,
     ) { isCloneLabel(it) }
 
+    val facebookPackage by stringOption(
+        key = "cloneFacebookPackage",
+        default = FACEBOOK_PACKAGE,
+        title = "Facebook package to open",
+        description = "Which Facebook app Messenger opens profiles and other links in. Leave com.facebook.katana for the regular app, or use a Facebook clone's ID, like com.facebook.katana.morphe. Sign-in and account sharing keep using the regular app.",
+        required = true,
+    ) { isFacebookPackage(it) }
+
     execute {
         val target = packageName?.takeIf(::isClonePackage) ?: fail("$packageName can't be used as a package name")
         val label = appLabel?.takeIf(::isCloneLabel) ?: fail("\"$appLabel\" can't be used as an app name")
@@ -552,8 +618,14 @@ val cloneInstallPatch = bytecodePatch(
             mutableClassDefBy(id.substringBefore("->")).methods.single { it.hookId() == id } to site.substringAfter('@').toInt()
         }
         if (dedup.isEmpty()) fail("Messenger no longer names its push dedup provider")
-        applyCloneSites(methods.getValue(checks.single { it.endsWith("-><init>()V") }), methods.getValue(checks.single { it.endsWith(ATTACHMENT_CHECK) }),
-            target, calls.map { methods.getValue(it.substringBefore('@')) to it.substringAfter('@').toInt() }, pools, dedup)
+        val facebook = facebookPackage?.takeIf(::isFacebookPackage) ?: fail("$facebookPackage can't be used as the Facebook app's name")
+        applyCloneCode(methods.getValue(checks.single { it.endsWith("-><init>()V") }), methods.getValue(checks.single { it.endsWith(ATTACHMENT_CHECK) }),
+            target, calls.map { methods.getValue(it.substringBefore('@')) to it.substringAfter('@').toInt() }, pools, dedup, facebook) {
+            findFacebookHandOffs(classes).map { site ->
+                val id = site.substringBefore('@')
+                mutableClassDefBy(id.substringBefore("->")).methods.single { it.hookId() == id } to site.substringAfter('@').toInt()
+            }
+        }
         requestClone(target, label)
     }
 }

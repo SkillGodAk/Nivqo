@@ -22,6 +22,9 @@ internal const val MARK_READ_BUTTON = "mark_read_button"
 internal const val MARK_READ_BAR = "mark_read_bar"
 /** The shared top bar listener the button's tap goes through. */
 internal const val MARK_READ_CLICK = "mark_read_click"
+internal const val HIDE_CALL_BUTTONS = "hide_call_buttons"
+/** The same two top bar methods as [MARK_READ_BAR]. Hide call buttons works through the calls that seam makes. */
+internal const val HIDE_CALL_BAR = "hide_call_bar"
 internal const val MARK_READ = "Lapp/hushmessenger/extension/MarkReadButton;"
 internal const val MARK_READ_ADD = "$MARK_READ->add(Ljava/util/List;Ljava/lang/Object;)V"
 internal const val MARK_READ_ADD_TO = "$MARK_READ->addTo(Ljava/util/List;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/util/List;"
@@ -29,6 +32,8 @@ internal const val MARK_READ_BUILD = "$MARK_READ->build(Ljava/lang/Object;)Ljava
 internal const val MARK_READ_BUTTON_BUILD = "$MARK_READ->button(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
 /** MarkReadButton.DETAILS_TAG, the chat details button's test tag, which both top bars' details builder sets. */
 internal const val MARK_READ_DETAILS_TAG = "settings_button"
+/** The two everyday MarkReadButton.CALL_TAGS, which the older top bar names, so a build that renames them is refused. */
+internal val MARK_READ_CALL_TAGS = listOf("audio_call_button", "video_call_button")
 internal const val MARK_READ_CLICKED = "$MARK_READ->clicked(Ljava/lang/Object;Landroid/view/View;)Z"
 internal const val MARK_READ_TAG = "$MARK_READ->tag(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val MARK_READ_LABEL = "$MARK_READ->label()Ljava/lang/String;"
@@ -98,7 +103,10 @@ internal data class MarkReadRecipe(
     val factorySite: MarkReadFactory,
     /** The details button's builder, which both bars call. */
     val details: String,
-)
+) {
+    /** The top bar methods whose seam is in. Two controls share it, and whichever comes first writes it. */
+    val seamWritten = mutableSetOf<String>()
+}
 
 internal var markReadRecipe: MarkReadRecipe? = null
 
@@ -159,23 +167,20 @@ internal fun Method.markReadSite(list: Int, socket: Int, socketType: String): In
 }
 
 /**
- * Messenger's top bar keeps the first [MARK_READ_MOST_BUTTONS] buttons: its one subList end is moved from a register
- * whose one reaching definition is that constant. 585's armv7 bar reuses the register for other values before it sets
- * the cap, so it's the definition that reaches the cut, not the only write.
+ * Messenger's top bar keeps the first [MARK_READ_MOST_BUTTONS] buttons: the one reaching definition of its one subList
+ * end is that constant, handed to the cut directly with no move before it.
  */
 internal fun Method.markReadCapMatches(): Boolean {
     val code = markCode()
     val cut = code.indices.singleOrNull { code[it].markRef()?.toString() == SUB_LIST } ?: return false
     val end = code[cut].markArgs().getOrNull(2) ?: return false
-    val move = code.getOrNull(cut - 1) as? TwoRegisterInstruction ?: return false
-    val cap = if (move.registerA == end && (move as Instruction).opcode in setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)) move.registerB else return false
     val flow = try { ReadFlow(this) } catch (_: PatchException) { return false }
-    return flow.narrowConstantAt(cut - 1, cap, depth = 0) == MARK_READ_MOST_BUTTONS
+    return flow.narrowConstantAt(cut, end, depth = 0) == MARK_READ_MOST_BUTTONS
 }
 
 /**
  * A call to a static helper that takes an ImmutableList builder and only builds it, null-checks the list and returns
- * it, which 585's factory builds its button list through.
+ * it, which the factory builds its button list through.
  */
 private fun Instruction.isListBuildHelper(byType: Map<String, ClassDef>): Boolean {
     val ref = markRef() as? MethodReference ?: return false
@@ -193,10 +198,10 @@ private fun Instruction.isListBuildHelper(byType: Map<String, ClassDef>): Boolea
 }
 
 /**
- * The newer bar's seam. The factory, static or (585) an instance method, calls the [details] builder once, and that
- * call reaches exactly one return: the list an ImmutableList builder just built, directly or through a call [isBuild]
+ * The newer bar's seam. The factory, static or (as in 586) an instance method, calls the [details] builder once, and
+ * that call reaches exactly one return: the list an ImmutableList builder just built, directly or through a call [isBuild]
  * accepts, with nothing between that build and the return that writes the list, branches or is landed on. Returns the
- * details button never reaches, such as 585's early lists, are left alone. The account, chat and colors are parameters
+ * details button never reaches, such as early lists, are left alone. The account, chat and colors are parameters
  * of their own types, each declared once and never reassigned. Null when the shape moved.
  */
 internal fun Method.markReadFactorySite(details: String, isBuild: (Instruction) -> Boolean): MarkReadFactory? {
@@ -235,11 +240,11 @@ internal fun Method.markReadFactorySite(details: String, isBuild: (Instruction) 
 }
 
 /**
- * The narrow constant a register holds at [target], following plain moves to the register they copy. Messenger's armv7
- * bars hoist the listener case into a high register and move it down at the call, so the definition is not always a
- * literal. Null unless one definition reaches each step.
+ * The narrow constant a register holds at [target], following plain moves to the register they copy. A bar can hoist
+ * the listener case into a high register and move it down at the call, so the definition is not always a literal. Null
+ * unless one definition reaches each step.
  */
-private fun ReadFlow.narrowConstantAt(target: Int, register: Int, depth: Int = 4): Int? {
+internal fun ReadFlow.narrowConstantAt(target: Int, register: Int, depth: Int = 4): Int? {
     if (depth < 0) return null
     val definition = definitionsAt(target, register).singleOrNull()?.takeIf { it >= 0 } ?: return null
     val instruction = code[definition]
@@ -332,8 +337,8 @@ internal fun resolveMarkReadRecipe(classes: Iterable<ClassDef>): MarkReadRecipe?
     }.distinct().singleOrNull() ?: return null
     val provider = iconProvider ?: return null
     val providerType = provider.substringAfter(')')
-    // The builder keeps its icon in an int field, which a public static helper fills from the provider's result. 585
-    // carries copies of that helper on other public classes; every copy must do the same steps, and the first is used.
+    // The builder keeps its icon in an int field, which a public static helper fills from the provider's result. A build
+    // can carry copies of that helper on other public classes; every copy must do the same steps, and the first is used.
     val setters = classes.filter { it.isPublic() }.flatMap { it.methods }.filter { m ->
         AccessFlags.STATIC.isSet(m.accessFlags) && AccessFlags.PUBLIC.isSet(m.accessFlags) && m.returnType == "V" && m.implementation != null &&
             m.parameterTypes.map(CharSequence::toString).let { it.size == 3 && it[1] == providerType && it[2] == builder }
@@ -390,6 +395,8 @@ internal fun resolveMarkReadRecipe(classes: Iterable<ClassDef>): MarkReadRecipe?
     val site = bar.markReadSite(list, pluginRead.registerB, socketType) ?: return null
     if (!bar.markReadCapMatches()) return null
     val tag = tagField ?: return null
+    // The extension leaves a full bar's call buttons in place by these tags.
+    if (MARK_READ_CALL_TAGS.any { name -> c.none { (it.markRef() as? StringReference)?.string == name } }) return null
     // The chat details button's builder: the bar's one call that takes the chat colors last and returns a button.
     val detailsRef = c.mapNotNull { insn ->
         (insn.markRef() as? MethodReference)?.takeIf { insn.opcode == Opcode.INVOKE_VIRTUAL && it.returnType == specType && it.params().lastOrNull() == MIG_SCHEME }
@@ -440,7 +447,9 @@ private fun markReadRequire(condition: Boolean, detail: String) {
 internal fun MutableMethod.validateMarkReadBar(): MarkReadRecipe {
     val recipe = markReadRecipe
     markReadRequire(recipe != null && (recipe.bar.hookId() == hookId() || recipe.factory.hookId() == hookId()), "no button recipe")
-    if (recipe!!.factory.hookId() == hookId()) {
+    // Written already, by the other control, so the method no longer reads as stock.
+    if (hookId() in recipe!!.seamWritten) return recipe
+    if (recipe.factory.hookId() == hookId()) {
         markReadRequire(markReadFactorySite(recipe.details) { it.markRef()?.toString() == recipe.factorySite.build } == recipe.factorySite,
             "button list return")
         return recipe
@@ -452,6 +461,7 @@ internal fun MutableMethod.validateMarkReadBar(): MarkReadRecipe {
 
 internal fun MutableMethod.injectMarkReadBar() {
     val recipe = validateMarkReadBar()
+    if (!recipe.seamWritten.add(hookId())) return
     if (recipe.factory.hookId() != hookId()) {
         addInstructions(recipe.site, "invoke-static {v${recipe.list}, v${recipe.socket}}, $MARK_READ_ADD")
         return
@@ -500,7 +510,7 @@ internal fun MutableMethod.validateMarkReadStub(id: String) {
         throw PatchException("Messenger controls: the Mark as read button's extension stub changed")
 }
 
-private fun MutableMethod.emptyCopy(registers: Int) = MutableMethod(ImmutableMethod(definingClass, name, parameters, returnType, accessFlags,
+internal fun MutableMethod.emptyCopy(registers: Int) = MutableMethod(ImmutableMethod(definingClass, name, parameters, returnType, accessFlags,
     annotations, hiddenApiRestrictions, ImmutableMethodImplementation(registers, emptyList(), emptyList(), emptyList())))
 
 /** The build(socket) stub's replacement for the older bar: reads the chat, account and colors from the socket for button(). */

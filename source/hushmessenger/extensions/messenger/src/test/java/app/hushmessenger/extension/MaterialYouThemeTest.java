@@ -36,6 +36,19 @@ public class MaterialYouThemeTest {
         CrashGuard.resetForTests();
     }
 
+    @Test public void chatBarsFollowMessengersThemeOnceItAnswers() {
+        org.robolectric.util.ReflectionHelpers.setStaticField(MaterialYouTheme.class, "answered", false);
+        Settings.preferences.edit().putBoolean("light", true).commit();
+        assertTrue("before an answer, Hush's Light theme decides", MaterialYouTheme.chatIsLight());
+        MaterialYouTheme.darkModeAnswer(false);
+        Settings.preferences.edit().putBoolean("light", false).commit();
+        assertTrue("Messenger in light mode, Hush's Light theme off", MaterialYouTheme.chatIsLight());
+        Settings.preferences.edit().putBoolean("light", true).commit();
+        MaterialYouTheme.darkModeAnswer(true);
+        assertFalse("Messenger in dark mode, Hush's Light theme on", MaterialYouTheme.chatIsLight());
+        Settings.preferences.edit().remove("light").commit();
+    }
+
     @Test public void pauseAndResumeRepublishSurfacesWithoutChangingDarkMode() {
         // Robolectric recreates the Application/preferences between tests but retains this class's static cache.
         org.robolectric.util.ReflectionHelpers.setStaticField(MaterialYouTheme.class, "bound", false);
@@ -180,6 +193,44 @@ public class MaterialYouThemeTest {
         MaterialYouTheme.darkModeAnswer(false);
         int grey = 0xFF333334;
         assertEquals("light mode passthrough", grey, MaterialYouTheme.fds(grey));
+    }
+
+    @Test public void theLightSwitchGivesLightModesBluesTheAccentAndNothingElse() {
+        org.robolectric.util.ReflectionHelpers.setStaticField(MaterialYouTheme.class, "bound", true);
+        try {
+            TonePalette pink = TonePalette.fromAccent(0xFFE1306C);
+            MaterialYouTheme.use(pink);
+            MaterialYouTheme.darkModeAnswer(false);
+            int blue = 0xFF0866FF, grey = 0xFF333334, white = 0xFFFFFFFF, translucent = 0x800866FF;
+            // Off by default: light mode keeps Messenger's colors on both routes.
+            for (int color : new int[] {blue, grey, white}) {
+                assertEquals(color, MaterialYouTheme.fds(color));
+                assertEquals(color, MaterialYouTheme.migLight(color));
+            }
+
+            Settings.preferences.edit().putBoolean(MaterialYouTheme.LIGHT_KEY, true).commit();
+            int accent = pink.sameLightness(TonePalette.ACCENT, blue);
+            assertNotEquals(blue, accent);
+            assertEquals(accent, MaterialYouTheme.fds(blue));
+            assertEquals(accent, MaterialYouTheme.migLight(blue));
+            for (int color : new int[] {grey, white, translucent, 0xFFE53935}) {
+                assertEquals(Integer.toHexString(color), color, MaterialYouTheme.fds(color));
+                assertEquals(Integer.toHexString(color), color, MaterialYouTheme.migLight(color));
+            }
+            // Dark mode is unchanged by the light switch: greys still take the neutral.
+            MaterialYouTheme.darkModeAnswer(true);
+            assertEquals(pink.sameLightness(TonePalette.NEUTRAL, grey), MaterialYouTheme.fds(grey));
+            MaterialYouTheme.darkModeAnswer(false);
+
+            Settings.preferences.edit().putBoolean("paused", true).commit();
+            assertEquals(blue, MaterialYouTheme.fds(blue));
+            assertEquals(blue, MaterialYouTheme.migLight(blue));
+            Settings.preferences.edit().putBoolean("paused", false).putBoolean(MaterialYouTheme.KEY, false).commit();
+            assertEquals(blue, MaterialYouTheme.fds(blue));
+            assertEquals(blue, MaterialYouTheme.migLight(blue));
+        } finally {
+            org.robolectric.util.ReflectionHelpers.setStaticField(MaterialYouTheme.class, "bound", false);
+        }
     }
 
     // --- Dark surface detection ---

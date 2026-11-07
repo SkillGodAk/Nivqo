@@ -187,9 +187,10 @@ public final class PostDetails {
 
     /**
      * When [model] was posted: its creation time, and for a video without one, its creation
-     * story's. Null when neither is set or it isn't a tree.
+     * story's. Null when neither is set or it isn't a tree. Public for the date in front of a reel's
+     * song line (ReelDeclutter.audioLineText, #357).
      */
-    static Date postedOf(Object model) {
+    public static Date postedOf(Object model) {
         if (!isLiveTree(model)) return null;
         long seconds = time(model, CREATION_TIME);
         if (seconds <= 0) seconds = time(tree(model, CREATION_STORY), CREATION_TIME);
@@ -257,7 +258,11 @@ public final class PostDetails {
         return isTree(value) ? value : null;
     }
 
-    static List<?> trees(Object model, int field) {
+    /**
+     * The trees in [model]'s list [field], or null when [model] isn't live or the read fails. Public
+     * for the search screen's rows, which read a node's template bundles this way.
+     */
+    public static List<?> trees(Object model, int field) {
         if (!isLiveTree(model)) return null;
         Object value = call(model, "getTreeList", field);
         return value instanceof List ? (List<?>) value : null;

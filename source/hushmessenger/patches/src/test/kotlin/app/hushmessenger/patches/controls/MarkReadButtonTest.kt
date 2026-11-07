@@ -58,7 +58,7 @@ private val FINAL = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
 /**
  * 583's older chat top bar, cut down: the QR scanner block that the button copies, the details button, the padding loop
  * that counts the socket's plugins, then the one walk of the list and the three-button cut. v1 is the list and v2 the
- * socket, as in 583.
+ * socket, as in 583. The cap is loaded into the cut's own register, as 586 does.
  */
 private val BAR_BODY = """
     const/16 v9, 0x3
@@ -67,6 +67,8 @@ private val BAR_BODY = """
     invoke-direct {v1, v8}, Ljava/util/ArrayList;-><init>(I)V
     move-object v2, p0
     const/4 v13, 0x4
+    const-string v8, "audio_call_button"
+    const-string v8, "video_call_button"
     const-string v8, "$QR_BUTTON_NAME"
     iget-object v12, v2, $SOCKET->A05:$QR_BUTTON
     iget-object v8, v12, $QR_BUTTON->A00:Landroid/content/Context;
@@ -110,7 +112,7 @@ private val BAR_BODY = """
     move-result-object v4
     const/4 v4, 0x0
     const/4 v6, 0x0
-    move v5, v9
+    const/4 v5, 0x3
     invoke-virtual {v4, v6, v5}, $IMMUTABLE_LIST->subList(II)$IMMUTABLE_LIST
     return-void
 """.trimIndent()
@@ -271,6 +273,17 @@ class MarkReadButtonTest {
         assertEquals(DETAILS_BUILD, recipe.details)
     }
 
+    // 586's bar hands the cap register straight to subList, with no move down from a higher register before the cut.
+    @Test fun onlyAThreeButtonCapInTheCutsOwnRegisterIsFound() {
+        assertEquals(listOf(SYNTHETIC_MARK_READ_BAR, SYNTHETIC_MARK_READ_FACTORY, SYNTHETIC_MARK_READ_CLICK), found(markReadFixture(bar())))
+        val four = BAR_BODY.replace("const/4 v5, 0x3", "const/4 v5, 0x4")
+        assertTrue(four != BAR_BODY)
+        assertTrue(found(markReadFixture(bar(four))).isEmpty())
+        // A cap moved down from another register before the cut, as 585's bars had it, no longer counts.
+        val moved = BAR_BODY.replace("const/4 v5, 0x3", "move v5, v9")
+        assertTrue(found(markReadFixture(bar(moved))).isEmpty())
+    }
+
     // 585's factory is an instance method whose early returns hand back other lists, and builds the button list through a
     // static helper that only builds and null-checks it. The site is the one return the details button reaches.
     @Test fun anInstanceFactoryReturnsTheListTheDetailsButtonReachesThroughItsBuildHelper() {
@@ -345,7 +358,7 @@ class MarkReadButtonTest {
             "a jump onto the walk itself" to markReadFixture(bar(BAR_BODY.replace("nop\n$walk", "if-eqz v5, :walk\n:walk\n$walk"))),
             "the list written in the seam" to markReadFixture(bar(BAR_BODY.replace("nop\n$walk", "move-object v1, v7\n$walk"))),
             "the socket written in the seam" to markReadFixture(bar(BAR_BODY.replace("nop\n$walk", "move-object v2, v7\n$walk"))),
-            "a bar that keeps four buttons" to markReadFixture(bar(BAR_BODY.replace("const/16 v9, 0x3", "const/16 v9, 0x4"))),
+            "a bar that keeps four buttons" to markReadFixture(bar(BAR_BODY.replace("const/4 v5, 0x3", "const/4 v5, 0x4"))),
             "no Mark as read icon" to markReadFixture(icons = listOf("QR_CODE:A5v")),
             "a builder outside the public API" to markReadFixture(builderFlags = 0),
             "a listener with one free register" to markReadFixture(clickMethod = click(registers = 3)),
@@ -409,6 +422,51 @@ class MarkReadButtonTest {
         assertEquals(listOf(0, 1), code[3].args())
         assertEquals(7, code.branchTarget(5))
         assertEquals(before, code.drop(7))
+    }
+
+    @Test fun bothTopBarControlsWriteTheirSharedSeamOnceInEitherOrder() {
+        for (hideFirst in listOf(true, false)) {
+            val barMethod = bar()
+            val factoryMethod = factory()
+            val clickMethod = click()
+            mirroredControls(markReadFixture(barMethod = barMethod, clickMethod = clickMethod, factoryMethod = factoryMethod))
+            val hide = { injectControl(HIDE_CALL_BUTTONS, mapOf(HIDE_CALL_BAR to listOf(barMethod, factoryMethod))) }
+            val mark = { injectControl(MARK_READ_BUTTON, mapOf(MARK_READ_BAR to listOf(barMethod, factoryMethod), MARK_READ_CLICK to listOf(clickMethod))) }
+            if (hideFirst) { hide(); mark() } else { mark(); hide() }
+            assertEquals(1, barMethod.code().count { it.ref() == MARK_READ_ADD }, "hide first: $hideFirst")
+            assertEquals(1, factoryMethod.code().count { it.ref() == MARK_READ_ADD_TO }, "hide first: $hideFirst")
+            assertEquals(1, clickMethod.code().count { it.ref() == MARK_READ_CLICKED }, "hide first: $hideFirst")
+        }
+    }
+
+    @Test fun askBeforeACallSharesTheSeamWithBothOtherTopBarControls() {
+        val barMethod = bar()
+        val factoryMethod = factory()
+        val clickMethod = click()
+        mirroredControls(markReadFixture(barMethod = barMethod, clickMethod = clickMethod, factoryMethod = factoryMethod))
+        val clickBefore = clickMethod.code()
+        assertEquals(setOf(HIDE_CALL_BAR), controlHooks.getValue("call_confirm"))
+        injectControl("call_confirm", mapOf(HIDE_CALL_BAR to listOf(barMethod, factoryMethod)))
+        assertEquals(MARK_READ_ADD, barMethod.code()[BAR_SITE].ref())
+        assertEquals(1, factoryMethod.code().count { it.ref() == MARK_READ_ADD_TO })
+        assertEquals(clickBefore, clickMethod.code())
+        injectControl(HIDE_CALL_BUTTONS, mapOf(HIDE_CALL_BAR to listOf(barMethod, factoryMethod)))
+        injectControl(MARK_READ_BUTTON, mapOf(MARK_READ_BAR to listOf(barMethod, factoryMethod), MARK_READ_CLICK to listOf(clickMethod)))
+        assertEquals(1, barMethod.code().count { it.ref() == MARK_READ_ADD })
+        assertEquals(1, factoryMethod.code().count { it.ref() == MARK_READ_ADD_TO })
+        assertEquals(1, clickMethod.code().count { it.ref() == MARK_READ_CLICKED })
+    }
+
+    @Test fun hideCallButtonsAloneStillGetsTheSeamAndLeavesTheTapAlone() {
+        val barMethod = bar()
+        val factoryMethod = factory()
+        val clickMethod = click()
+        mirroredControls(markReadFixture(barMethod = barMethod, clickMethod = clickMethod, factoryMethod = factoryMethod))
+        val clickBefore = clickMethod.code()
+        injectControl(HIDE_CALL_BUTTONS, mapOf(HIDE_CALL_BAR to listOf(barMethod, factoryMethod)))
+        assertEquals(MARK_READ_ADD, barMethod.code()[BAR_SITE].ref())
+        assertEquals(1, factoryMethod.code().count { it.ref() == MARK_READ_ADD_TO })
+        assertEquals(clickBefore, clickMethod.code())
     }
 
     @Test fun aStrayMethodRefusesTheControlBeforeAnyEdit() {

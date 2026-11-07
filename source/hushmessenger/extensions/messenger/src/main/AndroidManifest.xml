@@ -9,12 +9,15 @@
         <meta-data android:name="hush.feature.stories" android:value="true" />
         <meta-data android:name="hush.feature.instants_button" android:value="true" />
         <meta-data android:name="hush.feature.subtabs" android:value="true" />
+        <meta-data android:name="hush.feature.inbox_search_bar" android:value="true" />
+        <meta-data android:name="hush.feature.chat_preview" android:value="true" />
         <meta-data android:name="hush.feature.mark_read_action" android:value="true" />
         <meta-data android:name="hush.feature.facebook" android:value="true" />
         <meta-data android:name="hush.feature.meta_ai" android:value="true" />
         <meta-data android:name="hush.feature.moments" android:value="true" />
         <meta-data android:name="hush.feature.reels_badge" android:value="true" />
         <meta-data android:name="hush.feature.tab_people" android:value="true" />
+        <meta-data android:name="hush.feature.tab_people_show" android:value="true" />
         <meta-data android:name="hush.feature.tab_notifications" android:value="true" />
         <meta-data android:name="hush.feature.tab_badges" android:value="true" />
         <meta-data android:name="hush.feature.chat_animation" android:value="true" />
@@ -34,8 +37,10 @@
         <meta-data android:name="hush.feature.original_video" android:value="true" />
         <meta-data android:name="hush.feature.xhe_audio" android:value="true" />
         <meta-data android:name="hush.feature.disappearing_swipe" android:value="true" />
+        <meta-data android:name="hush.feature.message_actions" android:value="true" />
         <meta-data android:name="hush.feature.recent_media" android:value="true" />
         <meta-data android:name="hush.feature.save_voice" android:value="true" />
+        <meta-data android:name="hush.feature.save_voice_menu" android:value="true" />
         <meta-data android:name="hush.feature.share_story" android:value="true" />
         <meta-data android:name="hush.feature.system_camera" android:value="true" />
         <meta-data android:name="hush.feature.external_gallery" android:value="true" />
@@ -43,6 +48,12 @@
         <meta-data android:name="hush.feature.text_style" android:value="true" />
         <meta-data android:name="hush.feature.quiet_calls" android:value="true" />
         <meta-data android:name="hush.feature.car_messages" android:value="true" />
+        <meta-data android:name="hush.feature.local_chat_search" android:value="true" />
+        <meta-data android:name="hush.feature.chat_jump" android:value="true" />
+        <meta-data android:name="hush.feature.landscape" android:value="true" />
+        <meta-data android:name="hush.feature.call_recording" android:value="true" />
+        <meta-data android:name="hush.feature.hide_call_buttons" android:value="true" />
+        <meta-data android:name="hush.feature.call_confirm" android:value="true" />
         <meta-data android:name="hush.feature.external_browser" android:value="true" />
         <meta-data android:name="hush.feature.bubbles" android:value="true" />
         <meta-data android:name="hush.feature.allow_screenshot" android:value="true" />
@@ -51,6 +62,7 @@
         <meta-data android:name="hush.feature.ad_events" android:value="true" />
         <meta-data android:name="hush.feature.mqtt_telemetry" android:value="true" />
         <meta-data android:name="hush.feature.pinned_chats" android:value="true" />
+        <meta-data android:name="hush.feature.hidden_chats" android:value="true" />
         <meta-data android:name="hush.feature.nearby_scans" android:value="true" />
         <meta-data android:name="hush.feature.phone_id_sync" android:value="true" />
         <meta-data android:name="hush.feature.message_log" android:value="true" />
@@ -60,15 +72,20 @@
         <meta-data android:name="hush.feature.keep_unsent" android:value="true" />
         <meta-data android:name="hush.feature.anonymous_stories" android:value="true" />
         <meta-data android:name="hush.feature.save_stories" android:value="true" />
+        <meta-data android:name="hush.feature.blocked_list_pictures" android:value="true" />
+        <meta-data android:name="hush.feature.restricted_notify" android:value="true" />
         <meta-data android:name="hush.feature.material_you" android:value="true" />
         <meta-data android:name="hush.feature.app_icons" android:value="true" />
+        <meta-data android:name="hush.feature.app_themes" android:value="true" />
         <meta-data android:name="hush.feature.avatar_shape" android:value="true" />
+        <meta-data android:name="hush.feature.home_header" android:value="true" />
         <meta-data android:name="hush.feature.custom_font" android:value="true" />
         <provider android:name="app.hushmessenger.extension.SettingsProvider" android:authorities="${applicationId}.hush.settings" android:exported="false" />
         <activity android:name="app.hushmessenger.extension.SettingsActivity" android:icon="@android:drawable/ic_menu_preferences" android:exported="true" android:excludeFromRecents="true" />
         <provider android:name="app.hushmessenger.extension.CameraProvider" android:authorities="${applicationId}.hush.camera" android:exported="false" android:grantUriPermissions="true" />
         <activity android:name="app.hushmessenger.extension.CameraActivity" android:exported="false" android:excludeFromRecents="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" />
         <activity android:name="app.hushmessenger.extension.GalleryActivity" android:exported="false" android:excludeFromRecents="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" />
+        <activity android:name="app.hushmessenger.extension.LocalSearchActivity" android:exported="false" android:excludeFromRecents="true" android:process=":hushsearch" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" android:windowSoftInputMode="adjustResize" />
         <activity android:name="app.hushmessenger.extension.RestartActivity" android:exported="false" android:excludeFromRecents="true" android:noHistory="true" android:configChanges="orientation|screenSize|keyboardHidden" />
         <activity android:name="app.hushmessenger.extension.TextStyleActivity" android:exported="false" android:excludeFromRecents="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity-alias android:name="app.hushmessenger.extension.BoldText" android:targetActivity="app.hushmessenger.extension.TextStyleActivity" android:label="Bold" android:exported="false" android:enabled="false">

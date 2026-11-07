@@ -70,7 +70,7 @@ object CatalogTool {
     })
 
     /** Visible patches that are neither a settings control nor one of the always-on fixes. */
-    val NON_CONTROL_PATCHES = setOf("Install beside Meta apps", "Open settings from menu", "Restore screens on re-signed builds",
+    val NON_CONTROL_PATCHES = setOf("Install beside Meta apps", "Keep chat pop-ups", "Open settings from menu", "Restore screens on re-signed builds",
         "Spoof package version", "Clone install under another package name", "Custom new-message sound", "Custom launcher icon",
         "GmsCore support")
 
@@ -460,7 +460,8 @@ object CatalogTool {
         val references = validateExtensionContract(contents.patcherDex, contents.extensionDex, controls + RECORDED_CAPABILITIES)
         val document = catalog(version, patches)
         val output = Json { prettyPrint = true }.encodeToString(JsonObject.serializer(), document) + "\n"
-        report.parentFile.mkdirs()
+        // A bare file name has no parent until it's made absolute against the working directory.
+        report.absoluteFile.parentFile.mkdirs()
         val digest = MessageDigest.getInstance("SHA-256").digest(bundle.readBytes()).joinToString("") { "%02x".format(it) }
         val published = root.resolve("patches-list.json")
         if (args[0] == "generate") published.writeText(output)

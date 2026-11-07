@@ -7,9 +7,12 @@ package app.morphe.extension.facebook.reels;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+
+import com.facebook.graphservice.tree.TreeJNI;
 
 import org.junit.After;
 import org.junit.Before;
@@ -24,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import app.morphe.extension.facebook.feed.TypedFeedUnit;
 import app.morphe.extension.facebook.settings.FamilyNames;
@@ -75,10 +80,14 @@ public class ReelDeclutterTest {
         Settings.HIDE_REEL_SHARE_BUTTON.resetToDefault();
         Settings.SHOW_REEL_COMMENT_BUTTON.resetToDefault();
         Settings.SHOW_REEL_POST_DATE.resetToDefault();
+        Settings.REEL_POST_DATE_STYLE.resetToDefault();
         Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON.resetToDefault();
         Settings.HIDE_REEL_SOUND_BUTTON.resetToDefault();
+        Settings.REEL_SPEAKER_ABOVE_MENU.resetToDefault();
+        ReelDeclutter.sideSpeaker(null);
         Settings.HIDE_REEL_AUDIO_LINE.resetToDefault();
         Settings.HIDE_SLOW_CONNECTION_MESSAGE.resetToDefault();
+        Settings.HIDE_UP_NEXT.resetToDefault();
         Settings.PLAY_FEED_REELS_WHOLE.resetToDefault();
         BaseSettings.DEBUG.resetToDefault();
         FeedFilterCounters.clear();
@@ -284,6 +293,61 @@ public class ReelDeclutterTest {
     }
 
     /**
+     * The UP NEXT bar under a video opened from the feed (#367) gets its video until the switch is on:
+     * then the lookup is skipped and the videos are handed out empty. Both come back paused, before
+     * the settings are ready and once the switch is off again.
+     */
+    @Test
+    public void upNextGetsItsVideoUntilItsSwitchIsOn() {
+        assertFalse(Settings.HIDE_UP_NEXT.defaultValue);
+        assertFalse("the other Reels switches took the lookup", ReelDeclutter.skipUpNextFetch());
+        assertFalse("the other Reels switches took the videos", ReelDeclutter.hideUpNextVideos());
+        assertFalse("the other Reels switches took the room", ReelDeclutter.skipUpNextRoom());
+        Settings.HIDE_UP_NEXT.save(true);
+        assertTrue(ReelDeclutter.skipUpNextFetch());
+        assertTrue(ReelDeclutter.hideUpNextVideos());
+        assertTrue(ReelDeclutter.skipUpNextRoom());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("the lookup went while paused", ReelDeclutter.skipUpNextFetch());
+        assertFalse("the videos went while paused", ReelDeclutter.hideUpNextVideos());
+        assertFalse("the room went while paused", ReelDeclutter.skipUpNextRoom());
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> {
+            assertFalse("the lookup went before the settings were ready", ReelDeclutter.skipUpNextFetch());
+            assertFalse("the videos went before the settings were ready", ReelDeclutter.hideUpNextVideos());
+            assertFalse("the room went before the settings were ready", ReelDeclutter.skipUpNextRoom());
+        });
+        Settings.HIDE_UP_NEXT.save(false);
+        assertFalse("turning the switch off didn't bring the lookup back", ReelDeclutter.skipUpNextFetch());
+        assertFalse("turning the switch off didn't bring the videos back", ReelDeclutter.hideUpNextVideos());
+        assertFalse("turning the switch off didn't bring the room back", ReelDeclutter.skipUpNextRoom());
+        assertEquals(ReelDeclutter.UP_NEXT_ROUTE + ": 15 lists, 15 items, 3 removed. Last reason: "
+                        + ReelDeclutter.UP_NEXT_ROOM + ". Removed: " + ReelDeclutter.UP_NEXT_FETCH + " 1, "
+                        + ReelDeclutter.UP_NEXT_ROOM + " 1, " + ReelDeclutter.UP_NEXT_VIDEOS + " 1. Kinds: "
+                        + ReelDeclutter.UP_NEXT_FETCH + " 5, " + ReelDeclutter.UP_NEXT_ROOM + " 5, "
+                        + ReelDeclutter.UP_NEXT_VIDEOS + " 5",
+                line(ReelDeclutter.UP_NEXT_ROUTE));
+    }
+
+    /** An Up next switch that can't be read keeps the lookup and its videos, and the report names the hook. */
+    @Test
+    public void anUpNextSwitchThatCantBeReadKeepsTheVideo() {
+        SettingReadsForTests.breakReads(Settings.HIDE_UP_NEXT);
+        try {
+            assertFalse(ReelDeclutter.skipUpNextFetch());
+            assertFalse(ReelDeclutter.hideUpNextVideos());
+            assertFalse(ReelDeclutter.skipUpNextRoom());
+        } finally {
+            SettingReadsForTests.mend(Settings.HIDE_UP_NEXT);
+        }
+        String missing = HookStatus.missing(FamilyNames.REEL_DECLUTTER).toString();
+        for (String kind : new String[] {ReelDeclutter.UP_NEXT_FETCH, ReelDeclutter.UP_NEXT_VIDEOS, ReelDeclutter.UP_NEXT_ROOM}) {
+            assertTrue(missing, missing.contains("a working '" + kind + "' hook (it threw "
+                    + NullPointerException.class.getName() + ")"));
+        }
+    }
+
+    /**
      * A tile of the feed's Reels row (#228) keeps Facebook's clip and end until its switch is on, then
      * skips the clip and plays to the end, and both come back paused, before the settings are ready
      * and once the switch is off again. A check that already said no stays no either way.
@@ -382,6 +446,110 @@ public class ReelDeclutterTest {
         assertTrue(ReelDeclutter.showsPostDate(true));
     }
 
+    private static final long NOW = 1793620800_000L; // 2026-11-02 12:00 UTC
+    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
+
+    /**
+     * A reel older than Facebook's server switches allow got no date at all (#357). With the switch
+     * on it now reads how long ago, and The date gives the day it was posted, with the year only for
+     * an earlier one. Facebook's own words stay with How long ago, and a time that can't be a post's
+     * keeps whatever Facebook had.
+     */
+    @Test
+    public void anOldReelGetsItsPostDateWorded() {
+        long threeWeeks = NOW / 1000 - 21L * 24 * 60 * 60;
+        assertEquals("3 weeks ago", ReelDeclutter.postDate(null, threeWeeks, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
+        assertNull("the switch off kept Facebook's blank", ReelDeclutter.postDate(null, threeWeeks, NOW, ReelDateStyle.AGO, false, Locale.US, UTC));
+        assertEquals("2d", ReelDeclutter.postDate("2d", threeWeeks, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
+        assertEquals("1 year ago", ReelDeclutter.postDate(null, 1760281200L, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
+
+        assertEquals("Oct 12", ReelDeclutter.postDate("2d", 1791817200L, NOW, ReelDateStyle.DATE, true, Locale.US, UTC));
+        assertEquals("Oct 12", ReelDeclutter.postDate(null, 1791817200L, NOW, ReelDateStyle.DATE, false, Locale.US, UTC));
+        assertEquals("Oct 12, 2025", ReelDeclutter.postDate(null, 1760281200L, NOW, ReelDateStyle.DATE, true, Locale.US, UTC));
+        assertEquals("the day in the phone's own time zone", "Oct 11",
+                ReelDeclutter.postDate(null, 1791770400L, NOW, ReelDateStyle.DATE, true, Locale.US, TimeZone.getTimeZone("America/New_York")));
+        assertEquals("12. Okt.", ReelDeclutter.postDate(null, 1791817200L, NOW, ReelDateStyle.DATE, true, Locale.GERMANY, UTC));
+
+        for (long impossible : new long[]{0, -5, NOW / 1000 + 3600}) {
+            assertNull(ReelDeclutter.postDate(null, impossible, NOW, ReelDateStyle.DATE, true, Locale.US, UTC));
+            assertEquals("2d", ReelDeclutter.postDate("2d", impossible, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
+        }
+        assertEquals("a clock a few seconds behind isn't the future", "Nov 2",
+                ReelDeclutter.postDate(null, NOW / 1000 + 30, NOW, ReelDateStyle.DATE, true, Locale.US, UTC));
+    }
+
+    /** The hook words the date from the saved list, counts it once, and hands Facebook's words back paused. */
+    @Test
+    public void thePostDateHookFollowsTheList() {
+        long threeWeeks = System.currentTimeMillis() / 1000 - 21L * 24 * 60 * 60;
+        assertEquals(ReelDateStyle.AGO, Settings.REEL_POST_DATE_STYLE.defaultValue);
+        assertFalse("asked as each reel's date is worded, so no restart", Settings.REEL_POST_DATE_STYLE.rebootApp);
+        assertNull("off by default, Facebook's blank stays", ReelDeclutter.postDateText(null, threeWeeks));
+        assertEquals("2d", ReelDeclutter.postDateText("2d", threeWeeks));
+        assertNull(line(ReelDeclutter.DATE_ROUTE));
+
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertEquals("3 weeks ago", ReelDeclutter.postDateText(null, threeWeeks));
+        Settings.REEL_POST_DATE_STYLE.save(ReelDateStyle.DATE);
+        String day = ReelDeclutter.postDateText("2d", threeWeeks);
+        assertNotNull(day);
+        assertFalse(day, day.contains("ago") || day.equals("2d"));
+        assertTrue(line(ReelDeclutter.DATE_ROUTE), line(ReelDeclutter.DATE_ROUTE).contains(ReelDeclutter.DATE_WORDED));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals("the date was reworded while paused", "2d", ReelDeclutter.postDateText("2d", threeWeeks));
+        assertNull(ReelDeclutter.postDateText(null, threeWeeks));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertEquals("reworded before the settings were ready", "2d", ReelDeclutter.postDateText("2d", threeWeeks)));
+        SettingReadsForTests.breakReads(Settings.SHOW_REEL_POST_DATE);
+        try {
+            assertEquals("a failing read reworded the date", "2d", ReelDeclutter.postDateText("2d", threeWeeks));
+        } finally {
+            SettingReadsForTests.mend(Settings.SHOW_REEL_POST_DATE);
+        }
+    }
+
+    /**
+     * On a reel with a song the Reels tab draws the song's line where the date would go (#357), so the
+     * date goes in front of it, worded the same way. A time that can't be a post's, a story that holds
+     * none or isn't a live tree, the switch off, a pause and unready settings all keep the song line.
+     */
+    @Test
+    public void theDateGoesInFrontOfTheSongLine() {
+        String song = "Some Band" + ReelDeclutter.DOT + "Original audio";
+        long threeWeeks = NOW / 1000 - 21L * 24 * 60 * 60;
+        assertEquals("3 weeks ago" + ReelDeclutter.DOT + song,
+                ReelDeclutter.audioLine(song, threeWeeks, NOW, ReelDateStyle.AGO, Locale.US, UTC));
+        assertEquals("Oct 12" + ReelDeclutter.DOT + song,
+                ReelDeclutter.audioLine(song, 1791817200L, NOW, ReelDateStyle.DATE, Locale.US, UTC));
+        for (ReelDateStyle style : ReelDateStyle.values()) {
+            assertSame(song, ReelDeclutter.audioLine(song, 0, NOW, style, Locale.US, UTC));
+            assertSame(song, ReelDeclutter.audioLine(song, NOW / 1000 + 3600, NOW, style, Locale.US, UTC));
+        }
+
+        long posted = System.currentTimeMillis() / 1000 - 21L * 24 * 60 * 60;
+        TreeJNI story = new TreeJNI().with("creation_time", posted);
+        assertSame("off by default, the song line stays", song, ReelDeclutter.audioLineText(song, story));
+        assertNull(line(ReelDeclutter.DATE_ROUTE));
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertEquals("3 weeks ago" + ReelDeclutter.DOT + song, ReelDeclutter.audioLineText(song, story));
+        assertTrue(line(ReelDeclutter.DATE_ROUTE), line(ReelDeclutter.DATE_ROUTE).contains(ReelDeclutter.DATE_ON_SONG));
+        assertSame("a story with no time", song, ReelDeclutter.audioLineText(song, new TreeJNI()));
+        assertSame("a story that isn't a tree", song, ReelDeclutter.audioLineText(song, "story"));
+        assertSame("no story", song, ReelDeclutter.audioLineText(song, null));
+        TreeJNI released = new TreeJNI().with("creation_time", posted).releasedTree();
+        assertSame("a released story", song, ReelDeclutter.audioLineText(song, released));
+        assertFalse("the released story was read", released.readAfterRelease);
+        assertNull("no line stays no line", ReelDeclutter.audioLineText(null, story));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame("dated while paused", song, ReelDeclutter.audioLineText(song, story));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertSame("dated before the settings were ready", song, ReelDeclutter.audioLineText(song, story)));
+    }
+
     /**
      * A video author's Subscribe pill (#291) goes only with the switch on, from the viewer's row and
      * from a shared row's slot. A Follow pill stays, a slot takes the builder's note once, and the
@@ -395,8 +563,12 @@ public class ReelDeclutterTest {
         assertTrue(ReelDeclutter.showAuthorPill(true, true));
         ReelDeclutter.noteAuthorPill(true);
         assertSame(slot, ReelDeclutter.authorPillSlot(slot));
+        assertEquals("the row's own Subscribe with the switch off", 1, ReelDeclutter.authorPillAnswer(true));
+        assertEquals("the row's own Follow with the switch off", 0, ReelDeclutter.authorPillAnswer(false));
 
         Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON.save(true);
+        assertEquals("the row kept its own Subscribe", -1, ReelDeclutter.authorPillAnswer(true));
+        assertEquals("the row lost its own Follow", 0, ReelDeclutter.authorPillAnswer(false));
         assertFalse("the row built the Subscribe pill", ReelDeclutter.showAuthorPill(true, true));
         assertTrue("the row lost its Follow pill", ReelDeclutter.showAuthorPill(false, true));
         assertFalse("a row with no pill got one", ReelDeclutter.showAuthorPill(false, false));
@@ -409,6 +581,7 @@ public class ReelDeclutterTest {
 
         PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
         assertTrue("the pill went while paused", ReelDeclutter.showAuthorPill(true, true));
+        assertEquals("the row's own pill went while paused", 1, ReelDeclutter.authorPillAnswer(true));
         ReelDeclutter.noteAuthorPill(true);
         assertSame("the slot emptied while paused", slot, ReelDeclutter.authorPillSlot(slot));
         PauseForTests.resume();
@@ -914,6 +1087,158 @@ public class ReelDeclutterTest {
         PauseForTests.resume();
         Settings.HIDE_REEL_SOUND_BUTTON.save(false);
         assertSame("turning the switch off didn't bring the footer's speaker back", button, ReelDeclutter.soundButton(button));
+    }
+
+    /**
+     * Move the speaker above the three dots (#331): off, each place keeps Facebook's answer. On, a reel
+     * marked by its builder has its speaker built by the side column and dropped everywhere else, and
+     * the builder is told to build it only while the side column asks.
+     */
+    @Test
+    public void aMarkedReelsSpeakerGoesToItsSideColumnOnlyWhileTheSwitchIsOn() {
+        Object reel = new Object();
+        Object corner = new Object();
+        Object button = new Object();
+        assertFalse(Settings.REEL_SPEAKER_ABOVE_MENU.defaultValue);
+        ReelDeclutter.sideColumnComing(reel);
+        ReelDeclutter.rememberCorner(reel, corner);
+        assertNull("off, the side column got a speaker", ReelDeclutter.cornerForSide(reel));
+        assertSame("off, the corner lost its speaker", button, ReelDeclutter.speakerStays(button, reel));
+        assertFalse("off, the side column's layout changed", ReelDeclutter.speakerLayout(false));
+        assertTrue(ReelDeclutter.speakerLayout(true));
+        assertTrue("off, the builder took the controls' speaker", ReelDeclutter.footerLeavesSpeaker(true));
+
+        Settings.REEL_SPEAKER_ABOVE_MENU.save(true);
+        assertTrue("the side column kept the layout with no buttons list", ReelDeclutter.speakerLayout(false));
+        ReelDeclutter.sideColumnComing(reel);
+        assertSame("a mark alone took the corner's speaker", button, ReelDeclutter.speakerStays(button, reel));
+        ReelDeclutter.rememberCorner(reel, corner);
+        assertNull("the corner kept a second speaker", ReelDeclutter.speakerStays(button, reel));
+        assertNull("nothing built became something", ReelDeclutter.speakerStays(null, reel));
+
+        assertTrue("the builder was told before the side column asked", ReelDeclutter.footerLeavesSpeaker(true));
+        assertSame(corner, ReelDeclutter.cornerForSide(reel));
+        assertFalse("the builder left the side column's speaker to the controls", ReelDeclutter.footerLeavesSpeaker(true));
+        assertFalse(ReelDeclutter.footerLeavesSpeaker(false));
+        assertSame(button, ReelDeclutter.sideSpeaker(button));
+        assertTrue("the builder went on building it after the side column", ReelDeclutter.footerLeavesSpeaker(true));
+        assertTrue(HookStatus.report().toString(),
+                HookStatus.report().toString().contains("Counted: " + ReelDeclutter.SPEAKER_MOVED + " 1"));
+
+        Settings.REEL_SPEAKER_ABOVE_MENU.save(false);
+        assertSame("turning the switch off didn't hand the speaker back", button, ReelDeclutter.speakerStays(button, reel));
+        assertNull(ReelDeclutter.cornerForSide(reel));
+    }
+
+    /** A reel no side column can take the speaker for, or a builder that hasn't got to the corner, keeps Facebook's. */
+    @Test
+    public void aReelWithoutAMarkAndACornerKeepsItsSpeaker() {
+        Object reel = new Object();
+        Object corner = new Object();
+        Object button = new Object();
+        Settings.REEL_SPEAKER_ABOVE_MENU.save(true);
+        ReelDeclutter.rememberCorner(reel, corner);
+        assertSame("a corner alone took the speaker", button, ReelDeclutter.speakerStays(button, reel));
+        assertNull("a corner alone put one in the side column", ReelDeclutter.cornerForSide(reel));
+        ReelDeclutter.sideColumnComing(reel);
+        assertNull("a mark alone put one in the side column", ReelDeclutter.cornerForSide(reel));
+
+        // Built again, the reel waits for the new corner.
+        ReelDeclutter.rememberCorner(reel, corner);
+        assertNotNull(ReelDeclutter.cornerForSide(reel));
+        ReelDeclutter.sideSpeaker(null);
+        ReelDeclutter.sideColumnComing(reel);
+        assertSame("the old corner stood in for the new one", button, ReelDeclutter.speakerStays(button, reel));
+
+        assertNull(ReelDeclutter.cornerForSide(null));
+        assertSame(button, ReelDeclutter.speakerStays(button, null));
+        ReelDeclutter.sideColumnComing(null);
+        ReelDeclutter.rememberCorner(null, corner);
+    }
+
+    @Test
+    public void twoReelsDontShareAMoveAndTheOldestMarkGoesFirst() {
+        Object button = new Object();
+        Settings.REEL_SPEAKER_ABOVE_MENU.save(true);
+        Object[] reels = new Object[ReelDeclutter.MOVED_SPEAKERS_KEPT + 1];
+        Object[] corners = new Object[reels.length];
+        for (int i = 0; i < reels.length; i++) {
+            reels[i] = new Object();
+            corners[i] = new Object();
+            ReelDeclutter.sideColumnComing(reels[i]);
+            ReelDeclutter.rememberCorner(reels[i], corners[i]);
+        }
+        Object last = reels[reels.length - 1];
+        assertSame(corners[reels.length - 1], ReelDeclutter.cornerForSide(last));
+        ReelDeclutter.sideSpeaker(null);
+        assertSame(corners[1], ReelDeclutter.cornerForSide(reels[1]));
+        ReelDeclutter.sideSpeaker(null);
+        assertSame("a reel past the bound stayed marked", button, ReelDeclutter.speakerStays(button, reels[0]));
+        assertNull(ReelDeclutter.cornerForSide(reels[0]));
+        assertSame("a reel never seen lost its speaker", button, ReelDeclutter.speakerStays(button, new Object()));
+    }
+
+    /** Hide the speaker button still wins with the switch on: no place has a speaker. */
+    @Test
+    public void hidingTheSpeakerBeatsMovingIt() {
+        Object reel = new Object();
+        Object corner = new Object();
+        Object button = new Object();
+        Settings.REEL_SPEAKER_ABOVE_MENU.save(true);
+        Settings.HIDE_REEL_SOUND_BUTTON.save(true);
+        ReelDeclutter.sideColumnComing(reel);
+        ReelDeclutter.rememberCorner(reel, corner);
+        assertNull("the side column kept the speaker", ReelDeclutter.cornerForSide(reel));
+        assertNull("the corner kept the speaker", ReelDeclutter.soundButton(ReelDeclutter.speakerStays(button, reel)));
+
+        Settings.REEL_SPEAKER_ABOVE_MENU.save(false);
+        assertSame(button, ReelDeclutter.speakerStays(button, reel));
+        assertNull("the hide switch stopped reaching the corner's speaker", ReelDeclutter.soundButton(button));
+    }
+
+    @Test
+    public void pausedOrNotReadyTheSpeakerStaysWhereFacebookPutIt() {
+        Object reel = new Object();
+        Object corner = new Object();
+        Object button = new Object();
+        Settings.REEL_SPEAKER_ABOVE_MENU.save(true);
+        ReelDeclutter.sideColumnComing(reel);
+        ReelDeclutter.rememberCorner(reel, corner);
+        for (HushfacebookPause.Reason why : new HushfacebookPause.Reason[]{
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP,
+                HushfacebookPause.Reason.MARKER_FILE}) {
+            PauseForTests.pause(why);
+            assertNull(why + " moved the speaker", ReelDeclutter.cornerForSide(reel));
+            assertSame(why + " took the corner's speaker", button, ReelDeclutter.speakerStays(button, reel));
+            assertFalse(why + " changed the layout", ReelDeclutter.speakerLayout(false));
+            PauseForTests.resume();
+        }
+        SettingsContextRule.withoutContext(() -> {
+            assertNull(ReelDeclutter.cornerForSide(reel));
+            assertSame(button, ReelDeclutter.speakerStays(button, reel));
+            assertFalse(ReelDeclutter.speakerLayout(false));
+        });
+    }
+
+    /** A switch that can't be read leaves the speaker where Facebook put it, and the report names the hook. */
+    @Test
+    public void aMoveSwitchThatCantBeReadKeepsFacebooksAnswer() {
+        Object reel = new Object();
+        Object corner = new Object();
+        Object button = new Object();
+        Settings.REEL_SPEAKER_ABOVE_MENU.save(true);
+        ReelDeclutter.sideColumnComing(reel);
+        ReelDeclutter.rememberCorner(reel, corner);
+        SettingReadsForTests.breakReads(Settings.REEL_SPEAKER_ABOVE_MENU);
+        try {
+            assertNull(ReelDeclutter.cornerForSide(reel));
+            assertSame(button, ReelDeclutter.speakerStays(button, reel));
+            assertFalse(ReelDeclutter.speakerLayout(false));
+            assertTrue(ReelDeclutter.speakerLayout(true));
+        } finally {
+            SettingReadsForTests.mend(Settings.REEL_SPEAKER_ABOVE_MENU);
+        }
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelDeclutter.SPEAKER_MOVED));
     }
 
     @Test

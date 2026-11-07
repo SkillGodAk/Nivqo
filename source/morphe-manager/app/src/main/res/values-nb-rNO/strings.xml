@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Skjul denne appen?</string>
     <string name="home_more_apps_title">Flere apper</string>
     <string name="home_more_apps_hide_title">Skjul dette kortet?</string>
-    <string name="home_more_apps_hide_message">Du kan bringe den tilbake når som helst i Innstillinger &gt; Utseende &gt; Hjemmeskjerm</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Du kan få den tilbake når som helst i %1$s</string>
     <string name="home_app_hide_message">Denne appen vil være skjult fra startskjermen. Du kan gjenopprette den senere fra de skjulte appene ved hjelp av knappen nederst i listen</string>
     <string name="home_app_will_be_hidden">Denne appen vil bli skjult</string>
     <string name="home_app_hidden_named">%s skjult</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">Søk etter apper</string>
     <string name="list_options_title">Sorter og filtrer</string>
     <string name="list_options_state_description">Sortert etter %1$s, filtrert etter %2$s</string>
-    <string name="home_app_filter_all_description">Alle apper på startskjermen</string>
-    <string name="home_app_filter_patched_description">Apper du har patchet eller lagret med Nivqo</string>
-    <string name="home_app_filter_not_patched_description">Apper du ikke har patchet i Morphe ennå</string>
-    <string name="home_app_filter_installed_description">Apper som er installert på denne enheten</string>
-    <string name="home_app_filter_uninstalled_description">Apper patchet med Morphe som ikke lenger er på denne enheten</string>
     <string name="home_app_filter_clones">Kloner</string>
-    <string name="home_app_filter_clones_description">Apper bygget under et eget pakkenavn, installert ved siden av originalen</string>
     <string name="home_app_grouping_none">Ingen</string>
-    <string name="home_app_grouping_all_apps_description">Én liste med alle apper</string>
-    <string name="home_app_grouping_sources_description">Apper under kildekategorien som tilbyr dem</string>
-    <string name="home_app_grouping_custom_description">Apper i kategorier du oppretter</string>
-    <string name="home_app_sort_manual_description">Trykk og hold på en app, og trykk deretter på sorter-knappen</string>
+    <string name="home_app_sort_manual_hint">Hold inne en app, og trykk deretter på knappen for å endre rekkefølge</string>
     <string name="home_app_sort_recommended">Anbefalt rekkefølge</string>
-    <string name="home_app_sort_recommended_description">Installerte og fastsatte apper først</string>
-    <string name="home_app_sort_name_asc_description">Alfabetisk, A til Å</string>
-    <string name="home_app_sort_name_desc_description">Omvendt alfabetisk, Å til A</string>
     <string name="home_app_sort_updates_first">Patch-oppdateringer først</string>
-    <string name="home_app_sort_updates_first_description">Apper med nyere patcher først, deretter anbefalt rekkefølge</string>
     <string name="home_app_sort_recently_patched">Nylig patchet</string>
-    <string name="home_app_sort_recently_patched_description">Siste patchede apper først</string>
     <string name="home_no_apps_title">Ingen apper tilgjengelig</string>
     <string name="home_no_apps_subtitle">Legg til en patch-kilde eller aktiver en eksisterende i %s</string>
     <string name="home_no_apps_search_subtitle">Ingen apper samsvarer med \"%s\"</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">Ingenting matchet %s</string>
     <string name="home_category_add">Legg til kategori</string>
     <string name="home_category_all_apps">Alle apper</string>
-    <string name="home_category_custom">Tilpasset</string>
+    <string name="home_app_grouping_categories">Kategorier</string>
     <string name="home_category_uncategorized">Usortert</string>
     <string name="home_category_new_title">Ny kategori</string>
     <string name="home_category_rename_title">Gi nytt navn til kategori</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">Patch-kilder</string>
     <string name="sources_search">Søk etter kilder og patcher</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Alle kilder</string>
-    <string name="sources_filter_enabled_description">Kildefiks er hentet fra</string>
-    <string name="sources_filter_disabled_description">Kilder deaktivert</string>
     <string name="sources_filter_issues">Trenger oppmerksomhet</string>
-    <string name="sources_filter_issues_description">Kilder som er blokkert, feilet ved lasting eller trenger en nyere Morphe</string>
     <string name="sources_sort_manual">Manuell rekkefølge</string>
     <string name="sources_sort_manual_hint">Trykk og hold nede en kilde for å endre rekkefølgen</string>
     <string name="sources_sort_last_updated">Sist oppdatert</string>
-    <string name="sources_sort_last_updated_description">Nyeste oppdateringer først</string>
     <string name="sources_sort_enabled_first">Aktiverte først</string>
-    <string name="sources_sort_enabled_first_description">Vis aktive kilder før deaktiverte kilder</string>
     <string name="sources_patches_source_disabled_hint">Denne kilden er deaktivert. Patchene er oppført for referanse og blir ikke brukt</string>
     <string name="sources_management_open_in_browser">Åpne i nettleser</string>
     <string name="sources_management_report_issue">Rapporter et problem</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">Godkjent nøkkel</string>
     <string name="sources_signing_key_new">Ny nøkkel</string>
     <string name="sources_patch_expert_badge">Ekspert</string>
-    <string name="sources_patch_expert_badge_tooltip">Aktiver Ekspertmodus i Innstillinger for å inkludere denne patchen manuelt</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Slå på %1$s for å inkludere denne patchen manuelt</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">Trenger du hjelp til å finne APK-filen?</string>
     <string name="home_apk_availability_dialog_simple">For å patche &lt;b&gt;%s&lt;/b&gt;, trenger du den upatchede APK-versjonen:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">Anbefalt</string>
     <string name="home_apk_availability_unpatched_label">Ikke patchet</string>
     <string name="home_apk_availability_incompatible_label">Inkompatibel</string>
-    <string name="home_apk_availability_installed_version">Installert på denne enheten: %s</string>
     <string name="home_apk_availability_find">Ja, hjelp meg å finne den</string>
     <string name="home_apk_availability_have">Nei, jeg har den allerede</string>
     <string name="home_apk_helper_download">Bruk en hjelpeapp</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">Finner nedlastingssiden…</string>
     <string name="home_download_instructions_step1">Trykk på \'%s\'-knappen nedenfor</string>
     <string name="home_download_instructions_step2_part1">Rull nedover nettsiden og trykk på</string>
+    <string name="home_download_instructions_step2_apkcube">Rull ned på nettsiden, velg versjon &lt;b&gt;%s&lt;/b&gt; og trykk</string>
     <string name="home_download_instructions_step2_generic">Rull nedover på nettsiden og trykk på nedlastingsknappen</string>
     <string name="home_download_instructions_step2_variant">Rull nedover på nettsiden og trykk på nedlastingsknappen til den øverste &lt;b&gt;APK-varianten&lt;/b&gt;</string>
     <string name="home_download_instructions_step2_search">Åpne et søkeresultat fra et nettsted du stoler på</string>
     <string name="home_download_instructions_step2_search_note">Morphe kan ikke gå god for disse nettstedene. Hopp over de som tilbyr sin egen appbutikk i stedet for en APK-fil</string>
     <string name="home_download_instructions_step3_search">På det nettstedet laster du ned APK-en til versjon &lt;b&gt;%s&lt;/b&gt;, ikke den nyeste</string>
     <string name="home_download_instructions_step3_search_any">På det nettstedet laster du ned APK-en til appen. &lt;b&gt;Enhver versjon&lt;/b&gt; kan bli patchet</string>
+    <string name="home_download_instructions_step2_github">Under &lt;b&gt;Assets&lt;/b&gt; for utgivelse &lt;b&gt;%s&lt;/b&gt;, trykk på filen som slutter på &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_latest">Under &lt;b&gt;Assets&lt;/b&gt; for den nyeste utgivelsen, trykk på filen som slutter på &lt;b&gt;.apk&lt;/b&gt;</string>
+    <string name="home_download_instructions_step2_github_note">Hvis det er flere APK-filer, velg den som er oppkalt etter %s eller den universelle</string>
     <string name="home_download_instructions_download_button_toast">Trykk på nedlastingsknappen på nettsiden, og ikke her 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Flott! Klikk nå fortsett og gå til nettsiden 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Øvelse gjør mester, og du er på vei 💪</string>
@@ -518,11 +503,13 @@ For de beste resultatene anbefaler denne appen å patche en &lt;b&gt;full APK-fi
     <string name="batch_queue_pending_subtitle">Trykk for å gjennomgå og starte</string>
     <string name="batch_queue_clear_title">Tøm køen?</string>
     <string name="batch_queue_clear_description">Alle appene blir fjernet fra køen</string>
+    <string name="batch_queue_keep_title">Beholde køen?</string>
+    <string name="batch_queue_keep_description">Appene i køen vil vente på startskjermen for å bli startet senere</string>
+    <string name="batch_queue_keep">Behold</string>
     <string name="shortcut_repatch_short">Repatch</string>
     <string name="shortcut_repatch_long">Repatch utdaterte apper</string>
     <string name="shortcut_check_updates_short">Sjekk oppdateringer</string>
     <string name="shortcut_check_updates_long">Se etter patch-oppdateringer</string>
-    <string name="shortcut_patch_app">Patch %s</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Avinstallere denne appen?</string>
     <string name="home_app_info_uninstall_removes_data">Appen og dataene fjernes fra denne enheten</string>
@@ -543,6 +530,7 @@ For de beste resultatene anbefaler denne appen å patche en &lt;b&gt;full APK-fi
     <string name="home_app_info_install_type_custom_installer">Tilpasset installasjonsprogram</string>
     <string name="home_app_info_install_type_system_installer">Systeminstallasjonsprogram</string>
     <string name="home_app_info_install_type_play_store">Installer fra Play Butikk</string>
+    <string name="home_app_info_install_type_root">Root-installasjon</string>
     <string name="home_app_info_install_type_root_play_store">Root-installasjon fra Play Butikk</string>
     <string name="home_app_info_install_type_shizuku_play_store">Shizuku Play Butikk-installasjon</string>
     <string name="home_app_info_patch_update_available">Patch-oppdatering tilgjengelig</string>
@@ -584,7 +572,8 @@ For de beste resultatene anbefaler denne appen å patche en &lt;b&gt;full APK-fi
     <string name="root_mount_module_unmount_warning">Hvis KernelSU har \"Slett moduler som standard\" slått på, åpne KernelSU &gt; Superuser &gt; appen du monterte &gt; Profil &gt; Egendefinert og slå av \"Slett moduler\". Ellers kan den monterne patchede APK-en kanskje ikke tre i kraft, selv om Morphe viser at den er montert</string>
     <string name="root_pre_patch_installer_standard_title">Standard installasjonsmodus</string>
     <string name="root_pre_patch_installer_standard_description">Installerer som en vanlig APK med GmsCore-støtte. Dine installasjonsinnstillinger brukes etter installasjonen.</string>
-    <string name="root_pre_patch_installer_hint">Spurt under Innstillinger &gt; Patching &gt; Installasjon &gt; Velger for installatør. Patchmodus kan ikke endres etter patching</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">Spurt mens %1$s er satt til %2$s. Patch-modus kan ikke endres etter patching</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Feil kopiert til utklippstavlen</string>
     <string name="patcher_error_log">Feillogg</string>
@@ -683,6 +672,14 @@ Avinstallering vil permanent slette alle appdata"</string>
     <string name="patcher_step_group_saving">Lagrer</string>
     <string name="patcher_step_write_patched">Skriver patchet APK-fil</string>
     <string name="patcher_step_sign_apk">Signerer patchet APK-fil</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">Leser DEX-filer</string>
+    <string name="patcher_task_extracting_resources">Henter ut ressurser</string>
+    <string name="patcher_task_decoding_resources">Dekoder ressurser</string>
+    <string name="patcher_task_indexing_classes">Indekserer klasser</string>
+    <string name="patcher_task_compiling_dex">Kompilerer DEX-filer</string>
+    <string name="patcher_task_compiling_resources">Kompilerer ressurser</string>
+    <string name="patcher_task_writing_apk">Skriver APK-fil</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Beskyttelse for patching i bakgrunnen</string>
     <string name="battery_optimization_dialog_description">Noen enheter kan stoppe patchingen når appen minimeres. La Morphe kjøre uten batteribegrensninger for å sikre at oppdateringen fullføres pålitelig.</string>
@@ -731,7 +728,8 @@ Avinstallering vil permanent slette alle appdata"</string>
     <string name="patched_app_save_failed_toast">Kunne ikke lagre patchet app</string>
     <string name="plugin_activity_dialog_body">Brukerinteraksjon er nødvendig for å fortsette med dette pluginet</string>
     <string name="patcher_process_killed_message">Systemet stoppet patcheren før den ble ferdig, vanligvis for å frigjøre minne. Lukk andre apper og prøv igjen</string>
-    <string name="patcher_process_crashed_message">Patcher-programmet krasjet før det var ferdig. Hvis dette skjer igjen, slå av \"Bruk innebygd VM\" i innstillingene og rapporter problemet med loggen</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">Patcheren krasjet før den var ferdig. Hvis dette skjer igjen, slå av %1$s og rapporter problemet med loggen</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">Patcheren løp tom for minne med en %1$s MB heap. Denne appen er for stor for de valgte patchene. Prøv å patche med færre patch-kilder, eller velg færre patcher</string>
     <string name="install_app_success">Installert vellykket</string>
@@ -919,6 +917,8 @@ Patcher påvirkes ikke: aktiver pre-release-patcher for hver kilde i patch-kilde
     <string name="notification_channel_patch_updates">Patch-oppdateringer</string>
     <string name="notification_channel_patch_updates_description">Varsler om nye patch-utgivelser</string>
     <string name="notification_channel_patcher_description">Vises mens Morphe patcher en app i bakgrunnen</string>
+    <string name="notification_channel_patching_results">Patchingsresultater</string>
+    <string name="notification_channel_patching_results_description">Når patching avsluttes eller en installasjon venter på deg mens Morphe er i bakgrunnen</string>
     <string name="notification_channel_mounted_apps">Monterte apper</string>
     <string name="notification_channel_mounted_apps_description">Når en annen versjon har erstattet en montert app og patchen ikke lenger gjelder</string>
     <string name="notification_mount_replaced_title">%1$s er ikke lenger patchet</string>
@@ -1029,9 +1029,8 @@ morphe_header_custom_dark.png
     <string name="installer_title">Velg installasjonsprogram</string>
     <string name="installer_internal_description">Bruker Android-pakkeinstallasjonsprogrammet</string>
     <string name="installer_play_store_description">Bruker systeminstallatøren og angir Google Play Butikk som installasjonskilde</string>
+    <string name="installer_root_description">Installerer lydløst med root</string>
     <string name="installer_root_play_store_description">Installeres stille med root og angir Google Play Store som installasjonskilde</string>
-    <string name="installer_auto_saved_name">Rottilgang</string>
-    <string name="installer_auto_saved_description">Monterer apper som ble installert i rottilgangsmodus. Standard installerte APK-er bruker et annet installasjonsprogram.</string>
     <string name="installer_shizuku_description">Installerer lydløst ved hjelp av Shizuku eller Sui</string>
     <string name="installer_shizuku_play_store_description">Installeres stille via Shizuku eller Sui og angir Google Play Store som installasjonskilde</string>
     <string name="installer_option_none">Ingen fallback</string>
@@ -1041,7 +1040,7 @@ morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_installed">Installer Shizuku eller Sui for å bruke dette alternativet</string>
     <string name="installer_status_shizuku_not_running">Start Shizuku eller Sui og prøv igjen</string>
     <string name="installer_status_shizuku_permission">Gi Nivqo tillatelse fra Shizuku-appen</string>
-    <string name="installer_mount_warning_install">Din primære installasjonsprogram er satt til den rooted mount-installasjonsprogrammet. Denne lagrede appen ble ikke installert ved hjelp av mount</string>
+    <string name="installer_mount_warning_install">Patch-modus er satt til root-montering. Denne lagrede appen ble ikke installert ved bruk av montering</string>
     <string name="mount_version_mismatch_message">Aksjeversjonen (%2$s) stemmer ikke overens med den patchede appversjonen (%1$s). Mount den matchende aksjeversjonen og prøv igjen</string>
     <string name="mount_stock_restore_failed_message">Android avviste den lagrede originale APK-en. Installer den matchende standardversjonen, og prøv å montere igjen.</string>
     <string name="installer_status_shizuku_unsupported">Den installerte Shizuku-versjonen støttes ikke</string>
@@ -1063,11 +1062,17 @@ morphe_header_custom_dark.png
     <string name="installer_play_store_warning_continue">Jeg forstår, fortsett</string>
     <string name="installer_play_store_mode">Installer som Play Butikk</string>
     <string name="installer_play_store_mode_description">Merk Google Play Butikk som installeringskilde</string>
+    <string name="settings_section_patch_mode">Patch-modus</string>
+    <string name="settings_patch_mode_ask">Spør hver gang</string>
+    <string name="settings_patch_mode_ask_description">Spør før patching av hver app om den skal patches for root-montering eller standardinstallasjon</string>
+    <string name="settings_section_after_patching">Etter patching</string>
+    <string name="settings_after_patching_install">Installer automatisk</string>
+    <string name="settings_after_patching_ask">Spør om installatør</string>
+    <string name="settings_after_patching_ask_description">Spør hvilken installatør som skal brukes hver gang en app installeres</string>
+    <string name="settings_after_patching_manual">Installer manuelt</string>
+    <string name="settings_after_patching_manual_description">Installerer med standardinstallatøren når du trykker på Installer</string>
     <string name="settings_nomount_only">Kun NoMount</string>
     <string name="settings_nomount_only_description">Monterer apper kun med NoMount og faller aldri tilbake til et bind-mount, slik at de forblir umonterte uten det</string>
-    <string name="settings_prompt_installer_on_install">Installeringsvalg-melding</string>
-    <string name="settings_prompt_installer_on_install_description">Spør hvordan hver app skal installeres: med root før patching, ellers etter det</string>
-    <string name="settings_auto_install_with_shizuku">Automatisk installasjon etter patching</string>
     <string name="settings_auto_install_with_shizuku_description">Installerer eller monterer den patchede APK-en så snart patchingen er fullført</string>
     <string name="settings_auto_uninstall_with_shizuku">Automatisk avinstallasjon ved konflikt</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Avinstallerer den eksisterende appen ved signaturkonflikt. Dette kan fjerne appdata</string>
@@ -1137,7 +1142,6 @@ Detaljer: %2$s"</string>
     <string name="settings_system_import_keystore_dialog_description">Du må skrive inn nøkkelbutikkens legitimasjon for å importere den</string>
     <string name="settings_system_import_keystore_dialog_alias_field">Brukernavn (Alias)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Passord</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Format for nøkkelregister</string>
     <string name="settings_system_import_keystore_wrong_credentials">Feil nøkkelbutikklegitimasjon</string>
     <string name="settings_system_import_keystore_success">Nøkkelbutikk importert</string>
     <string name="settings_system_import_keystore_failed">Kunne ikke importere nøkkelbutikk</string>
@@ -1291,6 +1295,7 @@ Detaljer: %2$s"</string>
     <string name="credits_prior_development">Tidligere utvikling</string>
     <string name="opensource_licenses">Lisenser med åpen kildekode</string>
     <string name="opensource_licenses_description">Bibliotekene som Morphe er bygget på</string>
+    <string name="opensource_licenses_search">Søk i biblioteker og lisenser</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Et valg</string>
     <string name="easter_egg_pill_message">Ta den blå pillen og annonsene blir akkurat der de er. Ta den røde og se hvor dypt bytekoden går.</string>
@@ -1517,8 +1522,7 @@ Vil du likevel fortsette?"</string>
     <string name="tour_prompt_confirm">Vis meg rundt</string>
     <string name="onboarding_restart_title">Omvisning i funksjoner</string>
     <string name="onboarding_restart_desc">En guidet omvisning av viktige funksjoner</string>
-
-    <!-- Preserved Nivqo localization -->
+    <string name="home_app_filter_patched_description">Apper du har patchet eller lagret med Nivqo</string>
     <string name="home_category_delete_confirm_title">Slett kategori</string>
     <string name="home_category_delete_confirm_message">Slett kategori &lt;b&gt;%1$s&lt;/b&gt;? Apper i denne vil flyttes tilbake til &lt;b&gt;%2$s&lt;/b&gt;</string>
     <string name="expert_mode_prerelease_notice">Denne kilden bruker forhåndsutgitte patcher. Patchingen kan mislykkes eller oppføre seg uventet.</string>

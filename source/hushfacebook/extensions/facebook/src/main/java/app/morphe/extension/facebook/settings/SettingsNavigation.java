@@ -8,6 +8,8 @@ import android.content.Context;
 import android.database.DataSetObserver;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
@@ -27,6 +29,7 @@ import android.widget.LinearLayout;
 import android.preference.SwitchPreference;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -62,10 +65,14 @@ final class SettingsNavigation extends BaseAdapter {
     private final ListAdapter source;
     private final List<Section> sections = new ArrayList<>();
     private final List<Preference> visible = new ArrayList<>();
-    private final Object guideLinks = new Object();
     /** Which rows the person hasn't seen yet, for the dot beside them. Null when it couldn't start. */
     @Nullable private final NewRowDots dots;
     private final Set<String> expanded = new LinkedHashSet<>();
+    /** Where the list or category choice is kept: a way of looking, so no backup carries it. */
+    static final String VIEW_STORE = "hushfacebook_settings_view";
+    static final String LIST_VIEW = "list";
+    /** Every section's rows on the one page under their headings, instead of a button per section. */
+    private boolean listMode;
     /** Report, restart and project links expand in the same list as the settings. */
     private final Preference support;
     private final PreferenceCategory supportHeading;
@@ -107,9 +114,20 @@ final class SettingsNavigation extends BaseAdapter {
     private int pendingOffset;
     private int auditGeneration;
 
+    /**
+     * Row changes rebuild once, on the next main-thread turn. An import flips every changed switch in
+     * one message, and a rebuild per switch re-ran search over every row each time: with a query open
+     * that was enough for Facebook isn't responding.
+     */
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private boolean rebuildPosted;
+    private final Runnable postedRebuild = this::rebuild;
+    /** True once a restart change has rebuilt the list in this main-thread turn. */
+    private boolean restartShownThisTurn;
+    private final Runnable endOfRestartTurn = () -> restartShownThisTurn = false;
     private final DataSetObserver changes = new DataSetObserver() {
-        @Override public void onChanged() { rebuild(); }
-        @Override public void onInvalidated() { rebuild(); }
+        @Override public void onChanged() { rebuildSoon(); }
+        @Override public void onInvalidated() { rebuildSoon(); }
     };
 
     SettingsNavigation(HushfacebookPreferenceFragment page, SettingsDialog host, Bundle saved) {
@@ -119,6 +137,7 @@ final class SettingsNavigation extends BaseAdapter {
         list = page.getView().findViewById(android.R.id.list);
         source = screen.getRootAdapter();
         Context context = screen.getContext();
+        listMode = context.getSharedPreferences(VIEW_STORE, Context.MODE_PRIVATE).getBoolean(LIST_VIEW, false);
         // Stable English route IDs survive a locale change; the displayed names are localized.
         section("Opening Facebook", L10n.t("Opening Facebook"), L10n.t("Your start tab and launch settings"), SettingsIcons.OPENING);
         section("News feed", L10n.t("News feed"), L10n.t("Ads, suggestions and word filters"), SettingsIcons.FEED);
@@ -153,7 +172,9 @@ final class SettingsNavigation extends BaseAdapter {
         guideIcon(Settings.TAP_TO_PLAY, SettingsIcons.PLAYBACK);
         guideIcon(Settings.HIDE_REELS_TAB, SettingsIcons.REELS);
         guideIcon(Settings.MARKETPLACE_ONLY, SettingsIcons.MARKETPLACE);
-        support = link(context, L10n.t("Support"), L10n.t("Reports, restart and app information"), SettingsIcons.ABOUT);
+        giveIcons();
+        // Its own mark, so it isn't read as a second About.
+        support = link(context, L10n.t("Support"), L10n.t("Reports, restart and app information"), SettingsIcons.HELP);
         support.setKey(SUPPORT);
         support.setOnPreferenceClickListener(ignored -> { toggle(SUPPORT); return true; });
         supportHeading = new SettingsRows.Heading(context);
@@ -246,7 +267,35 @@ final class SettingsNavigation extends BaseAdapter {
         rebuild();
         showPage();
         if (state != null) restoreAnchor(state.getString("anchor", ""), state.getInt("position"), state.getInt("offset"));
-        else if (header(route) != null) showAt(visible.indexOf(header(route)), 0);
+        else if (header(route) != null) showAt(visible.indexOf(anchorOf(route)), 0);
+    }
+
+    boolean listMode() {
+        return listMode;
+    }
+
+    /**
+     * Shows every section's rows on the one page under their headings ([list]), or a button per
+     * section that opens it, and keeps the choice for the next time the screen opens. The list
+     * goes back to its top, under the toggle that was tapped.
+     */
+    void showAsList(boolean list) {
+        if (listMode == list) return;
+        listMode = list;
+        screen.getContext().getSharedPreferences(VIEW_STORE, Context.MODE_PRIVATE).edit().putBoolean(LIST_VIEW, list).apply();
+        refocus = null;
+        rebuild();
+        showPage();
+        showAt(0, 0);
+    }
+
+    /** The row a jump to section [id] scrolls to: its button, or its heading in the list view. */
+    @Nullable
+    private Preference anchorOf(String id) {
+        if (!listMode) return header(id);
+        if (SUPPORT.equals(id)) return supportHeading;
+        for (Section section : sections) if (section.id.equals(id)) return section.category;
+        return null;
     }
 
     private void section(String id, String title, String detail, String icon) {
@@ -263,7 +312,7 @@ final class SettingsNavigation extends BaseAdapter {
             Preference link = link(screen.getContext(), title, detail, icon);
             link.setKey("section_" + id);
             link.setOnPreferenceClickListener(ignored -> { toggle(id); return true; });
-            sections.add(new Section(id, (PreferenceCategory) candidate, link, alias));
+            sections.add(new Section(id, (PreferenceCategory) candidate, link, icon, alias));
             return;
         }
     }
@@ -295,6 +344,7 @@ final class SettingsNavigation extends BaseAdapter {
 
     private void showPage() {
         host.showPage("Hushfacebook", true, query);
+        host.showViewToggle(listMode);
         String shownRoute = route;
         int generation = ++auditGeneration;
         if (!query.isEmpty()) return;
@@ -305,7 +355,7 @@ final class SettingsNavigation extends BaseAdapter {
                         || host.getDialog() == null || !host.getDialog().isShowing()
                         || !list.isAttachedToWindow() || list.getAdapter() != SettingsNavigation.this
                         || list.getChildCount() == 0 || list.isLayoutRequested()) return true;
-                Preference target = header(route);
+                Preference target = anchorOf(route);
                 int index = visible.indexOf(target);
                 if (target != null && (index < list.getFirstVisiblePosition() || index > list.getLastVisiblePosition()))
                     return true;
@@ -315,9 +365,12 @@ final class SettingsNavigation extends BaseAdapter {
         });
     }
 
-    /** Closing settings acknowledges open sections. Search alone never marks a section seen. */
+    /**
+     * Closing settings acknowledges open sections, and in the list view every section, since it
+     * showed them all. Search alone never marks a section seen.
+     */
     private void leftPage() {
-        for (Section section : sections) if (expanded.contains(section.id)) acknowledge(section);
+        for (Section section : sections) if (listMode || expanded.contains(section.id)) acknowledge(section);
     }
 
     private void acknowledge(Section section) {
@@ -348,10 +401,24 @@ final class SettingsNavigation extends BaseAdapter {
         if (route.isEmpty()) {
             leftPage();
             expanded.clear();
-        } else expanded.add(route);
+        } else openAlone(route);
         rebuild();
         showPage();
-        showAt(route.isEmpty() ? 0 : visible.indexOf(header(route)), 0);
+        showAt(route.isEmpty() ? 0 : visible.indexOf(anchorOf(route)), 0);
+    }
+
+    /**
+     * Opens [id] and folds every other open section (#368), so the list never grows into several
+     * sections at once. A folded section's new rows count as seen, as when it's folded by hand.
+     */
+    private void openAlone(String id) {
+        for (Iterator<String> open = expanded.iterator(); open.hasNext(); ) {
+            String other = open.next();
+            if (other.equals(id)) continue;
+            for (Section section : sections) if (section.id.equals(other)) acknowledge(section);
+            open.remove();
+        }
+        expanded.add(id);
     }
 
     boolean isExpanded(String id) {
@@ -380,7 +447,7 @@ final class SettingsNavigation extends BaseAdapter {
     }
 
     private int sectionRows(String id) {
-        if (!expanded.contains(id)) return 0;
+        if (!listMode && !expanded.contains(id)) return 0;
         if (SUPPORT.equals(id)) {
             int count = 0;
             for (Preference row : new Preference[]{report, restartNow, supportProject})
@@ -410,7 +477,7 @@ final class SettingsNavigation extends BaseAdapter {
         String anchor = position < visible.size() ? rowToken(getItem(position)) : "";
         View first = list.getChildAt(0);
         int offset = first == null ? 0 : first.getTop();
-        if (open) expanded.add(id);
+        if (open) openAlone(id);
         else {
             for (Section section : sections) if (section.id.equals(id)) acknowledge(section);
             expanded.remove(id);
@@ -523,6 +590,7 @@ final class SettingsNavigation extends BaseAdapter {
         String id = headerId(item);
         if (id != null) return "section:" + id;
         for (Section section : sections) if (item == section.category) return "heading:" + section.id;
+        if (item == supportHeading) return "heading:" + SUPPORT;
         if (item == buildDetails) return "build";
         if (item == screen.getPreference(0)) return "status";
         // An inline heading has no key, so its section and title find it again.
@@ -582,21 +650,54 @@ final class SettingsNavigation extends BaseAdapter {
         auditGeneration++;
         leftPage();
         source.unregisterDataSetObserver(changes);
+        main.removeCallbacks(postedRebuild);
+        rebuildPosted = false;
+        main.removeCallbacks(endOfRestartTurn);
+        restartShownThisTurn = false;
         AbstractPreferenceFragment.clearRestartFeedbackPresenter(restartFeedback);
     }
 
-    /** A change that waits for a restart was made or taken back: the restart row comes, goes or counts again. */
-    void restartChanged() { rebuild(); }
+    /**
+     * A change that waits for a restart was made or taken back: the restart row comes, goes or
+     * counts again. The first change in a main-thread turn shows at once. An import notes every
+     * restart-gated setting it changes in one turn, and a rebuild apiece re-ran search over every
+     * row each time (about 110 ms a setting on an S22), so the rest of that turn's changes share
+     * one rebuild on the next turn.
+     */
+    void restartChanged() {
+        if (restartShownThisTurn) {
+            rebuildSoon();
+            return;
+        }
+        restartShownThisTurn = true;
+        main.post(endOfRestartTurn);
+        rebuild();
+    }
+
+    private void rebuildSoon() {
+        if (rebuildPosted) return;
+        rebuildPosted = true;
+        main.post(postedRebuild);
+    }
 
     private void rebuild() {
+        if (rebuildPosted) {
+            main.removeCallbacks(postedRebuild);
+            rebuildPosted = false;
+        }
         View first = list.getChildAt(0);
         Preference anchor = first != null && first.getTag() instanceof Preference
                 ? (Preference) first.getTag() : pendingAnchor;
         int position = visible.indexOf(anchor);
         int offset = first == null ? pendingOffset : first.getTop();
+        giveIcons();
         visible.clear();
         List<String> terms = SettingsSearch.terms(query);
+        // Switches that are on (#353) sits above the sections, on the main list and in search.
+        Preference favorites = screen.findPreference(FavoriteSwitchesScreen.ROW);
         if (!terms.isEmpty()) {
+            if (favorites != null && SettingsSearch.matchesTerms(terms, favorites.getTitle(), favorites.getSummary()))
+                visible.add(favorites);
             for (Section section : sections) {
                 boolean headingAdded = false;
                 CharSequence subheading = null;
@@ -634,17 +735,23 @@ final class SettingsNavigation extends BaseAdapter {
             // Only in a build that lacks Restore screens on a re-signed install: its own line under the card.
             Preference restore = screen.findPreference(HushfacebookPreferenceFragment.MISSING_RESTORE_TRUST);
             if (restore != null) visible.add(restore);
+            // Only while Facebook's images are coarser than the screen (#365): its own line under the card.
+            Preference soft = screen.findPreference(HushfacebookPreferenceFragment.SOFT_ICONS);
+            if (soft != null) visible.add(soft);
             // Only in a build that lacks another default patch: the card's own line under it.
             Preference missing = screen.findPreference(HushfacebookPreferenceFragment.MISSING_DEFAULTS);
             if (missing != null) visible.add(missing);
+            if (favorites != null) visible.add(favorites);
             for (Section section : sections) {
-                visible.add(section.link);
-                if (expanded.contains(section.id)) {
+                // The list view names each section over its rows, as search does, with no button to open.
+                if (listMode && section.category.getPreferenceCount() == 0) continue;
+                visible.add(listMode ? section.category : section.link);
+                if (listMode || expanded.contains(section.id)) {
                     for (int i = 0; i < section.category.getPreferenceCount(); i++) visible.add(section.category.getPreference(i));
                 }
             }
-            visible.add(support);
-            if (expanded.contains(SUPPORT)) {
+            visible.add(listMode ? supportHeading : support);
+            if (listMode || expanded.contains(SUPPORT)) {
                 visible.add(helpHeading);
                 visible.add(report);
                 if (ReopenSettingsAfterRestart.changesWaiting(screen.getContext()) <= 0) visible.add(restartNow);
@@ -759,19 +866,14 @@ final class SettingsNavigation extends BaseAdapter {
             // Posted from the new row, it runs after this layout has put the row in the window.
             row.post(() -> row.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null));
         }
-        if (item instanceof SettingsRows.Subheading) {
-            // Drawn on the page like a section title, lined up with the cards it sits over.
-            // Support's own two sit flush with its rows, which belong to no section.
-            if (query.isEmpty() && item.getParent() instanceof PreferenceCategory)
-                row.setPaddingRelative(row.getPaddingStart() + dp(12), row.getPaddingTop(), row.getPaddingEnd(), row.getPaddingBottom());
-        } else if (!(item instanceof PreferenceCategory)) {
+        // A subheading is drawn on the page like a section title, over the cards it names.
+        if (!(item instanceof SettingsRows.Subheading) && !(item instanceof PreferenceCategory)) {
             Object group = group(item);
             boolean first = position == 0 || group(getItem(position - 1)) != group;
             boolean last = position + 1 == getCount() || group(getItem(position + 1)) != group;
-            palette().paintSurface(row, item, first, last);
-            if (query.isEmpty() && item.getParent() instanceof PreferenceCategory)
-                row.setPaddingRelative(row.getPaddingStart() + dp(12), row.getPaddingTop(), row.getPaddingEnd(), row.getPaddingBottom());
+            palette().paintSurface(row, item, first, last, overview(item));
         }
+        if (item == restart) palette().paintRestartBar(row);
         String sectionId = headerId(item);
         if (sectionId != null) bindHeader(row, item, sectionId);
         NewRowDots.paint(row, fresh(item), palette().accent);
@@ -910,23 +1012,34 @@ final class SettingsNavigation extends BaseAdapter {
         if (item == screen.getPreference(0) || item == restart || item == buildDetails) return item;
         if (headerId(item) != null || item instanceof SettingsRows.Subheading) return item;
         if (item == report || item == restartNow || item == supportProject) return support;
-        if (!query.trim().isEmpty() && item.getParent() != null) return item.getParent();
-        String key = item.getKey();
-        if (Settings.DEFAULT_COMMENT_ORDER.key.equals(key) || Settings.COMMENT_ORDER.key.equals(key)) {
-            return Settings.COMMENT_ORDER;
-        }
-        if (Settings.NEWEST_REELS_FIRST.key.equals(key) || Settings.REELS_ORDER.key.equals(key)) {
-            return Settings.REELS_ORDER;
-        }
-        // Guide destinations form one list; independent selectors keep their own surfaces.
-        if (key != null && key.startsWith("action_show_")) return guideLinks;
-        if (Settings.OPEN_ON_CHOSEN_TAB.key.equals(key) || Settings.START_TAB.key.equals(key)
-                || Settings.FEEDS_SUBTAB.key.equals(key)) return Settings.OPEN_ON_CHOSEN_TAB;
-        if (Settings.PLAYBACK_QUALITY.key.equals(key) || Settings.REELS_PLAYBACK_QUALITY.key.equals(key)
-                || Settings.STORIES_PLAYBACK_QUALITY.key.equals(key)) return Settings.PLAYBACK_QUALITY;
-        if (Settings.DOWNLOAD_QUALITY.key.equals(key)) return item;
+        // A section's rows share one card, which a subheading inside it closes and opens again.
         if (item.getParent() != null) return item.getParent();
         return sections;
+    }
+
+    /**
+     * Whether [item] is drawn edge to edge as a row of the page itself (a section's button, the
+     * status card, a notice) rather than in a section's inset card. Support's own rows belong to
+     * no section and still sit in its card.
+     */
+    private boolean overview(Preference item) {
+        return !(item.getParent() instanceof PreferenceCategory)
+                && item != report && item != restartNow && item != supportProject;
+    }
+
+    /**
+     * Gives every row of every section the icon it leads with: its own, one its key's words call
+     * for, or its section's. Rows a page adds later get theirs at the next rebuild.
+     */
+    private void giveIcons() {
+        Context context = screen.getContext();
+        for (Section section : sections) {
+            for (int i = 0; i < section.category.getPreferenceCount(); i++) {
+                Preference row = section.category.getPreference(i);
+                if (row instanceof SettingsRows.Subheading || row instanceof PreferenceCategory || row.getIcon() != null) continue;
+                row.setIcon(SettingsIcons.icon(context, SettingsIcons.forKey(row.getKey(), section.icon), palette().heading));
+            }
+        }
     }
 
     private static ScreenColors palette() { return ScreenColors.current(); }
@@ -935,12 +1048,15 @@ final class SettingsNavigation extends BaseAdapter {
         final String id;
         final PreferenceCategory category;
         final Preference link;
+        /** The section's icon, which a row of it with none of its own and no telling word leads with. */
+        final String icon;
         /** The section's earlier name, which search still finds it by, or null. */
         @Nullable final CharSequence alias;
-        Section(String id, PreferenceCategory category, Preference link, @Nullable CharSequence alias) {
+        Section(String id, PreferenceCategory category, Preference link, String icon, @Nullable CharSequence alias) {
             this.id = id;
             this.category = category;
             this.link = link;
+            this.icon = icon;
             this.alias = alias;
         }
     }

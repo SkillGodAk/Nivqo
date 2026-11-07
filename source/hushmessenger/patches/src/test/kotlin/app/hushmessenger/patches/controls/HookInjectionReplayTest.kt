@@ -29,7 +29,8 @@ class HookInjectionReplayTest {
             val code = apk.fileName.toString().substringBeforeLast(".apk").substringAfterLast('-')
             activeProfile = controlProfileFor(code)
             val dex = DexFileFactory.loadDexContainer(apk.toFile(), Opcodes.forApi(35))
-            val discovered = findControls(dex.dexEntryNames.flatMap { dex.getEntry(it)!!.dexFile.classes })
+            val classes = dex.dexEntryNames.flatMap { dex.getEntry(it)!!.dexFile.classes }
+            val discovered = findControls(classes)
             // Two controls sharing a method edit the same copy, as they do in the patcher.
             val mutable = HashMap<String, MutableMethod>()
             // The community inbox goes in through its own contract, which CommunityInboxTest replays on these builds.
@@ -51,12 +52,24 @@ class HookInjectionReplayTest {
                         markReadSocketBuilder(markReadStub(), markReadRecipe!!)
                         markReadBuilder(markReadButtonStub(), markReadRecipe!!)
                     }
+                    // The message log's Chats button also builds the extension's two stubs from this build's recipe.
+                    if (key == MESSAGE_LOG) {
+                        val recipe = messageLogButtonRecipe ?: error("no button recipe")
+                        messageLogButtonBuilder(logButtonStub(), recipe)
+                        messageLogButtonIdReader(logButtonIdStub(), recipe)
+                    }
+                    // The voice message Save row also builds the extension's stubs from this build's recipe.
+                    if (key == SAVE_VOICE_MENU) for (id in SAVE_VOICE_MENU_STUBS) saveVoiceMenuBuilder(saveVoiceMenuStub(id), saveVoiceMenuRecipe!!)
                     // Auto reply also builds the extension's picture send from this build's media factory.
                     if (key == AUTO_REPLY) {
                         val recipe = autoReplyPictureRecipe ?: error("no picture recipe")
                         autoReplyMessagesBuilder(autoReplyMessagesStub(), recipe)
                         autoReplySendBuilder(autoReplySendStub(), recipe)
                         autoReplyPicturesFlag(autoReplyPicturesStub())
+                    }
+                    // Keep the search bar also fills the extension's flag check with this build's own.
+                    if (key == INBOX_SEARCH_BAR) {
+                        searchIconReader(searchIconStub(), searchIconCheck(discovered.getValue(INBOX_SEARCH_BAR)) { type -> classes.firstOrNull { it.type == type } })
                     }
                 } catch (error: Exception) {
                     refused += "$code $key: ${error.javaClass.simpleName} ${error.message}"

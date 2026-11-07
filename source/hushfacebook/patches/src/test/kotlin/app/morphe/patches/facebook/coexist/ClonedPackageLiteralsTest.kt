@@ -113,6 +113,36 @@ class ClonedPackageLiteralsTest {
             context.mutableClassDefBy(extension).methods.single().instructions().size)
     }
 
+    /**
+     * An authority put together from BuildConstants' name goes through the extension in each shape
+     * the routing looks for: the bare suffix, the suffix after a %s, and a content:// address with a
+     * path, which a search by suffix missed (#216). One joined to another class's name stays.
+     */
+    @Test
+    fun authoritiesBuiltFromBuildConstantsNameGoThroughTheExtension() {
+        val suffix = ".provider.UserValuesProvider"
+        fun built(type: String, literal: String, nameFrom: String = BUILD_CONSTANTS) = classDef(type, method(type, 3,
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 0, 0, 0, 0, 0, 0,
+                ImmutableMethodReference(nameFrom, "A04", emptyList(), "Ljava/lang/String;")),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            load(1, literal),
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 2, 0, 1, 0, 0, 0,
+                ImmutableMethodReference("LX/8b0;", "A00", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "Ljava/lang/String;")),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 2),
+            ImmutableInstruction10x(Opcode.RETURN_VOID)))
+        val shapes = listOf("LX/8b1;" to suffix, "LX/8b2;" to "%s$suffix", "LX/8b3;" to "content://%s$suffix/values")
+        val other = "LX/8b4;"
+        val context = PatchContexts.of(
+            shapes.map { (type, literal) -> built(type, literal) } + built(other, "content://%s$suffix/values", nameFrom = "LX/8b5;"),
+        )
+
+        assertEquals(3, context.routeBuiltAuthorities(facebook, authorities))
+        for ((type, literal) in shapes) {
+            assertEquals(literal, 8, context.mutableClassDefBy(type).methods.single().instructions().size)
+        }
+        assertEquals(6, context.mutableClassDefBy(other).methods.single().instructions().size)
+    }
+
     /** The calls the patch writes are public static methods of the payload, moving names under Facebook's package. */
     @Test
     fun theExtensionDeclaresTheCall() {
@@ -415,5 +445,48 @@ class ClonedPackageLiteralsTest {
         assertEquals(7, (routed[3] as OneRegisterInstruction).registerA)
         assertEquals("a method without Messenger's debug name", 4,
             context.mutableClassDefBy(elsewhere).methods.single().instructions().size)
+    }
+
+    /**
+     * The in-app browser's renderer connection answers getPackageName() with the literal Redex left
+     * where context.getPackageName() was, so that load goes through the extension. A table among
+     * Meta's apps, a getPackageName() that never asks Android, and another method answering the same
+     * literal keep it.
+     */
+    @Test
+    fun aGetPackageNameThatMeantTheRunningAppGoesThroughTheExtension() {
+        val renderers = "Lcom/example/RendererConnection;"
+        val table = "Lcom/example/MetaApps;"
+        val constant = "Lcom/example/ConstantName;"
+        val other = "Lcom/example/OtherName;"
+        val getPackageName = ImmutableMethodReference("Landroid/content/Context;", "getPackageName", emptyList(), "Ljava/lang/String;")
+        fun answer(type: String, name: String, vararg instructions: Instruction) = ImmutableMethod(
+            type, name, emptyList(), "Ljava/lang/String;", AccessFlags.PUBLIC.value, null, null,
+            ImmutableMethodImplementation(3, instructions.toList(), null, null),
+        )
+        fun ask() = ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 0, 0, 0, 0, 0, getPackageName)
+        fun answered(register: Int) = ImmutableInstruction11x(Opcode.RETURN_OBJECT, register)
+        val context = PatchContexts.of(
+            listOf(
+                classDef(renderers, answer(renderers, "getPackageName", load(1, facebook), ask(), answered(1))),
+                classDef(table, answer(table, "getPackageName",
+                    ask(), load(1, "com.facebook.lite"), answered(1), load(1, facebook), answered(1))),
+                classDef(constant, answer(constant, "getPackageName", load(1, facebook), answered(1))),
+                classDef(other, answer(other, "packageOf", load(1, facebook), ask(), answered(1))),
+            ),
+        )
+
+        assertEquals(1, context.routeOwnPackageNameAnswers(facebook))
+
+        val routed = context.mutableClassDefBy(renderers).methods.single().instructions()
+        assertEquals(5, routed.size)
+        assertEquals(facebook, routed[0].literal())
+        assertEquals(PACKAGE_CALL, (routed[1] as ReferenceInstruction).reference.toString())
+        assertEquals(1 to 1, (routed[1] as RegisterRangeInstruction).let { it.startRegister to it.registerCount })
+        assertEquals(1, (routed[2] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.RETURN_OBJECT, routed[4].opcode)
+        assertEquals("Meta's app table", 5, context.mutableClassDefBy(table).methods.single().instructions().size)
+        assertEquals("never asks Android", 2, context.mutableClassDefBy(constant).methods.single().instructions().size)
+        assertEquals("another name", 3, context.mutableClassDefBy(other).methods.single().instructions().size)
     }
 }

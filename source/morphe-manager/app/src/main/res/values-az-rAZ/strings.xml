@@ -10,7 +10,8 @@
     <string name="home_app_hide_title">Bu tətbiq gizlədilsin?</string>
     <string name="home_more_apps_title">Daha çox tətbiq</string>
     <string name="home_more_apps_hide_title">Bu kartı gizlətsin?</string>
-    <string name="home_more_apps_hide_message">Tənzimləmələr &gt; Görünüş &gt; Əsas ekranda bunu istənilən vaxt geri qaytara bilərsiniz</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Appearance > Home screen", built from the names on those screens. -->
+    <string name="home_more_apps_hide_message">Bunu istənilən vaxt %1$s daxilində qaytara bilərsiniz</string>
     <string name="home_app_hide_message">Bu tətbiq əsas ekrandan gizlədiləcək. Siyahının aşağısındakı düyməni istifadə edərək onu daha sonra gizli tətbiqlərdən qaytara bilərsiniz</string>
     <string name="home_app_will_be_hidden">Bu tətbiq gizlədiləcək</string>
     <string name="home_app_hidden_named">%s gizlədilib</string>
@@ -62,26 +63,12 @@
     <string name="home_search_apps">Tətbiqləri axtar</string>
     <string name="list_options_title">Sırala və filtrlə</string>
     <string name="list_options_state_description">%1$s üzrə sıralanıb, %2$s üzrə filtrlənib</string>
-    <string name="home_app_filter_all_description">Əsas ekrandakı hər bir tətbiq</string>
-    <string name="home_app_filter_patched_description">Nivqo ilə yamaqladığınız və ya saxladığınız tətbiqlər</string>
-    <string name="home_app_filter_not_patched_description">Morphe-də hələ yamaqlamadığınız tətbiqlər</string>
-    <string name="home_app_filter_installed_description">Hazırda bu cihazda quraşdırılmış tətbiqlər</string>
-    <string name="home_app_filter_uninstalled_description">Morphe ilə yamaqlanmış, artıq bu cihazda olmayan tətbiqlər</string>
     <string name="home_app_filter_clones">Dublikatlar</string>
-    <string name="home_app_filter_clones_description">Öz paket adı altında qurulmuş, orijinalı ilə birlikdə quraşdırılmış tətbiqlər</string>
     <string name="home_app_grouping_none">Heç biri</string>
-    <string name="home_app_grouping_all_apps_description">Hər tətbiq olan bir siyahı</string>
-    <string name="home_app_grouping_sources_description">Onları təmin edən yamaq mənbəyi altındakı tətbiqlər</string>
-    <string name="home_app_grouping_custom_description">Yaratdığınız kateqoriyalardakı tətbiqlər</string>
-    <string name="home_app_sort_manual_description">Tətbiqə uzun bas, sonra yenidən sıralama düyməsinə toxun</string>
+    <string name="home_app_sort_manual_hint">Tətbiqə uzun bas, sonra yenidən sıralama düyməsinə toxun</string>
     <string name="home_app_sort_recommended">Tövsiyə olunan düzülüş</string>
-    <string name="home_app_sort_recommended_description">Əvvəlcə quraşdırılmış və nişanlanmış tətbiqlər</string>
-    <string name="home_app_sort_name_asc_description">Əlifbaya uyğun, A-dan Z-yə</string>
-    <string name="home_app_sort_name_desc_description">Əlifbanın əksinə uyğun, Z-dən A-ya</string>
     <string name="home_app_sort_updates_first">Əvvəlcə yamaq yeniləmələri olan</string>
-    <string name="home_app_sort_updates_first_description">Əvvəlcə daha yeni yamaqlar, sonra tövsiyə olunan düzülüşü olan tətbiqlər</string>
     <string name="home_app_sort_recently_patched">Təzəlikcə yamaqlandı</string>
-    <string name="home_app_sort_recently_patched_description">Əvvəlcə təzəlikcə yamaqlanmış tətbiqlər</string>
     <string name="home_no_apps_title">Mövcud tətbiq yoxdur</string>
     <string name="home_no_apps_subtitle">%s bölməsində yamaq mənbəyi əlavə edin və ya mövcud olanı aktivləşdir</string>
     <string name="home_no_apps_search_subtitle">\"%s\" ilə uyuşan tətbiq yoxdur</string>
@@ -91,7 +78,7 @@
     <string name="home_no_apps_filter_subtitle">%s üçün heç nə uyğun gəlmədi</string>
     <string name="home_category_add">Kateqoriya əlavə et</string>
     <string name="home_category_all_apps">Bütün tətbiqlər</string>
-    <string name="home_category_custom">Fərdi</string>
+    <string name="home_app_grouping_categories">Kateqoriyalar</string>
     <string name="home_category_uncategorized">Kateqoriyasız</string>
     <string name="home_category_new_title">Yeni kateqoriya</string>
     <string name="home_category_rename_title">Kateqoriyanı yenidən adlandır</string>
@@ -168,17 +155,11 @@
     <string name="sources_management_title">Yamaq mənbələri</string>
     <string name="sources_search">Mənbələri və yamaqları axtar</string>
     <!-- Which sources the sources page lists, each with what it keeps -->
-    <string name="sources_filter_all_description">Hər mənbə</string>
-    <string name="sources_filter_enabled_description">Mənbələrin yamaqları buradan alınır</string>
-    <string name="sources_filter_disabled_description">Mənbələr qapadılıb</string>
     <string name="sources_filter_issues">Diqqət tələb edir</string>
-    <string name="sources_filter_issues_description">Bloklanmış, yüklənməyən və ya daha yeni Morphe tələb edən mənbələr</string>
     <string name="sources_sort_manual">Əl ilə sıralama</string>
     <string name="sources_sort_manual_hint">Təkrar sıralamaq üçün mənbəyə uzun bas</string>
     <string name="sources_sort_last_updated">Axırıncı dəfə yeniləndi</string>
-    <string name="sources_sort_last_updated_description">Əvvəlcə ən yeni mənbə yeniləmələri</string>
     <string name="sources_sort_enabled_first">Əvvəlcə aktivləşdirilmiş</string>
-    <string name="sources_sort_enabled_first_description">İşlək mənbələri qapalı mənbələrdən əvvəl göstər</string>
     <string name="sources_patches_source_disabled_hint">Bu mənbə qapadılıb. Onun yamaqları məlumat üçün siyahıya alınıb və tətbiq olunmur</string>
     <string name="sources_management_open_in_browser">Brauzerdə açın</string>
     <string name="sources_management_report_issue">Problemi bildir</string>
@@ -218,7 +199,7 @@
     <string name="sources_management_outdated_manager_hint">Bu mənbə %1$s yamaqlayıcısı üçün qurulmuşdur, lakin Morphe %2$s versiyası %3$s yamaqlayıcısını ehtiva edir. İstifadə etmək üçün Morphe-ni yenilə</string>
     <string name="sources_management_held_back_badge">Çökdü</string>
     <string name="sources_management_held_back_hint">Bu mənbə yüklənərkən Morphe-nin çökməsinə səbəb oldu, buna görə də ötürülür. Təkrar cəhd etmək üçün onu yenilə və ya təkrar idxal et</string>
-    <string name="sources_management_signed_by">İmzalayan</string>
+    <string name="sources_management_signed_by">İmzalanan</string>
     <string name="sources_management_signing_key_changed_badge">Açar dəyişdirildi</string>
     <string name="sources_management_signing_key_changed_hint">Son buraxılış bu mənbənin əvvəlki açarı ilə imzalanmayıb, buna görə də quraşdırılmadı. Nəzərdən keçirmək üçün toxun</string>
     <string name="sources_management_source_enabled">Mənbə işləkdir</string>
@@ -263,7 +244,8 @@
     <string name="sources_signing_key_trusted">Etibarlı açar</string>
     <string name="sources_signing_key_new">Yeni açar</string>
     <string name="sources_patch_expert_badge">Mütəxəssis</string>
-    <string name="sources_patch_expert_badge_tooltip">Bu yamağı əl ilə yerləşdirmək üçün Tənzimləmələrdə Mütəxəssis rejimin aktivləşdir</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Expert mode", built from the names on those screens. -->
+    <string name="sources_patch_expert_badge_tooltip">Bu yamağı əl ilə yerləşdirmək üçün %1$s \'i aktivləşdir</string>
     <!-- Home Screen - Dialog 1: APK Availability -->
     <string name="home_apk_availability_title">APK-nı tapmaqda köməyə ehtiyac varmı?</string>
     <string name="home_apk_availability_dialog_simple">&lt;b&gt;%s&lt;/b&gt;, yamaqlamaq üçün yamaqlanmayan APK versiyasına ehtiyacınız var:</string>
@@ -271,7 +253,6 @@
     <string name="home_apk_availability_recommended_label">Tövsiyə olunan</string>
     <string name="home_apk_availability_unpatched_label">Yamaqlanmayan</string>
     <string name="home_apk_availability_incompatible_label">Uyuşmaz</string>
-    <string name="home_apk_availability_installed_version">Bu cihazda quraşdırılıb: %s</string>
     <string name="home_apk_availability_find">Bəli, mənə bunu tapmağa kömək et</string>
     <string name="home_apk_availability_have">Xeyr, Mənim artıq var</string>
     <string name="home_apk_helper_download">Köməkçi tətbiq istifadə et</string>
@@ -305,12 +286,16 @@
     <string name="home_download_instructions_finding">Yükləmə səhifəsi tapılır...</string>
     <string name="home_download_instructions_step1">Aşağıdakı \'%s\' düyməsinə toxun</string>
     <string name="home_download_instructions_step2_part1">Veb səhifəni aşağı sürüşdür və toxun</string>
+    <string name="home_download_instructions_step2_apkcube">Veb səhifəni aşağı sürüşdür, &lt;b&gt;%s&lt;/b&gt; versiyasını seç və bas</string>
     <string name="home_download_instructions_step2_generic">Veb səhifəni aşağı sürüşdür və yükləmə düyməsini bas</string>
     <string name="home_download_instructions_step2_variant">Veb səhifəni aşağı sürüşdür və ən yuxarıdakı &lt;b&gt;APK variantının&lt;/b&gt; yükləmə düyməsini bas</string>
     <string name="home_download_instructions_step2_search">Etibar etdiyiniz veb saytdan axtarış nəticəsini açın</string>
     <string name="home_download_instructions_step2_search_note">Morphe bu veb saytlara zəmanət verə bilməz. APK faylı əvəzinə öz tətbiq mağazasını təklif edənləri ötür</string>
     <string name="home_download_instructions_step3_search">Həmin veb-saytda ən yenisini deyil, &lt;b&gt;%s&lt;/b&gt; versiyasının APK-sını yüklə</string>
     <string name="home_download_instructions_step3_search_any">Həmin veb-saytda tətbiqin APK-sını yüklə. &lt;b&gt;İstənilən versiya&lt;/b&gt; yamaqlana bilər</string>
+    <string name="home_download_instructions_step2_github">&lt;b&gt;%s&lt;/b&gt; buraxılışının &lt;b&gt;Resursları&lt;/b&gt; bölməsində, &lt;b&gt;.apk&lt;/b&gt; ilə bitən faylı basın</string>
+    <string name="home_download_instructions_step2_github_latest">Ən yeni buraxılışın &lt;b&gt;Resursları&lt;/b&gt; bölməsində, &lt;b&gt;.apk&lt;/b&gt; ilə bitən fayla basın</string>
+    <string name="home_download_instructions_step2_github_note">Bir neçə APK faylı olarsa, %s adını daşıyanı və ya universal olanı seçin</string>
     <string name="home_download_instructions_download_button_toast">Burada deyil, vebsaytdakı yükləməyə toxun 😊</string>
     <string name="home_download_instructions_download_button_toast_2">Əla! İndi davam et-ə kliklə və veb sayta keç 👆</string>
     <string name="home_download_instructions_download_button_toast_3">Təcrübə mükəmməlləşdirir və siz hədəfə yaxınlaşırsınız 💪</string>
@@ -355,6 +340,7 @@ APK-nı haradan götürəcəyinizi seçin"</string>
     <string name="expert_mode_enable_all_universal_pending">Ümumi yamaqlar üçün təkrar toxun</string>
     <string name="expert_mode_universal_all_warning_title">Bütün ümumi yamaqlar aktivləşdirilsin?</string>
     <string name="expert_mode_universal_all_warning_message">Ümumi yamaqlar birlikdə sınaqdan keçirilməyib. Hamısını eyni anda aktivləşdirmək ziddiyyətlərə, yamaqlamanın uğursuz olmasına və ya çökmələrə səbəb ola bilər</string>
+    <string name="expert_mode_recommended">Tövsiyə olunan yamaqlar</string>
     <string name="expert_mode_reset_to_default_done">Tövsiyə olunan yamaqlar tətbiq olundu</string>
     <string name="expert_mode_selected_count">%2$s - dan %1$s ədəd seçildi</string>
     <string name="expert_mode_saved_selection">Saxlanılan seçim</string>
@@ -517,11 +503,13 @@ APK-nı haradan götürəcəyinizi seçin"</string>
     <string name="batch_queue_pending_subtitle">Gözdən keçirmək və başlatmaq üçün toxun</string>
     <string name="batch_queue_clear_title">Növbəni təmizləsin?</string>
     <string name="batch_queue_clear_description">Bütün tətbiqlər növbədən silinəcək</string>
+    <string name="batch_queue_keep_title">Növbəni saxlasın?</string>
+    <string name="batch_queue_keep_description">Növbəyə qoyulmuş tətbiqlər daha sonra başladılmaq üçün əsas ekranda gözlədiləcək</string>
+    <string name="batch_queue_keep">Saxla</string>
     <string name="shortcut_repatch_short">Yenidən yamaqla</string>
     <string name="shortcut_repatch_long">Köhnəlmiş tətbiqləri yenidən yamaqla</string>
     <string name="shortcut_check_updates_short">Yeniləmələri yoxla</string>
     <string name="shortcut_check_updates_long">Yamaq yeniləmələrini yoxla</string>
-    <string name="shortcut_patch_app">%s tətbiqini yamaqla</string>
     <!-- Home Screen - App Info Screen -->
     <string name="home_app_info_uninstall_title">Bu tətbiqi silsin?</string>
     <string name="home_app_info_uninstall_removes_data">Tətbiq və onun məlumatları bu cihazdan silinib</string>
@@ -542,6 +530,7 @@ APK-nı haradan götürəcəyinizi seçin"</string>
     <string name="home_app_info_install_type_custom_installer">Xüsusi quraşdırıcı</string>
     <string name="home_app_info_install_type_system_installer">Sistem quraşdırıcısı</string>
     <string name="home_app_info_install_type_play_store">Play Store quraşdırması</string>
+    <string name="home_app_info_install_type_root">Root quraşdırma</string>
     <string name="home_app_info_install_type_root_play_store">Root Play Store quraşdırması</string>
     <string name="home_app_info_install_type_shizuku_play_store">Shizuku, Play Store quraşdırması</string>
     <string name="home_app_info_patch_update_available">Yamaq yenilənməsi var</string>
@@ -583,7 +572,8 @@ APK-nı haradan götürəcəyinizi seçin"</string>
     <string name="root_mount_module_unmount_warning">KernelSU-nun \"Modulları ilkin olaraq ayırmağı\" aktivdirsə, KernelSU &gt; Superuser &gt; montaj etdiyiniz tətbiq &gt; Profil &gt; Fərdi bölməsini açın və \"modulların ayrılmasını\" qapadın. Əks halda, Morphe onu montajlanmış kimi göstərsə belə, montajlanmış yamaqlı APK işləməyə bilər</string>
     <string name="root_pre_patch_installer_standard_title">Standart quraşdırma rejimi</string>
     <string name="root_pre_patch_installer_standard_description">GmsCore dəstəyi ilə adi APK kimi yamaqlayır. Quraşdırıcı tənzimləməniz yamaqlanmadan sonra istifadə olunur</string>
-    <string name="root_pre_patch_installer_hint">Tənzimləmələr &gt; Yamaqlama &gt; Quraşdırma &gt; Quraşdırıcı seçimi sorğusu açıq olduqda soruşulur. Yamaq rejimi yamaqlamadan sonra dəyişdirilə bilmir</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Installation > Patch mode", built from the names on those screens. "%2$s" is the option it is set to, such as "Ask every time". -->
+    <string name="root_pre_patch_installer_hint">%1$s %2$s olaraq təyin edildikdə soruşuldu. Yamaq rejimi yamaqlamadan sonra dəyişdirilə bilməz</string>
     <!-- Patcher Screen -->
     <string name="patcher_error_copied">Xəta buferə köçürüldü</string>
     <string name="patcher_error_log">Xəta jurnalı</string>
@@ -682,6 +672,14 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="patcher_step_group_saving">Saxlanılır</string>
     <string name="patcher_step_write_patched">Yamaqlanan APK faylı qeyd olunur</string>
     <string name="patcher_step_sign_apk">Yamaqlanan APK faylı imzalanır</string>
+    <!-- Patcher Screen - Patcher Tasks -->
+    <string name="patcher_task_decoding_dex">DEX fayllarını oxuyur</string>
+    <string name="patcher_task_extracting_resources">Resursları çıxarır</string>
+    <string name="patcher_task_decoding_resources">Resursları dekodlaşdırır</string>
+    <string name="patcher_task_indexing_classes">Sinifləri indeksləyir</string>
+    <string name="patcher_task_compiling_dex">DEX fayllarını tərtib edir</string>
+    <string name="patcher_task_compiling_resources">Resursları tərtib edir</string>
+    <string name="patcher_task_writing_apk">APK faylını qeyd edir</string>
     <!-- Battery optimization pre-flight dialog -->
     <string name="battery_optimization_dialog_title">Fon yamaqlanma müdafiəsi</string>
     <string name="battery_optimization_dialog_description">Bəzi cihazlar tətbiqi qısanda yamaqlayıcını dayandıra bilər. Etibarlı tamamlanan yamaqlanmaya əmin olmaq üçün Morphe-ni batareya məhdudiyyətləri olmadan işlətməyə icazə ver</string>
@@ -730,7 +728,8 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="patched_app_save_failed_toast">Yamaqlanan tətbiqi saxlamaq olmadı</string>
     <string name="plugin_activity_dialog_body">Bu qoşmayla davam etmək üçün istifadəçi reaksiyası tələb olunur</string>
     <string name="patcher_process_killed_message">Sistem yamaqlayıcını işini bitirmədən dayandırdı, bu adətən yaddaşı boşaltmaq üçün olur. Digər tətbiqləri bağla və təkrar cəhd et</string>
-    <string name="patcher_process_crashed_message">Yamaqlayıcı bitmədən çökdü. Bu hal təkrarlanarsa, tənzimləmələrdə \"Daxili VM istifadə eti\" qapat və log qeydi ilə birlikdə problemi bildir</string>
+    <!-- "%1$s" is where the setting is, such as "Settings > Patcher > Use embedded VM", built from the names on those screens. -->
+    <string name="patcher_process_crashed_message">Yamaqlayıcı bitmədən çökdü. Bu hal təkrarlanarsa, %1$s -i qapat və log qeydi ilə birlikdə problemi bildir</string>
     <!-- Shown when a run fills the heap it was given. "%1$s" is the heap in megabytes. -->
     <string name="patcher_out_of_memory_message">Yamaqlayıcının %1$s MB-lıq yaddaş yığını tükəndi. Bu tətbiq seçilmiş yamaqlar üçün çox böyükdür. Daha az yamaq mənbəyi ilə yamaqlamağa çalış və ya daha az yamaq seç</string>
     <string name="install_app_success">Uğurla quraşdırıldı</string>
@@ -918,6 +917,8 @@ Quraşdırma ləğvi bütün tətbiq məlumatını qalıcı siləcək"</string>
     <string name="notification_channel_patch_updates">Yamaq yeniləmələri</string>
     <string name="notification_channel_patch_updates_description">Yeni yamaq buraxılışları haqqında bildirişlər</string>
     <string name="notification_channel_patcher_description">Morphe tətbiqi fonda yamaqlayarkən görünür</string>
+    <string name="notification_channel_patching_results">Yamaqlama nəticələri</string>
+    <string name="notification_channel_patching_results_description">Yamaqlama bitdikdə və ya Morphe fonda olarkən quraşdırma sizin üçün gözlədildikdə</string>
     <string name="notification_channel_mounted_apps">Quraşdırılmış tətbiqlər</string>
     <string name="notification_channel_mounted_apps_description">Başqa versiya quraşdırılmış tətbiqi əvəzlədikdə və onun yamağı artıq tətbiq olunmadıqda</string>
     <string name="notification_mount_replaced_title">%1$s artıq yamaqlanmayıb</string>
@@ -1027,9 +1028,8 @@ morphe_header_custom_light.png morphe_header_custom_dark.png
     <string name="installer_title">Quraşdırıcını seç</string>
     <string name="installer_internal_description">Android paket quraşdırıcısı istifadə edilir</string>
     <string name="installer_play_store_description">Sistem quraşdırıcısın istifadə edir və Google Play Store-u quraşdırma mənbəyi kimi təyin edir</string>
+    <string name="installer_root_description">Root ilə səssizcə quraşdırır</string>
     <string name="installer_root_play_store_description">Səssizcə root ilə quraşdırır və Google Play Store-u quraşdırma mənbəyi kimi təyin edir</string>
-    <string name="installer_auto_saved_name">Root montajlama</string>
-    <string name="installer_auto_saved_description">Root montajı rejimində yamaqlanmış tətbiqləri montaj edir. Standart yamaqlanmış APK-lar başqa quraşdırıcı istifadə edir</string>
     <string name="installer_shizuku_description">Shizuku və ya Sui istifadə edərək səssizcə quraşdırır</string>
     <string name="installer_shizuku_play_store_description">Shizuku yaxud Sui vasitəsilə səssizcə quraşdırır və Google Play Store-u quraşdırma mənbəyi kimi təyin edir</string>
     <string name="installer_option_none">Ehtiyat yoxdur</string>
@@ -1039,7 +1039,7 @@ morphe_header_custom_light.png morphe_header_custom_dark.png
     <string name="installer_status_shizuku_not_installed">Bu seçimi istifadə etmək üçün Shizuku və ya Sui quraşdır</string>
     <string name="installer_status_shizuku_not_running">Shizuku yaxud Sui-ni başlat və təkrar sına</string>
     <string name="installer_status_shizuku_permission">Shizuku tətbiqindən Nivqo üçün icazəni qəbul et</string>
-    <string name="installer_mount_warning_install">İlkin quraşdırıcınız rootlu montaj quraşdırıcısına tənzimlənib. Saxlanılan bu tətbiq montaj istifadə edilərək quraşdırılan deyil</string>
+    <string name="installer_mount_warning_install">Yamaq rejimi root montajlama olaraq təyin edilib. Saxlanılan bu tətbiq montajlama istifadə edilərək quraşdırılmayıb</string>
     <string name="mount_version_mismatch_message">Əsas tətbiq versiyası (%2$s) yamaqlanan tətbiq versiyasına (%1$s) uyğun deyil. Uyuşan əsas versiyanı montajla, sonra təkrar sına</string>
     <string name="mount_stock_restore_failed_message">Android saxlanılan orijinal APK-nı qəbul etmədi. Uyğun əsas versiyanı quraşdır, sonra təkrar montaj etməyə çalış</string>
     <string name="installer_status_shizuku_unsupported">Quraşdırılan Shizuku versiyası dəstəklənmir</string>
@@ -1061,11 +1061,17 @@ morphe_header_custom_light.png morphe_header_custom_dark.png
     <string name="installer_play_store_warning_continue">Başa düşdüm, davam et</string>
     <string name="installer_play_store_mode">Play Store mənbəli quraşdır</string>
     <string name="installer_play_store_mode_description">Google Play Store-u quraşdırma mənbəyi kimi qeyd edir</string>
+    <string name="settings_section_patch_mode">Yamaq rejimi</string>
+    <string name="settings_patch_mode_ask">Hər dəfə soruş</string>
+    <string name="settings_patch_mode_ask_description">Hər tətbiqi yamaqlamazdan əvvəl root montajlama və ya standart quraşdırma üçün yamaqlamaq haqqında soruşur</string>
+    <string name="settings_section_after_patching">Yamaqlamadan sonra</string>
+    <string name="settings_after_patching_install">Avtomatik olaraq quraşdır</string>
+    <string name="settings_after_patching_ask">Hansı quraşdırıcı olduğunu soruş</string>
+    <string name="settings_after_patching_ask_description">Hər dəfə tətbiq quraşdırılanda hansı quraşdırıcının istifadə olunacağını soruşur</string>
+    <string name="settings_after_patching_manual">Əl ilə quraşdır</string>
+    <string name="settings_after_patching_manual_description">Siz quraşdıra toxunduqdan sonra ilkin quraşdırıcı ilə quraşdırılır</string>
     <string name="settings_nomount_only">Yalnız NoMount</string>
     <string name="settings_nomount_only_description">Tətbiqləri yalnız NoMount ilə montajlayır və heç vaxt bind mount rejiminə keçmir, beləliklə onlar bunsuz montajlanmamış qalır</string>
-    <string name="settings_prompt_installer_on_install">Quraşdırıcı seçimi müraciəti</string>
-    <string name="settings_prompt_installer_on_install_description">Hər tətbiqi necə quraşdıracağını soruşur: Root olduqda yamaqlamadan əvvəl, əks halda bundan sonra</string>
-    <string name="settings_auto_install_with_shizuku">Yamaqlamadan sonra birbaşa quraşdır</string>
     <string name="settings_auto_install_with_shizuku_description">Yamaqlamanı tamamlayan kimi yamaqlanmış APK-nı quraşdırır və ya montajlayır</string>
     <string name="settings_auto_uninstall_with_shizuku">Ziddiyyət zamanı avtomatik sil</string>
     <string name="settings_auto_uninstall_with_shizuku_description">Mövcud tətbiqi imza ziddiyyətində silir. Bu, tətbiq məlumatlarını silə bilər</string>
@@ -1135,7 +1141,6 @@ Təfərrüatlar: %2$s"</string>
     <string name="settings_system_import_keystore_dialog_description">Bunu idxal etmək üçün keystore etimadnaməsini qeyd etməlisiniz</string>
     <string name="settings_system_import_keystore_dialog_alias_field">İstifadəçi adı (Ləqəb)</string>
     <string name="settings_system_import_keystore_dialog_password_field">Parol</string>
-    <string name="settings_system_import_keystore_dialog_format_field">Keystore formatı</string>
     <string name="settings_system_import_keystore_wrong_credentials">Səhv keystore etimadnaməsi</string>
     <string name="settings_system_import_keystore_success">Keystore idxal edildi</string>
     <string name="settings_system_import_keystore_failed">Keystore-u idxal etmək olmadı</string>
@@ -1289,6 +1294,7 @@ Təfərrüatlar: %2$s"</string>
     <string name="credits_prior_development">Əvvəlki inkişaf</string>
     <string name="opensource_licenses">Açıq mənbə lisenziyaları</string>
     <string name="opensource_licenses_description">Morphe-nin əsaslandığı kitabxanalar</string>
+    <string name="opensource_licenses_search">Kitabxanaları və lisenziyaları axtar</string>
     <!-- Easter egg offered after seven taps on the version in the About dialog -->
     <string name="easter_egg_pill_title">Seçim</string>
     <string name="easter_egg_pill_message">Mavi həbi seçsəniz, reklamlar olduğu kimi qalacaq. Qırmızı həbi seçin və baytkodun nə qədər dərinə getdiyini görün</string>
@@ -1515,8 +1521,7 @@ Hələ də davam etmək istəyirsiniz?"</string>
     <string name="tour_prompt_confirm">Mənə göstər</string>
     <string name="onboarding_restart_title">Xüsusiyyət tanışlığı</string>
     <string name="onboarding_restart_desc">Əsas xüsusiyyətlərin bələdçi turu</string>
-
-    <!-- Preserved Nivqo localization -->
+    <string name="home_app_filter_patched_description">Nivqo ilə yamaqladığınız və ya saxladığınız tətbiqlər</string>
     <string name="home_category_delete_confirm_title">Kateqoriyanı sil</string>
     <string name="home_category_delete_confirm_message">&lt;b&gt;%1$s&lt;/b&gt; kateqoriyası silinsin? İçindəki tətbiqlər &lt;b&gt;%2$s&lt;/b&gt; bölməsinə geri köçürüləcək</string>
     <string name="expert_mode_prerelease_notice">Bu mənbə ilkin buraxılış yamaqlarındadır. Yamaqlama uğursuz ola və ya gözlənilməz şəkildə fəaliyyət göstərə bilər</string>

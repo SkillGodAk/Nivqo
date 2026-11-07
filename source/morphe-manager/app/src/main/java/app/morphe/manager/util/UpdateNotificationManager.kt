@@ -133,7 +133,6 @@ class UpdateNotificationManager(private val context: Context) {
      * on screen. Tapping one is not the only way back, recents and the launcher are too.
      */
     fun cancelPatchingResultNotifications() {
-        notificationManager.cancel(PatcherWorker.COMPLETION_NOTIFICATION_ID)
         notificationManager.cancel(NOTIFICATION_ID_BATCH_RESULT)
     }
 

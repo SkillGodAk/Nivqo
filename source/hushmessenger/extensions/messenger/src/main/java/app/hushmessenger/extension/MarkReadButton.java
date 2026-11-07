@@ -73,10 +73,13 @@ public final class MarkReadButton {
     /**
      * Messenger's older chat top bar calls this right before it shows its buttons, padded with nulls, of which it shows
      * the first three. The button goes where the chat details button sits, taking its place when the bar is full, since
-     * tapping the chat's name opens the same page. Without a details button it's added only when there's room, so no
-     * call button is ever pushed out or moved.
+     * tapping the chat's name opens the same page. A full bar that doesn't show a details button gives up its last button
+     * that isn't for calls, such as Add friend, Meta AI or a group's home, so no chat goes without it and no call button
+     * is ever pushed out or moved.
      */
     public static void add(List<Object> buttons, Object socket) {
+        CallButtons.blank(buttons);
+        CallConfirm.guard(buttons);
         try {
             if (buttons != null && shown()) place(buttons, build(socket));
         } catch (Throwable error) {
@@ -89,6 +92,8 @@ public final class MarkReadButton {
      * returns. The button goes in by the same rule as {@link #add}, in a copy; the list comes back as it was otherwise.
      */
     public static List<Object> addTo(List<Object> buttons, Object session, Object thread, Object mig) {
+        buttons = CallButtons.without(buttons);
+        CallConfirm.guard(buttons);
         try {
             if (buttons == null || !shown()) return buttons;
             Object button = button(session, thread, mig);
@@ -104,30 +109,70 @@ public final class MarkReadButton {
     /** Puts a built button into the bar's list by the rule {@link #add} describes. False when it changed nothing. */
     static boolean place(List<Object> buttons, Object button) throws IllegalAccessException {
         if (button == null) return false;
-        int count = 0, details = -1;
+        int count = 0, details = -1, spare = -1;
         for (int i = 0; i < buttons.size(); i++) {
             Object held = buttons.get(i);
             if (held == null) continue;
-            count++;
+            // Only the buttons the bar shows count: a place past its cut wouldn't show this one either.
+            if (++count > MOST_BUTTONS) continue;
             if (details < 0 && isDetails(held)) details = i;
+            // Messenger's join a call button is a class of its own, so another class is given up only when it's known.
+            else if ((held.getClass() == button.getClass() || givesWay(held)) && !isCall(held)) spare = i;
         }
         if (details >= 0 && count >= MOST_BUTTONS) buttons.set(details, button);
         else if (details >= 0) buttons.add(details, button);
         else if (count < MOST_BUTTONS) buttons.add(button);
+        else if (spare >= 0) buttons.set(spare, button);
         else return false;
         return true;
     }
 
     /** The test tag Messenger gives the chat details button in both top bars. The patch checks the build sets it. */
     static final String DETAILS_TAG = "settings_button";
+    /** The test tags of the call buttons in either top bar, which stay put. The patch checks the build sets the first and last. */
+    static final String[] CALL_TAGS = {
+        "audio_call_button", "audio_call_button_green_dot", "audio_call_button_green_icon_and_subheader", "call_request_button", "video_call_button",
+    };
 
     /** Whether a top bar button is the chat details one, by the test tag the button keeps. */
     static boolean isDetails(Object button) throws IllegalAccessException {
+        return hasTag(button, DETAILS_TAG);
+    }
+
+    /** The Meta AI chat button's test tag, on either class Messenger builds that button from. */
+    static final String META_AI_TAG = "thread_view_meta_ai_button";
+    /** What a group's home button keeps, by simple name: Messenger leaves that class's name as it is. */
+    static final String GROUP_HOME = "HomebaseRepository";
+
+    /**
+     * Whether a button of a class of its own may give its place up: Messenger's Meta AI chat button, by its tag, or a
+     * group's home button, by the repository it holds. Both go ahead of the call buttons, and the bar then drops its
+     * details button to stay at three. Any other class, such as the join a call button, stays.
+     */
+    static boolean givesWay(Object button) throws IllegalAccessException {
+        if (hasTag(button, META_AI_TAG)) return true;
+        for (Class<?> type = button.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
+            for (Field field : type.getDeclaredFields()) {
+                if (!Modifier.isStatic(field.getModifiers()) && GROUP_HOME.equals(field.getType().getSimpleName())) return true;
+            }
+        }
+        return false;
+    }
+
+    /** Whether a top bar button starts a call, by the test tag the button keeps. */
+    static boolean isCall(Object button) throws IllegalAccessException {
+        for (String tag : CALL_TAGS) {
+            if (hasTag(button, tag)) return true;
+        }
+        return false;
+    }
+
+    static boolean hasTag(Object button, String tag) throws IllegalAccessException {
         for (Class<?> type = button.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
             for (Field field : type.getDeclaredFields()) {
                 if (Modifier.isStatic(field.getModifiers()) || field.getType() != String.class) continue;
                 field.setAccessible(true);
-                if (DETAILS_TAG.equals(field.get(button))) return true;
+                if (tag.equals(field.get(button))) return true;
             }
         }
         return false;

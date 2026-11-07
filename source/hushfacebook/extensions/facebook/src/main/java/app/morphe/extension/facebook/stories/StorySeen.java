@@ -66,6 +66,20 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * and {@link #watchedHere} answers Facebook's start check for each one, so the viewer passes over
  * those and starts at the first card not watched. The flag itself isn't changed.
  *
+ * <p>Hide seen stories goes by the flag the servers send with each bucket of the tray, which a
+ * held-back view never sets, so a bucket watched here came back after every refresh and restart
+ * (#218 again). {@link #trayWatchedHere} answers for those: a bucket watched to the end here, whose
+ * newest story was already up then. The tray's bucket carries no cards, only its id and its
+ * expiration_time, which is a day after its newest story was posted, so a story posted after the
+ * watch brings it back.
+ *
+ * <p>That check compares Facebook's post time with this phone's clock, and a bucket that fails it,
+ * a phone clock off from Facebook's or a story posted moments before the watch, still gets marked
+ * watched by {@link #bucketMade}. So it left the tray once the mark landed, and came back with the
+ * next refresh, over and over (#340). {@link #trayReadWatched} keeps each tray bucket Facebook sends
+ * as watched by its expiration_time, and {@link #trayWatchedHere} answers for it until that changes,
+ * which only a new story does. No clock comes into it.
+ *
  * <p>It fails open, like the other hooks: the switch off, a pause, settings that aren't ready yet,
  * or a failure reading the switch send the views as Facebook would, and leave the rings as Facebook
  * draws them. A failure picking out the marked cards holds the whole batch back, as the switch does
@@ -92,6 +106,28 @@ public final class StorySeen {
 
     /** What Hook status counts each time a bucket answered Facebook as watched, under (#165). */
     static final String READ_WATCHED = "read as watched here";
+
+    /** What Hook status counts each tray bucket Hide seen stories took as watched here, under (#218). */
+    static final String TRAY_WATCHED = "tray bucket watched here";
+
+    /** What Hook status counts each tray bucket taken as watched by an earlier tray's flag under (#340). */
+    static final String TRAY_SEEN_BEFORE = "tray bucket sent watched before";
+
+    /**
+     * What Hook status counts each tray bucket watched here whose newest story looks posted after
+     * the watch under: a new story, or a phone clock off from Facebook's (#340).
+     */
+    static final String TRAY_POSTED_AFTER = "tray bucket posted after the watch";
+
+    /** How long a story is up: a bucket expires this long after its newest story was posted. */
+    static final long STORY_LIFE_MS = 24L * 60 * 60 * 1000;
+
+    /**
+     * How long before the watch the newest story has to have been posted. The viewer may have loaded
+     * the bucket a little before a story that came in while it played, and the phone's clock can be
+     * off from the servers', so a story posted this close to the watch keeps the bucket in the tray.
+     */
+    static final long POSTED_MARGIN_MS = 2L * 60 * 1000;
 
     /** The type and field of the tree Facebook publishes for a bucket when its servers take a report. */
     static final String BUCKET_TYPE = "DirectMessageThreadBucket";
@@ -176,6 +212,8 @@ public final class StorySeen {
     private static volatile SeenBuckets store;
     /** Every card watched with the switch on, by its own id (#218). */
     private static volatile SeenBuckets cardStore;
+    /** Every tray bucket Facebook sent as watched with the switch on, by its expiration_time (#340). */
+    private static volatile SeenBuckets trayStore;
     /** The buckets watched to the end since the last send, until it's held back. */
     private static final List<WeakReference<Object>> finished = new ArrayList<>();
     /** Each bucket's window: when it opened, by SystemClock.elapsedRealtime, and the marks in it. */
@@ -360,6 +398,8 @@ public final class StorySeen {
                 if (!seen.isEmpty(now)) seen.clear();
                 SeenBuckets cards = cardStore();
                 if (cards != null && !cards.isEmpty(now)) cards.clear();
+                SeenBuckets tray = trayStore();
+                if (tray != null && !tray.isEmpty(now)) tray.clear();
                 return;
             }
             if (!Settings.VIEW_STORIES_ANONYMOUSLY.get()) return;
@@ -432,6 +472,85 @@ public final class StorySeen {
             return false;
         } finally {
             asking[0] = false;
+        }
+    }
+
+    /**
+     * Whether anything is kept as watched here with the switch on, so the tray reads its buckets'
+     * ids and times only when there's something to look them up in. Never throws.
+     */
+    static boolean keepsTrayWatched() {
+        try {
+            if (!holdsViewsBack()) return false;
+            long now = System.currentTimeMillis();
+            SeenBuckets seen = store();
+            if (seen != null && !seen.isEmpty(now)) return true;
+            SeenBuckets tray = trayStore();
+            return tray != null && !tray.isEmpty(now);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEN, "tray bucket watched here", failure);
+            return false;
+        }
+    }
+
+    /** Whether views are held back right now: the switch on, not paused, and settings ready. Never throws. */
+    static boolean holdsViewsBack() {
+        try {
+            return Utils.settingsReady() && Settings.VIEW_STORIES_ANONYMOUSLY.get();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEN, "story views switch", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Keeps the tray's bucket [bucketId], sent as watched while it expires at [expiresSeconds], so
+     * a later tray that sends it unwatched with the same expiration reads it as watched (#340). With
+     * the switch off or paused nothing is kept. Never throws.
+     */
+    static void trayReadWatched(@Nullable String bucketId, long expiresSeconds) {
+        try {
+            if (bucketId == null || expiresSeconds <= 0 || !holdsViewsBack()) return;
+            SeenBuckets tray = trayStore();
+            if (tray == null) return;
+            long now = System.currentTimeMillis();
+            String expires = String.valueOf(expiresSeconds);
+            if (!expires.equals(tray.newestWatched(bucketId, now))) tray.watched(bucketId, expires, now);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEN, "tray bucket sent watched", failure);
+        }
+    }
+
+    /**
+     * Whether the tray's bucket [bucketId], which expires at [expiresSeconds], was watched to the end
+     * on this phone after its newest story was posted, with the switch on (#218), or was sent as
+     * watched before with the same expiration, so no story was posted since (#340). False for a
+     * bucket watched partway, one with a story posted since, one past what's kept, and with the
+     * switch off or paused. Never throws.
+     */
+    static boolean trayWatchedHere(@Nullable String bucketId, long expiresSeconds) {
+        try {
+            if (bucketId == null || expiresSeconds <= 0 || !holdsViewsBack()) return false;
+            long now = System.currentTimeMillis();
+            SeenBuckets tray = trayStore();
+            if (tray != null && String.valueOf(expiresSeconds).equals(tray.newestWatched(bucketId, now))) {
+                HookStatus.counted(FamilyNames.STORY_SEEN, TRAY_SEEN_BEFORE);
+                return true;
+            }
+            SeenBuckets seen = store();
+            if (seen == null) return false;
+            long watchedAt = seen.watchedAt(bucketId, now);
+            if (watchedAt < 0) return false;
+            long posted = expiresSeconds * 1000 - STORY_LIFE_MS;
+            if (posted + POSTED_MARGIN_MS > watchedAt) {
+                HookStatus.counted(FamilyNames.STORY_SEEN, TRAY_POSTED_AFTER);
+                return false;
+            }
+            HookStatus.counted(FamilyNames.STORY_SEEN, TRAY_WATCHED);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEN, "tray bucket watched here", failure);
+            return false;
         }
     }
 
@@ -547,6 +666,20 @@ public final class StorySeen {
     }
 
     @Nullable
+    private static SeenBuckets trayStore() {
+        SeenBuckets tray = trayStore;
+        if (tray != null) return tray;
+        Context context = Utils.getContext();
+        if (context == null) return null;
+        synchronized (StorySeen.class) {
+            if (trayStore == null) {
+                trayStore = new SeenBuckets(context.getSharedPreferences(SeenBuckets.TRAY_FILE, Context.MODE_PRIVATE));
+            }
+            return trayStore;
+        }
+    }
+
+    @Nullable
     private static String text(Object value) {
         return value instanceof String ? (String) value : null;
     }
@@ -555,6 +688,7 @@ public final class StorySeen {
         stories = access == null ? PATCHED : access;
         store = null;
         cardStore = null;
+        trayStore = null;
         synchronized (finished) {
             finished.clear();
         }
