@@ -532,12 +532,8 @@ class PatchBundleRepository(
             ready.copy(info = ready.info.puttingAll(loadMetadata(unread)))
         }
 
-        // Ensure official bundle has default display name if none is set
-        val officialSource = sources[0]
-        if (officialSource != null && officialSource.displayName.isNullOrBlank()) {
-            updateDb(officialSource.uid) { it.copy(displayName = SOURCE_NAME) }
-            sources[officialSource.uid] = officialSource.copy(displayName = SOURCE_NAME)
-        }
+        // The legacy Morphe API source uid=0 has been removed; Nivqo's sources carry
+        // their own display names and are maintained by ensureNivqoHushSources().
 
         return BundleState.Ready(sources.toPersistentMap(), info.toPersistentMap())
     }
@@ -551,12 +547,17 @@ class PatchBundleRepository(
         val all = dao.all()
         val present = all.asSequence().map { it.uid }.toSet()
 
-        // Keep the stock Morphe API source available. Nivqo's Hush sources use Nivqo-owned
-        // remote manifests so translated/custom bundles can update independently of the Manager.
-        // The copies embedded in the APK are only offline/first-run seeds and never overwrite a
-        // bundle that has already been installed or updated from GitHub.
-        val missingDefaults = listOf(createDefaultEntity(now)).filter { it.uid !in present }
-        missingDefaults.forEach { dao.upsert(it) }
+        // Nivqo no longer exposes or updates the upstream Morphe API bundle. Remove the
+        // legacy uid=0 source from existing installations; never create it on first run.
+        // Leave user-added sources (all other UIDs) untouched.
+        if (DEFAULT_SOURCE_UID in present) {
+            dao.remove(DEFAULT_SOURCE_UID)
+            forgetBundle(DEFAULT_SOURCE_UID)
+        }
+        bundlesDir.resolve(DEFAULT_SOURCE_UID.toString()).let { legacyDir ->
+            if (legacyDir.exists()) legacyDir.deleteRecursively()
+        }
+        // Only the Nivqo-owned Facebook and Messenger sources are always present.
         ensureNivqoHushSources(now)
 
         return dao.all()
@@ -1963,6 +1964,9 @@ class PatchBundleRepository(
                 .orEmpty()
                 .filterIsInstance<RemotePatchBundle>()
                 .filter { it.enabled && !isSourceBlocked(it) }
+                // Do not alert Nivqo users about arbitrary manually added or upstream
+                // Morphe bundles. Their updates remain available in source management.
+                .filter { isNivqoUpdateNotificationSource(it.uid, it.endpoint) }
 
             if (remoteBundles.isEmpty()) return null
 
@@ -2582,21 +2586,30 @@ class PatchBundleRepository(
         internal const val HUSHMESSENGER_UPDATE_ENDPOINT =
             "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushmessenger.json"
 
-        // Create default entity with sortOrder 0
-        fun createDefaultEntity(now: Long = System.currentTimeMillis()) = PatchBundleEntity(
-            uid = DEFAULT_SOURCE_UID,
-            name = "",
-            displayName = null,
-            versionHash = null,
-            source = Source.API,
-            enabled = true,
-            sortOrder = 0,
-            createdAt = now,
-            updatedAt = now
-        )
+        /** The background updater only notifies for Nivqo's own patch channels. */
+        internal fun isNivqoUpdateNotificationSource(uid: Int, endpoint: String): Boolean {
+            if (uid == DEFAULT_SOURCE_UID) return false
+            if (uid == HUSHFACEBOOK_SOURCE_UID) {
+                return endpoint.equals(HUSHFACEBOOK_UPDATE_ENDPOINT, ignoreCase = true)
+            }
+            if (uid == HUSHMESSENGER_SOURCE_UID) {
+                return endpoint.equals(HUSHMESSENGER_UPDATE_ENDPOINT, ignoreCase = true)
+            }
+            val uri = runCatching { URI(endpoint) }.getOrNull() ?: return false
+            if (!uri.scheme.equals("https", ignoreCase = true)) return false
+            val host = uri.host?.lowercase(Locale.US) ?: return false
+            val path = uri.path?.trim('/')?.lowercase(Locale.US) ?: return false
+            return when (host) {
+                "raw.githubusercontent.com", "github.com" ->
+                    path == "skillgodak/nivqo" || path.startsWith("skillgodak/nivqo/")
+                "api.github.com" ->
+                    path == "repos/skillgodak/nivqo" || path.startsWith("repos/skillgodak/nivqo/")
+                else -> false
+            }
+        }
 
+        /** Only Nivqo-controlled sources are installed by default. */
         internal fun createDefaultEntities(now: Long = System.currentTimeMillis()) = listOf(
-            createDefaultEntity(now),
             PatchBundleEntity(
                 uid = HUSHFACEBOOK_SOURCE_UID,
                 name = "Hushfacebook",

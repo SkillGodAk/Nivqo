@@ -23,13 +23,13 @@ interface PatchBundleDao {
     @Query("UPDATE patch_bundles SET version = :patches WHERE uid = :uid")
     suspend fun updateVersionHash(uid: Int, patches: String?)
 
-    @Query("DELETE FROM patch_bundles WHERE uid != 0")
-    suspend fun purgeCustomBundles()
+    @Query("DELETE FROM patch_bundles")
+    suspend fun purgeAllBundles()
 
     @Transaction
     suspend fun reset() {
-        purgeCustomBundles()
-        updateVersionHash(0, null) // Reset the main source
+        // Reset re-seeds only the two Nivqo sources on the next repository reload.
+        purgeAllBundles()
     }
 
     @Query("DELETE FROM patch_bundles WHERE uid = :uid")

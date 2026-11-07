@@ -32,6 +32,11 @@ import app.morphe.manager.domain.repository.PatchBundleRepository
 class UpdateNotifications(private val context: Context) {
     private val notificationManager by lazy { context.getSystemService(NotificationManager::class.java) }
 
+    /** Discard an old upstream bundle update notice on the next app launch. */
+    fun dismissLegacyBundleUpdateNotice() {
+        notificationManager.cancel(NOTIFICATION_ID_BUNDLE_UPDATE)
+    }
+
     /**
      * Post a notification that a new Morphe Manager version is available.
      * Called from [app.morphe.manager.worker.UpdateCheckWorker] on non-GMS devices
@@ -67,6 +72,7 @@ class UpdateNotifications(private val context: Context) {
         version: String? = null,
         bundleUid: Int = PatchBundleRepository.DEFAULT_SOURCE_UID
     ) {
+        if (bundleUid == PatchBundleRepository.DEFAULT_SOURCE_UID) return
         postNotification(
             channelId = NotificationChannels.PATCH_UPDATES,
             title = context.getString(R.string.notification_bundle_update_title),

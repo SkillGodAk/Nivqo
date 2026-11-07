@@ -144,6 +144,13 @@ class ManagerApplication : Application() {
 
         // Create notification channels before any notification can be posted (required on API 26+)
         NotificationChannels.create(this@ManagerApplication)
+        // Once on upgrade, discard a pending notification from the retired Morphe source.
+        // Do not clear legitimate Nivqo update notices on every subsequent app launch.
+        val migrationPrefs = getSharedPreferences("nivqo_update_migration", MODE_PRIVATE)
+        if (!migrationPrefs.getBoolean("retired_morphe_notification_dismissed", false)) {
+            UpdateNotifications(this@ManagerApplication).dismissLegacyBundleUpdateNotice()
+            migrationPrefs.edit().putBoolean("retired_morphe_notification_dismissed", true).apply()
+        }
 
         observeLanguage()
         observeLauncherShortcuts()
