@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-08T03:00:28",
+  "created_at": "2026-11-08T03:32:58",
   "description": "Nivqo Manager 2.5.0 正式版：同步 Morphe Manager 2.5.0、Patcher 2.3.0、HushFacebook 0.21.0（117 個補丁）及 HushMessenger 0.29.0（88 個補丁）。Nivqo Patches 1.2.0 合計 205 個繁中補丁，保留 Nivqo Logo、繁體中文／英文／跟隨系統、Facebook Messenger 按鈕、離線核心、原簽章及自動更新。Facebook 585.0.0.47.54、Messenger 586.0.0.55.92 需使用指定相容原版 APK 重新修補才會套用新版功能。 English: Manager 2.5.0, Patcher 2.3.0, FB 0.21.0, MSG 0.29.0, 205 patches. Original Nivqo signing identities and OTA are preserved.",
   "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v2.5.0/Nivqo-Manager-2.5.0-20261108-release.apk",
   "signature_download_url": "",
   "version": "2.5.0",
-  "version_code": 39911390
+  "version_code": 39911426
 }
