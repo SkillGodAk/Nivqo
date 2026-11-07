@@ -96,21 +96,35 @@ class PatchBundleRepository(
 
     // Hot so collectors see the loaded sources on their first frame instead of an empty list
     val sources = store.state
-        .map { (it as? BundleState.Ready)?.sources?.values?.toList() ?: emptyList() }
+        // Defense in depth: never render a retired Morphe source, even while an old
+        // database snapshot is being migrated. The first reload also removes it on disk.
+        .map { state ->
+            (state as? BundleState.Ready)?.sources?.values
+                ?.filterNot { isRetiredMorpheBundle(it) }
+                ?: emptyList()
+        }
         .stateIn(scope, SharingStarted.Eagerly, emptyList())
     val bundles = store.state.map {
         (it as? BundleState.Ready)?.sources?.mapNotNull { (uid, src) ->
+            if (isRetiredMorpheBundle(src)) return@mapNotNull null
             uid to (src.patchBundle ?: return@mapNotNull null)
         }?.toMap() ?: emptyMap()
     }
-    val allBundlesInfoFlow = store.state.map { (it as? BundleState.Ready)?.info ?: persistentMapOf() }
+    val allBundlesInfoFlow = store.state.map { state ->
+        val ready = state as? BundleState.Ready ?: return@map persistentMapOf()
+        ready.info.filterKeys { uid ->
+            ready.sources[uid]?.let { !isRetiredMorpheBundle(it) } ?: uid != DEFAULT_SOURCE_UID
+        }
+    }
 
     /**
      * Whether a source was built for a newer patcher than this manager ships. Answered here
      * rather than on screen, as reading what a source requires opens its patches.jar.
      */
     val hasOutdatedManagerSources: StateFlow<Boolean> = sources
-        .map { list -> list.any { it.requiresManagerUpdate } }
+        // The generic upstream warning must not tell Nivqo users to install Morphe.
+        // Our official bundles may still warn if they truly need a newer Nivqo patcher.
+        .map { list -> list.any { isNivqoManagerCompatibilityWarning(it) } }
         .stateIn(scope, SharingStarted.Eagerly, false)
 
     /** Whether a source is skipped for having taken the process down while being read. */
@@ -545,15 +559,19 @@ class PatchBundleRepository(
     private suspend fun loadFromDb(): List<PatchBundleEntity> {
         val now = System.currentTimeMillis()
         val all = dao.all()
-        val present = all.asSequence().map { it.uid }.toSet()
-
-        // Nivqo no longer exposes or updates the upstream Morphe API bundle. Remove the
-        // legacy uid=0 source from existing installations; never create it on first run.
-        // Leave user-added sources (all other UIDs) untouched.
-        if (DEFAULT_SOURCE_UID in present) {
-            dao.remove(DEFAULT_SOURCE_UID)
-            forgetBundle(DEFAULT_SOURCE_UID)
+        // Remove every migrated form of the historical Morphe default, not just UID 0.
+        // Older installations/backups may carry Source.API under another UID or a renamed
+        // Morphe patches endpoint. Do not alter unrelated manually added patch sources.
+        val obsolete = all.filter(::isRetiredMorpheEntity)
+        obsolete.forEach { entity ->
+            dao.remove(entity.uid)
+            forgetBundle(entity.uid)
+            val legacyDir = bundlesDir.resolve(entity.uid.toString())
+            if (legacyDir.exists() && !legacyDir.deleteRecursively()) {
+                Log.w(tag, "Could not remove retired Morphe patch cache for UID ${entity.uid}")
+            }
         }
+        // Clear orphaned UID 0 files even if its database record was already deleted.
         bundlesDir.resolve(DEFAULT_SOURCE_UID.toString()).let { legacyDir ->
             if (legacyDir.exists()) legacyDir.deleteRecursively()
         }
@@ -2585,6 +2603,39 @@ class PatchBundleRepository(
             "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json"
         internal const val HUSHMESSENGER_UPDATE_ENDPOINT =
             "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushmessenger.json"
+
+        /** Retired stock Morphe patch source, including legacy backups and older UID aliases. */
+        internal fun isRetiredMorpheEntity(entity: PatchBundleEntity): Boolean =
+            entity.uid == DEFAULT_SOURCE_UID || entity.source is SourceInfo.API ||
+                    ((entity.source as? SourceInfo.Remote)?.url?.toString()?.let { url ->
+                        isRetiredMorpheEndpoint(url, entity.name, entity.displayName)
+                    } == true)
+
+        private fun isRetiredMorpheEndpoint(endpoint: String, name: String, displayName: String?): Boolean {
+            val oldLabel = sequenceOf(name, displayName.orEmpty())
+                .any { it.trim().startsWith("morphe patches", ignoreCase = true) }
+            if (!oldLabel) return false
+            val url = runCatching { URI(endpoint) }.getOrNull() ?: return false
+            val host = url.host?.lowercase(Locale.US) ?: return false
+            val path = url.path?.trim('/')?.lowercase(Locale.US).orEmpty()
+            return (host == "api.morphe.software" || host == "api.morphe.app") ||
+                    (host in setOf("github.com", "raw.githubusercontent.com", "api.github.com") &&
+                            (path.startsWith("morpheapp/morphe-patches/") ||
+                                    path == "morpheapp/morphe-patches" ||
+                                    path.startsWith("repos/morpheapp/morphe-patches/")))
+        }
+
+        /** Gate UI rendering independently of the database migration's success. */
+        internal fun isRetiredMorpheBundle(bundle: PatchBundleSource): Boolean =
+            bundle.uid == DEFAULT_SOURCE_UID || bundle is APIPatchBundle ||
+                    (bundle is RemotePatchBundle &&
+                            isRetiredMorpheEndpoint(bundle.endpoint, bundle.name, bundle.displayName))
+
+        /** Official Nivqo patcher compatibility; never suggest upgrading to upstream Morphe. */
+        internal fun isNivqoManagerCompatibilityWarning(bundle: PatchBundleSource): Boolean =
+            bundle.enabled && bundle.requiresManagerUpdate && !isRetiredMorpheBundle(bundle) &&
+                    bundle is RemotePatchBundle &&
+                    isNivqoUpdateNotificationSource(bundle.uid, bundle.endpoint)
 
         /** The background updater only notifies for Nivqo's own patch channels. */
         internal fun isNivqoUpdateNotificationSource(uid: Int, endpoint: String): Boolean {

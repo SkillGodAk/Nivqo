@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Допрете за да прегледате и отстраните</string>
     <string name="home_metadata_errors_title">Некои извори на закрпи се недостапни</string>
     <string name="home_metadata_errors_subtitle">Допрете за да ги прегледате изворите</string>
-    <string name="home_outdated_manager_title">Morphe е застарен</string>
+    <string name="home_outdated_manager_title">Nivqo е застарен</string>
     <string name="home_outdated_manager_subtitle">Некои извори на закрпи бараат понова верзија</string>
     <string name="home_held_back_title">Изворот на закрпата предизвика пад на Morphe</string>
     <string name="home_held_back_subtitle">Беше прескокнато за апликацијата да може да стартува. Допрете за преглед</string>

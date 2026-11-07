@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Puuduta, et ülevaadata ja eemaldada</string>
     <string name="home_metadata_errors_title">Mõned paigutuse allikad on unavailable</string>
     <string name="home_metadata_errors_subtitle">Puuduta, et ülevaadata allikad</string>
-    <string name="home_outdated_manager_title">Morphe on aegunud</string>
+    <string name="home_outdated_manager_title">Nivqo on aegunud</string>
     <string name="home_outdated_manager_subtitle">Mõnedad plaastiallikad vajavad uuemat versiooni</string>
     <string name="home_held_back_title">Üks plaasteri allikas põhjustas Morphe crashimise</string>
     <string name="home_held_back_subtitle">Seda oli möödatud, et rakendus saaks käivituda. Täpsustage ülevaatamiseks</string>

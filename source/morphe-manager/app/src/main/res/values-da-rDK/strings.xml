@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Tryk for at gennemgå og fjerne</string>
     <string name="home_metadata_errors_title">Nogle patchkilder er ikke tilgængelige</string>
     <string name="home_metadata_errors_subtitle">Tryk for at gennemgå kilder</string>
-    <string name="home_outdated_manager_title">Morphe er forældet</string>
+    <string name="home_outdated_manager_title">Nivqo er forældet</string>
     <string name="home_outdated_manager_subtitle">Nogle patchkilder kræver en nyere version</string>
     <string name="home_held_back_title">En patchkilde fik Morphe til at crashe</string>
     <string name="home_held_back_subtitle">Den blev sprunget over, så appen kunne starte. Tryk for at se nærmere</string>

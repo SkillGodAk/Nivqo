@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Érintsd meg a felülvizsgálathoz és eltávolításhoz</string>
     <string name="home_metadata_errors_title">Egyes módosításforrások nem elérhetők</string>
     <string name="home_metadata_errors_subtitle">Koppints a források áttekintéséhez</string>
-    <string name="home_outdated_manager_title">A Morphe verziója elavult</string>
+    <string name="home_outdated_manager_title">A Nivqo verziója elavult</string>
     <string name="home_outdated_manager_subtitle">Néhány módosítási forráshoz újabb verzió szükséges</string>
     <string name="home_held_back_title">A Morphe egy módosításforrás miatt összeomlott</string>
     <string name="home_held_back_subtitle">Kihagytuk, hogy az alkalmazás elindulhasson. Koppintson a felülvizsgálathoz</string>

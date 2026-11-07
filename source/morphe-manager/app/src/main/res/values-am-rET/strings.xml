@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">ለመገምገም እና ለማስወገድ ይጫኑ</string>
     <string name="home_metadata_errors_title">አንዳንድ የፓች ምንጮች አይገኙም</string>
     <string name="home_metadata_errors_subtitle">ምንጮችን ለመገምገም ይጫኑ</string>
-    <string name="home_outdated_manager_title">Morphe ጊዜ ያለፈበት ነው</string>
+    <string name="home_outdated_manager_title">Nivqo ጊዜ ያለፈበት ነው</string>
     <string name="home_outdated_manager_subtitle">አንዳንድ የፓች ምንጮች አዲስ ስሪት ያስፈልጋቸዋል</string>
     <string name="home_held_back_title">የፓች ምንጭ Morpheን አጋልጦታል</string>
     <string name="home_held_back_subtitle">መተግበሪያው እንዲጀምር ተለትቷል። ለመከለስ ይጫኑ</string>

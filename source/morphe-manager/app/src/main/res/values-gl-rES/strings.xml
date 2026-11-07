@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Toca para revisar e eliminar</string>
     <string name="home_metadata_errors_title">Algunhas fontes de parches non están dispoñibles</string>
     <string name="home_metadata_errors_subtitle">Toca para revisar as fontes</string>
-    <string name="home_outdated_manager_title">Morphe está desactualizado</string>
+    <string name="home_outdated_manager_title">Nivqo está desactualizado</string>
     <string name="home_outdated_manager_subtitle">Algunhas fontes de parcheos necesitan unha versión máis nova</string>
     <string name="home_held_back_title">Unha fonte de parcheo fixo Morphe</string>
     <string name="home_held_back_subtitle">Ignorouse para que a aplicación puidese iniciar. Toca para revisar</string>

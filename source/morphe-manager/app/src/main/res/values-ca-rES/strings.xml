@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Toca per revisar i eliminar</string>
     <string name="home_metadata_errors_title">Algunes fonts de pegats no estan disponibles</string>
     <string name="home_metadata_errors_subtitle">Toca per revisar les fonts</string>
-    <string name="home_outdated_manager_title">Morphe està desactualitzat</string>
+    <string name="home_outdated_manager_title">Nivqo està desactualitzat</string>
     <string name="home_outdated_manager_subtitle">Algunes fonts de paquets necessiten una versió més recent</string>
     <string name="home_held_back_title">Una font de retallatge ha provocat el tancament inesperat de Morphe</string>
     <string name="home_held_back_subtitle">S\'ha ometut perquè l\'aplicació pogués iniciar-se. Toca per revisar-ho</string>

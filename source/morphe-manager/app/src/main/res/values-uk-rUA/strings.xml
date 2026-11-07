@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Натисніть, щоб переглянути та видалити</string>
     <string name="home_metadata_errors_title">Деякі джерела патчів недоступні</string>
     <string name="home_metadata_errors_subtitle">Натисніть, щоб переглянути джерела</string>
-    <string name="home_outdated_manager_title">Morphe застарів</string>
+    <string name="home_outdated_manager_title">Nivqo застарів</string>
     <string name="home_outdated_manager_subtitle">Деякі джерела патчів потребують новішої версії</string>
     <string name="home_held_back_title">Джерело патчів спричинило збій Morphe</string>
     <string name="home_held_back_subtitle">Було пропущено, щоб застосунок міг запуститися. Натисніть для перегляду</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">ແຕະເພື່ອກວດສອບ ແລະລຶບອອກ</string>
     <string name="home_metadata_errors_title">ບາງແຫຼ່ງຊຸດແພດບໍ່ສາມາດໃຊ້ໄດ້</string>
     <string name="home_metadata_errors_subtitle">ແຕະເພື່ອກວດສອບແຫຼ່ງຂໍ້ມູນ</string>
-    <string name="home_outdated_manager_title">Morphe ເກົ່າເກີນໄປ</string>
+    <string name="home_outdated_manager_title">Nivqo ເກົ່າເກີນໄປ</string>
     <string name="home_outdated_manager_subtitle">ບາງແຫຼ່ງ patch ຕ້ອງການເວີຊັນທີ່ໃໝ່ກວ່າ</string>
     <string name="home_held_back_title">ແຫຼ່ງ patch ທີ່ໜຶ່ງເຮັດໃຫ້ Morphe ຢຸດເຮັດວຽກ</string>
     <string name="home_held_back_subtitle">ມັນຖືກຂ້າມໄປເພື່ອໃຫ້ແອັບສາມາດເລີ່ມຕົ້ນໄດ້. ແຕະເພື່ອທົບທວນ</string>

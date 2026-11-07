@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Thinta ukuze ubuyekeze futhi ususe</string>
     <string name="home_metadata_errors_title">Ezinye izimithombo ze-patch ayitholakali</string>
     <string name="home_metadata_errors_subtitle">Thinta ukuze ubuyekeze izimithombo</string>
-    <string name="home_outdated_manager_title">IMorphe isidala</string>
+    <string name="home_outdated_manager_title">INivqo isidala</string>
     <string name="home_outdated_manager_subtitle">Ezinye izimina zezipamelo zidinga inguqulo entsha</string>
     <string name="home_held_back_title">Umdwebo we-patch ubangele ukuthi i-Morphe icrashe</string>
     <string name="home_held_back_subtitle">Kushiywe ukuze i-app ikwazi ukuqala. Thinta ukuze ubuyekeze</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Ketuk untuk meninjau dan menghapus</string>
     <string name="home_metadata_errors_title">Beberapa sumber tambalan tidak tersedia</string>
     <string name="home_metadata_errors_subtitle">Ketuk untuk meninjau sumber</string>
-    <string name="home_outdated_manager_title">Morphe sudah tidak terbaru</string>
+    <string name="home_outdated_manager_title">Nivqo sudah tidak terbaru</string>
     <string name="home_outdated_manager_subtitle">Beberapa sumber tambalan memerlukan versi terbaru</string>
     <string name="home_held_back_title">Sumber tambalan membuat Morphe rusak</string>
     <string name="home_held_back_subtitle">Langkah ini dilewati agar aplikasi dapat dimulai. Ketuk untuk meninjau.</string>

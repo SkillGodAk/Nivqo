@@ -1101,7 +1101,7 @@ private fun BundleManagementCard(
 
                                 // Outdated manager hint
                                 CardNotice(
-                                    visible = bundle.requiresManagerUpdate,
+                                    visible = PatchBundleRepository.isNivqoManagerCompatibilityWarning(bundle),
                                     text = stringResource(
                                         R.string.sources_management_outdated_manager_hint,
                                         bundle.requiredPatcherVersion.orEmpty(),
@@ -1533,7 +1533,7 @@ private fun sourceProblem(
     bundle.isHeldBack -> SourceProblem.HeldBack
     signingKeyChanged -> SourceProblem.SigningKeyChanged
     unavailable -> SourceProblem.Unavailable
-    bundle.requiresManagerUpdate -> SourceProblem.OutdatedManager
+    PatchBundleRepository.isNivqoManagerCompatibilityWarning(bundle) -> SourceProblem.OutdatedManager
     else -> null
 }
 

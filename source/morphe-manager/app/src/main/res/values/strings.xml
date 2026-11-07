@@ -46,7 +46,7 @@
     <string name="home_blocked_source_subtitle">Tap to review and remove</string>
     <string name="home_metadata_errors_title">Some patch sources are unavailable</string>
     <string name="home_metadata_errors_subtitle">Tap to review sources</string>
-    <string name="home_outdated_manager_title">Morphe is out of date</string>
+    <string name="home_outdated_manager_title">Nivqo is out of date</string>
     <string name="home_outdated_manager_subtitle">Some patch sources need a newer version</string>
     <string name="home_held_back_title">A patch source crashed Morphe</string>
     <string name="home_held_back_subtitle">It was skipped so the app could start. Tap to review</string>

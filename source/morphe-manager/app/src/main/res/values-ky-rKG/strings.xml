@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Кароо жана removing үчүн басыңыз</string>
     <string name="home_metadata_errors_title">Кээ бир патч булактары жеткиликсиз</string>
     <string name="home_metadata_errors_subtitle">Булактарды карап чыгуу үчүн басыңыз</string>
-    <string name="home_outdated_manager_title">Morphe эскирген</string>
+    <string name="home_outdated_manager_title">Nivqo эскирген</string>
     <string name="home_outdated_manager_subtitle">Кээ бир патч булактарына жаңыраак версия керек</string>
     <string name="home_held_back_title">Патч булагы Morphe колдонмосун бузуп салды</string>
     <string name="home_held_back_subtitle">Тиркеме иштей алышы үчүн ал өткөрүлүп кетти. Көрсөтүү үчүн басыңыз</string>

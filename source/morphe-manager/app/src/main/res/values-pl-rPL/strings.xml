@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Dotknij, aby przejrzeć i usunąć</string>
     <string name="home_metadata_errors_title">Niektóre źródła modyfikacji są niedostępne</string>
     <string name="home_metadata_errors_subtitle">Dotknij, aby przejrzeć źródła</string>
-    <string name="home_outdated_manager_title">Morphe jest nieaktualny</string>
+    <string name="home_outdated_manager_title">Nivqo jest nieaktualny</string>
     <string name="home_outdated_manager_subtitle">Niektóre źródła modyfikacji wymagają nowszej wersji</string>
     <string name="home_held_back_title">Źródło modyfikacji spowodowało awarię Morphe</string>
     <string name="home_held_back_subtitle">Zostało pominięte, aby aplikacja mogła się uruchomić. Dotknij, aby sprawdzić</string>

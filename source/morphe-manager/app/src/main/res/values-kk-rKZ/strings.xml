@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Қарап шығу және жою үшін түктіңіз</string>
     <string name="home_metadata_errors_title">Кейбір патч көздері қолжетімсіз</string>
     <string name="home_metadata_errors_subtitle">Көздерді қарап шығу үшін түктіңіз</string>
-    <string name="home_outdated_manager_title">Morphe ескірген</string>
+    <string name="home_outdated_manager_title">Nivqo ескірген</string>
     <string name="home_outdated_manager_subtitle">Кейбір патч дереккөздеріне жаңарақ нұсқа қажет</string>
     <string name="home_held_back_title">Патч көзі Morphe жұмысын бұзды</string>
     <string name="home_held_back_subtitle">Қолданба іске қосылуы үшін ол өткізіліп кетті. Қарау үшін басыңыз</string>

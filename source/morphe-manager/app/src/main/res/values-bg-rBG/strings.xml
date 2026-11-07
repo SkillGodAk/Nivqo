@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Докоснете, за да прегледате и премахнете</string>
     <string name="home_metadata_errors_title">Някои източници на корекции не са достъпни</string>
     <string name="home_metadata_errors_subtitle">Докоснете, за да прегледате източниците</string>
-    <string name="home_outdated_manager_title">Morphe е остарял</string>
+    <string name="home_outdated_manager_title">Nivqo е остарял</string>
     <string name="home_outdated_manager_subtitle">Някои източници на пачове изискват по-нова версия</string>
     <string name="home_held_back_title">Един източник на пачове предизвика срив на Morphe</string>
     <string name="home_held_back_subtitle">Срив</string>

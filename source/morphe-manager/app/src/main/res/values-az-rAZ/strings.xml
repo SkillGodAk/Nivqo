@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Gözdən keçirmək və silmək üçün toxun</string>
     <string name="home_metadata_errors_title">Bəzi yamaq mənbələri əlçatmazdır</string>
     <string name="home_metadata_errors_subtitle">Mənbələri gözdən keçirmək üçün toxun</string>
-    <string name="home_outdated_manager_title">Morphe köhnəlib</string>
+    <string name="home_outdated_manager_title">Nivqo köhnəlib</string>
     <string name="home_outdated_manager_subtitle">Bəzi yamaq mənbələrinin daha yeni versiyaya ehtiyacı var</string>
     <string name="home_held_back_title">Yamaq mənbəyi Morphe-ni xətaya saldı</string>
     <string name="home_held_back_subtitle">Tətbiqin başladıla bilməsi üçün bu ötürüldü. Baxmaq üçün toxun</string>

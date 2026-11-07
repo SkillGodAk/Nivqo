@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">برای بررسی و حذف، ضربه بزنید</string>
     <string name="home_metadata_errors_title">برخی منابع پچ در دسترس نیستند</string>
     <string name="home_metadata_errors_subtitle">برای بررسی منابع، ضربه بزنید</string>
-    <string name="home_outdated_manager_title">Morphe به‌روز نیست</string>
+    <string name="home_outdated_manager_title">Nivqo به‌روز نیست</string>
     <string name="home_outdated_manager_subtitle">برخی منابع پچ به نسخهٔ جدیدتری نیاز دارند</string>
     <string name="home_held_back_title">یک منبع پچ باعث از کار افتادن Morphe شد</string>
     <string name="home_held_back_subtitle">برای راه‌اندازی برنامه نادیده گرفته شد. برای بررسی ضربه بزنید</string>

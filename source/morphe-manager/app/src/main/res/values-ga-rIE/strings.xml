@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Tapáil chun athbhreithniú a dhéanamh agus a bhaint</string>
     <string name="home_metadata_errors_title">Níl roinnt foinsí paiste ar fáil</string>
     <string name="home_metadata_errors_subtitle">Tapáil chun foinsí a athbhreithniú</string>
-    <string name="home_outdated_manager_title">Tá Morphe as dáta</string>
+    <string name="home_outdated_manager_title">Tá Nivqo as dáta</string>
     <string name="home_outdated_manager_subtitle">Teastaíonn leagan níos nuaí ó roinnt foinsí paiste</string>
     <string name="home_held_back_title">Thuar foinse paiste Morphe</string>
     <string name="home_held_back_subtitle">Léiríodh é ionas go bhféadfaí an aip a thosú. Tapáil chun athbhreithniú a dhéanamh</string>

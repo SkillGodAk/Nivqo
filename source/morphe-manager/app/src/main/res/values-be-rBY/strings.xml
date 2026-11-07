@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Націсніце, каб прагледзець і выдаліць</string>
     <string name="home_metadata_errors_title">Некаторыя крыніцы патчаў недаступныя</string>
     <string name="home_metadata_errors_subtitle">Націсніце, каб прагледзець крыніцы</string>
-    <string name="home_outdated_manager_title">Morphe састарэў</string>
+    <string name="home_outdated_manager_title">Nivqo састарэў</string>
     <string name="home_outdated_manager_subtitle">Некаторым крыніцам патчаў патрэбна больш новая версія</string>
     <string name="home_held_back_title">Крыніца патча выклікала збой Morphe</string>
     <string name="home_held_back_subtitle">Яна была прапушчана, каб праграма магла запусціцца. Націсніце, каб праверыць</string>

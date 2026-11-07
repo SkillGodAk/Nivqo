@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Atingeți pentru a revizui și elimina</string>
     <string name="home_metadata_errors_title">Unele surse de patch-uri sunt indisponibile</string>
     <string name="home_metadata_errors_subtitle">Atinge pentru a revizui sursele</string>
-    <string name="home_outdated_manager_title">Morphe este învechit</string>
+    <string name="home_outdated_manager_title">Nivqo este învechit</string>
     <string name="home_outdated_manager_subtitle">Unele surse de patch-uri necesită o versiune mai nouă</string>
     <string name="home_held_back_title">O sursă de patch-uri a cauzat prăbușirea Morphe</string>
     <string name="home_held_back_subtitle">A fost omisă pentru ca aplicația să poată porni. Atingeți pentru a examina.</string>

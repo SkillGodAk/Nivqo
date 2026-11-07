@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Dodirni za pregled i uklanjanje</string>
     <string name="home_metadata_errors_title">Neki izvori zakrpa nisu dostupni</string>
     <string name="home_metadata_errors_subtitle">Dodirni za pregled izvora</string>
-    <string name="home_outdated_manager_title">Morphe je zastario</string>
+    <string name="home_outdated_manager_title">Nivqo je zastario</string>
     <string name="home_outdated_manager_subtitle">Nekim izvorima zakrpa je potrebna novija verzija</string>
     <string name="home_held_back_title">Izvor zakrpe je srušio Morphe</string>
     <string name="home_held_back_subtitle">Preskočeno je kako bi aplikacija mogla startovati. Dodirnite za pregled</string>

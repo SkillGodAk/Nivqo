@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Tapnite za pregled in odstranitev</string>
     <string name="home_metadata_errors_title">Nekateri viri popravkov niso na voljo</string>
     <string name="home_metadata_errors_subtitle">Tapnite za pregled virov</string>
-    <string name="home_outdated_manager_title">Morphe je zastarel</string>
+    <string name="home_outdated_manager_title">Nivqo je zastarel</string>
     <string name="home_outdated_manager_subtitle">Nekateri viri popravkov potrebujejo novejšo različico Nivqo</string>
     <string name="home_held_back_title">Vir popravkov je zrušil aplikacijo Morphe</string>
     <string name="home_held_back_subtitle">Preskočen je bil, da bi se aplikacija lahko zagnala. Dotaknite se za pregled</string>

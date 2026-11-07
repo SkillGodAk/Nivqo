@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Tekshirish va olib tashlash uchun bosing</string>
     <string name="home_metadata_errors_title"> patch manbalari mavjud emas</string>
     <string name="home_metadata_errors_subtitle">Manbalarni ko‘rib chiqish uchun bosing</string>
-    <string name="home_outdated_manager_title">Morphe eskirgan</string>
+    <string name="home_outdated_manager_title">Nivqo eskirgan</string>
     <string name="home_outdated_manager_subtitle">Ba\'zi yamoq manbalari yangiroq versiyani talab qiladi</string>
     <string name="home_held_back_title">Patch manbai Morphe’ni ishdan chiqardi</string>
     <string name="home_held_back_subtitle">Ilova ishga tushishi uchun u o‘tkazib yuborildi. Ko‘rib chiqish uchun bosing</string>

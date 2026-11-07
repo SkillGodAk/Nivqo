@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Додирните да прегледате и уклоните</string>
     <string name="home_metadata_errors_title">Неки извори закрпа нису доступни</string>
     <string name="home_metadata_errors_subtitle">Додирните да прегледате изворе</string>
-    <string name="home_outdated_manager_title">Morphe je zastareo</string>
+    <string name="home_outdated_manager_title">Nivqo je zastareo</string>
     <string name="home_outdated_manager_subtitle">Неки извори закрпа захтевају новију верзију</string>
     <string name="home_held_back_title">Закрпљени извор је срушио Morphe</string>
     <string name="home_held_back_subtitle">Прескочено је да би апликација могла да се покрене. Додирните да бисте прегледали.</string>

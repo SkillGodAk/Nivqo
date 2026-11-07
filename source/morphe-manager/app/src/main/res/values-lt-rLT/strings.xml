@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Palieskite, kad peržiūrėtumėte ir pašalintumėte</string>
     <string name="home_metadata_errors_title">Kai kurie pataisų šaltiniai neprieinami</string>
     <string name="home_metadata_errors_subtitle">Palieskite, kad peržiūrėtumėte šaltinius</string>
-    <string name="home_outdated_manager_title">„Morphe“ pasenęs</string>
+    <string name="home_outdated_manager_title">„Nivqo“ pasenęs</string>
     <string name="home_outdated_manager_subtitle">Kai kuriems pataisų šaltiniams reikia naujesnės versijos</string>
     <string name="home_held_back_title">Pataisų šaltinis sukėlė „Morphe“ gedimą</string>
     <string name="home_held_back_subtitle">Jis buvo praleistas, kad programa galėtų paleisti. Palieskite, kad peržiūrėtumėte</string>

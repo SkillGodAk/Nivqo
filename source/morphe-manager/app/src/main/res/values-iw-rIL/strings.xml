@@ -46,7 +46,7 @@
     <string name="home_blocked_source_subtitle">הקש כדי לעיין ולהסיר</string>
     <string name="home_metadata_errors_title">חלק ממקורות התיקונים אינם זמינים</string>
     <string name="home_metadata_errors_subtitle">הקש כדי לעיין במקורות</string>
-    <string name="home_outdated_manager_title">Morphe מיושן</string>
+    <string name="home_outdated_manager_title">Nivqo מיושן</string>
     <string name="home_outdated_manager_subtitle">חלק ממקורות הטלאים דורשים גרסה חדשה יותר</string>
     <string name="home_held_back_title">מקור תיקונים הפיל את Morphe</string>
     <string name="home_held_back_subtitle">המקור דולג כדי שהאפליקציה תוכל להתחיל לפעול. הקש לסקירה.‏</string>

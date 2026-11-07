@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">แตะเพื่อตรวจสอบและนำออก</string>
     <string name="home_metadata_errors_title">บางแหล่งแพตช์ไม่สามารถใช้งานได้</string>
     <string name="home_metadata_errors_subtitle">แตะเพื่อตรวจสอบแหล่งที่มา</string>
-    <string name="home_outdated_manager_title">Morphe ล้าสมัย</string>
+    <string name="home_outdated_manager_title">Nivqo ล้าสมัย</string>
     <string name="home_outdated_manager_subtitle">แหล่งแพตช์บางแหล่งจำเป็นต้องใช้เวอร์ชันที่ใหม่กว่า</string>
     <string name="home_held_back_title">แหล่งแพตช์หนึ่งทำให้ Morphe เกิดข้อขัดข้อง</string>
     <string name="home_held_back_subtitle">แหล่งนี้ถูกข้ามไปเพื่อให้แอปเริ่มทำงานได้ แตะเพื่อตรวจสอบ</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Հպեք՝ վերանայելու և հեռացնելու համար</string>
     <string name="home_metadata_errors_title">Փոփոխման որոշ աղբյուրներ and անհասանելի են</string>
     <string name="home_metadata_errors_subtitle">Հպեք՝ աղբյուրները վերանայելու համար</string>
-    <string name="home_outdated_manager_title">Morphe-ն հնացած է</string>
+    <string name="home_outdated_manager_title">Nivqo-ն հնացած է</string>
     <string name="home_outdated_manager_subtitle">Որոշ փաթեթների աղբյուրներ պահանջում են ավելի նոր տարբերակ</string>
     <string name="home_held_back_title">Փաթիչի աղբյուրըបង្լավել է Morphe-ը</string>
     <string name="home_held_back_subtitle">Այն բաց է թողնվել, որպեսզի հավելվածը կարողանա միանալ: Հպեք՝ վերանայելու համար</string>

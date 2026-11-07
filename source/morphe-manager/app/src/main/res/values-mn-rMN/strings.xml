@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Шалгаж, устгахын тулд дарна уу</string>
     <string name="home_metadata_errors_title">Зарим нөхөх эх сурвалжууд боломжгүй байна</string>
     <string name="home_metadata_errors_subtitle">Эх сурвалжуудыг шалгахын тулд товшино уу</string>
-    <string name="home_outdated_manager_title">Morphe хуучирсан байна</string>
+    <string name="home_outdated_manager_title">Nivqo хуучирсан байна</string>
     <string name="home_outdated_manager_subtitle">Зарим патчийн эх сурвалжүүдэд шинэ хувилбар шаардлагатай байна</string>
     <string name="home_held_back_title">Нэвлэлтийн эх сурвалж Morphe-ийг гацаасан</string>
     <string name="home_held_back_subtitle">Аппликейшныг эхлүүлэхын тулд үүнийг алгасав. Шалгахын тулд товшоорой</string>

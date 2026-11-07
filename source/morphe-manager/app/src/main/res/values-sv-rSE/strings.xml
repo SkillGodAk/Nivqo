@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Tryck för att granska och ta bort</string>
     <string name="home_metadata_errors_title">Vissa tilläggskällor är inte tillgängliga</string>
     <string name="home_metadata_errors_subtitle">Tryck för att granska källor</string>
-    <string name="home_outdated_manager_title">Morphe är inaktuellt</string>
+    <string name="home_outdated_manager_title">Nivqo är inaktuellt</string>
     <string name="home_outdated_manager_subtitle">Vissa tilläggskällor behöver en nyare version</string>
     <string name="home_held_back_title">En tilläggskälla fick Morphe att krascha</string>
     <string name="home_held_back_subtitle">Den hoppades över så att appen kunde starta. Tryck för att granska</string>

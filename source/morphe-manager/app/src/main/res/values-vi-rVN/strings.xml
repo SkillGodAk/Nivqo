@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Bấm để xem chi tiết và xóa</string>
     <string name="home_metadata_errors_title">Một số nguồn vá không khả dụng</string>
     <string name="home_metadata_errors_subtitle">Bấm để xem nguồn</string>
-    <string name="home_outdated_manager_title">Morphe đã quá cũ</string>
+    <string name="home_outdated_manager_title">Nivqo đã quá cũ</string>
     <string name="home_outdated_manager_subtitle">Một số nguồn vá yêu cầu phiên bản Nivqo mới hơn</string>
     <string name="home_held_back_title">Một nguồn bản vá đã làm Morphe bị sập</string>
     <string name="home_held_back_subtitle">Nguồn này đã bị bỏ qua để ứng dụng có thể khởi động. Nhấn để xem lại</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Napauta tarkistaaksesi ja poistaaksesi</string>
     <string name="home_metadata_errors_title">Jotkin lisäosalähteet eivät ole käytettävissä</string>
     <string name="home_metadata_errors_subtitle">Napauta tarkistaaksesi lähteet</string>
-    <string name="home_outdated_manager_title">Morphe on vanhentunut</string>
+    <string name="home_outdated_manager_title">Nivqo on vanhentunut</string>
     <string name="home_outdated_manager_subtitle">Jotkin päivityslähteet vaativat uudemman version</string>
     <string name="home_held_back_title">Korjauslähde kaatoi Morphen</string>
     <string name="home_held_back_subtitle">Se ohitettiin, jotta sovellus voisi käynnistyä. Napauta tarkistaaksesi. It was skipped so the app could start. Tap to review</string>

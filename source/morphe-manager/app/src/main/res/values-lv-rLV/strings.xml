@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Knīciet, lai pārskatītu un noņemtu</string>
     <string name="home_metadata_errors_title">Daži plākuma avoti nav pieejami</string>
     <string name="home_metadata_errors_subtitle">Knīciet, lai pārskatītu avotus</string>
-    <string name="home_outdated_manager_title">Morphe versija ir novecotējusi</string>
+    <string name="home_outdated_manager_title">Nivqo versija ir novecotējusi</string>
     <string name="home_outdated_manager_subtitle">Dažiem patchu avotiem nepieciešama jaunāka versija</string>
     <string name="home_held_back_title">Lāpīšanas avots izraisīja Morphe avāriju</string>
     <string name="home_held_back_subtitle">Tas tika izlaists, lai lietotne varētu startēt. Pieskarieties, lai pārskatītu</string>

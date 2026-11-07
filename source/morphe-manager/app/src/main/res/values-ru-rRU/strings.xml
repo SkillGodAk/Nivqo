@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Нажмите, чтобы посмотреть и удалить</string>
     <string name="home_metadata_errors_title">Некоторые источники патчей недоступны</string>
     <string name="home_metadata_errors_subtitle">Нажмите, чтобы посмотреть источники</string>
-    <string name="home_outdated_manager_title">Morphe устарел</string>
+    <string name="home_outdated_manager_title">Nivqo устарел</string>
     <string name="home_outdated_manager_subtitle">Некоторым источникам патчей требуется более новая версия</string>
     <string name="home_held_back_title">Источник патчей вызвал сбой Morphe</string>
     <string name="home_held_back_subtitle">Он был пропущен, чтобы приложение могло запуститься. Нажмите, чтобы просмотреть</string>

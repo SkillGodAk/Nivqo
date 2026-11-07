@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">დააჭირეთ განსახილველად და წასაშლელად</string>
     <string name="home_metadata_errors_title">პატჩის ზოგიერთი წყარო недоступებელია</string>
     <string name="home_metadata_errors_subtitle">დააჭირეთ წყაროების განსახილველად</string>
-    <string name="home_outdated_manager_title">Morphe-ის ვერსია მოძველებულია</string>
+    <string name="home_outdated_manager_title">Nivqo-ის ვერსია მოძველებულია</string>
     <string name="home_outdated_manager_subtitle">ზოგიერთ პატჩის წყაროს სჭირდება უფრო ახალი ვერსია</string>
     <string name="home_held_back_title">პატჩის წყარომ გატეხა Morphe</string>
     <string name="home_held_back_subtitle">ის გამოტოვდა, რათა აპლიკაცია შეძლებოდა ჩართვა. გადახედვისთვის დააჭირეთ</string>

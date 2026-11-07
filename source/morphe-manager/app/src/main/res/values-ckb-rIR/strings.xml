@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">دایبگرە بۆ پێداچوونەوە و سڕینەوە</string>
     <string name="home_metadata_errors_title">هەندێک سەرچاوەی پاتچ دەردەست نین</string>
     <string name="home_metadata_errors_subtitle">دایبگرە بۆ پێداچوونەوەی سەرچاوەکان</string>
-    <string name="home_outdated_manager_title">Morphe کاتی نەماوە</string>
+    <string name="home_outdated_manager_title">Nivqo کاتی نەماوە</string>
     <string name="home_outdated_manager_subtitle">هەندێک سەرچاوەی پاتچ پێویستان بە ڤێرژنی نوێیە</string>
     <string name="home_held_back_title">سەرچاوەیەکی پاتچ morphe تێکدا</string>
     <string name="home_held_back_subtitle">فەرامۆشکرا تا ئەپەکە بتوانێت دەستپێبکات. پەنجە بنێ بۆ پێداچوونەوە</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">İncelemek ve kaldırmak için dokunun</string>
     <string name="home_metadata_errors_title">Bazı yama kaynakları kullanılamıyor</string>
     <string name="home_metadata_errors_subtitle">Kaynakları incelemek için dokunun</string>
-    <string name="home_outdated_manager_title">Morphe güncel değil</string>
+    <string name="home_outdated_manager_title">Nivqo güncel değil</string>
     <string name="home_outdated_manager_subtitle">Bazı yama kaynakları daha yeni bir sürüm gerektiriyor</string>
     <string name="home_held_back_title">Bir yama kaynağı Morphe\'nin çökmesine neden oldu</string>
     <string name="home_held_back_subtitle">Uygulamanın başlatılabilmesi için atlandı. İncelemek için dokunun</string>

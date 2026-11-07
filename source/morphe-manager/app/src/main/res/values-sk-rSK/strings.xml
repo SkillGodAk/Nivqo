@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Ťuknite na položku a skontrolujte a odstráňte ju</string>
     <string name="home_metadata_errors_title">Niektoré zdroje záplat nie sú dostupné</string>
     <string name="home_metadata_errors_subtitle">Ťuknite na položku a skontrolujte zdroje</string>
-    <string name="home_outdated_manager_title">Morphe je zastaraný</string>
+    <string name="home_outdated_manager_title">Nivqo je zastaraný</string>
     <string name="home_outdated_manager_subtitle">Niektoré zdroje záplat vyžadujú novšiu verziu</string>
     <string name="home_held_back_title">Zdroj záplat spôsobil pád Morphe</string>
     <string name="home_held_back_subtitle">Bol preskočený, aby sa aplikácia mohla spustiť. Klepnutím zobrazíte.</string>

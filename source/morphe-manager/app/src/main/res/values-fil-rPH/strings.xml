@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Pindutin ang button upang suriin at alisin</string>
     <string name="home_metadata_errors_title">Mayroong ilang mga pinagmumulan ng patch na hindi magagamit</string>
     <string name="home_metadata_errors_subtitle">I-tap upang suriin ang mga pinagmulan</string>
-    <string name="home_outdated_manager_title">Luma na ang Morphe</string>
+    <string name="home_outdated_manager_title">Luma na ang Nivqo</string>
     <string name="home_outdated_manager_subtitle">Ang ilang mga mapagkukunan ng patch ay nangangailangan ng mas bagong bersyon</string>
     <string name="home_held_back_title">Nagpa-crash sa Morphe ang isang patch source. </string>
     <string name="home_held_back_subtitle">Nilaktawan ito para makapagsimula ang app. I-tap upang suriin</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Bankaðu til að skoða og fjarlægja</string>
     <string name="home_metadata_errors_title">Sumar uppsprettur fyrir breytingar eru ókleyfar</string>
     <string name="home_metadata_errors_subtitle">Bankaðu til að skoða uppsprettur</string>
-    <string name="home_outdated_manager_title">Morphe er útgáfudagskrárt</string>
+    <string name="home_outdated_manager_title">Nivqo er útgáfudagskrárt</string>
     <string name="home_outdated_manager_subtitle">Sumar uppsprettur þarf að uppfæra</string>
     <string name="home_held_back_title">Plástursuppruni olli því að Morphe hrundi</string>
     <string name="home_held_back_subtitle">Því var sleppt svo appið gæti ræst. Snertu til að skoða</string>

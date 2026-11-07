@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Tik om te hersien en te verwyder</string>
     <string name="home_metadata_errors_title">Sommige bronne vir plakkers is nie beskikbaar nie</string>
     <string name="home_metadata_errors_subtitle">Tik om bronne te hersien</string>
-    <string name="home_outdated_manager_title">Morphe is verouderd</string>
+    <string name="home_outdated_manager_title">Nivqo is verouderd</string>
     <string name="home_outdated_manager_subtitle">Sommige bronlêers benodig \'n nuwer weergawe</string>
     <string name="home_held_back_title">\'n Patch-bron het Morphe laat crash</string>
     <string name="home_held_back_subtitle">Dit is oorgeslaan sodat die app kon begin. Tik om te hersien.</string>

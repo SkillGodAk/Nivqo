@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">点击查看并移除</string>
     <string name="home_metadata_errors_title">部分补丁源不可用</string>
     <string name="home_metadata_errors_subtitle">点击查看源</string>
-    <string name="home_outdated_manager_title">Morphe 管理器需要更新</string>
+    <string name="home_outdated_manager_title">Nivqo 管理器需要更新</string>
     <string name="home_outdated_manager_subtitle">部分补丁需要更新管理器版本</string>
     <string name="home_held_back_title">一个补丁源导致 Morphe 崩溃</string>
     <string name="home_held_back_subtitle">它已被跳过，以便应用能够启动。点按以查看</string>

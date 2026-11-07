@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Sakatu berrikutzeko eta ezabatzeko</string>
     <string name="home_metadata_errors_title">Patch-iturri batzuk ez daude eskuragarri</string>
     <string name="home_metadata_errors_subtitle">Sakatu iturriak berrikutzeko</string>
-    <string name="home_outdated_manager_title">Morphe zahikenduta dago</string>
+    <string name="home_outdated_manager_title">Nivqo zahikenduta dago</string>
     <string name="home_outdated_manager_subtitle">Patch-iturri batzuek bertsio berriago bat behar dute</string>
     <string name="home_held_back_title">Patch-iturri batek Morphe crash egin du</string>
     <string name="home_held_back_subtitle">Aukeratu da aplikazioa hasi ahal izateko. Toka egin azterretan</string>

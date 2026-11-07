@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Gusa ili kupitia na kuondoa</string>
     <string name="home_metadata_errors_title">Baadhi ya vyanzo vya patch havipatikani</string>
     <string name="home_metadata_errors_subtitle">Gusa ili kupitia vyanzo</string>
-    <string name="home_outdated_manager_title">Morphe imepitwa na wakati</string>
+    <string name="home_outdated_manager_title">Nivqo imepitwa na wakati</string>
     <string name="home_outdated_manager_subtitle">Baadhi ya vyanzo vya patch vinahitaji toleo jipya</string>
     <string name="home_held_back_title">Chanzo cha patch kimesababisha Morphe kufeli</string>
     <string name="home_held_back_subtitle">Ilirukwa ili programu iweze kuanza. Gusa ili kupitia</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">タップして確認・削除</string>
     <string name="home_metadata_errors_title">一部のパッチソースは利用できません</string>
     <string name="home_metadata_errors_subtitle">タップしてソースを確認</string>
-    <string name="home_outdated_manager_title">Morphe は最新のバージョンではありません</string>
+    <string name="home_outdated_manager_title">Nivqo は最新のバージョンではありません</string>
     <string name="home_outdated_manager_subtitle">一部のパッチソースには新しいバージョンが必要です</string>
     <string name="home_held_back_title">パッチソースが原因で Morphe がクラッシュしました</string>
     <string name="home_held_back_subtitle">アプリを起動するためスキップしました。タップして確認してください</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Tik om te bekijken en te verwijderen</string>
     <string name="home_metadata_errors_title">Sommige patchbronnen zijn niet beschikbaar</string>
     <string name="home_metadata_errors_subtitle">Tik om bronnen te bekijken</string>
-    <string name="home_outdated_manager_title">Morphe is verouderd</string>
+    <string name="home_outdated_manager_title">Nivqo is verouderd</string>
     <string name="home_outdated_manager_subtitle">Sommige patchbronnen vereisen een nieuwere versie</string>
     <string name="home_held_back_title">Een patchbron heeft Morphe laten crashen.</string>
     <string name="home_held_back_subtitle">Empty</string>

@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">Toque para analisar e remover</string>
     <string name="home_metadata_errors_title">Algumas fontes de patch estão indisponíveis</string>
     <string name="home_metadata_errors_subtitle">Toque para analisar as fontes</string>
-    <string name="home_outdated_manager_title">Morphe está desatualizado</string>
+    <string name="home_outdated_manager_title">Nivqo está desatualizado</string>
     <string name="home_outdated_manager_subtitle">Algumas fontes de patch precisam de uma versão mais recente</string>
     <string name="home_held_back_title">Uma fonte de patches causou uma falha no Morphe. Morte para a tradução</string>
     <string name="home_held_back_subtitle">Ela foi ignorada para que o aplicativo pudesse iniciar. Toque para revisar</string>

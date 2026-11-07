@@ -45,7 +45,7 @@
     <string name="home_blocked_source_subtitle">검토 및 제거하려면 탭하세요</string>
     <string name="home_metadata_errors_title">일부 패치 소스를 사용할 수 없음</string>
     <string name="home_metadata_errors_subtitle">소스를 검토하려면 탭하세요</string>
-    <string name="home_outdated_manager_title">Morphe가 구버전입니다</string>
+    <string name="home_outdated_manager_title">Nivqo가 구버전입니다</string>
     <string name="home_outdated_manager_subtitle">일부 패치 소스는 최신 버전이 필요합니다</string>
     <string name="home_held_back_title">패치 소스로 인해 Morphe가 충돌함</string>
     <string name="home_held_back_subtitle">앱 시작을 위해 건너뛰었습니다. 검토하려면 탭하세요</string>
