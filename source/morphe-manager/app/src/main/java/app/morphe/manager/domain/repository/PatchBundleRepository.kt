@@ -39,6 +39,7 @@ import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.ui.viewmodel.BundleSnapshot
 import app.morphe.manager.util.*
 import io.ktor.client.plugins.ResponseException
+import io.ktor.http.Url
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentMapOf
@@ -50,6 +51,7 @@ import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
+import java.net.URI
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.security.MessageDigest
@@ -2373,9 +2375,9 @@ return availableUpdates(remoteBundles.filter { isNivqoUpdateNotificationSource(i
         internal const val HUSHMESSENGER_SOURCE_UID = -1_260_439_702
 
         internal const val HUSHFACEBOOK_BUNDLED_ASSET =
-            "morphe-hush/hushfacebook-0.21.0.mpp"
+            "morphe-hush/hushfacebook-0.23.0.mpp"
         internal const val HUSHMESSENGER_BUNDLED_ASSET =
-            "morphe-hush/hushmessenger-0.29.0.mpp"
+            "morphe-hush/hushmessenger-0.30.0.mpp"
 
         internal const val HUSHFACEBOOK_UPDATE_ENDPOINT =
             "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json"

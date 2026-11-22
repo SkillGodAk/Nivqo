@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.2.0",
+    [string]$Version = "1.3.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -133,6 +133,8 @@ try {
     # HushFacebook 0.21 and HushMessenger 0.29 both expose GmsCore support; scope Messenger display name only.
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\misc\GmsCoreSupportPatch.kt") 'internal const val GMS_CORE_PATCH = "GmsCore support"' 'internal const val GMS_CORE_PATCH = "Messenger · GmsCore support"'
 
+    # Facebook 0.23 and Messenger 0.30 both include a clone-install patch: scope Messenger display only.
+    Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\coexist\CloneInstallPatch.kt") 'internal const val CLONE_PATCH_NAME = "Clone install under another package name"' 'internal const val CLONE_PATCH_NAME = "Messenger · Clone install under another package name"'
     # First generate patch metadata: this modifies patches-list.json and must precede the clean commit.
     Push-Location $temp
     try {
@@ -160,7 +162,7 @@ try {
         $ErrorActionPreference = $oldPreference
     }
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git add failed" }
-    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.2.0 combined source"
+    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.3.0 combined source"
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git commit failed" }
     Push-Location $temp
     try {
@@ -206,7 +208,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 205 -or $facebookCount -ne 117 -or $messengerCount -ne 88 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 224 -or $facebookCount -ne 126 -or $messengerCount -ne 98 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

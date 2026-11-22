@@ -703,7 +703,7 @@ class ImportExportViewModel(
             R.string.settings_system_export_manager_settings_fail,
             "Failed to export settings to Downloads"
         ) {
-            val exportFile = managerSettingsExportFile()
+            val exportFile = settingsExporter.managerSettings(settingsSections)
             withContext(Dispatchers.IO) {
                 val stream = openDownloadsOutputStream("nivqo_manager_settings.json", JSON_MIMETYPE)
                     ?: throw IllegalStateException("Cannot open Downloads output stream")

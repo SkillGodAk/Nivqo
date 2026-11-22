@@ -1,3 +1,8 @@
+# 0.30.0-nivqo.1 (2026-11-22)
+
+* **Messenger:** 繁體中文：同步正式 HushMessenger 0.30.0（98 個補丁），對應 Messenger 587.0.0.54.96 指定相容 ARM64／ARMv7 原版 APK，新增通話即時字幕、隱藏限時動態分頁、長按聊天選單自訂、相簿傳送 Instant、特別聯絡人和浮動／模糊介面。保留 Nivqo 的繁體中文設定及獨立簽章。
+* **Messenger:** English: HushMessenger 0.30.0 (98 patches) for compatible Messenger 587.0.0.54.96 original APKs. Live call captions, Stories-tab control, chat menus, gallery Instants, special contacts, and floating/blur effects, while retaining Nivqo localization and signing.
+
 # 0.29.0-nivqo.1 (2026-11-08)
 
 * **Messenger：** 繁體中文：更新至 HushMessenger 0.29.0（88 個補丁），支援 Messenger 586.0.0.55.92 指定相容原版。新增通話前確認與錄音、聊天隱藏、長按訊息選單自訂、本機已儲存訊息搜尋、恢復聯絡人分頁及自訂主題。保留 Nivqo 繁中與獨立簽章。

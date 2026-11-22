@@ -64,6 +64,51 @@ object PatchMetadataLocalizer {
             "Messenger · 匿名查看限時動態",
             "觀看限時動態時不立即傳送自己的觀看記錄。"
         ),
+        "Messenger · Clone install under another package name" to Zh("Messenger · 複製安裝並更換套件名稱", "使用不同套件名稱建立 Messenger 複製版，依指定 Facebook 套件連結與原版並存。"),
+        // Messenger 0.30.0 formal new patches
+        "Bigger chat preview" to Zh("放大聊天預覽", "長按聊天室時提供更大的對話預覽，可捲動查看更多訊息，操作選單也可獨立捲動。"),
+        "Blur behind menus" to Zh("模糊選單背景", "開啟聊天長按選單或彈出選單時柔化背後畫面，支援 Android 12 以上部分裝置。"),
+        "Fix videos in chat heads" to Zh("修復聊天泡泡影片畫面", "修正聊天泡泡內影片顯示黑色區塊或關閉後殘留於畫面的問題。"),
+        "Floating tab bar" to Zh("浮動底部分頁列", "讓 Messenger 的底部分頁列以浮動樣式顯示，支援情況依頁面而定。"),
+        "Hide Stories tab" to Zh("隱藏限時動態分頁", "在重新開啟 Messenger 後隱藏底部的限時動態分頁。"),
+        "Hide chat menu items" to Zh("隱藏聊天長按選單項目", "自訂長按聊天室清單後的操作選單，將不常用的項目隱藏。"),
+        "Hide the tab bar while scrolling" to Zh("滑動時隱藏分頁列", "捲動聊天清單時將底部分頁列移開，上滑時重新顯示。"),
+        "Live captions on calls" to Zh("通話即時字幕", "使用手機語音辨識顯示通話中的即時字幕，在支援裝置上可翻譯或朗讀。"),
+        "Send Instants from your gallery" to Zh("從相簿傳送 Instant", "從手機相簿選取圖片並以 Instant 形式分享，不需要當場拍照。"),
+        "Special contacts" to Zh("特別關注聯絡人", "可追蹤特定聊天對象的線上、離線或輸入狀態，並僅將相關紀錄保存在此裝置。"),
+        // Facebook 0.23.0 formal new patches
+        "Ask before a like" to Zh(
+            "按讚與追蹤前確認",
+            "按下貼文、Reels 或留言的讚，以及部分追蹤按鈕時先詢問是否繼續，避免誤觸。"
+        ),
+        "Fold long text" to Zh(
+            "摺疊過長貼文與留言",
+            "可將較長的貼文或留言設定為顯示 1 至 20 行，點選查看更多後再展開全文。"
+        ),
+        "Hide profile pictures" to Zh(
+            "隱藏個人頭像",
+            "隱藏貼文或留言旁的個人頭像，讓文字內容佔用更多空間。"
+        ),
+        "Hide story rings" to Zh(
+            "隱藏限時動態外框",
+            "移除個人頭像周圍的限時動態或直播彩色圓環，保留其他顯示元素。"
+        ),
+        "Keep playing in the background" to Zh(
+            "背景繼續播放影片",
+            "手動播放的影片在切換至其他應用程式時仍能持續播放聲音，並透過通知控制暫停。"
+        ),
+        "Post menu items" to Zh(
+            "自訂貼文選單項目",
+            "可從貼文與 Reels 的更多選單中隱藏不常用項目，例如不感興趣或投放到裝置等。"
+        ),
+        "Saved button in search" to Zh(
+            "搜尋列加入已儲存按鈕",
+            "在搜尋列末端加入已儲存入口，方便快速查看收藏的貼文和影片。"
+        ),
+        "Skip location prompts" to Zh(
+            "略過定位服務提示",
+            "略過 Facebook 登入後要求開啟定位服務的頁面，不變更手機原有的定位權限設定。"
+        ),
         // New patches in November 2026 formal FB 0.21 / MSG 0.29
         "Clean up the story viewer" to Zh(
             "清理限時動態畫面",

@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-11-08T03:00:27",
-  "description": "Nivqo HushFacebook 0.21.0 正式版：117 個補丁，支援 Facebook 585.0.0.47.54；新增照片輪播、翻譯貼文、限時動態控制與搜尋貼文分頁，保留自家 Messenger 按鈕、繁體中文、原 Nivqo 簽章。",
+  "created_at": "2026-11-22T09:28:20",
+  "description": "Nivqo HushFacebook 0.23.0 正式版：126 個補丁，適用 Facebook 587.0.0.39.55；新增摺疊貼文、影片背景播放、Repost 按鈕與限時動態等功能。保留 Nivqo Messenger 頂部按鈕、繁中設定及原簽章。",
   "changelog_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook-changelog.md",
   "signature_download_url": "",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/62270a660a63706bf6ca333ee54a461bdc286d5e/updates/bundles/hushfacebook.mpp",
-  "version": "0.21.0-nivqo.1",
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/6b6f34eec2e23208fc14d3c7b738b6ada95455e1/updates/bundles/hushfacebook.mpp",
+  "version": "0.23.0-nivqo.1",
   "public_key": "fMGzMRGjstF23zuh75Ik2udYy4iBfajArK08d+qHd2U="
 }

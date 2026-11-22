@@ -1,3 +1,8 @@
+# 0.23.0-nivqo.1 (2026-11-22)
+
+* **Facebook:** 繁體中文：同步正式 HushFacebook 0.23.0（126 個補丁），對應 Facebook 587.0.0.39.55 原版 APK，新增摺疊長貼文、影片背景播放、隱藏 Repost 按鈕、限時動態管理與自訂貼文選單。保留 Nivqo 繁中設定與頂部 Messenger 按鈕路由、原 Ed25519 簽章。
+* **Facebook:** English: HushFacebook 0.23.0 (126 patches) for stock Facebook 587.0.0.39.55. Adds fold-long-text, background video playback, Repost controls and Stories enhancements. Preserves Nivqo Chinese localization, Messenger button routing, and signing identity.
+
 # 0.21.0-nivqo.1 (2026-11-08)
 
 * **Facebook：** 繁體中文：更新至 HushFacebook 0.21.0（117 個補丁），支援 Facebook 585.0.0.47.54。新增照片輪播、貼文翻譯、限時動態進度列與播放控制、搜尋貼文分頁，改善留言及返回動態消息的問題。保留 Nivqo Messenger 按鈕與繁體中文設定。

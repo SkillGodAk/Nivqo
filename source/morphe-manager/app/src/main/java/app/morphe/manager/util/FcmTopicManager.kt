@@ -5,6 +5,11 @@
 
 package app.morphe.manager.util
 
+import android.content.Context
+
+/** Nivqo never subscribes to the upstream Morphe Firebase project. */
+fun Context.hasGooglePlayServices(): Boolean = false
+
 
 /**
  * FCM topic strings used for update push notifications.

@@ -1,3 +1,20 @@
+## 1.3.0 (2026-11-22)
+
+### 新增與改善
+
+* **Manager:** 更新至 Morphe Manager 2.7.0、Patcher 2.5.0，新增補丁選項搜尋與介面改進，改善大型檔案下載、複製 APK 識別及修補效能。
+* **Facebook:** HushFacebook 0.23.0，**126 個補丁**，適用 Facebook 587.0.0.39.55。加入摺疊長文、影片背景播放、隱藏 Repost 等功能，保留 Nivqo 頂部 Messenger 按鈕與繁中設定。
+* **Messenger:** HushMessenger 0.30.0，**98 個補丁**，適用 Messenger 587.0.0.54.96 相容原版；新增通話字幕、聊天預覽與選單管理、限時動態分頁控制和相簿 Instant。
+* **Nivqo:** 合併 **Nivqo Patches 1.3.0**，Facebook 126＋Messenger 98，共 **224 個補丁**。保留原簽章、繁中／英文／跟隨系統、原獨立自動更新通道、離線核心，以及排除 Morphe 舊來源／上游更新通知的安全機制。
+* **注意：** 升級 Manager 不會替已安裝的 Facebook／Messenger 自動套用新補丁；須先取得上述相容原版 APK，再重新修補及安裝。
+
+### English
+
+* **Manager:** Upgrades Morphe Manager to 2.7.0 and Patcher to 2.5.0 with patch-option search, improved downloads, clone identification and performance.
+* **Facebook:** HushFacebook 0.23.0 includes 126 patches for stock Facebook 587.0.0.39.55, adding folded text, background video and Repost controls.
+* **Messenger:** HushMessenger 0.30.0 includes 98 patches for compatible stock Messenger 587.0.0.54.96, including live call captions, menu and Stories controls, and gallery Instants.
+* **Nivqo:** Nivqo Patches 1.3.0 combines 224 patches while preserving the Nivqo-branded Manager, locales, signed bundles, offline seeds and its own OTA channel. Repatch matching original APKs for new functionality.
+
 ## 1.2.0 (2026-11-08)
 
 ### 新增與改善
