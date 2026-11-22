@@ -8,6 +8,8 @@ package app.morphe.manager.patcher.util
 import app.morphe.manager.domain.apk.ApkFileStamp
 import app.morphe.manager.domain.apk.apkFileStampOrNull
 import app.morphe.patcher.resource.CpuArchitecture
+import com.reandroid.archive.ArchiveFile
+import com.reandroid.archive.writer.ApkFileWriter
 import java.io.File
 import java.io.InputStream
 import java.util.concurrent.ConcurrentHashMap
@@ -16,8 +18,8 @@ import java.util.zip.ZipInputStream
 
 /**
  * Which ABIs an APK ships native libraries for, and which of them a run keeps when unused
- * libraries are stripped. The stripping itself is left to the patcher, which drops the rest
- * while it writes the output.
+ * libraries are stripped. The patcher drops the rest while it writes the output, and
+ * [writeStripped] does the same for an original kept for later runs.
  */
 object NativeLibs {
     // Screens listing saved APKs ask for the same files every time they open, and walking the
@@ -101,4 +103,34 @@ object NativeLibs {
             preferredAbi(extractAbisFromApk(apkFile).toSet(), supportedAbis)
                 ?.let(CpuArchitecture::valueOfOrNull)
         )
+
+    /**
+     * Whether [apkFile] carries an APK signing block. A copy without one gives patches no
+     * certificates to read, so a signed copy of the same build is worth keeping in its place.
+     */
+    fun hasSigningBlock(apkFile: File): Boolean =
+        runCatching { ArchiveFile(apkFile).use { it.apkSignatureBlock != null } }.getOrDefault(false)
+
+    /**
+     * Writes [apkFile] to [output] without the native libraries the patcher strips from it, see
+     * [keptArchitectures], copying every other entry as it is stored. False, writing nothing, when
+     * there is nothing to strip. The signing block is carried over for the certificates patches
+     * read from it, but no longer matches the contents, so the result is an input to patch rather
+     * than an APK to install.
+     */
+    fun writeStripped(apkFile: File, output: File, supportedAbis: List<String>): Boolean {
+        val kept = keptArchitectures(apkFile, supportedAbis).singleOrNull()?.arch ?: return false
+        if (extractAbisFromApk(apkFile).all { it == kept }) return false
+
+        ArchiveFile(apkFile).use { archive ->
+            val sources = archive.getInputSources { entry ->
+                entry.isFile && extractAbiFromEntry(entry.name).let { it == null || it == kept }
+            }
+            // Closes the file itself once written
+            ApkFileWriter(output, sources).apply {
+                apkSignatureBlock = archive.apkSignatureBlock
+            }.write()
+        }
+        return true
+    }
 }

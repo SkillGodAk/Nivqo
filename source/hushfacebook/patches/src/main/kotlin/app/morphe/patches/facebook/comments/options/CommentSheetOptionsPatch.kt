@@ -34,6 +34,7 @@ import app.morphe.patches.facebook.reels.gesture.COMPOSER_ACTION
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
+import app.morphe.util.classDefForEachReferencing
 import app.morphe.util.namedRegisters
 import app.morphe.util.readsAfter
 import app.morphe.util.writersReaching
@@ -130,6 +131,15 @@ internal const val COMMENT_DOWNVOTE =
 internal const val COMMENT_LIKE =
     "Lcom/facebook/feedback/comments/plugins/commentufi/like/InlineCommentLikePlugin;"
 
+/** The name the socket of the buttons under each comment gives itself, in the methods that go through its plugins (#447). */
+internal const val COMMENT_UFI_SOCKET = "CommentUfiSocket"
+
+/** The plugin that writes Reply in the row under a comment, a kept class name that socket's name table loads (#447). */
+internal const val COMMENT_REPLY = "com.facebook.feedback.comments.plugins.commentufi.reply.InlineCommentReplyPlugin"
+
+/** The plugin that draws Reply as a button on public Pages' comments, in the same name table (#447). */
+internal const val COMMENT_REPLY_BUTTON = "com.facebook.feedback.comments.plugins.commentufi.reply.ReplyPlugin"
+
 /** The name the reaction picker's popup logs itself under, in the method that opens it. */
 internal const val DOCK_NAME = "reactions_dock"
 
@@ -179,6 +189,7 @@ internal const val HOLDS_BOTTOM_CONTENT = "$COMMENT_SHEET_OPTIONS->holdsBottomCo
 internal const val HOLDS_POST_COMMENTS = "$COMMENT_SHEET_OPTIONS->holdsPostComments(Ljava/lang/String;)Z"
 internal const val HOLDS_COMMENT_DISLIKE = "$COMMENT_SHEET_OPTIONS->holdsCommentDislike()Z"
 internal const val HOLDS_COMMENT_LIKE = "$COMMENT_SHEET_OPTIONS->holdsCommentLike()Z"
+internal const val HOLDS_COMMENT_REPLY = "$COMMENT_SHEET_OPTIONS->holdsCommentReply(Ljava/lang/String;)Z"
 internal const val SKIP_PICKER = "$COMMENT_SHEET_OPTIONS->skipReactionPicker()Z"
 internal const val OPEN_REPLY_THREADS = "$COMMENT_SHEET_OPTIONS->openReplyThreads(Z)Z"
 internal const val HIDES_COMMENT = "$COMMENT_SHEET_OPTIONS->hidesComment(Ljava/lang/Object;)Z"
@@ -249,6 +260,9 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * after each of those calls on the box itself, the extension is handed the box, and while the switch
  * is on it moves the top layer back up and stops the ones under it drawing.
  *
+ * Hide the comment box (#479) rides the same call: while its switch is on, the extension makes the
+ * box gone and keeps it gone before each frame of its window, whatever background it set.
+ *
  * Hide related groups: what comes after a post's comments is drawn through another socket, the one
  * that names itself [BOTTOM_SOCKET] in the two comment surfaces' methods going through its plugins
  * (581 `LX/Aco;->A0j` and `LX/BIE;->A0j`, 580 `LX/B8E;->A1S` and `LX/BLp;->A1S`, 577 `LX/AeD;->A3Y`
@@ -286,6 +300,20 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * Both write Like through one method, the SpannableString one the kept builder calls with the
  * comment (585 `LX/05Mi;->A03`), and that's what's held, so the row keeps Reply, the reaction icons
  * and their count either way. Holding the kept builder alone left the button beside the thumbs-down.
+ *
+ * Hide Reply on comments (#447): Reply has no builder of its own to hold, as its kept plugin only
+ * hands the table a shared one. So it goes through the socket of the buttons under each comment,
+ * which names itself [COMMENT_UFI_SOCKET] (586 `LX/06Tc;->render`). Its name table (586
+ * `LX/01xJ;->A0t`) names [COMMENT_REPLY] and [COMMENT_REPLY_BUTTON], the Pages-style button, and it's
+ * found and hooked the same way as the comment box's button socket: while the switch is on the two
+ * get a no and the socket goes on to its next plugin. View replies is a section of its own under the
+ * comment, so it stays.
+ *
+ * Hide badges like Top fan on comments (#485): the badge by a commenter's name is a plugin of the
+ * two sockets that draw that name, [TITLE_SOCKET] and [META_TITLE_SOCKET], and each socket asks a
+ * static check of its own class by number before it draws one. [commenterBadgeCheck] has how the
+ * check and the badge's number are read; the hook goes first in each check and answers no for that
+ * number while the switch is on. Every other number goes on to Facebook's code untouched.
  *
  * Like only: a long press on Like opens the reaction picker through one method that builds
  * [UFI_DOCK] in a popup and logs [DOCK_NAME] (581 `LX/3FO;->A06`, each an instance (View, View)V
@@ -357,8 +385,15 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * why. Everything's read from the code: the 32-bit build matches arm64 instruction for instruction
  * with its classes renamed.
  *
- * Hide who is typing in comments (#170) and Hide the new comments pop-up (#185) are nameless patches
- * this one carries, [incomingCommentTypingPatch] and [newCommentsPillPatch].
+ * Show only comments that match: while the comment search box holds words, Hide comments' hook
+ * above leaves out the comments without them, and the comment list is built again each time the
+ * words change, through a state update of the patch's own and the list's and comment section's
+ * equality methods ([commentFilter] has the detail). A build where they don't fit keeps the rest of
+ * the patch, with that switch doing nothing and a warning saying why.
+ *
+ * Hide who is typing in comments (#170), Hide the new comments pop-up (#185) and Show every reaction
+ * on comments (#241) are nameless patches this one carries, [incomingCommentTypingPatch],
+ * [newCommentsPillPatch] and [commentReactionRowPatch].
  *
  * In the default selection with every switch off, so nothing changes until one is turned on.
  */
@@ -368,11 +403,11 @@ val commentSheetOptionsPatch = bytecodePatch(
     name = "Comment sheet options",
     description = "Small fixes for comments. Stop a long press on Like from opening reactions, hide the GIF and " +
         "sticker buttons, show every reply without tapping View replies, load a whole reply thread as you " +
-        "scroll, close an open reply thread with a Hide replies button, open more replies with a tap anywhere on their row, hide the comments under feed posts, hide the thumbs-down on comments or turn it into a Block button, put Block on reaction lists, hide Like on comments, hide Related groups under group posts, hide comments with shop links or your words, hide who is typing and the new comments pop-up, hide the emoji row over the comment box, hide the line over the comment box, and hide the comment box under full-screen videos. Starts off. Turn on the parts you want in " +
+        "scroll, close an open reply thread with a Hide replies button, open more replies with a tap anywhere on their row, hide the comments under feed posts, hide the thumbs-down on comments or turn it into a Block button, put Block on reaction lists, hide Like on comments, hide Reply on comments, hide badges like Top fan on comments, hide Related groups under group posts, hide comments with shop links or your words, show only the comments a search matches, hide who is typing and the new comments pop-up, keep every reaction beside a comment's count, hide the emoji row over the comment box, hide the line over the comment box, and hide the comment box under full-screen videos. Starts off. Turn on the parts you want in " +
         "Hushfacebook settings > Comments and writing.",
 ) {
     category("Comments")
-    dependsOn(settingsPatch, facebookExtensionPatch, incomingCommentTypingPatch, newCommentsPillPatch, commentBlockPatch, reactorBlockPatch)
+    dependsOn(settingsPatch, facebookExtensionPatch, incomingCommentTypingPatch, newCommentsPillPatch, commentBlockPatch, reactorBlockPatch, commentReactionRowPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
@@ -396,6 +431,13 @@ val commentSheetOptionsPatch = bytecodePatch(
         if (post.check.descriptor() == buttons.check.descriptor() || post.check.descriptor() == bottom.check.descriptor()) {
             refuse("the socket under a post's buttons leads to another socket's check, ${post.check.descriptor()}")
         }
+        val ufi = commentUfiSocket(
+            holders(COMMENT_REPLY),
+            holders(COMMENT_UFI_SOCKET).flatMap { methodsHolding(it, COMMENT_UFI_SOCKET) },
+        ) { types -> types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type } }
+        if (ufi.check.descriptor() in listOf(buttons, bottom, post).map { it.check.descriptor() }) {
+            refuse("the socket of a comment's buttons leads to another socket's check, ${ufi.check.descriptor()}")
+        }
         val dislike = dislikeBuilder(classDefByOrNull(COMMENT_DOWNVOTE))
         val like = likeText(likeBuilder(classDefByOrNull(COMMENT_LIKE)))
         if ((classDefByOrNull(like.definingClass)?.methods?.singleOrNull { it.descriptor() == like.descriptor() }
@@ -413,9 +455,14 @@ val commentSheetOptionsPatch = bytecodePatch(
         val threadPager = threadPagerTap(holders(COMMENT_LIST), replyRow) { types ->
             types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type }
         }
+        val filter = commentFilter(holders(COMMENT_LIST), drawn) { types ->
+            types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type }
+        }
         // 585's bar no longer names its GIF button, so the bar is found by its sticker and the enum constant.
         val gifAction = classDefByOrNull(COMPOSER_ACTION)?.let { enumConstant(it, VIEWER_GIF_ACTION) }
-        val viewer = viewerButtons(holders(VIEWER_STICKER), gifAction)
+        // 587 names the sticker button through a static label method, so its render is found among the label's callers.
+        val stickerHolders = holders(VIEWER_STICKER)
+        val viewer = viewerButtons(stickerHolders, gifAction, stickerLabelCallers(stickerHolders))
         // 585 builds the video bar inside the player chrome's own method, so with no render of its own the inline form is used.
         val barHolders = holders(VIDEO_COMMENT_BAR)
         val videoBar = if (videoCommentBarRenders(barHolders, viewer.render).isEmpty()) null else videoCommentBar(barHolders, viewer.render)
@@ -424,8 +471,9 @@ val commentSheetOptionsPatch = bytecodePatch(
         // The band's hooks go in at indices read from untouched code, so none of its methods may take another hook here.
         // The hooks found after dropVideoCommentBand below read their spots from the code as the band left it.
         val hooked = listOfNotNull(
-            buttons.check, bottom.check, post.check, dislike, like, dock, threads.initialState, drawn.render, replyList.build,
+            buttons.check, bottom.check, post.check, ufi.check, dislike, like, dock, threads.initialState, drawn.render, replyList.build,
             replyRow.render, feedReplyRow.render, threadPager.render, viewer.render, videoBar, inlineBar?.render,
+            filter?.build, filter?.apply, filter?.listEqual, filter?.equal,
         ).map { it.descriptor() }.toSet()
         listOf(band.builder, band.root, band.list).firstOrNull { it.descriptor() in hooked }?.let {
             refuse("${it.descriptor()} holds the video comment band and another hook")
@@ -437,6 +485,8 @@ val commentSheetOptionsPatch = bytecodePatch(
             .holdButtons(bottom.table, HOLDS_BOTTOM_CONTENT)
         mutableClassDefBy(post.check.definingClass).methods.single { it.descriptor() == post.check.descriptor() }
             .holdButtons(post.table, HOLDS_POST_COMMENTS)
+        mutableClassDefBy(ufi.check.definingClass).methods.single { it.descriptor() == ufi.check.descriptor() }
+            .holdButtons(ufi.table, HOLDS_COMMENT_REPLY)
         mutableClassDefBy(dislike.definingClass).methods.single { it.descriptor() == dislike.descriptor() }
             .holdBuild(HOLDS_COMMENT_DISLIKE)
         mutableClassDefBy(like.definingClass).methods.single { it.descriptor() == like.descriptor() }
@@ -472,6 +522,16 @@ val commentSheetOptionsPatch = bytecodePatch(
         emojiRowCheck(holders(EMOJI_ROW))?.let { check ->
             mutableClassDefBy(check.definingClass).methods.single { it.descriptor() == check.descriptor() }.holdEmojiRow()
         }
+        // #485: each socket that draws by a commenter's name asks its own check, and the badge's number is held first there.
+        for ((socket, plugin) in COMMENTER_BADGES) {
+            val found = commenterBadgeCheck(holders(socket), socket, plugin) ?: continue
+            if (found.check.descriptor() in hooked) {
+                patchLog.warning("$PATCH: ${found.check.descriptor()} holds $plugin and another hook. Hide badges like Top fan on comments leaves that badge in this build")
+                continue
+            }
+            mutableClassDefBy(found.check.definingClass).methods.single { it.descriptor() == found.check.descriptor() }
+                .holdCommenterBadge(found.number)
+        }
         commentBoxBackground(holders(COMMENT_BOX_INIT))?.let { box ->
             mutableClassDefBy(box.init.definingClass).methods.single { it.descriptor() == box.init.descriptor() }
                 .flattenCommentBox(box)
@@ -491,6 +551,7 @@ val commentSheetOptionsPatch = bytecodePatch(
         ) { types -> types.mapNotNull { classDefByOrNull(it) }.associateBy { it.type } }?.forEach { part ->
             mutable(part.method).insertAll(part.insertions)
         }
+        filter?.let { filterComments(it) }
         enableStatus("commentSheetOptions")
     }
 }
@@ -691,6 +752,17 @@ internal fun postSocket(
 ): PluginSocket = pluginCheck(holders, sockets, classes, POST_SOCKET, INLINE_COMMENTS, INLINE_COMMENTS_CLIENT_RANKING)
 
 /**
+ * The socket of the buttons under each comment, from [holders], the classes loading [COMMENT_REPLY],
+ * and [sockets], the methods loading [COMMENT_UFI_SOCKET]. The table is the one name table naming
+ * both Reply plugins; the check is found as in [pluginCheck] (#447).
+ */
+internal fun commentUfiSocket(
+    holders: List<ClassDef>,
+    sockets: List<Method>,
+    classes: (Set<String>) -> Map<String, ClassDef>,
+): PluginSocket = pluginCheck(holders, sockets, classes, COMMENT_UFI_SOCKET, COMMENT_REPLY, COMMENT_REPLY_BUTTON)
+
+/**
  * The builder of the thumbs-down under a comment: the one static method of [plugin], the class
  * [COMMENT_DOWNVOTE], that takes two objects, the comment's context and props, and returns an
  * object, the button's component, with a local register for the hook. Refuses without the class
@@ -735,12 +807,17 @@ internal fun likeBuilder(plugin: ClassDef?): Method {
 
 /**
  * What writes Like, for both Like plugins: the one method [builder], the kept plugin's, calls that
- * takes a GraphQLComment and answers a SpannableString. Refuses with any other number of them.
+ * takes a GraphQLComment and answers a SpannableString. 585's Android 9 build reads the comment's
+ * feedback id in [builder] and hands the writer (`LX/05QE;->A00`) that instead, so with no such call
+ * it's the one SpannableString call taking [builder]'s own argument, the comment's context. Refuses
+ * with any other number of them.
  */
 internal fun likeText(builder: Method): MethodReference {
-    val writers = calls(builder).filter {
-        it.returnType == "Landroid/text/SpannableString;" && GRAPHQL_COMMENT in it.parameterTypes
-    }.distinctBy { it.descriptor() }
+    val spannables = calls(builder).filter { it.returnType == "Landroid/text/SpannableString;" }
+    val context = builder.parameterTypes.single().toString()
+    val writers = spannables.filter { GRAPHQL_COMMENT in it.parameterTypes }
+        .ifEmpty { spannables.filter { call -> call.parameterTypes.any { it.toString() == context } } }
+        .distinctBy { it.descriptor() }
     return writers.singleOrNull() ?: refuse(
         "expected ${builder.descriptor()} to write Like through one method, found ${writers.size}: " +
             writers.joinToString { it.descriptor() },
@@ -885,6 +962,8 @@ private fun literalBefore(code: List<Instruction>, index: Int, register: Int): I
 
 private val UPDATE_FACTORIES = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 private val UPDATE_CONSTRUCTORS = setOf(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE)
+private val INT_MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
+private val REFERENCE_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
 
 /** The index of the last call before [EXPAND_REPLIES] in [update] that builds something from an Object[] and an int. */
 private fun expandBuild(update: Method): Int {
@@ -1349,9 +1428,13 @@ private fun Instruction.madeType() =
 
 private fun Instruction.targetRegister() = (this as OneRegisterInstruction).registerA
 
-/** Whether only the instruction before [at] runs into it, so nothing jumps past code put there. */
+/**
+ * Whether only the instruction before [at] runs into it, or for the first instruction nothing jumps
+ * back to it, so nothing jumps past code put there. 587's reply sender switches first thing.
+ */
 private fun ranIntoOnlyFromBefore(method: Method, at: Int): Boolean {
     val flow = ControlFlow.of(method)
+    if (at == 0) return flow.instructions.indices.none { index -> 0 in flow.normal[index] || 0 in flow.exceptional[index] }
     return at > 0 && at in flow.normal[at - 1] && flow.instructions.indices.none { index ->
         index != at - 1 && (at in flow.normal[index] || at in flow.exceptional[index])
     }
@@ -1359,10 +1442,15 @@ private fun ranIntoOnlyFromBefore(method: Method, at: Int): Boolean {
 
 /** [count] locals from v0 to v15 that nothing reads from instruction [at] on, leaving out [keep]. */
 private fun lowFreeRegisters(method: Method, at: Int, count: Int, keep: Set<Int> = emptySet()): List<Int> {
-    val live = RegisterLiveness.of(method).liveInto(at)
-    val free = (0 until minOf(method.localRegisterCount(), 16)).filter { it !in live && it !in keep }
+    val free = lowRegistersFree(method, at, keep)
     if (free.size < count) refuse("${method.descriptor()} has ${free.size} free low registers at instruction $at, not $count")
     return free.take(count)
+}
+
+/** Every local register below v16 that nothing reads from instruction [at] on, minus [keep]. */
+private fun lowRegistersFree(method: Method, at: Int, keep: Set<Int>): List<Int> {
+    val live = RegisterLiveness.of(method).liveInto(at)
+    return (0 until minOf(method.localRegisterCount(), 16)).filter { it !in live && it !in keep }
 }
 
 /** Refuses unless [register] holds at [at] what it holds at [readAt]: the same writes reach both. */
@@ -1399,18 +1487,59 @@ private fun hideInState(update: Method, flag: FieldReference): Insertion {
     )
 }
 
+/** The sender lambda's kind: the int field the sender switches on, and the register holding the lambda there. */
+internal class SenderKind(val field: FieldReference, val self: Int)
+
+/**
+ * The field [sender] switches on first thing, and where the lambda is. Up to 586 the sender is the
+ * lambda's own invoke, reading the field into the switch's register first thing. 587 (arm64
+ * `LX/0HDG;->A0C`) is a static (lambda, int) method of the lambda switching on the int first
+ * thing; the lambda's invoke reads its one int field and hands it over for every number its own
+ * switch leaves out, Hide replies' among them. [lambda] is the sender's class.
+ */
+internal fun senderKind(sender: Method, lambda: () -> ClassDef): SenderKind {
+    val where = sender.descriptor()
+    val code = sender.code()
+    val switch = code.indexOfFirst { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH }
+    if (switch < 0) refuse("$where has no switch")
+    val on = code[switch].targetRegister()
+    val read = code[0].takeIf { it.opcode == Opcode.IGET }
+    if (read != null && switch == 1 && (read as TwoRegisterInstruction).registerA == on) {
+        return SenderKind(read.field()!!, read.registerB)
+    }
+    val parameters = sender.parameterTypes.map { it.toString() }
+    if (!AccessFlags.STATIC.isSet(sender.accessFlags) || parameters != listOf(sender.definingClass, "I") || switch != 0 ||
+        on != sender.implementation!!.registerCount - 1
+    ) {
+        refuse("$where doesn't open on a switch over one of its fields")
+    }
+    val owner = lambda()
+    val ints = owner.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == "I" }
+    val field = ints.singleOrNull() ?: refuse("${owner.type} has ${ints.size} int fields, not one kind")
+    val handsOver = owner.methods.any { method ->
+        val body = method.implementation?.instructions?.toList() ?: emptyList()
+        body.indices.any { at ->
+            val call = body[at].methodCall()
+            call != null && call.definingClass == sender.definingClass && call.name == sender.name &&
+                call.parameterTypes.map { it.toString() } == parameters && (0 until at).any { before ->
+                    body[before].opcode == Opcode.IGET && body[before].field()?.let { it.definingClass == owner.type && it.name == field.name } == true &&
+                        (body[before] as TwoRegisterInstruction).registerA == body[at].namedRegisters().getOrNull(1)
+                }
+        }
+    }
+    if (!handsOver) refuse("${owner.type} never hands $where its ${field.name}")
+    return SenderKind(field, sender.implementation!!.registerCount - 2)
+}
+
 /** The sender's arm for [EXPAND_REPLIES], and the two places that make it send Hide replies' number when built with it. */
-private fun hideInSender(sender: Method): Pair<Int, List<Insertion>> {
+private fun hideInSender(sender: Method, senderKind: SenderKind): Pair<Int, List<Insertion>> {
     val where = sender.descriptor()
     val code = sender.code()
     val (switch, arms) = switchArms(sender)
-    val kind = code[0].takeIf { it.opcode == Opcode.IGET }?.field()
+    val kind = senderKind.field
     val on = code[switch].targetRegister()
-    if (kind == null || switch != 1 || (code[0] as TwoRegisterInstruction).registerA != on) {
-        refuse("$where doesn't open on a switch over one of its fields")
-    }
     if (HIDE_REPLIES in arms) refuse("$where already has an arm for $HIDE_REPLIES")
-    val self = (code[0] as TwoRegisterInstruction).registerB
+    val self = senderKind.self
     if (on > 15 || self > 15) refuse("$where keeps its switch out of an if-ne's reach")
 
     val named = code.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == EXPAND_REPLIES }
@@ -1425,7 +1554,19 @@ private fun hideInSender(sender: Method): Pair<Int, List<Insertion>> {
     sender.requireSameValue(build, 0, self)
 
     val (wanted) = lowFreeRegisters(sender, switch, 1, setOf(on))
-    val (read, sent) = lowFreeRegisters(sender, build, 2, setOf(number, self))
+    // 585's Android 9 build sends from a merged lambda (`LX/0D8q;->invoke`) with one low register
+    // free there, so the number is then compared by subtracting it, which needs no second register.
+    val free = lowRegistersFree(sender, build, setOf(number, self))
+    val read = free.firstOrNull() ?: refuse("$where has no free low register at instruction $build")
+    val compare = free.getOrNull(1)?.let { sent ->
+        """
+            const/16 v$sent, $HIDE_REPLIES
+            if-ne v$read, v$sent, :keep
+        """
+    } ?: """
+            add-int/lit16 v$read, v$read, -$HIDE_REPLIES
+            if-nez v$read, :keep
+        """
     return key to listOf(
         Insertion(
             switch,
@@ -1439,8 +1580,7 @@ private fun hideInSender(sender: Method): Pair<Int, List<Insertion>> {
             build,
             """
                 iget v$read, v$self, ${kind.smali()}
-                const/16 v$sent, $HIDE_REPLIES
-                if-ne v$read, v$sent, :keep
+                $compare
                 const/16 v$number, $HIDE_REPLIES
             """,
         ),
@@ -1479,10 +1619,15 @@ private fun hideRowInDraw(draw: Method, sender: Method, senderKey: Int, flag: Fi
     val ask = (answer downTo maxOf(answer - 6, 2)).firstOrNull { index ->
         code[index].methodCall()?.let { it.returnType == OBJECT && it.parameterTypes.map(CharSequence::toString) == listOf(FUNCTION_1) } == true
     } ?: refuse("$where's third open check doesn't ask the comment's props")
-    val keptType = code[ask - 2].madeType() ?: refuse("$where doesn't make its question right before asking")
+    // 585's Android 9 build (`LX/0CBe;->A0j`) moves the question's number into a low register
+    // between making the question and starting it, so one such move may sit between them.
+    val number = code[ask - 1].namedRegisters().last()
+    val moved = code[ask - 2].takeIf { it.opcode in INT_MOVES && (it as TwoRegisterInstruction).registerA == number } as TwoRegisterInstruction?
+    val keptType = code.getOrNull(if (moved == null) ask - 2 else ask - 3)?.madeType()
+        ?: refuse("$where doesn't make its question right before asking")
     val keptInit = code[ask - 1].methodCall()?.takeIf { it.definingClass == keptType && it.name == "<init>" }
         ?: refuse("$where doesn't make its question right before asking")
-    val keptWhich = literalBefore(code, ask - 1, code[ask - 1].namedRegisters().last())
+    val keptWhich = (if (moved == null) literalBefore(code, ask - 1, number) else literalBefore(code, ask - 2, moved.registerB))
         ?: refuse("$where makes its question with a number that isn't a literal")
     val props = code[ask].namedRegisters().first()
 
@@ -1495,13 +1640,23 @@ private fun hideRowInDraw(draw: Method, sender: Method, senderKey: Int, flag: Fi
     val at = check + 1
     if (!ranIntoOnlyFromBefore(draw, at)) refuse("$where has a jump to instruction $at, where the Hide replies row goes")
 
+    // Up to 586 a (section, context) builder holds the section while it's filled, and the section
+    // is read back from it. 587 inlines the builder (arm64 `LX/0CuL;->A0w`): the section is started
+    // bare and filled where it was made.
     val builderInit = code.getOrNull(start + 3)?.takeIf { it.opcode == Opcode.INVOKE_DIRECT }?.methodCall()
         ?.takeIf { it.name == "<init>" && it.parameterTypes.size == 2 && it.parameterTypes[0].toString() == collapsed.type }
-        ?: refuse("$where doesn't build ${collapsed.type} through a builder")
-    val context = code[start + 3].namedRegisters().last()
-    val component = code[start + 4].takeIf { it.opcode == Opcode.IGET_OBJECT && it.field()?.type == collapsed.type }
-        ?.let { (it as TwoRegisterInstruction).registerA } ?: refuse("$where doesn't read the section back from its builder")
-    val addAt = (start + 5 until code.size).firstOrNull { component in code[it].namedRegisters() && code[it].methodCall() != null }
+    val bare = builderInit == null && code.getOrNull(start + 1)?.let { next ->
+        next.opcode == Opcode.INVOKE_DIRECT && next.namedRegisters() == listOf(code[start].targetRegister()) &&
+            next.methodCall()?.let { it.definingClass == collapsed.type && it.name == "<init>" && it.parameterTypes.isEmpty() } == true
+    } == true
+    if (builderInit == null && !bare) refuse("$where neither builds ${collapsed.type} through a builder nor starts it bare")
+    val builderContext = builderInit?.let { code[start + 3].namedRegisters().last() }
+    val component = if (builderInit == null) code[start].targetRegister() else {
+        code[start + 4].takeIf { it.opcode == Opcode.IGET_OBJECT && it.field()?.type == collapsed.type }
+            ?.let { (it as TwoRegisterInstruction).registerA } ?: refuse("$where doesn't read the section back from its builder")
+    }
+    val filledFrom = if (builderInit == null) start + 2 else start + 5
+    val addAt = (filledFrom until code.size).firstOrNull { component in code[it].namedRegisters() && code[it].methodCall() != null }
         ?: refuse("$where never hands its collapsed section on")
     val add = code[addAt].methodCall()!!
     if (code[addAt].opcode != Opcode.INVOKE_VIRTUAL || add.returnType != "V" || add.parameterTypes.size != 1) {
@@ -1511,10 +1666,23 @@ private fun hideRowInDraw(draw: Method, sender: Method, senderKey: Int, flag: Fi
 
     val senderAt = (start until addAt).singleOrNull { code[it].madeType() == sender.definingClass }
         ?: refuse("$where doesn't make ${sender.definingClass} once in its collapsed block")
-    val senderInit = code[senderAt + 1].methodCall()?.takeIf { it.definingClass == sender.definingClass && it.name == "<init>" }
+    // Moves may sit between making the sender and starting it, the way one does before the question:
+    // 586 moves the arm into a low register (`LX/09W9;->A0s` on arm64), 587 the context (arm64
+    // `LX/0CuL;->A0w`). An argument is read where it was moved from.
+    val senderStart = (senderAt + 1..senderAt + 3).firstOrNull { index ->
+        code.getOrNull(index)?.methodCall()?.let { it.definingClass == sender.definingClass && it.name == "<init>" } == true
+    }?.takeIf { index -> (senderAt + 1 until index).all { code[it].opcode in INT_MOVES || code[it].opcode in REFERENCE_MOVES } }
         ?: refuse("$where doesn't start ${sender.definingClass} right after making it")
-    val senderArgs = code[senderAt + 1].namedRegisters()
-    if (senderArgs.size != 3 || senderArgs[1] != context || literalBefore(code, senderAt + 1, senderArgs[2]) != senderKey) {
+    val senderInit = code[senderStart].methodCall()!!
+    val moves = (senderAt + 1 until senderStart).map { code[it] as TwoRegisterInstruction to it }
+    fun movedFrom(register: Int): Pair<Int, Int> =
+        moves.lastOrNull { it.first.registerA == register }?.let { (move, index) -> move.registerB to index } ?: (register to senderStart)
+    val senderArgs = code[senderStart].namedRegisters()
+    if (senderArgs.size != 3) refuse("$where doesn't start ${sender.definingClass} with its context and arm $senderKey")
+    val (senderContext, contextReadAt) = movedFrom(senderArgs[1])
+    val arm = literalBefore(code, senderAt + 1, movedFrom(senderArgs[2]).first)
+    val context = builderContext ?: senderContext
+    if (senderContext != context || arm != senderKey) {
         refuse("$where doesn't start ${sender.definingClass} with its context and arm $senderKey")
     }
 
@@ -1523,10 +1691,11 @@ private fun hideRowInDraw(draw: Method, sender: Method, senderKey: Int, flag: Fi
     }
 
     // Each register read and where Facebook reads it, so the value can be checked at the hook.
-    val reads = mutableListOf(opened to first, itself to first + 1, local to first + 3, props to ask, context to start + 3, children to addAt)
+    val contextRead = if (builderInit == null) contextReadAt else start + 3
+    val reads = mutableListOf(opened to first, itself to first + 1, local to first + 3, props to ask, context to contextRead, children to addAt)
     val fills = mutableListOf<Pair<FieldReference, (Int) -> String>>()
     var senderField: FieldReference? = null
-    for (index in start + 5 until addAt) {
+    for (index in filledFrom until addAt) {
         val put = code[index]
         val move = when (put.opcode) {
             Opcode.IPUT -> "move/from16"
@@ -1574,6 +1743,13 @@ private fun hideRowInDraw(draw: Method, sender: Method, senderKey: Int, flag: Fi
     val filled = fills.joinToString("\n") { (field, load) ->
         "${load(x)}\n${if (field.type == "I") "iput" else "iput-object"} v$x, v$made, ${field.smali()}"
     }
+    val builder = builderInit?.let {
+        """
+            new-instance v$x, ${it.definingClass}
+            move-object/from16 v$y, v$context
+            invoke-direct {v$x, v$made, v$y}, ${it.descriptor()}
+        """
+    }.orEmpty()
     return Insertion(
         at,
         """
@@ -1591,9 +1767,7 @@ private fun hideRowInDraw(draw: Method, sender: Method, senderKey: Int, flag: Fi
             if-eqz v$made, :keep
             new-instance v$made, ${collapsed.type}
             invoke-direct {v$made}, ${collapsed.type}-><init>()V
-            new-instance v$x, ${builderInit.definingClass}
-            move-object/from16 v$y, v$context
-            invoke-direct {v$x, v$made, v$y}, ${builderInit.descriptor()}
+$builder
 $filled
             const/16 v$x, $HIDE_REPLIES
             new-instance v$z, ${sender.definingClass}
@@ -1678,9 +1852,12 @@ private fun hideRowInSection(collapsed: ClassDef, rowType: String, sender: Metho
 private fun hideWordsInRow(row: Method, classes: (Set<String>) -> Map<String, ClassDef>): List<Insertion> {
     val where = row.descriptor()
     val code = row.code()
-    val countRead = code.indices.firstOrNull { index ->
-        code[index].opcode == Opcode.IGET && code[index].field()?.type == "I" && code.getOrNull(index + 1)?.opcode == Opcode.IF_GTZ &&
-            code[index + 1].targetRegister() == (code[index] as TwoRegisterInstruction).registerA
+    // The int field read that the first above-zero test reads alone: straight after it until 586, a
+    // few constants later on 587 armeabi-v7a (LX/0CuL;->render).
+    val countRead = code.indices.firstNotNullOfOrNull { index ->
+        if (code[index].opcode != Opcode.IF_GTZ) return@firstNotNullOfOrNull null
+        row.writersReaching(index, code[index].targetRegister()).singleOrNull()
+            ?.takeIf { it >= 0 && code[it].opcode == Opcode.IGET && code[it].field()?.type == "I" }
     } ?: refuse("$where doesn't check a count above zero")
     val count = code[countRead].field()!!
     val self = (code[countRead] as TwoRegisterInstruction).registerB
@@ -1693,8 +1870,21 @@ private fun hideWordsInRow(row: Method, classes: (Set<String>) -> Map<String, Cl
     val texts = results.map { code[it].targetRegister() }.distinct()
     if (texts.size < 2) refuse("$where picks its words in ${texts.size} registers, not two")
     val (words, spoken) = texts
-    val wordsAt = results.last { code[it].targetRegister() == spoken } + 2
-    if (!ranIntoOnlyFromBefore(row, wordsAt)) refuse("$where has a jump to instruction $wordsAt, where the row's words go")
+    val lastSpoken = results.last { code[it].targetRegister() == spoken }
+    // Right after the last spoken text, unless other arms pick it too and join further on (587 arm64
+    // LX/0Cut;->render ends four String arms at one join): then the first place past that join only
+    // the instruction before runs into, with every arm's spoken text reaching it and neither register
+    // read on the way.
+    val wordsAt = (lastSpoken + 2 until code.size).firstOrNull { index ->
+        ranIntoOnlyFromBefore(row, index) && row.writersReaching(index, spoken).let { writers ->
+            lastSpoken in writers && writers.all { it >= 0 && code[it].opcode == Opcode.MOVE_RESULT_OBJECT }
+        }
+    }?.takeIf { at ->
+        (lastSpoken + 2 until at).all { index ->
+            code[index].namedRegisters().none { it == words || it == spoken } ||
+                (code[index].opcode == Opcode.MOVE_RESULT_OBJECT && code[index].targetRegister() == spoken)
+        }
+    } ?: refuse("$where has no place past its spoken text that only one instruction runs into")
     if (row.writersReaching(wordsAt, words).any { it < 0 || code[it].opcode != Opcode.MOVE_RESULT_OBJECT }) {
         refuse("$where can reach instruction $wordsAt without its words in v$words")
     }
@@ -1759,8 +1949,9 @@ internal fun findHideRepliesParts(
     val collapsed = named.singleOrNull() ?: refuse("expected one class naming itself \"$COLLAPSED_REPLIES\", found ${named.size}")
     val (updateType, _) = expandUpdate(sender)
     val update = stateUpdate(read(flag.definingClass), updateType)
-    val (senderKey, senderHooks) = hideInSender(sender)
-    val kind = sender.code()[0].field()!!
+    val senderKind = senderKind(sender) { read(sender.definingClass) }
+    val (senderKey, senderHooks) = hideInSender(sender, senderKind)
+    val kind = senderKind.field
     val eyeKinds = row.code().filter { it.opcode == Opcode.SGET_OBJECT }.mapNotNull { it.field() }.filter { it.type == INTEGER }.map { it.smali() }.toSet()
     val base = collapsed.superclass ?: refuse("${collapsed.type} has no superclass")
     return listOf(
@@ -1802,22 +1993,53 @@ internal fun MutableMethod.insertAll(insertions: List<Insertion>) {
 internal class ViewerButtons(val render: Method, val sticker: Int, val gif: Int, val at: Int, val free: Int)
 
 /**
- * The video viewer's comment bar, from [holders], the classes loading [VIEWER_STICKER]. Its render
- * is the one method naming [VIEWER_STICKER] and either [VIEWER_GIF] or, from 585 on, the constant
- * [gifAction] (`Class->field:Type`, the enum's [VIEWER_GIF_ACTION]). Each name is loaded once and
- * handed to the next call, whose result, the button, is moved straight into a register. 585 builds
- * the GIF button's label between the constant's load and its builder, so there the builder is the
- * first call handed the constant, and it must be the call the sticker's name went to. The hook goes
- * after the later of the two, so it must be reached only from there, neither button's register may
- * be written in between, and a local register other than theirs must be free there. Refuses unless
- * each holds.
+ * Whether [method] is a static label of the viewer's sticker button: it answers a String and holds
+ * [VIEWER_STICKER] (587's render asks one for the button's name, arm64
+ * `LX/0DrQ;->getStickerContentDescription(Context, FbUserSession)`). A string table, a static
+ * `(I)String`, is not one.
  */
-internal fun viewerButtons(holders: List<ClassDef>, gifAction: String? = null): ViewerButtons {
+internal fun isStickerLabel(method: Method): Boolean =
+    AccessFlags.STATIC.isSet(method.accessFlags) && method.implementation != null &&
+        method.returnType == "Ljava/lang/String;" && method.parameterTypes.map { it.toString() } != listOf("I") &&
+        holdsString(method, VIEWER_STICKER)
+
+/**
+ * The classes outside the extension that may call a sticker label ([isStickerLabel]) among
+ * [holders], the classes loading [VIEWER_STICKER]; empty when none of them has one.
+ */
+internal fun BytecodePatchContext.stickerLabelCallers(holders: List<ClassDef>): List<ClassDef> {
+    val owners = holders.filter { owner -> owner.methods.any(::isStickerLabel) }.map { it.type }.toSet()
+    if (owners.isEmpty()) return emptyList()
+    val found = mutableListOf<ClassDef>()
+    classDefForEachReferencing(types = owners) { classDef ->
+        if (!classDef.type.startsWith(EXTENSION_CLASSES)) found += classDef
+    }
+    return found
+}
+
+/**
+ * The video viewer's comment bar, from [holders], the classes loading [VIEWER_STICKER], and
+ * [callers], classes that may ask one of their sticker labels ([isStickerLabel]) for it. Its
+ * render is the one method naming [VIEWER_STICKER] (loading it, or from 587 calling a label) and
+ * either [VIEWER_GIF] or, from 585 on, the constant [gifAction] (`Class->field:Type`, the enum's
+ * [VIEWER_GIF_ACTION]). Each name is loaded once and handed to the next call, whose result, the
+ * button, is moved straight into a register. 585 builds the GIF button's label between the
+ * constant's load and its builder, so there the builder is the first call handed the constant, and
+ * it must be the call the sticker's name went to. The hook goes after the later of the two, so it
+ * must be reached only from there, neither button's register may be written in between, and a
+ * local register other than theirs must be free there. Refuses unless each holds.
+ */
+internal fun viewerButtons(holders: List<ClassDef>, gifAction: String? = null, callers: List<ClassDef> = emptyList()): ViewerButtons {
     fun loads(method: Method, field: String) = method.implementation?.instructions?.any {
         it.opcode == Opcode.SGET_OBJECT && (it as ReferenceInstruction).reference.toString() == field
     } == true
-    val renders = holders.flatMap { methodsHolding(it, VIEWER_STICKER) }
-        .filter { holdsString(it, VIEWER_GIF) || gifAction != null && loads(it, gifAction) }
+    fun Instruction.call() = (this as? ReferenceInstruction)?.reference as? MethodReference
+    val labels = holders.flatMap { owner -> owner.methods.filter(::isStickerLabel) }.map { it.descriptor() }.toSet()
+    fun asksLabel(instruction: Instruction) = instruction.call()?.let { it.descriptor() in labels } == true
+    fun namesSticker(method: Method) = !isStickerLabel(method) &&
+        (holdsString(method, VIEWER_STICKER) || method.implementation?.instructions?.any(::asksLabel) == true)
+    val renders = (holders + callers).distinctBy { it.type }.flatMap { it.methods }
+        .filter { namesSticker(it) && (holdsString(it, VIEWER_GIF) || gifAction != null && loads(it, gifAction)) }
         .distinctBy { it.descriptor() }
     val render = renders.singleOrNull() ?: refuse(
         "expected one method naming \"$VIEWER_STICKER\" and \"$VIEWER_GIF\" (or loading ${gifAction ?: VIEWER_GIF_ACTION}), " +
@@ -1825,7 +2047,6 @@ internal fun viewerButtons(holders: List<ClassDef>, gifAction: String? = null): 
     )
     val where = render.descriptor()
     val code = render.implementation!!.instructions.toList()
-    fun Instruction.call() = (this as? ReferenceInstruction)?.reference as? MethodReference
 
     /** The index of the move-result that keeps the button built by [call] from what [load] loads, [what]. */
     fun kept(load: Int, call: Int, what: String): Int {
@@ -1837,9 +2058,15 @@ internal fun viewerButtons(holders: List<ClassDef>, gifAction: String? = null): 
         return call + 1
     }
 
-    /** The index of the move-result that keeps the button built from [name]. */
+    /**
+     * The index of the move-result that keeps the button built from [name]: loaded as a string, or
+     * for the sticker kept from a label's answer, the move-result straight after the call.
+     */
     fun built(name: String): Int {
-        val loads = code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == name }
+        val loads = code.indices.filter { at ->
+            ((code[at] as? ReferenceInstruction)?.reference as? StringReference)?.string == name ||
+                name == VIEWER_STICKER && at > 0 && code[at].opcode == Opcode.MOVE_RESULT_OBJECT && asksLabel(code[at - 1])
+        }
         val load = loads.singleOrNull() ?: refuse("$where loads \"$name\" ${loads.size} times, not once")
         val call = (load + 1 until code.size).firstOrNull { code[it].call() != null }
             ?: refuse("$where makes nothing of \"$name\"")

@@ -13,9 +13,11 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.ColorSpace;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -41,6 +43,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -60,7 +63,8 @@ import static org.robolectric.Shadows.shadowOf;
  * A second finger over a photo in a profile starts a zoom on a copy of it, the pinch scales and
  * drags the copy, and it springs back once fewer than two fingers are down. Every event from that
  * second finger on reaches Facebook as a cancel; in the story viewer Facebook gets none of them
- * until the zoom ends, then a cancel. One finger, a pinch over something that isn't
+ * until the zoom ends, then a cancel, unless the story's video plays on under the zoom. A feed
+ * video Tap to play knows zooms too. One finger, a pinch over something that isn't
  * media, an icon-sized picture, a photo outside both a profile and the story viewer (the news
  * feed's, which Facebook zooms itself), the switch off or Hushfacebook paused all leave every event
  * as Facebook handed it over. With Stay zoomed on, a zoom stays when the fingers lift, a touch on it
@@ -130,6 +134,7 @@ public class PinchZoomTest {
         Settings.PINCH_TO_ZOOM_DIM.resetToDefault();
         Settings.PINCH_TO_ZOOM_LIVE.resetToDefault();
         Settings.LONG_PRESS_OPENS_COMMENTS.resetToDefault();
+        Settings.TURN_OFF_HDR_BRIGHTNESS.resetToDefault();
         HookStatus.clear();
     }
 
@@ -213,6 +218,11 @@ public class PinchZoomTest {
     }
 
     private static MotionEvent event(int action, float[][] points) {
+        return event(action, points, SystemClock.uptimeMillis());
+    }
+
+    /** [action] at [points] now, in a gesture whose first finger came down at [downTime]. */
+    private static MotionEvent event(int action, float[][] points, long downTime) {
         int count = points.length;
         MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[count];
         MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[count];
@@ -227,7 +237,7 @@ public class PinchZoomTest {
             coords[i].size = 1f;
         }
         long now = SystemClock.uptimeMillis();
-        return MotionEvent.obtain(now, now, action, count, properties, coords, 0, 0, 1f, 1f, 0, 0, 0, 0);
+        return MotionEvent.obtain(downTime, now, action, count, properties, coords, 0, 0, 1f, 1f, 0, 0, 0, 0);
     }
 
     private static int pointer(int action, int index) {
@@ -636,6 +646,43 @@ public class PinchZoomTest {
     }
 
     /**
+     * A profile video's TextureView can run past the post that clips it, a tall video centered in a
+     * shorter post, and the zoom copies only what the post shows of it, never the posts above and
+     * below it (#220). A holder that lets what it holds draw past it doesn't cut the copy.
+     */
+    @Test
+    public void aVideoRunningPastThePostThatClipsItZoomsOnlyWhatThePostShows() {
+        FrameLayout content = (FrameLayout) photo.getParent();
+        FrameLayout post = new FrameLayout(activity);
+        FrameLayout.LayoutParams lower = new FrameLayout.LayoutParams(1080, 400);
+        lower.topMargin = 700;
+        content.addView(post, lower);
+        TextureView video = new TextureView(activity);
+        FrameLayout.LayoutParams taller = new FrameLayout.LayoutParams(1080, 1000);
+        taller.topMargin = -300;
+        post.addView(video, taller);
+        layOut(activity);
+        assertSame(video, PinchZoom.mediaUnder(activity, decor(), 540, 900));
+
+        touch(event(MotionEvent.ACTION_DOWN, new float[][] {{490, 900}}));
+        touch(event(pointer(MotionEvent.ACTION_POINTER_DOWN, 1), new float[][] {{490, 900}, {590, 900}}));
+        PinchZoom.Zoom zoom = PinchZoom.zoom();
+        assertNotNull("no zoom started", zoom);
+        int[] at = new int[2];
+        post.getLocationInWindow(at);
+        assertEquals("the copy reached past the post", at[1], zoom.area.top);
+        assertEquals("the copy reached past the post", at[1] + 400, zoom.area.bottom);
+        assertEquals(400, copies.get(0).getHeight());
+
+        post.setClipChildren(false);
+        video.getLocationInWindow(at);
+        android.graphics.Rect whole = PinchZoom.area(decor(), video);
+        assertNotNull(whole);
+        assertEquals(at[1], whole.top);
+        assertEquals(at[1] + 1000, whole.bottom);
+    }
+
+    /**
      * The news feed shares its activity with a profile and zooms its own photos, so a photo that
      * isn't inside a root ProfileFragment handed over is left to Facebook.
      */
@@ -660,6 +707,34 @@ public class PinchZoomTest {
         ViewGroup card = (ViewGroup) ((ViewGroup) viewer.findViewById(android.R.id.content)).getChildAt(0);
         assertSame(card.getChildAt(0), PinchZoom.mediaUnder(viewer, viewer.getWindow().getDecorView(), 540, 700));
         assertNull("an activity that isn't the story viewer counted", PinchZoom.mediaUnder(activity, decor(), 300, 300));
+    }
+
+    /**
+     * Facebook keeps a clear Litho strip at each side of a story, 64dp wide, for taps to the previous
+     * and next story, and the story under them is a Litho host too. Where 64dp is no more than the
+     * smallest media, the reporter's phone among them, a pinch beside the edge zoomed the strip alone
+     * (#220). In the story viewer a host on top yields to the story spanning it.
+     */
+    @Test
+    public void inTheStoryViewerASideStripForTapsYieldsToTheStoryUnderIt() {
+        PinchZoom.resetForTests();
+        Activity viewer = Robolectric.buildActivity(com.facebook.stories.viewer.activity.StoryViewerActivity.class).setup().get();
+        FrameLayout card = new FrameLayout(viewer);
+        FrameLayout wrap = new FrameLayout(viewer);
+        LithoHost story = new LithoHost(viewer);
+        wrap.addView(story, new FrameLayout.LayoutParams(1080, 1920));
+        card.addView(wrap, new FrameLayout.LayoutParams(1080, 1920));
+        LithoHost next = new LithoHost(viewer);
+        FrameLayout.LayoutParams right = new FrameLayout.LayoutParams(162, 1920);
+        right.leftMargin = 918;
+        card.addView(next, right);
+        card.addView(new LithoHost(viewer), new FrameLayout.LayoutParams(162, 1920));
+        viewer.setContentView(card);
+        layOut(viewer);
+        View root = viewer.getWindow().getDecorView();
+        assertSame("the next story's strip won", story, PinchZoom.mediaUnder(viewer, root, 1000, 900));
+        assertSame("the previous story's strip won", story, PinchZoom.mediaUnder(viewer, root, 80, 900));
+        assertSame(story, PinchZoom.mediaUnder(viewer, root, 540, 900));
     }
 
     /** 584 opens the story viewer as one of its empty subclasses as well, and that one holds Facebook's finger too. */
@@ -1123,6 +1198,119 @@ public class PinchZoomTest {
         final List<Boolean> told = new ArrayList<>();
     }
 
+    /** A pinch over the profile's photo, and the zoom it started. */
+    private PinchZoom.Zoom pinchOnPhoto() {
+        touch(event(MotionEvent.ACTION_DOWN, new float[][] {{250, 300}}));
+        touch(event(pointer(MotionEvent.ACTION_POINTER_DOWN, 1), new float[][] {{250, 300}, {350, 300}}));
+        PinchZoom.Zoom zoom = PinchZoom.zoom();
+        assertNotNull("no zoom started", zoom);
+        return zoom;
+    }
+
+    /**
+     * Facebook puts the story viewer's window in HDR color mode, where Android 14 shows an HDR story
+     * above SDR white, and a copy that stopped at SDR white looked dimmer than the story it covered
+     * (#220). There the zoom's copy and its frames are half floats in extended sRGB, which hold that
+     * light where the usual 8 bits stop at 1.
+     */
+    @Test
+    @Config(sdk = 34)
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aZoomInAnHdrWindowCopiesInHalfFloatsThatKeepTheLightAboveSdrWhite() {
+        activity.getWindow().setColorMode(ActivityInfo.COLOR_MODE_HDR);
+        PinchZoom.Zoom zoom = pinchOnPhoto();
+        assertTrue("a zoom in an HDR window didn't take wide copies", zoom.wide);
+        Bitmap frame = zoom.spare(600, 600, zoom.wide);
+        assertNotNull(frame);
+        assertEquals(Bitmap.Config.RGBA_F16, frame.getConfig());
+        assertEquals(ColorSpace.get(ColorSpace.Named.EXTENDED_SRGB), frame.getColorSpace());
+        long bright = Color.pack(2f, 1f, 0.5f, 1f, ColorSpace.get(ColorSpace.Named.EXTENDED_SRGB));
+        frame.eraseColor(bright);
+        assertEquals("the wide copy lost the light above SDR white", 2f, PinchZoom.brightest(frame), 0.01f);
+        Bitmap usual = PinchZoom.copyBitmap(600, 600, false);
+        usual.eraseColor(bright);
+        assertEquals("an 8 bit copy held light above SDR white", 1f, PinchZoom.brightest(usual), 0.01f);
+    }
+
+    @Test
+    @Config(sdk = 34)
+    public void aZoomInAnOrdinaryWindowCopiesInTheUsual8Bits() {
+        PinchZoom.Zoom zoom = pinchOnPhoto();
+        assertFalse(zoom.wide);
+        Bitmap frame = zoom.spare(600, 600, zoom.wide);
+        assertNotNull(frame);
+        assertEquals(Bitmap.Config.ARGB_8888, frame.getConfig());
+    }
+
+    /** Before Android 14 HDR color mode doesn't lift a story above SDR white, so the copy keeps the usual 8 bits. */
+    @Test
+    public void beforeAndroid14AnHdrWindowStillCopiesInTheUsual8Bits() {
+        activity.getWindow().setColorMode(ActivityInfo.COLOR_MODE_HDR);
+        assertEquals(ActivityInfo.COLOR_MODE_HDR, activity.getWindow().getColorMode());
+        assertFalse(pinchOnPhoto().wide);
+    }
+
+    /** A video surface over the profile's photo, the pinch landing on it. */
+    private void surfaceOnScreen() {
+        android.view.SurfaceView surface = new android.view.SurfaceView(activity);
+        ((ViewGroup) photo.getParent()).addView(surface, new FrameLayout.LayoutParams(600, 600));
+        layOut(activity);
+        PinchZoom.places = (screen, root, x, y) -> surface;
+    }
+
+    /**
+     * Facebook can draw a story's HDR video on a SurfaceView of its own, which lifts the screen with
+     * the window left at the default color mode, and Android then dims the window's SDR parts, so an
+     * 8 bit copy over the video looked dimmer than it (#220). A zoom on a video surface while the
+     * screen is lifted copies in half floats and puts the window in HDR color mode until it goes.
+     */
+    @Test
+    @Config(sdk = 34)
+    public void aZoomOnAVideoSurfaceWhileTheScreenIsLiftedCopiesWideInAnHdrWindowUntilItGoes() {
+        surfaceOnScreen();
+        PinchZoom.headroom = view -> 3f;
+        PinchZoom.Zoom zoom = pinchOnPhoto();
+        assertTrue("a zoom on a lifted video surface didn't take wide copies", zoom.wide);
+        assertTrue(zoom.shown());
+        assertEquals("the window stayed out of HDR mode under the wide copy",
+                ActivityInfo.COLOR_MODE_HDR, activity.getWindow().getColorMode());
+        // One finger lifts: the copy springs back, and the window gets its own mode back.
+        touch(event(pointer(MotionEvent.ACTION_POINTER_UP, 1), new float[][] {{250, 300}, {350, 300}}));
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(1));
+        assertFalse("the layer stayed after the spring back", zoom.shown());
+        assertEquals("the window stayed in HDR mode after the zoom",
+                ActivityInfo.COLOR_MODE_DEFAULT, activity.getWindow().getColorMode());
+    }
+
+    @Test
+    @Config(sdk = 34)
+    public void aVideoSurfaceOnAScreenShowingNothingAboveSdrWhiteKeepsThe8BitsAndTheWindow() {
+        surfaceOnScreen();
+        PinchZoom.headroom = view -> 1f;
+        assertFalse(pinchOnPhoto().wide);
+        assertEquals(ActivityInfo.COLOR_MODE_DEFAULT, activity.getWindow().getColorMode());
+    }
+
+    /** Turn off HDR brightness asked for no light above SDR white, so a zoom never brings any. */
+    @Test
+    @Config(sdk = 34)
+    public void withTurnOffHdrBrightnessOnALiftedVideoSurfaceKeepsThe8BitsAndTheWindow() {
+        Settings.TURN_OFF_HDR_BRIGHTNESS.save(true);
+        surfaceOnScreen();
+        PinchZoom.headroom = view -> 3f;
+        assertFalse(pinchOnPhoto().wide);
+        assertEquals(ActivityInfo.COLOR_MODE_DEFAULT, activity.getWindow().getColorMode());
+    }
+
+    /** A photo is drawn in the window, which shows it in SDR at the default color mode, so a lifted screen doesn't change its copy. */
+    @Test
+    @Config(sdk = 34)
+    public void aPhotoOnALiftedScreenKeepsThe8BitsAndTheWindow() {
+        PinchZoom.headroom = view -> 3f;
+        assertFalse(pinchOnPhoto().wide);
+        assertEquals(ActivityInfo.COLOR_MODE_DEFAULT, activity.getWindow().getColorMode());
+    }
+
     private TextureView video;
     private final List<Bitmap> shownFrames = new ArrayList<>();
 
@@ -1146,6 +1334,7 @@ public class PinchZoomTest {
         PinchZoom.players = new PinchZoom.Players() {
             public List<Object> known() { return known; }
             public View view(Object player) { return video; }
+            public boolean inFeed(Object player) { return false; }
             public boolean playing(Object player) { return ((Video) player).playing; }
             public void command(Object player, boolean play) {
                 ((Video) player).playing = play;
@@ -1209,14 +1398,180 @@ public class PinchZoomTest {
     }
 
     @Test
-    public void onlyAVideoSurfaceOutsideTheStoryViewerIsFollowed() {
+    public void onlyAVideoSurfaceIsFollowed() {
         Settings.PINCH_TO_ZOOM_LIVE.save(true);
         TextureView texture = new TextureView(activity);
-        assertSame(texture, PinchZoom.liveSource(activity, texture));
+        assertSame(texture, PinchZoom.liveSource(texture));
         android.view.SurfaceView surface = new android.view.SurfaceView(activity);
-        assertSame(surface, PinchZoom.liveSource(activity, surface));
-        assertNull("a photo was followed", PinchZoom.liveSource(activity, photo));
-        assertNull("a story was followed", PinchZoom.liveSource(storyViewer(), texture));
+        assertSame(surface, PinchZoom.liveSource(surface));
+        assertNull("a photo was followed", PinchZoom.liveSource(photo));
+        Settings.PINCH_TO_ZOOM_LIVE.save(false);
+        assertNull("a video was followed with the switch off", PinchZoom.liveSource(texture));
+    }
+
+    /**
+     * A story's video under the story viewer's card, with Keep videos playing while zoomed on, the
+     * pinch landing on it and frames read from it standing in for its own.
+     */
+    private TextureView storyVideo(Activity viewer) {
+        Settings.PINCH_TO_ZOOM_LIVE.save(true);
+        ViewGroup card = (ViewGroup) ((ViewGroup) viewer.findViewById(android.R.id.content)).getChildAt(0);
+        TextureView texture = new TextureView(viewer);
+        card.addView(texture, new FrameLayout.LayoutParams(1080, 1500));
+        layOut(viewer);
+        PinchZoom.places = (screen, root, x, y) -> texture;
+        PinchZoom.frames = (zoom, source, next) -> {
+            assertSame("a frame came from something other than the story", texture, source);
+            Bitmap frame = zoom.spare(source.getWidth(), source.getHeight());
+            zoom.showFrame(frame, null);
+            shownFrames.add(frame);
+            next.run();
+        };
+        return texture;
+    }
+
+    /**
+     * With Keep videos playing while zoomed on, a story's video plays on under a zoom: Facebook's
+     * first finger, whose hold paused it, lets go as a cancel the moment the second lands, and the
+     * copy follows the video's frames.
+     */
+    @Test
+    public void aStoryVideoPlaysOnUnderAZoom() {
+        Activity viewer = storyViewer();
+        TextureView texture = storyVideo(viewer);
+        assertFalse(PinchZoom.touch(viewer, event(MotionEvent.ACTION_DOWN, new float[][] {{500, 700}})));
+        MotionEvent second = event(pointer(MotionEvent.ACTION_POINTER_DOWN, 1), new float[][] {{500, 700}, {600, 700}});
+        assertFalse("Facebook's held finger never let go, so the story stayed paused", PinchZoom.touch(viewer, second));
+        assertEquals(MotionEvent.ACTION_CANCEL, second.getActionMasked());
+        PinchZoom.Zoom zoom = PinchZoom.zoom();
+        assertNotNull("no zoom started", zoom);
+        assertSame("the zoom doesn't follow the story", texture, zoom.source);
+        for (int i = 0; i < 2; i++) idle(PinchZoom.FRAME_MILLIS + 1);
+        assertEquals("frames taken", 2, shownFrames.size());
+
+        MotionEvent spread = event(MotionEvent.ACTION_MOVE, new float[][] {{450, 700}, {650, 700}});
+        assertFalse(PinchZoom.touch(viewer, spread));
+        assertEquals("a move reached Facebook", MotionEvent.ACTION_CANCEL, spread.getActionMasked());
+        assertEquals(2f, zoom.copy.getScaleX(), 0.01f);
+    }
+
+    /** A story held first, its finger down past the long-press time before the pinch, zooms on the still frame Facebook paused. */
+    @Test
+    public void aStoryHeldBeforeThePinchZoomsItsStillFrame() {
+        Activity viewer = storyViewer();
+        storyVideo(viewer);
+        long down = SystemClock.uptimeMillis();
+        assertFalse(PinchZoom.touch(viewer, event(MotionEvent.ACTION_DOWN, new float[][] {{500, 700}}, down)));
+        idle(ViewConfiguration.getLongPressTimeout() + 10);
+        assertTrue("the second finger reached Facebook", PinchZoom.touch(viewer, event(
+                pointer(MotionEvent.ACTION_POINTER_DOWN, 1), new float[][] {{500, 700}, {600, 700}}, down)));
+        PinchZoom.Zoom zoom = PinchZoom.zoom();
+        assertNotNull("no zoom started", zoom);
+        assertNull("a held story was followed", zoom.source);
+        idle(500);
+        assertEquals(0, shownFrames.size());
+        assertTrue("a move reached Facebook", PinchZoom.touch(viewer, event(
+                MotionEvent.ACTION_MOVE, new float[][] {{450, 700}, {650, 700}}, down)));
+    }
+
+    /** A story that moves on under a zoom takes the zoom with it, rather than leaving the last story's frame up. */
+    @Test
+    public void aStoryZoomSpringsBackWhenTheStoryMovesOn() {
+        Settings.PINCH_TO_ZOOM_KEEP.save(true);
+        Activity viewer = storyViewer();
+        TextureView texture = storyVideo(viewer);
+        PinchZoom.touch(viewer, event(MotionEvent.ACTION_DOWN, new float[][] {{500, 700}}));
+        PinchZoom.touch(viewer, event(pointer(MotionEvent.ACTION_POINTER_DOWN, 1), new float[][] {{500, 700}, {600, 700}}));
+        PinchZoom.Zoom zoom = PinchZoom.zoom();
+        assertNotNull(zoom);
+        PinchZoom.touch(viewer, event(MotionEvent.ACTION_MOVE, new float[][] {{450, 700}, {650, 700}}));
+        idle(PinchZoom.FRAME_MILLIS + 1);
+        assertEquals(1, shownFrames.size());
+
+        // Still pinching when the story moves on: the zoom goes, and the rest of the pinch stays a cancel.
+        texture.setVisibility(View.INVISIBLE);
+        idle(PinchZoom.FRAME_MILLIS + 1);
+        assertTrue("the zoom stayed on a story that moved on", zoom.settling);
+        assertEquals("a frame came after the story moved on", 1, shownFrames.size());
+        MotionEvent move = event(MotionEvent.ACTION_MOVE, new float[][] {{440, 700}, {660, 700}});
+        assertFalse(PinchZoom.touch(viewer, move));
+        assertEquals("the rest of the pinch reached Facebook", MotionEvent.ACTION_CANCEL, move.getActionMasked());
+        MotionEvent up = event(MotionEvent.ACTION_UP, new float[][] {{440, 700}});
+        assertFalse(PinchZoom.touch(viewer, up));
+        assertEquals(MotionEvent.ACTION_CANCEL, up.getActionMasked());
+        idle(1000);
+        assertNull(PinchZoom.zoom());
+
+        // Kept, the fingers lifted, when the next story comes: that zoom goes too, and the next tap is Facebook's.
+        texture.setVisibility(View.VISIBLE);
+        PinchZoom.touch(viewer, event(MotionEvent.ACTION_DOWN, new float[][] {{500, 700}}));
+        PinchZoom.touch(viewer, event(pointer(MotionEvent.ACTION_POINTER_DOWN, 1), new float[][] {{500, 700}, {600, 700}}));
+        PinchZoom.Zoom kept = PinchZoom.zoom();
+        assertNotNull(kept);
+        PinchZoom.touch(viewer, event(MotionEvent.ACTION_MOVE, new float[][] {{450, 700}, {650, 700}}));
+        PinchZoom.touch(viewer, event(pointer(MotionEvent.ACTION_POINTER_UP, 1), new float[][] {{450, 700}, {650, 700}}));
+        PinchZoom.touch(viewer, event(MotionEvent.ACTION_UP, new float[][] {{450, 700}}));
+        assertTrue("the zoom wasn't kept", kept.parked);
+        idle(PinchZoom.FRAME_MILLIS + 1);
+        texture.setVisibility(View.INVISIBLE);
+        idle(PinchZoom.FRAME_MILLIS + 1);
+        assertTrue("the kept zoom stayed on a story that moved on", kept.settling);
+        idle(1000);
+        assertNull(PinchZoom.zoom());
+        MotionEvent tap = event(MotionEvent.ACTION_DOWN, new float[][] {{500, 700}});
+        assertFalse(PinchZoom.touch(viewer, tap));
+        assertEquals(MotionEvent.ACTION_DOWN, tap.getActionMasked());
+    }
+
+    /** A video scrolled out of the feed keeps its zoom on the last frame, so only a story's goes. */
+    @Test
+    public void aFeedVideoZoomStaysWhenItsVideoHides() {
+        videoOnScreen(new ArrayList<>());
+        touch(event(MotionEvent.ACTION_DOWN, new float[][] {{250, 300}}));
+        touch(event(pointer(MotionEvent.ACTION_POINTER_DOWN, 1), new float[][] {{250, 300}, {350, 300}}));
+        PinchZoom.Zoom zoom = PinchZoom.zoom();
+        assertNotNull(zoom);
+        idle(PinchZoom.FRAME_MILLIS + 1);
+        video.setVisibility(View.INVISIBLE);
+        idle(PinchZoom.FRAME_MILLIS + 1);
+        assertFalse("a feed video's zoom went when it hid", zoom.settling);
+        assertTrue(zoom.shown());
+    }
+
+    /**
+     * Outside a profile and the story viewer, a pinch on a video counts when its player is one Tap to
+     * play knows playing in a feed. The same video from anywhere else, and a photo beside it, stay
+     * Facebook's own.
+     */
+    @Test
+    public void aVideoInTheFeedZoomsAndOneElsewhereDoesNot() {
+        Activity feed = Robolectric.buildActivity(BackCounter.class).setup().get();
+        FrameLayout content = new FrameLayout(feed);
+        FrameLayout player = new FrameLayout(feed);
+        TextureView texture = new TextureView(feed);
+        player.addView(texture, new FrameLayout.LayoutParams(1080, 600));
+        content.addView(player, new FrameLayout.LayoutParams(1080, 600));
+        ImageView feedPhoto = new ImageView(feed);
+        feedPhoto.setImageDrawable(new ColorDrawable(Color.RED));
+        FrameLayout.LayoutParams below = new FrameLayout.LayoutParams(1080, 600);
+        below.topMargin = 700;
+        content.addView(feedPhoto, below);
+        feed.setContentView(content);
+        layOut(feed);
+        View root = feed.getWindow().getDecorView();
+        Object known = new Object();
+        boolean[] fromFeed = {true};
+        PinchZoom.players = new PinchZoom.Players() {
+            public List<Object> known() { return Arrays.asList(known); }
+            public View view(Object which) { return player; }
+            public boolean inFeed(Object which) { return fromFeed[0]; }
+            public boolean playing(Object which) { return true; }
+            public void command(Object which, boolean play) { }
+        };
+        assertSame("a feed video didn't count", texture, PinchZoom.mediaUnder(feed, root, 540, 300));
+        assertNull("a feed photo counted", PinchZoom.mediaUnder(feed, root, 540, 1000));
+        fromFeed[0] = false;
+        assertNull("a video outside a feed counted", PinchZoom.mediaUnder(feed, root, 540, 300));
     }
 
     @Test

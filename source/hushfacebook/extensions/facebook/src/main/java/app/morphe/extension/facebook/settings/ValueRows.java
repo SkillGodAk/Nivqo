@@ -9,7 +9,10 @@ package app.morphe.extension.facebook.settings;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.backgroundSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInWaitSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.foldLinesSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.holdReactionSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.reelDateStyleSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.commentsHeightSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.commentOrderSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.downloadActionSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.feedsSubtabSummary;
@@ -28,6 +31,8 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.qualitySummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.accentSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.textSizeSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.refreshRateSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.newRowMarkSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.quietHourLabel;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.saveStorageSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.saveToSummary;
@@ -68,8 +73,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.comments.CommentsHeight;
 import app.morphe.extension.facebook.reels.BurnInMode;
 import app.morphe.extension.facebook.reels.BurnInWait;
+import app.morphe.extension.facebook.reels.HoldReaction;
 import app.morphe.extension.facebook.reels.ReelDateStyle;
 import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
@@ -78,6 +85,7 @@ import app.morphe.extension.facebook.download.PostDetails;
 import app.morphe.extension.facebook.download.SaveFolder;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
+import app.morphe.extension.facebook.feed.FoldLines;
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.feed.ReactionCeiling;
 import app.morphe.extension.facebook.feed.TopicPacks;
@@ -87,6 +95,7 @@ import app.morphe.extension.facebook.media.RecentlyWatched;
 import app.morphe.extension.facebook.media.SurfaceQuality;
 import app.morphe.extension.facebook.misc.AppLock;
 import app.morphe.extension.facebook.misc.OpeningPause;
+import app.morphe.extension.facebook.misc.RefreshRate;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.theme.AccentColor;
 import app.morphe.extension.facebook.theme.AmoledBackground;
@@ -97,6 +106,7 @@ import app.morphe.extension.facebook.notifications.QuietHour;
 import app.morphe.extension.facebook.settings.SettingsRows.RowSemantics;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.settings.BooleanSetting;
 import app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment;
 
 /**
@@ -283,7 +293,9 @@ final class ValueRows {
             // Saved values, not what a paused Facebook reads, so the preview shows what the lists do once unpaused.
             PostWords.PreviewResult result = PostWords.preview(text, hides ? typed : other, hides ? other : typed,
                     Settings.POST_WORDS_WHOLE_WORDS.savedValue());
-            verdict.setText(wordsPreviewLine(result, text.trim().isEmpty()));
+            String said = wordsPreviewLine(result, text.trim().isEmpty());
+            // The line is a live region, so TalkBack speaks every setText. The same verdict after a pause says nothing.
+            if (!android.text.TextUtils.equals(verdict.getText(), said)) verdict.setText(said);
             // With the keyboard up, the scroll follows the caret and leaves the line under the field out of sight.
             if (sample.hasFocus()) {
                 TextView line = verdict;
@@ -1047,6 +1059,45 @@ final class ValueRows {
         }
     }
 
+    /** What a percent row says for the digits typed there. */
+    interface PercentSummary {
+        String of(String text);
+    }
+
+    /**
+     * A row that takes a percent, as Bar opacity, Tab bar width and Tab bar height do (#425). Its
+     * summary follows its text, whoever sets it.
+     */
+    static final class PercentRow extends EditTextPreference {
+        private final PercentSummary summary;
+
+        PercentRow(Context context, PercentSummary summary) {
+            super(context);
+            this.summary = summary;
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(summary.of(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            fitAboveKeyboard(getDialog());
+        }
+    }
+
     /**
      * The start tab's row. Its summary follows its value, whoever sets it: the person, the shared
      * page syncing it from the setting, or an import.
@@ -1433,15 +1484,22 @@ final class ValueRows {
     }
 
     /**
-     * A Take breaks row, the use time or the break length. Its summary follows its value, whoever
-     * sets it: the person, the shared page syncing it from the setting, or an import.
+     * A list row under a switch: Take breaks' use time or break length, or Show Reels in gray's Turn
+     * gray over. Its summary follows its value, whoever sets it: the person, the shared page
+     * syncing it from the setting, or an import.
      */
     static final class BreakRow extends PlainSummaryList {
         private final Function<String, String> summaryOf;
+        private final BooleanSetting parent;
 
         BreakRow(Context context, Function<String, String> summaryOf) {
+            this(context, summaryOf, Settings.TAKE_BREAKS);
+        }
+
+        BreakRow(Context context, Function<String, String> summaryOf, BooleanSetting parent) {
             super(context);
             this.summaryOf = summaryOf;
+            this.parent = parent;
         }
 
         @Override
@@ -1450,7 +1508,7 @@ final class ValueRows {
             showSummary();
         }
 
-        /** It's greyed out while Take breaks is off, and its summary then says so. */
+        /** It's greyed out while its switch is off, and its summary then says so. */
         @Override
         public void setEnabled(boolean enabled) {
             super.setEnabled(enabled);
@@ -1462,7 +1520,7 @@ final class ValueRows {
             if (summaryOf == null) return;
             String summary = summaryOf.apply(getValue());
             if (!isEnabled()) {
-                summary += " " + L10n.f("Turn on %1$s to use this.", L10n.isolate(SwitchLabels.title(Settings.TAKE_BREAKS)));
+                summary += " " + L10n.f("Turn on %1$s to use this.", L10n.isolate(SwitchLabels.title(parent)));
             }
             setSummary(summary);
         }
@@ -1601,6 +1659,84 @@ final class ValueRows {
         }
     }
 
+    /**
+     * Fold long posts or Fold long comments (#497). Its summary follows its value, as Reaction's
+     * does.
+     */
+    static final class FoldLinesRow extends PlainSummaryList {
+        private final boolean comments;
+
+        FoldLinesRow(Context context, boolean comments) {
+            super(context);
+            this.comments = comments;
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            FoldLines lines = FoldLines.FACEBOOK;
+            for (FoldLines candidate : FoldLines.values()) {
+                if (candidate.name().equals(getValue())) lines = candidate;
+            }
+            setSummary(foldLinesSummary(lines, comments));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** Hold to react's Reaction (#454). Its summary follows its value, as Dim after's does. */
+    static final class HoldReactionRow extends PlainSummaryList {
+        HoldReactionRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            HoldReaction reaction = HoldReaction.PICK;
+            for (HoldReaction candidate : HoldReaction.values()) {
+                if (candidate.name().equals(getValue())) reaction = candidate;
+            }
+            setSummary(holdReactionSummary(reaction));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
     /** Show the post date as (#357). Its summary follows its value, as Dim after's does. */
     static final class ReelDateStyleRow extends PlainSummaryList {
         ReelDateStyleRow(Context context) {
@@ -1619,6 +1755,81 @@ final class ValueRows {
                 if (candidate.name().equals(getValue())) style = candidate;
             }
             setSummary(reelDateStyleSummary(style));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** Open comments at (#179). Its summary follows its value, as Show the post date as does. */
+    static final class CommentsHeightRow extends PlainSummaryList {
+        CommentsHeightRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            CommentsHeight height = CommentsHeight.FACEBOOK;
+            for (CommentsHeight candidate : CommentsHeight.values()) {
+                if (candidate.name().equals(getValue())) height = candidate;
+            }
+            setSummary(commentsHeightSummary(height));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
+     * The Mark new settings row (#16). Its summary follows its value, whoever sets it: the person or
+     * an import.
+     */
+    static final class NewRowMarkRow extends PlainSummaryList {
+        NewRowMarkRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            NewRowMark mark = NewRowMark.ONE_VISIT;
+            for (NewRowMark candidate : NewRowMark.values()) {
+                if (candidate.name().equals(getValue())) mark = candidate;
+            }
+            setSummary(newRowMarkSummary(mark));
         }
 
         @Override
@@ -1658,6 +1869,45 @@ final class ValueRows {
                 if (candidate.name().equals(getValue())) scale = candidate;
             }
             setSummary(textSizeSummary(scale));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
+     * The refresh rate row (#480). Its summary follows its value, whoever sets it: the person, the
+     * shared page syncing it from the setting, or an import.
+     */
+    static final class RefreshRateRow extends PlainSummaryList {
+        RefreshRateRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            RefreshRate.Rate rate = RefreshRate.Rate.FACEBOOK;
+            for (RefreshRate.Rate candidate : RefreshRate.Rate.values()) {
+                if (candidate.name().equals(getValue())) rate = candidate;
+            }
+            setSummary(refreshRateSummary(rate));
         }
 
         @Override

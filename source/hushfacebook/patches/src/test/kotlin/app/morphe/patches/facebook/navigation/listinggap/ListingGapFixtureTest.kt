@@ -15,6 +15,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.util.MethodUtil
@@ -29,7 +30,9 @@ import org.junit.Test
  * the map, safeAreaInsets calls it after reading the decor's window insets, and the decor listener it
  * makes calls it with the view it was set on still in its first parameter. After the patch every one
  * of those calls hands the insets and that view to the extension first and reads back what it
- * answers, and Facebook's own code runs on unchanged. Reads the fixture bundles from
+ * answers, and Facebook's own code runs on unchanged. React Native's SafeAreaView is there too, and
+ * the insets listener it sets when attached hands the insets it read and the view to the extension
+ * right after casting to it. Reads the fixture bundles from
  * HUSHFACEBOOK_FIXTURE_DIR and skips without it.
  */
 class ListingGapFixtureTest {
@@ -43,20 +46,67 @@ class ListingGapFixtureTest {
                 assertNotNull("${bundle.name}: $SAFE_AREA", module)
                 val map = module!!.methods.single(::isInsetsMap)
                 val read = module.methods.single { it.name == SAFE_AREA_READ && it.implementation != null }
-                val made = FixtureDex.classes(bundle, madeBySafeAreaRead(read).toSet()).values
+                val made = FixtureDex.classes(bundle, madeBy(read).toSet()).values
                 val listeners = made.flatMap { it.methods }
                     .filter { method -> method.implementation?.instructions?.any { callsInsetsMap(it, map) } == true }
                 assertTrue("${bundle.name}: a listener made in $SAFE_AREA_READ turns insets into the map", listeners.isNotEmpty())
                 for (listener in listeners) {
                     assertEquals("${bundle.name}: ${listener.definingClass}->${listener.name}", "invoke", listener.name)
                     val view = listener.implementation!!.registerCount - 2
+                    // 587's 32-bit listener keeps its view past v15 and copies it to a low register first.
+                    val copies = listener.implementation!!.instructions.take(4)
+                        .filter { it.opcode == Opcode.MOVE_OBJECT_FROM16 && (it as TwoRegisterInstruction).registerB == view }
+                        .map { (it as TwoRegisterInstruction).registerA }
                     for ((_, _, decor) in insetsMapCalls(listener, map)) {
-                        assertEquals("${bundle.name}: the listener's view is its first parameter", view, decor)
+                        if (view <= 15) {
+                            assertEquals("${bundle.name}: the listener's view is its first parameter", view, decor)
+                        } else {
+                            assertTrue("${bundle.name}: the listener's view, past v15, is the copy it makes first ($copies), not v$decor",
+                                decor in copies)
+                        }
                     }
                 }
 
-                val context = PatchContexts.of(listOf(module) + made + ExtensionDex.classDef(SETTINGS_STATUS))
+                val manager = FixtureDex.classes(bundle, setOf(SAFE_AREA_VIEW_MANAGER))[SAFE_AREA_VIEW_MANAGER]
+                assertNotNull("${bundle.name}: $SAFE_AREA_VIEW_MANAGER", manager)
+                val viewType = safeAreaViewType(manager!!)
+                val safeAreaView = FixtureDex.classes(bundle, setOf(viewType))[viewType]
+                assertNotNull("${bundle.name}: $viewType", safeAreaView)
+                val attached = safeAreaView!!.methods.single { it.name == "onAttachedToWindow" && it.implementation != null }
+                val viewListenerClasses = FixtureDex.classes(bundle, madeBy(attached).toSet()).values
+                val viewListeners = viewListenerClasses.flatMap { it.methods }
+                    .filter { isInsetsListener(it) && safeAreaViewReads(it, viewType).isNotEmpty() }
+                assertTrue("${bundle.name}: an insets listener pads $viewType", viewListeners.isNotEmpty())
+
+                val context = PatchContexts.of(
+                    listOf(module, manager, safeAreaView) + made + viewListenerClasses + ExtensionDex.classDef(SETTINGS_STATUS),
+                )
                 removeListingGapPatch.execute(context)
+                for (original in viewListeners) {
+                    val patched = context.mutableClassDefBy(original.definingClass).methods
+                        .single { MethodUtil.methodSignaturesMatch(it, original) }
+                    val before = original.implementation!!.instructions.toList()
+                    val code = patched.implementation!!.instructions.toList()
+                    val reads = safeAreaViewReads(original, viewType)
+                    assertEquals("${bundle.name}: ${original.definingClass} gains three instructions per cast",
+                        before.size + 3 * reads.size, code.size)
+                    assertEquals("${bundle.name}: ${original.definingClass} runs Facebook's own code around the hook",
+                        before.map { it.opcode }, code.filterIndexed { at, _ -> at !in hookIndexes(code) }.map { it.opcode })
+                    // Each earlier cast's hook moves the later ones three further down.
+                    for ((earlier, read) in reads.sortedBy { it.first }.withIndex()) {
+                        val (at, insets, view) = read
+                        val cast = at + 3 * earlier
+                        val trim = code[cast + 1] as FiveRegisterInstruction
+                        assertEquals("${bundle.name}: the view's insets go to the extension right after the cast",
+                            TRIM_VIEW, ((trim as ReferenceInstruction).reference as MethodReference).toString())
+                        assertEquals("${bundle.name}: with the insets it read", insets, trim.registerC)
+                        assertEquals("${bundle.name}: and the view it cast", view, trim.registerD)
+                        assertEquals("${bundle.name}: the answer goes back where the insets were",
+                            insets, (code[cast + 2] as OneRegisterInstruction).registerA)
+                        assertEquals("${bundle.name}: cast back to Insets",
+                            INSETS, ((code[cast + 3] as ReferenceInstruction).reference as TypeReference).type)
+                    }
+                }
                 var hooked = 0
                 for (original in listOf(read) + listeners) {
                     val patched = context.mutableClassDefBy(original.definingClass).methods
@@ -90,9 +140,9 @@ class ListingGapFixtureTest {
         assertEquals("a declared build has no fixture", versions, checked)
     }
 
-    /** The indexes of the three instructions the patch puts before each call in [code]. */
+    /** The indexes of the three instructions each of the patch's hooks puts in [code]. */
     private fun hookIndexes(code: List<Instruction>): Set<Int> = code.indices.filter {
         code[it].opcode == Opcode.INVOKE_STATIC &&
-            ((code[it] as ReferenceInstruction).reference as MethodReference).toString() == TRIM
+            ((code[it] as ReferenceInstruction).reference as MethodReference).toString() in setOf(TRIM, TRIM_VIEW)
     }.flatMap { listOf(it, it + 1, it + 2) }.toSet()
 }

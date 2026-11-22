@@ -21,7 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import app.morphe.manager.R
 import app.morphe.manager.data.platform.Filesystem
-import app.morphe.manager.data.platform.NetworkInfo
+import app.morphe.manager.data.room.apps.installed.InstalledApp
+import app.morphe.manager.data.room.apps.installed.trackingKey
 import app.morphe.manager.domain.apk.*
 import app.morphe.manager.domain.batch.BatchPatchCoordinator
 import app.morphe.manager.domain.batch.mergeNewlyAdded
@@ -107,10 +108,11 @@ data class InstalledAppPickerItem(
  *   is picked. Sources share versions, so the pick names its source too, which answers for an
  *   APK of that version.
  * @param versionPicked Whether [selectedVersion] was picked by hand rather than preselected. Only
- *   a pick by hand narrows the run down to the source it was made under.
+ *   a pick by hand narrows the run to the source it was made under.
  * @param bundleUid The source picked in simple mode before the APK, which the run patches from.
  * @param installedVersion The unpatched version the device has right now, which the version list
- *   marks even when [installedApk] is not offered as a source.
+ *   marks even when [installedApk] is not offered as a source, and which is called out when it is
+ *   past every version the patches target.
  * @param stockAppInstalled Whether a mount install would have the app itself to overlay, which a
  *   patched build under the same package name is not. Null until it is looked up.
  * @param downloadUrl Where the APK is downloaded from, the unfollowed search link until the
@@ -186,7 +188,6 @@ class PatchFlow(
     private val sourceMuteRepository: SourceMuteRepository,
     private val optionsRepository: PatchOptionsRepository,
     private val patchOptionsPrefs: PatchOptionsPreferencesManager,
-    private val networkInfo: NetworkInfo,
     private val prefs: PreferencesManager,
     private val pm: PM,
     private val rootInstaller: RootInstaller,
@@ -288,10 +289,13 @@ class PatchFlow(
         // Started while the user picks the APK and patches, so patching does not wait for it
         patcherProcesses.startAhead()
 
-        // Guard: if there is a pending bundle update on metered data, show the outdated-patches
+        // Guard: if a source has an update left to download, show the outdated-patches
         // dialog before proceeding with the actual APK selection flow.
         guardPatching { showPatchDialogInternal(packageName) }
     }
+
+    /** Rebuilds [app] from the app it was patched from, over the install it is tracked as. */
+    fun repatch(app: InstalledApp) = showPatchDialog(app.originalPackageName, app.trackingKey)
 
     /**
      * What the run calls [packageName]: the name the sources give it, see
@@ -478,23 +482,42 @@ class PatchFlow(
             return
         }
 
+        launchApkSelection(
+            logMessage = "Failed to prepare installed APK",
+            failureMessage = R.string.home_invalid_apk_io_error,
+            prepare = { copyInstalledApk(packageName, installedInfo) },
+            // Skip signature check: the installed APK may already be patched with our key
+            proceed = { processSelectedAppIgnoringSignature(it) }
+        )
+    }
+
+    /**
+     * Prepares the APK a source hands over off the main thread, with the selection showing as
+     * busy meanwhile, and passes it to [proceed]. One that cannot be prepared ends the run, with
+     * [failureMessage] unless [prepare] already told the user why.
+     */
+    private fun launchApkSelection(
+        logMessage: String,
+        @StringRes failureMessage: Int?,
+        prepare: suspend () -> SelectedApp.Local?,
+        proceed: suspend (SelectedApp.Local) -> Unit
+    ) {
         scope.launch {
             processingApkSelection = true
             try {
                 val selectedApp = withContext(Dispatchers.IO) {
                     try {
-                        copyInstalledApk(packageName, installedInfo)
+                        prepare()
                     } catch (e: Exception) {
-                        Log.e(tag, "Failed to prepare installed APK", e)
+                        Log.e(LOG_TAG, logMessage, e)
                         null
                     }
                 }
 
                 if (selectedApp != null) {
-                    // Skip signature check: the installed APK may already be patched with our key
-                    processSelectedAppIgnoringSignature(selectedApp)
+                    proceed(selectedApp)
                 } else {
-                    messages.show(R.string.home_invalid_apk_io_error)
+                    failureMessage?.let { messages.show(it) }
                     endRun()
                 }
             } finally {
@@ -633,7 +656,7 @@ class PatchFlow(
                             .filterNot { it.packageName in patched }
                             .sortedBy { it.label.lowercase() }
                     } catch (e: Exception) {
-                        Log.e(tag, "Failed to load installed apps for picker", e)
+                        Log.e(LOG_TAG, "Failed to load installed apps for picker", e)
                         emptyList()
                     }
                 }
@@ -650,29 +673,14 @@ class PatchFlow(
      */
     fun handleInstalledAppPickerSelection(item: InstalledAppPickerItem) {
         session = session?.copy(appName = item.label)
-        scope.launch {
-            processingApkSelection = true
-            try {
-                val selectedApp = withContext(Dispatchers.IO) {
-                    try {
-                        copyInstalledApk(item.packageName, item.info)
-                    } catch (e: Exception) {
-                        Log.e(tag, "Failed to prepare APK from picker", e)
-                        null
-                    }
-                }
-                if (selectedApp != null) {
-                    // The picker only offers unpatched installs - skip split and signature checks.
-                    // Version/versionCode check still runs via processSelectedApp.
-                    processSelectedApp(selectedApp, skipSplitCheck = true)
-                } else {
-                    messages.show(R.string.home_invalid_apk_io_error)
-                    endRun()
-                }
-            } finally {
-                processingApkSelection = false
-            }
-        }
+        launchApkSelection(
+            logMessage = "Failed to prepare APK from picker",
+            failureMessage = R.string.home_invalid_apk_io_error,
+            prepare = { copyInstalledApk(item.packageName, item.info) },
+            // The picker only offers unpatched installs - skip split and signature checks.
+            // Version/versionCode check still runs via processSelectedApp.
+            proceed = { processSelectedApp(it, skipSplitCheck = true) }
+        )
     }
 
     /**
@@ -730,45 +738,31 @@ class PatchFlow(
             return
         }
 
-        scope.launch {
-            processingApkSelection = true
-            try {
-                // Create SelectedApp from saved APK file
-                val selectedApp = withContext(Dispatchers.IO) {
-                    try {
-                        val file = File(savedInfo.filePath)
-                        if (!file.exists()) {
-                            messages.show(R.string.home_app_info_repatch_no_original_apk)
-                            return@withContext null
-                        }
-
-                        // Mark as used
-                        originalApkRepository.markUsed(packageName)
-
-                        SelectedApp.Local(
-                            packageName = packageName,
-                            version = savedInfo.version,
-                            versionCode = savedInfo.versionCode,
-                            file = file,
-                            temporary = false // Don't delete saved APK files
-                        )
-                    } catch (e: Exception) {
-                        Log.e(tag, "Failed to load saved APK", e)
-                        null
-                    }
+        launchApkSelection(
+            logMessage = "Failed to load saved APK",
+            failureMessage = null,
+            prepare = prepare@{
+                val file = File(savedInfo.filePath)
+                if (!file.exists()) {
+                    messages.show(R.string.home_app_info_repatch_no_original_apk)
+                    return@prepare null
                 }
 
-                if (selectedApp != null) {
-                    // Saved file may be signed with our keystore - skip signature check.
-                    // Version/versionCode check still runs via processSelectedApp.
-                    processSelectedApp(selectedApp, skipSplitCheck = true)
-                } else {
-                    endRun()
-                }
-            } finally {
-                processingApkSelection = false
-            }
-        }
+                // Mark as used
+                originalApkRepository.markUsed(packageName)
+
+                SelectedApp.Local(
+                    packageName = packageName,
+                    version = savedInfo.version,
+                    versionCode = savedInfo.versionCode,
+                    file = file,
+                    temporary = false // Don't delete saved APK files
+                )
+            },
+            // Saved file may be signed with our keystore - skip signature check.
+            // Version/versionCode check still runs via processSelectedApp.
+            proceed = { processSelectedApp(it, skipSplitCheck = true) }
+        )
     }
 
     /**
@@ -846,9 +840,9 @@ class PatchFlow(
 
         // Get scoped bundles for this APK (package + version).
         // Scoped.patches contains every patch that is compatible with this packageName
-        // (including universal patches where compatiblePackages == null).
+        // (including universal patches, see PatchInfo.isUniversal).
         // Scoped.compatible = version matches, Scoped.incompatible = package matches but wrong version,
-        // Scoped.universal = compatiblePackages == null (applies to any package/version).
+        // Scoped.universal = universal patches (applies to any package/version).
         val bundles = withContext(Dispatchers.IO) {
             patchBundleRepository.resolvingBundleInfo(
                 selectedApp.packageName, selectedApp.version, selectedApp.versionCode, chosenBundleUidFor(selectedApp)
@@ -1202,8 +1196,8 @@ class PatchFlow(
         // Simple Mode: collect patches from all enabled bundles, then either use the sole result directly
         // or ask the user to pick one if multiple bundles have applicable patches.
         // A patch is applicable if:
-        //   - compatiblePackages == null (universal), OR
-        //   - compatiblePackages contains this packageName
+        //   - it is universal, see PatchInfo.isUniversal, OR
+        //   - it names this packageName
         val bundleWithPatches = contributingBundles
             .filter { it.enabled }
             .map { bundle ->
@@ -1406,7 +1400,8 @@ class PatchFlow(
 
     /**
      * Guard entry-point for all patching flows.
-     * Shows MeteredPatchingDialog when on metered network with updates disabled,
+     * Shows OutdatedPatchesDialog when a source has an update left to download, see
+     * [PatchBundleRepository.pendingUpdates],
      * so the user can choose to update patches first or patch anyway.
      * Otherwise, launches [action] immediately.
      */
@@ -1426,25 +1421,18 @@ class PatchFlow(
             dialogs.advanceTo(HomeDialog.LowDiskSpace(freeBytes))
             return
         }
-        guardMetered(action)
+        guardOutdatedPatches(action)
     }
 
-    // The metered check of guardPatching, which the low disk space warning resumes into
-    private fun guardMetered(action: suspend () -> Unit) {
-        if (isOnMeteredWithUpdatesDisabled()) {
+    // The outdated patches check of guardPatching, which the low disk space warning resumes into
+    private fun guardOutdatedPatches(action: suspend () -> Unit) {
+        if (patchBundleRepository.pendingUpdates.value.isNotEmpty()) {
             pendingPatchAction = action
-            dialogs.advanceTo(HomeDialog.MeteredPatching)
+            dialogs.advanceTo(HomeDialog.OutdatedPatches)
         } else {
             moveOn(action)
         }
     }
-
-    /**
-     * Returns `true` when the user has disabled metered updates AND is currently on
-     * a metered (mobile data) connection - meaning patches may not be up to date.
-     */
-    private fun isOnMeteredWithUpdatesDisabled(): Boolean =
-        !prefs.allowMeteredUpdates.getBlocking() && networkInfo.isMetered()
 
     // Takes the patching a guard dialog held back, which the dialog stays up for until it moves on
     private fun takePendingPatchAction(): (suspend () -> Unit)? =
@@ -1456,29 +1444,29 @@ class PatchFlow(
      */
     fun refreshBundlesAndContinuePatching() {
         val action = takePendingPatchAction() ?: return
-        dialogs.close(HomeDialog.MeteredPatching)
+        dialogs.close(HomeDialog.OutdatedPatches)
         moveOn {
-            // User explicitly requested update - bypass metered check and wait for completion
+            // User explicitly requested update - bypass the auto updates setting and wait for completion
             patchBundleRepository.updateCheckAndAwait(allowUnsafeNetwork = true)
             action()
         }
     }
 
     /**
-     * User chose to patch with the currently cached patches despite being on metered network.
+     * User chose to patch with the currently cached patches despite the updates waiting.
      */
-    fun dismissMeteredPatchingDialogAndProceed() {
+    fun dismissOutdatedPatchesDialogAndProceed() {
         val action = takePendingPatchAction() ?: return
         moveOn(action)
     }
 
     /**
      * User chose to proceed with patching despite low disk space.
-     * Continues to the metered network check if applicable, then launches the action.
+     * Continues to the outdated patches check if applicable, then launches the action.
      */
     fun dismissLowDiskSpaceDialogAndProceed() {
         val action = takePendingPatchAction() ?: return
-        guardMetered(action)
+        guardOutdatedPatches(action)
     }
 
     /**
@@ -1488,18 +1476,31 @@ class PatchFlow(
         val current = session ?: return
         val packageName = current.packageName ?: return
         val version = current.requestedVersion
+        val target = downloadTarget(current)
 
         // Marks the destination as unknown, which is what the dialog waits on before it can
         // say anything about the download or let the user leave for it
-        session = current.copy(downloadUrl = downloadUrlResolver.apiSearchUrl(packageName, version))
+        session = current.copy(downloadUrl = downloadUrlResolver.apiSearchUrl(packageName, version, target))
 
         downloadRedirectJob?.cancel()
         downloadRedirectJob = scope.launch {
             val resolved = withContext(Dispatchers.IO) {
                 val patchSources = patchBundleRepository.patchSourceHeaders(packageName, downloadSourceUids(current))
-                downloadUrlResolver.resolve(packageName, version, patchSources)
+                downloadUrlResolver.resolve(packageName, version, patchSources, target)
             }
             session = session?.copy(downloadUrl = resolved)
+        }
+    }
+
+    /**
+     * The source version the APK is looked for at, which names the build and form factor the
+     * patches need: the one picked, or else the first source that lists the requested version.
+     */
+    private fun downloadTarget(current: PatchFlowSession): BundledAppTarget? {
+        val version = current.requestedVersion ?: return null
+        current.selectedVersion?.takeIf { it.target.version == version }?.let { return it }
+        return current.compatibleVersions.firstOrNull {
+            it.target.version == version && (current.bundleUid == null || it.bundleUid == current.bundleUid)
         }
     }
 
@@ -1562,7 +1563,7 @@ class PatchFlow(
         if (handOff(urlToOpen)) {
             dialogs.open(HomeDialog.FilePickerPrompt)
         } else {
-            Log.w(tag, "Failed to open URL")
+            Log.w(LOG_TAG, "Failed to open URL")
             messages.show(R.string.sources_management_failed_to_open_url)
             endRun()
         }
@@ -1647,12 +1648,12 @@ class PatchFlow(
             }
 
             if (result == ApkLoadResult.NotAnApk) {
-                Log.w(tag, "Picked file ${tempFile.name} could not be parsed as an APK")
+                Log.w(LOG_TAG, "Picked file ${tempFile.name} could not be parsed as an APK")
             }
             if (result !is ApkLoadResult.Success) tempFile.delete()
             result
         } catch (e: Exception) {
-            Log.e(tag, "Failed to load APK", e)
+            Log.e(LOG_TAG, "Failed to load APK", e)
             ApkLoadResult.IoError
         }
     }

@@ -17,12 +17,15 @@ a fingerprint is declared.
 7. 🧮 Find free registers to use in injected code with `findFreeRegister(Int, Int...)` and `getFreeRegisterProvider(Int, Int, Int...)`
 8. 🔬 Get the registers of an instruction with `registersUsed`
 9. ↩️ Override the return value of a method with `returnEarly()` and `returnLate()`
-10. 🔁 Change every matching instruction in all methods with `matchAllMethodIndicesForEach()`
-11. 🏷️ Insert code that jumps to existing code with `addInstructionsWithLabels()` and `addInstructionsAtControlFlowLabel()`
-12. 🔤 Find classes by the strings they contain with `classDefByStrings(String)`
-13. 🆔 Look up resource ids with `resourceId(ResourceType, String)` and `hasResourceId(ResourceType, String)`
-14. ✅ Run extra checks while developing patches with `validate`
-15. 🧰 Small helpers: `getReference()`, `getMutableMethod()`, `p0Register`
+10. 🔌 Let extension code call obfuscated app code with `addPatchInterface()`
+11. 🔁 Change every matching instruction in all methods with `matchAllMethodIndicesForEach()`
+12. ✏️ Replace strings in all methods with `replaceStrings()`
+13. 🏷️ Insert code that jumps to existing code with `addInstructionsWithLabels()` and `addInstructionsAtControlFlowLabel()`
+14. 🔤 Find classes by the strings they contain with `classDefByStrings(String)`
+15. 🆔 Look up resource ids with `resourceId(ResourceType, String)` and `hasResourceId(ResourceType, String)`
+16. ✅ Run extra checks while developing patches with `validate`
+17. 🔏 Keep the original signature for apps that check it with `retainOriginalV1Signature()` and `retainOriginalV2Signature()`
+18. 🧰 Small helpers: `getReference()`, `getMutableMethod()`, `p0Register`
 
 ### 🧰 APIs
 
@@ -204,6 +207,35 @@ execute {
 
 The listing describes the input APK, so it does not reflect files a patch has since added,
 changed or deleted.
+
+#### 🗄️ `packageMetadata.obbFiles`
+
+A bundle can carry the OBB expansion files of an app next to its APK modules. `.xapk` is the format
+made for this, but the files are taken from any bundle format. Patches can read every file under
+`Android/obb/` and every file with the `.obb` extension, wherever the bundle keeps them. No other file
+of the bundle is available. OBB files never become a part of the APK, so `listApkEntries(String)` and
+`get(String, Boolean)` do not see them either.
+`packageMetadata.obbFiles` maps the path a file has inside the bundle to the extracted file.
+
+```kt
+execute {
+    val obb = packageMetadata.obbFiles.entries
+        .firstOrNull { it.key.endsWith(".obb", ignoreCase = true) }
+        ?.value
+        ?: throw PatchException("This patch needs the OBB of the app. Patch it from a bundle that carries it, such as an .xapk.")
+}
+```
+
+The files are read-only to patches. A patch that needs a changed copy writes it to `fileWorkspace`.
+
+A patch that needs an OBB must check for it as above. The map is empty when the app was patched from a
+plain APK, the bundle has no OBB, or the caller of the patcher did not extract them, and no file type a
+patch declares guarantees an OBB. Apps that use OBB files are usually distributed as `.xapk`, so such a
+patch can declare `ApkFileType.XAPK` to suggest that file type to users. `ApkFileType.XAPK_REQUIRED`
+would turn away other bundle formats that carry the OBB as well.
+
+`ApkMerger.extractObbFiles(File, File)` extracts the files, for a caller that merges a bundle before
+patching it and passes them to `PatcherConfig` as `obbFiles`.
 
 #### 🗂️ `decode(String...)` and `listDecodableFiles(String)`
 
@@ -470,6 +502,73 @@ execute {
 - Prefer `returnLate()` if the method has side effects that other code depends on, and `returnEarly()`
   if the original code should not run at all, such as code that loads ads or sends analytics.
 
+#### 🔌 `addPatchInterface()`
+
+Extension code cannot call obfuscated app code directly, because the names differ between app versions.
+Instead the extension declares an interface, and a patch adds that interface to the app class along with
+the methods that implement it. The extension then casts the app object to the interface.
+
+```java
+// Extension code.
+public interface PlayerInterface {
+    long patch_getVideoTime();
+    void patch_seekTo(long time);
+    Object patch_getController();
+    String patch_describe(int flags);
+}
+
+((PlayerInterface) player).patch_seekTo(0);
+```
+
+`addPatchInterface()` adds the interface to the class if the class does not have it already,
+and adds one method of the interface. The parameters and the return type come from the interface method,
+so they are not declared again in the patch. The method can be implemented in three ways:
+
+```kt
+import app.morphe.patcher.util.addPatchInterface
+
+const val PLAYER_INTERFACE = "Lapp/morphe/extension/PlayerInterface;"
+
+execute {
+    val playerClass = PlayerFingerprint.classDef
+
+    // Call an existing method. The parameters are passed on in the same order.
+    playerClass.addPatchInterface(PLAYER_INTERFACE, "patch_getVideoTime", GetVideoTimeFingerprint.method)
+    playerClass.addPatchInterface(PLAYER_INTERFACE, "patch_seekTo", SeekToFingerprint.method)
+
+    // Get a field. An interface method with one parameter that returns void sets the field instead.
+    val controllerField = playerClass.fields.single { it.type == controllerType }
+    playerClass.addPatchInterface(PLAYER_INTERFACE, "patch_getController", controllerField)
+
+    // Use smali code.
+    playerClass.addPatchInterface(
+        PLAYER_INTERFACE,
+        "patch_describe",
+        """
+            invoke-virtual { p0, p1 }, $describeMethod
+            move-result-object v0
+            if-nez v0, :done
+            const-string v0, ""
+            :done
+            return-object v0
+        """
+    )
+}
+```
+
+- The interface can be given as a type such as `Lcom/foo/Outer$Inner;` or as a class name such as
+  `com.foo.Outer$Inner`. It must exist in the app or in the extension code, and the method can be declared
+  by an interface that the interface extends.
+- Smali code can use any `v` registers, and the number of registers is found from the code. `p0` is the
+  class the method is added to, and the parameters of the interface method start at `p1`.
+- When calling a method or using a field, primitive types must be the same as the interface declares.
+  Object types can differ and are then cast, so the interface can declare `Object` where the app uses an
+  obfuscated class.
+- If the interface has more than one method with the same name, pass the parameter types of the one to
+  implement: `parameters = listOf("J", "Ljava/lang/String;")`.
+- A `PatchException` is thrown if the interface or the interface method does not exist,
+  or if the class already has the method.
+
 #### 🔁 `matchAllMethodIndicesForEach()`
 
 `matchAllMethodIndicesForEach()` finds every method a fingerprint matches, and calls the block once
@@ -480,7 +579,8 @@ This differs from `matchAll()`, which only gives the first matching index of eac
 If a method has the same string three times, `matchAll()` matches it once
 and `matchAllMethodIndicesForEach()` calls the block three times.
 
-For example, to change the text `original text` everywhere it is used in the app:
+For example, to change the text `original text` everywhere it is used in the app
+(to only change strings, `replaceStrings()` below is simpler and replaces many strings with a single search):
 
 ```kt
 import app.morphe.patcher.util.matchAllMethodIndicesForEach
@@ -539,6 +639,52 @@ string("original text").matchAllMethodIndicesForEach { index ->
     replaceInstruction(index, "const-string v$register, \"new text\"")
 }
 ```
+
+#### ✏️ `replaceStrings()`
+
+`replaceStrings()` replaces the strings of `const-string` instructions in all methods of the app.
+Pass `string()` filters with their replacements:
+
+```kt
+execute {
+    replaceStrings(
+        string("original text") to "new text",
+        string("https://old.example.com", StringComparisonType.STARTS_WITH) to "https://new.example.com",
+    )
+}
+```
+
+Each replacement replaces the part of the string its filter matches. For the string `abc-abc` and the
+replacement `string("abc", comparison) to "x"`:
+
+| Comparison    | Result       |
+|---------------|--------------|
+| `EQUALS`      | Not replaced |
+| `STARTS_WITH` | `x-abc`      |
+| `ENDS_WITH`   | `abc-x`      |
+| `CONTAINS`    | `x-x`        |
+
+For a replacement that depends on the string or on where it is used, pass a function instead. It is called with
+the method, the index of the instruction and the string, and returns the replacement, or `null` to keep the string:
+
+```kt
+execute {
+    replaceStrings(string("content://", StringComparisonType.STARTS_WITH)) { method, index, string ->
+        if (string.contains("com.google")) string.replace("com.google", "app.morphe") else null
+    }
+}
+```
+
+- All strings are found with a single search of the classes, so pass all replacements in one call instead of a
+  call for each string. A list of replacements or filters can be passed instead of varargs.
+- A class is made mutable only if one of its strings is replaced. The method given to the function has the
+  instructions from before any replacement, and is not mutable if its class is not mutable yet, so only read it.
+- A string is replaced using the first declared filter it matches, and a replaced string is not matched again by
+  the other filters.
+- The number of replaced instructions is returned. Nothing is thrown if no string matches, so check the number if
+  a string must exist.
+- An exact string declared more than once in a call throws an `IllegalArgumentException`.
+- Strings in annotations and the initial values of static fields are not changed.
 
 #### 🏷️ `addInstructionsWithLabels()` and `addInstructionsAtControlFlowLabel()`
 
@@ -663,6 +809,40 @@ required to patch the app and do not need to run every time for the end user. Fo
 - Verify that app resources used by extension code exist in the target app.
 - Verify that certain features are or are not present in the target app.
 - Other optional checks that are slow or only useful for development.
+
+#### 🔏 `retainOriginalV1Signature()` and `retainOriginalV2Signature()`
+
+Some apps check their own signature without asking Android: they open their APK file and read the
+certificate of the original signature from it. The patched APK carries a new signature, so such a check
+fails. A patch for such an app keeps the original signature, and users need to do nothing:
+
+- `retainOriginalV1Signature()` keeps the v1 (JAR) signature files, such as `META-INF/CERT.RSA`, for an app
+  that reads them, as older apps do.
+- `retainOriginalV2Signature()` keeps the v2 block of the APK Signing Block, for an app that reads it, such as
+  from native code.
+
+A patch calls the one the app needs, or both:
+
+```kt
+execute {
+    retainOriginalV1Signature()
+    retainOriginalV2Signature()
+}
+```
+
+Android verifies the new signature and ignores the original one, which no longer matches the patched files.
+The patched APK is signed with v2 alone, unless the original v2 block is kept: it then takes the v2 slot, and
+the patched APK is signed with v3 instead. Android 9 and later verify v3, but Android 8 verifies only v2, so
+such an APK does not install there. Give the patch's `AppTarget`s a `minSdk` of 28 so Morphe does not offer it
+on Android 8 devices. Separately, signing logs a warning whenever the APK it signs still declares a minimum
+below API level 28, since such a build cannot install on Android 8. The original v2 block is carried by
+Morphe's own signer only; signing the patched APK with another tool, or leaving it unsigned, does not keep it.
+
+If the APK being patched has no signature of that version, the function does nothing. For split APKs, the v2
+signature of the base APK is kept.
+
+This helps an app that only reads its certificate from the original signature. An app that verifies the
+original signature against its files still fails, because the patched files no longer match it.
 
 #### 🧰 Small helpers
 

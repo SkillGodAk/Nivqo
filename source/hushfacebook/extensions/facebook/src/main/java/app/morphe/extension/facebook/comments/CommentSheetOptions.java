@@ -13,16 +13,21 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.view.View;
+import android.view.ViewTreeObserver;
 
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 import app.morphe.extension.facebook.feed.PostWords;
+import app.morphe.extension.facebook.reels.ReactionHold;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.L10n;
@@ -48,7 +53,12 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * nothing, and the socket of a comment's buttons draws the rest of the row as it would without a
  * Dislike. Like in that row is written by one of two plugins, the Like text or the Like button
  * beside the Dislike, both through one method, and the patch asks {@link #holdsCommentLike} first
- * there the same way. A long press on Like opens the reaction
+ * there the same way. Reply in that row has no builder of its own, so the patch asks
+ * {@link #holdsCommentReply} first in the check of the socket of a comment's buttons, with the
+ * plugin's name, and a yes answers no for either Reply plugin. A commenter's badge (Top fan,
+ * Subscriber) is a plugin of the sockets that draw the commenter's name, and the patch asks
+ * {@link #hidesCommenterBadge} first in each socket's check when it's asked about that plugin; a
+ * yes answers no for the badge. A long press on Like opens the reaction
  * picker through one method, and the patch asks {@link #skipReactionPicker} first there; a yes
  * returns before anything opens. A comment keeps whether its reply thread is open in its state,
  * which starts closed until a tap on View replies opens it. The patch hands
@@ -104,6 +114,14 @@ public final class CommentSheetOptions {
     public static final String INLINE_COMMENT_COMPOSER_ANONYMOUS =
             "com.facebook.feed.plugins.belowufifooter.impl.anoninlinecommentcomposer.AnonInlineCommentComposerPlugin";
 
+    /** The plugin that writes Reply in the row under a comment, as that socket's name table gives it (#447). */
+    public static final String REPLY_PLUGIN =
+            "com.facebook.feedback.comments.plugins.commentufi.reply.InlineCommentReplyPlugin";
+
+    /** The plugin that draws Reply as a button on public Pages' comments, in the same name table. */
+    public static final String REPLY_BUTTON_PLUGIN =
+            "com.facebook.feedback.comments.plugins.commentufi.reply.ReplyPlugin";
+
     /** Every plugin that draws comments, or a comment box with comments above it, under a feed post's buttons. */
     private static final String[] POST_COMMENT_PLUGINS = {
             INLINE_COMMENTS, INLINE_COMMENTS_DWELL_TIME, INLINE_COMMENTS_CLIENT_RANKING,
@@ -121,6 +139,18 @@ public final class CommentSheetOptions {
 
     /** The member the report names once the Like plugin's builder has asked. */
     static final String COMMENT_LIKE = "comment like";
+
+    /** Counted each time Reply is kept out of a comment's row (#447). */
+    static final String REPLY_HIDDEN = "Comment Reply kept out";
+
+    /** The member the report names once the socket of a comment's buttons has asked about Reply. */
+    static final String COMMENT_REPLY = "comment reply";
+
+    /** Counted each time a badge like Top fan is kept off a commenter's name (#485). */
+    static final String BADGE_HIDDEN = "Commenter badge kept out";
+
+    /** The member the report names once a check of a commenter's name has asked about its badge. */
+    static final String COMMENTER_BADGE = "commenter badge";
 
     /** Counted each time a feed post's inline comments are kept out from under its buttons. */
     static final String POST_COMMENTS_HIDDEN = "Comments under a post kept out";
@@ -155,11 +185,38 @@ public final class CommentSheetOptions {
     /** Counted each time a comment is left out for a phrase from Words to hide. */
     static final String WORDS_HIDDEN = "Comment with your words left out";
 
+    /** Counted each time a comment is left out for not holding the comment search's words. */
+    static final String SEARCH_HIDDEN = "Comment without the searched words left out";
+
     /** Counted each time a count of people typing is answered as nobody. */
     static final String TYPING_HIDDEN = "Incoming typing kept out";
 
     /** The member the report names once a count of people typing has been through the hook. */
     static final String TYPING = "incoming typing";
+
+    /** Counted each time Facebook's pick of the top-reaction-only row under a comment is answered no. */
+    static final String EVERY_REACTION_KEPT = "Comment row with every reaction kept";
+
+    /** The member the report names once Facebook's pick of a comment's reaction row has been through the hook. */
+    static final String REACTION_ROW = "comment reaction row";
+
+    /** Counted each time the shared check behind the feed's and the comment list's rows is answered no. */
+    static final String EVERY_REACTION_CHECKED = "Comment row check answered with every reaction";
+
+    /** The member the report names once that shared check has been through the hook. */
+    static final String REACTION_CHECK = "comment reaction check";
+
+    /** Counted each time the comment list's pick of a row layout is answered with the full row's. */
+    static final String EVERY_REACTION_LAID_OUT = "Comment list layout kept with every reaction";
+
+    /** The member the report names once the comment list's row layout has been through the hook. */
+    static final String REACTION_LAYOUT = "comment list reaction layout";
+
+    /** Counted each time the older row's cap of one reaction icon beside the count is answered no. */
+    static final String EVERY_REACTION_ICON = "Comment row icons kept past one";
+
+    /** The member the report names once that icon cap has been through the hook. */
+    static final String REACTION_ICONS = "comment reaction icons";
 
     /** Counted each time the "new comments" pill's text is answered empty, so the pill never shows. */
     static final String PILL_HIDDEN = "New comments pill kept out";
@@ -237,6 +294,12 @@ public final class CommentSheetOptions {
     /** Counted each time the line along the top of the comment box, or of the socket over it, is taken off. */
     static final String BOX_LINE_HIDDEN = "Comment box line kept out";
 
+    /** Counted each time a comment box is kept off a post's comments (#479). */
+    static final String BOX_HIDDEN = "Comment box kept out";
+
+    /** The comment boxes held gone, so a box that sets its background twice as it's built is held once. */
+    private static final Set<View> heldBoxes = Collections.newSetFromMap(new WeakHashMap<>());
+
     /** The member the report names once the socket under a post's comments has asked about Related groups. */
     static final String BOTTOM = "related groups under comments";
 
@@ -281,6 +344,83 @@ public final class CommentSheetOptions {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "incoming comment typing", failure);
             return typers;
+        }
+    }
+
+    /**
+     * The hook, right after Facebook asks whether the row under a comment should be its newer one,
+     * Reply beside the top reaction and its count with Like and the thumbs-down as buttons (#241).
+     * With the switch on it answers no, so the row is the one with Like, Reply and every reaction
+     * beside the count; otherwise, and for a throw, it hands back what Facebook read.
+     */
+    public static boolean topReactionOnly(boolean topOnly) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, REACTION_ROW);
+            if (!topOnly || !Utils.settingsReady() || !Settings.SHOW_EVERY_COMMENT_REACTION.get()) return topOnly;
+            HookStatus.counted(FAMILY, EVERY_REACTION_KEPT);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "comment reaction row", failure);
+            return topOnly;
+        }
+    }
+
+    /**
+     * The hook, right after the check that a feed post's inline comment actions, an open post's
+     * comment list and several renders around a comment's row share reads whether the row should be
+     * the newer one (#241). With the switch on it answers no, the answer the check gives where its
+     * surface is left out, so every row it decides keeps Like, Reply and every reaction; otherwise,
+     * and for a throw, it hands back what Facebook read.
+     */
+    public static boolean topReactionCheck(boolean topOnly) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, REACTION_CHECK);
+            if (!topOnly || !Utils.settingsReady() || !Settings.SHOW_EVERY_COMMENT_REACTION.get()) return topOnly;
+            HookStatus.counted(FAMILY, EVERY_REACTION_CHECKED);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, REACTION_CHECK, failure);
+            return topOnly;
+        }
+    }
+
+    /**
+     * The hook, right after an open post's comment list reads which layout its rows take (#241): 0
+     * for the older row, and 1 to 3 for parts of the newer one, where 2 and 3 build it whatever the
+     * shared check says. With the switch on it answers 0, the value the list takes where its surface
+     * is left out; otherwise, and for 0 or a throw, it hands back what Facebook read.
+     */
+    public static int topReactionLayout(int layout) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, REACTION_LAYOUT);
+            if (layout == 0 || !Utils.settingsReady() || !Settings.SHOW_EVERY_COMMENT_REACTION.get()) return layout;
+            HookStatus.counted(FAMILY, EVERY_REACTION_LAID_OUT);
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, REACTION_LAYOUT, failure);
+            return layout;
+        }
+    }
+
+    /**
+     * The hook, right after the older row under a comment reads whether to keep a single reaction
+     * icon beside its count (#241). With the switch on it answers no, so the row keeps three icons,
+     * as it does where its surface is left out; otherwise, and for a throw, it hands back what
+     * Facebook read.
+     */
+    public static boolean topReactionIcons(boolean oneIcon) {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, REACTION_ICONS);
+            if (!oneIcon || !Utils.settingsReady() || !Settings.SHOW_EVERY_COMMENT_REACTION.get()) return oneIcon;
+            HookStatus.counted(FAMILY, EVERY_REACTION_ICON);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, REACTION_ICONS, failure);
+            return oneIcon;
         }
     }
 
@@ -386,15 +526,82 @@ public final class CommentSheetOptions {
      * the box's layer goes back to the top and the layers under it stop drawing, on this box's own
      * copy of the drawable. Any other background, off, paused, or before the settings are ready,
      * the box stays as Facebook drew it.
+     *
+     * <p>While Hide the comment box is on (#479), the box is held gone for as long as it lives
+     * ({@link #holdGone}), whatever its background.
      */
     public static void flattenCommentBox(@Nullable View box) {
         try {
             HookStatus.invoked(FAMILY);
             HookStatus.bound(FAMILY, BOX_LINE);
-            if (box == null || !Utils.settingsReady() || !Settings.HIDE_COMMENT_BOX_LINE.get()) return;
+            if (box == null || !Utils.settingsReady()) return;
+            if (Settings.HIDE_COMMENT_BOX.get() && holdGone(box)) HookStatus.counted(FAMILY, BOX_HIDDEN);
+            if (!Settings.HIDE_COMMENT_BOX_LINE.get()) return;
             if (flatten(box.getBackground(), "box")) HookStatus.counted(FAMILY, BOX_LINE_HIDDEN);
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, BOX_LINE, failure);
+        }
+    }
+
+    /**
+     * Holds [box] gone for as long as it lives (#479): gone now, and gone again before any frame
+     * that would draw it, since Facebook shows the box again on its own (a tap on Reply, a
+     * comment posted, the sheet growing). False when this box was already held. Turning the
+     * switch off lets go at the next frame, and the box comes back on the next comments built.
+     */
+    static boolean holdGone(View box) {
+        if (!heldBoxes.add(box)) return false;
+        box.setVisibility(View.GONE);
+        BoxHold hold = new BoxHold(box);
+        box.addOnAttachStateChangeListener(hold);
+        if (box.isAttachedToWindow()) hold.onViewAttachedToWindow(box);
+        return true;
+    }
+
+    /** Puts a held comment box back to gone before each frame of the window it's in, while the switch is on. */
+    private static final class BoxHold implements View.OnAttachStateChangeListener, ViewTreeObserver.OnPreDrawListener {
+        private final WeakReference<View> held;
+        @Nullable
+        private ViewTreeObserver tree;
+
+        BoxHold(View box) {
+            held = new WeakReference<>(box);
+        }
+
+        @Override
+        public void onViewAttachedToWindow(View view) {
+            stop();
+            tree = view.getViewTreeObserver();
+            tree.addOnPreDrawListener(this);
+        }
+
+        @Override
+        public void onViewDetachedFromWindow(View view) {
+            stop();
+        }
+
+        private void stop() {
+            if (tree != null && tree.isAlive()) tree.removeOnPreDrawListener(this);
+            tree = null;
+        }
+
+        /** False skips a frame that would have drawn the box, and the next one draws without it. */
+        @Override
+        public boolean onPreDraw() {
+            try {
+                View box = held.get();
+                if (box == null) {
+                    stop();
+                    return true;
+                }
+                if (box.getVisibility() == View.GONE || !Utils.settingsReady() || !Settings.HIDE_COMMENT_BOX.get()) return true;
+                box.setVisibility(View.GONE);
+                return false;
+            } catch (Throwable failure) {
+                stop();
+                HookStatus.threw(FAMILY, BOX_LINE, failure);
+                return true;
+            }
         }
     }
 
@@ -664,14 +871,56 @@ public final class CommentSheetOptions {
     }
 
     /**
+     * The hook, first thing in the check of the buttons under a comment, handed the plugin's name.
+     * True answers no for either Reply plugin while Hide Reply on comments is on; false leaves the
+     * check to Facebook, for Like, Dislike, the reaction icons and every other plugin, and otherwise
+     * (#447). View replies is drawn by a section of its own, so it stays.
+     */
+    public static boolean holdsCommentReply(@Nullable String plugin) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!REPLY_PLUGIN.equals(plugin) && !REPLY_BUTTON_PLUGIN.equals(plugin)) return false;
+            HookStatus.bound(FAMILY, COMMENT_REPLY);
+            if (!Utils.settingsReady() || !Settings.HIDE_COMMENT_REPLY_BUTTON.get()) return false;
+            HookStatus.counted(FAMILY, REPLY_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, COMMENT_REPLY, failure);
+            return false;
+        }
+    }
+
+    /**
+     * The hook, first thing in each check that decides what goes by a commenter's name, asked only
+     * when the check is about the badge plugin (#485). True answers no for that badge, Top fan,
+     * Subscriber and the rest, while Hide badges like Top fan on comments is on; false leaves it to
+     * Facebook. The name, the time and the comment come through other plugins, so they stay.
+     */
+    public static boolean hidesCommenterBadge() {
+        try {
+            HookStatus.invoked(FAMILY);
+            HookStatus.bound(FAMILY, COMMENTER_BADGE);
+            if (!Utils.settingsReady() || !Settings.HIDE_COMMENTER_BADGES.get()) return false;
+            HookStatus.counted(FAMILY, BADGE_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, COMMENTER_BADGE, failure);
+            return false;
+        }
+    }
+
+    /**
      * The hook, first thing where a long press on Like opens the reaction picker. True returns
-     * before the picker opens while Like only is on; false lets it open.
+     * before the picker opens while Like only is on; false lets it open, as it does for the tray
+     * Hold to react opens.
      */
     public static boolean skipReactionPicker() {
         try {
             HookStatus.invoked(FAMILY);
             HookStatus.bound(FAMILY, PICKER);
             if (!Utils.settingsReady() || !Settings.LIKE_ONLY.get()) return false;
+            // Hold to react asks for the tray, so the one it opens shows all the same.
+            if (ReactionHold.opening()) return false;
             HookStatus.counted(FAMILY, PICKER_SKIPPED);
             return true;
         } catch (Throwable failure) {
@@ -777,7 +1026,8 @@ public final class CommentSheetOptions {
      * The hook, first thing as a comment is drawn, handed the GraphQLComment it draws. True leaves
      * the comment out, with its replies: while Hide comments with shop links is on and its words
      * link to a shop, or while Hide comments with your words is on and they hold a phrase from
-     * Words to hide and none from the keep list. False draws it as Facebook does, and so does
+     * Words to hide and none from the keep list, or while the comment search box holds words they
+     * aren't in (Show only comments that match). False draws it as Facebook does, and so does
      * anything this can't read.
      */
     public static boolean hidesComment(@Nullable Object comment) {
@@ -787,8 +1037,14 @@ public final class CommentSheetOptions {
             if (!Utils.settingsReady()) return false;
             boolean links = Settings.HIDE_SHOP_LINK_COMMENTS.get();
             boolean words = Settings.HIDE_COMMENTS_WITH_WORDS.get();
-            if (!links && !words) return false;
+            boolean search = Settings.FILTER_COMMENT_SEARCH.get();
+            if (!links && !words && !search) return false;
             String text = CommentText.body(comment);
+            // First, so every comment drawn is noted under the search words in use.
+            if (search && CommentSearch.filtersOut(comment, text)) {
+                HookStatus.counted(FAMILY, SEARCH_HIDDEN);
+                return true;
+            }
             if (text == null) return false;
             if (links && ShopLinks.holds(text)) {
                 HookStatus.counted(FAMILY, SHOP_LINK_HIDDEN);

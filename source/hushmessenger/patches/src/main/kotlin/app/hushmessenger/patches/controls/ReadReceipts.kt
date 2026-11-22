@@ -195,18 +195,24 @@ internal class ReplyReadShape(
 )
 
 /**
- * Messenger 586's arm64 dispatcher, 397 instructions in a 36-register frame. The composer is copied to v20, the staging
- * sits four before the dispatch and the dispatch's first String comes to v15 from v18.
+ * Messenger 587's dispatcher, 398 instructions in a 36-register frame on every build. The composer is copied to v20,
+ * the staging sits four before the dispatch and the dispatch's first String comes to v15 from v18. 586's sat two sooner
+ * (its inbox tag was a plain const-string where 587 reads it from the string pool) and its family B two sooner again.
  */
-internal val REPLY_READ_SHAPE = ReplyReadShape(sizes = setOf(397), composer = 10, session = 20, nullThread = 26, absent = 71, dispatch = 236, composerReg = 20, stage = 4)
+internal val REPLY_READ_SHAPE = ReplyReadShape(sizes = setOf(398), composer = 10, session = 20, nullThread = 26, absent = 71, dispatch = 238, composerReg = 20, stage = 4)
+
+internal val REPLY_READ_SHAPES = listOf(REPLY_READ_SHAPE)
+
+/** The known shape a dispatcher of this body size and frame has, or null. */
+private fun MutableMethod.replyReadShape(size: Int) =
+    REPLY_READ_SHAPES.singleOrNull { size in it.sizes && implementation?.registerCount == it.registers }
 
 /** The exact 586 staging seam. The thread survives in v12 until the account is staged there for dispatch. */
 internal fun MutableMethod.validateReplyRead(): Int {
-    val shape = REPLY_READ_SHAPE
-    readRequire(isReplyReadDispatch() && implementation!!.registerCount == shape.registers)
+    readRequire(isReplyReadDispatch())
     val flow = ReadFlow(this)
     val c = flow.code
-    readRequire(c.size in shape.sizes)
+    val shape = replyReadShape(c.size) ?: throw PatchException("Messenger controls: the account-scoped read receipt contract changed (identity flow)")
     val d = shape.dispatch
     val s = d - shape.stage
     val cr = shape.composerReg
@@ -246,11 +252,12 @@ internal fun MutableMethod.validateReplyRead(): Int {
 
 internal fun MutableMethod.injectReplyRead() {
     val dispatch = validateReplyRead()
+    val stage = replyReadShape(readCode().size)!!.stage
     // Insert backwards so both indices refer to the unmodified stock method.
     addInstructions(dispatch + 1, """
         move-object v0, v10
         move-object/from16 v1, p13
         invoke-static {v0, v1}, $SETTINGS->noteMessageSent(Ljava/lang/Object;Ljava/lang/Object;)V
     """.trimIndent())
-    addInstructions(dispatch - REPLY_READ_SHAPE.stage, "move-object/16 p13, v12")
+    addInstructions(dispatch - stage, "move-object/16 p13, v12")
 }

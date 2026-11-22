@@ -90,7 +90,8 @@ internal const val DECODE_BITMAP = "$MEDIA_TRANSCODER->decodeBitmap(Ljava/lang/S
 internal val ORIGINAL_PHOTO_HOOKS = setOf(TRANSCODE_IMAGE, TRANSCODE_IMAGE_ASYNC, TRANSCODE_CONFIG, DECODE_BITMAP)
 private const val DECODE_FILE = "Landroid/graphics/BitmapFactory;->decodeFile(Ljava/lang/String;)Landroid/graphics/Bitmap;"
 private const val BITMAP = "Landroid/graphics/Bitmap;"
-private val SCALE_BITMAP_PARAMS = listOf(BITMAP, "I", "I", "Z")
+/** Bitmap.createScaledBitmap's own shape, and 587's helper that always filters and so drops the flag. */
+private val SCALE_BITMAP_PARAMS = setOf(listOf(BITMAP, "I", "I", "Z"), listOf(BITMAP, "I", "I"))
 private const val ORIGINAL_PHOTO = "Lapp/hushmessenger/extension/OriginalPhoto;"
 private const val FLAG_SECURE = 0x2000
 
@@ -111,247 +112,64 @@ private val facebookPlugins = setOf(
 internal var messageTextGetterName: String = ""
 internal var messageIdGetterName: String = ""
 internal var messageIsUnsentGetterName: String = ""
+internal var messageOtidGetterName: String = ""
+internal var messageTimestampGetterName: String = ""
+internal var messageSenderGetterName: String = ""
+internal var messageContentTypeGetterName: String = ""
+internal var messageContentSubtypeGetterName: String = ""
+internal var messageRowInterface: String = ""
 
 internal fun Method.hookId() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
+/**
+ * The finders' per-method checks that one shared walk answers, so a method's code is decoded once for all of them
+ * instead of once per finder. A finder called outside [findControls] walks on its own and finds the same methods.
+ */
+private fun sharedChecks(): List<WalkCheck> = listOf(
+    chatPreviewBuilders, chatPreviewReaders, storyFinishedLoggers, blockedListBuilders, phoneIdRequesters, phoneIdSenders,
+    nearbyScanSites, wifiIdentitySites, markReadBars, markIconSetters, voiceDownloads, menuTaps, saveVideoRows, moreSheets,
+    audioCasters, trayInsertBuilders, trayPluginClasses, landscapeFlagReaders, mediaOrientationClasses, fontSites,
+    searchBarBuilders, searchScreenHintShapes, carBundleWriters, carExtensionSteps, ringDeciders, menuItemsBuilders,
+    callButtonShapes, summaryPillHandlers, homeHeaders, composerResults, cameraLaunches, chatCameraFactories,
+    captureLaunchers, launcherStarts, cameraUriChecks, internalFileOpens, galleryItemsShapes, galleryHandlerShapes,
+    inboundCopies, tempFolderChecks, configHolders, playoutSwitches, playoutWriters, recordHandovers, recentMediaDetectors,
+    attributionUploads, instantCaptures, pinLimitLoaders, sharedFlagReaders, aiMentionShapes, headerRenders, logBars,
+    ringMountClasses, roundingPrinterClasses, legacyRoundings, tileShapeFlags, messageDebugStrings,
+)
+
 /** Match semantics first, then require the exact set the build's profile records. */
-internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInboxContract? = findCommunityInbox(classes)): Map<String, List<Method>> {
+internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInboxContract? = findCommunityInbox(classes)): Map<String, List<Method>> =
+    withSharedWalk(classes, sharedChecks()) { findControlsIn(classes, community) }
+
+private fun findControlsIn(classes: Iterable<ClassDef>, community: CommunityInboxContract?): Map<String, List<Method>> {
     // Every build lists the base profile's controls (ControlProfileTest), so these keys are the active build's too. Only
     // the hook ids differ by build, and validateControls compares what's found here with the active build's.
     val found = BASE_PROFILE.hooks.keys.associateWith { mutableListOf<Method>() }
     community?.let { found.getValue(COMMUNITY_INBOX).add(it.render) }
     found.getValue("ai_sticker_cell").addAll(findAiStickerCells(classes))
     found.getValue("ai_sticker_grid").addAll(findAiStickerGrids(classes))
-    // Static fields stored by any class initializer that mentions the Notifications tab's "hide suggestions" preference
-    // key. validatePeopleSection checks the exact key before anything is edited.
-    val peopleJewelKeys = classes.flatMap { cls ->
-        val code = cls.methods.singleOrNull { it.name == "<clinit>" }?.implementation?.instructions?.toList().orEmpty()
-        if (code.none { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == PEOPLE_JEWEL_KEY }) emptyList()
-        else code.filter { it.opcode == Opcode.SPUT_OBJECT }.map { (it as ReferenceInstruction).reference.toString() }
-    }.toSet()
-    // The static field each class initializer stores the story card's last-shown date key in.
-    val storyCardKeys = classes.flatMap { cls ->
-        val code = cls.methods.singleOrNull { it.name == "<clinit>" }?.implementation?.instructions?.toList().orEmpty()
-        code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == STORY_CARD_DATE_KEY }
-            .mapNotNull { at -> code.drop(at + 1).firstOrNull { it.opcode == Opcode.SPUT_OBJECT } }
-            .map { (it as ReferenceInstruction).reference.toString() }
-    }.toSet()
-    messageTextGetterName = ""
-    messageIdGetterName = ""
-    messageIsUnsentGetterName = ""
-    var rawText = ""
-    var rawId = ""
-    var rawUnsent = ""
-    for (cls in classes) {
-        if (rawText.isNotEmpty()) break
-        for (m in cls.methods) {
-            val debugCode = m.implementation?.instructions?.toList() ?: continue
-            val debugStrs = debugCode.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
-            if ("text=" !in debugStrs || "message_id=" !in debugStrs || "is_unsent=" !in debugStrs) continue
-            var lastRef: DexMethodReference? = null
-            for (insn in debugCode) {
-                val ref = (insn as? ReferenceInstruction)?.reference ?: continue
-                if (insn.opcode == Opcode.INVOKE_INTERFACE && ref is DexMethodReference) {
-                    lastRef = ref
-                } else if (ref is StringReference && lastRef != null) {
-                    when (ref.string) {
-                        "text=" -> if (lastRef.returnType == "Ljava/lang/String;") { rawText = lastRef.name; lastRef = null }
-                        "message_id=" -> if (lastRef.returnType == "Ljava/lang/String;") { rawId = lastRef.name; lastRef = null }
-                        "is_unsent=" -> if (lastRef.returnType == "Z") { rawUnsent = lastRef.name; lastRef = null }
-                    }
-                }
-            }
-            break
-        }
-    }
-    if (rawText.isNotEmpty()) {
-        messageTextGetterName = rawText
-        messageIdGetterName = rawId
-        messageIsUnsentGetterName = rawUnsent
-        for (wrapperCls in classes) {
-            if (!wrapperCls.isRowWrapper()) continue
-            fun resolve(raw: String, ret: String): String {
-                if (wrapperCls.methods.any { it.name == raw && it.returnType == ret && it.parameterTypes == listOf("I") }) return raw
-                return wrapperCls.methods.firstOrNull { wm ->
-                    wm.returnType == ret && wm.parameterTypes == listOf("I") &&
-                        wm.implementation?.instructions?.any { insn ->
-                            insn.opcode == Opcode.INVOKE_INTERFACE &&
-                                ((insn as? ReferenceInstruction)?.reference as? DexMethodReference)?.name == raw
-                        } == true
-                }?.name ?: raw
-            }
-            messageTextGetterName = resolve(rawText, "Ljava/lang/String;")
-            messageIdGetterName = resolve(rawId, "Ljava/lang/String;")
-            messageIsUnsentGetterName = resolve(rawUnsent, "Z")
-            break
-        }
-    }
+    val peopleJewelKeys = findPeopleJewelKeys(classes)
+    val storyCardKeys = findStoryCardKeys(classes)
+    resolveMessageGetterNames(classes)
     val appIconManagers = findAppIconManagers(classes)
     val stringTables = redexStringTables(classes)
     activeStringTables = stringTables
-    var searchFieldRender: Method? = null
-    var changedViewer = false
-    val drawerReaders = mutableListOf<Method>()
-    val drawerAnchors = mutableListOf<Method>()
-    val searchIconReaders = mutableListOf<Method>()
-    val searchIconAnchors = mutableListOf<Method>()
+    val scan = ControlScan(found, peopleJewelKeys, storyCardKeys, appIconManagers, stringTables)
     for (cls in classes) {
         val original = cls.fields.firstOrNull { it.name == "__redex_internal_original_name" }
             ?.initialValue.let { (it as? StringEncodedValue)?.value }
-        for (method in cls.methods) {
-            fun add(key: String) { found.getValue(key).add(method) }
-            if ((cls.type == EPHEMERAL_VIEWER && (method.name in EPHEMERAL_DIALOGS || method.name == "onResume")) ||
-                (cls.type == QUICKSNAP_VIEWER && method.name == "onCreateView")) {
-                try {
-                    method.screenshotViewerSites()
-                    add("screenshot_viewers")
-                } catch (refusal: PatchException) {
-                    // The reason would be lost behind the generic "hooks differ", so validateControls repeats it.
-                    changedViewer = true
-                    screenshotViewerRefusal = refusal.message
-                }
-            }
-            val instructions = method.implementation?.instructions?.toList() ?: continue
-            val refs = instructions.mapNotNull { (it as? ReferenceInstruction)?.reference }
-            val strings = refs.filterIsInstance<StringReference>().map { it.string }.toSet()
-            val gate = method.returnType == "Z" && method.parameterTypes.isEmpty()
-            if (instructions.any { it.isEmojiDrawerFlag() }) drawerReaders.add(method)
-            if (EMOJI_DRAWER_ANCHOR in strings) drawerAnchors.add(method)
-            if (instructions.any { it.isSearchIconFlag() }) searchIconReaders.add(method)
-            if (SEARCH_ICON_ANCHOR in strings) searchIconAnchors.add(method)
-            if (method.returnType == "Z" && (method.parameterTypes.isEmpty() ||
-                (AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes == listOf(cls.type)))) {
-                val anchors = strings + method.tableStrings(stringTables)
-                for ((key, spec) in pluginGates) if (anchors.any { it in spec.anchors }) add(key)
-            }
-            if (gate && "com.facebook.messaging.friendsinboxunit.plugins.inboxunit.FriendsInboxUnitKillSwitch" in strings) add("stories")
-            if (cls.type in appIconManagers && method.isAppIconGate()) add(APP_ICONS)
-            if (method.isAppThemeGate()) add(APP_THEMES)
-            if (gate) {
-                val shortcuts = instructions.filter { it.opcode == Opcode.NEW_INSTANCE }
-                    .mapNotNull { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type }
-                    .filter { it in facebookPlugins }.toSet()
-                // A gate that builds only the chat details Profile button gets its own key, so Keep the Profile button can spare it.
-                if (shortcuts == setOf(FACEBOOK_PROFILE_BUTTON)) add(FACEBOOK_PROFILE)
-                else if (shortcuts.isNotEmpty()) add("facebook")
-            }
-            if (gate && strings.any {
-                it == "com.facebook.messaging.navigation.plugins.aicreationfolder.folderitem.AiCreationFolderItem" ||
-                    it == "com.facebook.messaging.navigation.plugins.aihomefolder.folderitem.AiHomeFolderItem"
-            }) add("ai_menu")
-            if ("AiFabComponent" in strings && instructions.any { it.opcode == Opcode.RETURN_OBJECT }) add("ai_fab")
-            if (method.name == "run" && method.returnType == "V" && method.parameterTypes.isEmpty()) {
-                if (original == "InboxSubtabsItemSupplierImplementation\$onSubscribe\$1") add("subtabs")
-                if (original == "ConversationTypingContext\$sendActiveStateRunnable\$1") add("typing")
-                if (original == "SecureWindowUtils\$1") add("allow_screenshot")
-            }
-            if (gate && refs.any { it.toString() == "Landroid/os/Build\$VERSION;->SDK_INT:I" } &&
-                refs.any { it.toString() == "Landroid/app/ActivityManager;->isLowRamDevice()Z" }) add("bubbles")
-            if (!AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
-                method.parameterTypes == listOf(BUBBLE_SESSION) && instructions.any {
-                    it.opcode == Opcode.CONST_WIDE && (it as? WideLiteralInstruction)?.wideLiteral == BUBBLE_ROLLOUT
-                }) add("bubble_mode")
-            // The external-browser check is the launcher's own (Uri, session) instance check; it logs no skip reason.
-            if (method.returnType == "Z" && cls.type == MESSENGER_BROWSER_LAUNCHER && !AccessFlags.STATIC.isSet(method.accessFlags) &&
-                method.parameterTypes == listOf("Landroid/net/Uri;", BUBBLE_SESSION)) add("browser")
-            if (method.returnType == "Z" && AccessFlags.STATIC.isSet(method.accessFlags) && method.isPeopleSectionShape() &&
-                refs.any { it.toString() in peopleJewelKeys } && refs.any { it.toString() == activeProfile.preferenceGetter }) add("people_jewel")
-            if (AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameterTypes == listOf(cls.type) &&
-                refs.any { (it as? DexMethodReference)?.publishesSuggestions() == true } &&
-                cls.methods.any { other ->
-                    other.implementation?.instructions?.any { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type == PEOPLE_TAB_FETCH } == true
-                }) add("people_tab")
-            if (!AccessFlags.STATIC.isSet(method.accessFlags) &&
-                strings.containsAll(setOf(PEOPLE_SEARCH_SOURCE, "Failed to load people you may know"))) add("people_search")
-            if (AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameterTypes == listOf(cls.type) &&
-                STORY_SUGGESTIONS_QUERY in strings + method.tableStrings(stringTables)) add("people_story")
-            // The chat list supplier's items read, which first traces under its own name.
-            if (cls.type == INBOX_SUPPLIER && !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == IMMUTABLE_LIST &&
-                method.parameterTypes.isEmpty() && INBOX_ITEMS_TRACE in strings) { add(INBOX_REFRESH_HOOK); add(PIN_LIST); add(HIDDEN_CHAT_LIST) }
-            if (cls.type == "Lcom/facebook/screenshot/ScreenshotContentObserver;" && method.name == "onChange" &&
-                method.returnType == "V") add("allow_screenshot")
-            // Android 14 and newer report a screenshot here, and Messenger turns it into the in-chat notice.
-            if (method.name == "onScreenCaptured" && method.returnType == "V" && method.parameterTypes.isEmpty() &&
-                SCREEN_CAPTURE_CALLBACK in cls.interfaces) add("allow_screenshot")
-            // Photo and media viewers in protected chats lock their window through this one helper.
-            if (method.returnType == "V" && method.parameterTypes == listOf("Landroid/view/Window;") &&
-                !AccessFlags.STATIC.isSet(method.accessFlags) &&
-                instructions.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == FLAG_SECURE } &&
-                refs.any { it.toString() == "Landroid/view/Window;->addFlags(I)V" }) add("allow_screenshot")
-            if (cls.type == MEDIA_TRANSCODER && method.hookId() in ORIGINAL_PHOTO_HOOKS) add("original_photo")
-            if (method.isVideoTranscode(strings)) {
-                add(ORIGINAL_VIDEO)
-                if (method.parsesTranscodeSource()) add(XHE_TRANSCODE)
-            }
-            if (method.returnType == "V" && method.isKeepUnsentShape() && strings.any { "ACTION_REVOKE_MESSAGE" in it }) add("keep_unsent")
-            // Both unsent hooks call the wrapper's own message id getter, so the wrapper that holds them has to have one.
-            if (messageTextGetterName.isNotEmpty() && method.name == messageTextGetterName &&
-                method.returnType == "Ljava/lang/String;" && method.parameterTypes == listOf("I") &&
-                cls.isRowWrapper() && cls.hasMessageIdGetter()) add("unsent_indicator")
-            if (messageIsUnsentGetterName.isNotEmpty() && method.name == messageIsUnsentGetterName &&
-                method.returnType == "Z" && method.parameterTypes == listOf("I") &&
-                cls.isRowWrapper() && cls.hasMessageIdGetter()) add("delta_unsent")
-            // The gates are private instance methods with no parameter.
-            if (method.returnType == "Z" && method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) &&
-                strings.any { "SearchAiagentImplementationsKillSwitch" in it }) add("ai_search")
-            if (method.returnType == "Landroid/graphics/Typeface;" && method.parameterTypes.isEmpty() &&
-                !AccessFlags.STATIC.isSet(method.accessFlags) &&
-                "FacebookEmojiTypefaceProviderImpl" in strings) add("emoji_typeface")
-            if (method.returnType == "Ljava/util/ArrayList;" && method.parameterTypes.size == 1 &&
-                !AccessFlags.STATIC.isSet(method.accessFlags) &&
-                strings.any { "settingsfolder.folderitem.SettingsFolderItem" in it }) add("menu_settings")
-            if (method.returnType == "V" && method.parameterTypes.size == 2 &&
-                method.parameterTypes[1] == "I" && !AccessFlags.STATIC.isSet(method.accessFlags) &&
-                strings.contains("Unknown ViewHolder")) add("menu_settings")
-            if (method.name == "onClick" && method.returnType == "V" &&
-                method.parameterTypes == listOf("Landroid/view/View;") &&
-                DRAWER_FOLDER_SELECTED in strings) add("menu_settings")
-            if (method.returnType == "V" && method.parameterTypes.isEmpty() &&
-                !AccessFlags.STATIC.isSet(method.accessFlags) && DRAWER_REFRESH in strings) add("menu_settings")
-            // The sticker keyboard's tab list is filled inline in a composer factory method that reads the avatar
-            // tab's activate event and returns the built list.
-            if (method.returnType == IMMUTABLE_LIST && cls.type == COMPOSER_FACTORY &&
-                refs.any { it.toString().startsWith("$AVATAR_TAB_EVENT->") } &&
-                refs.any { it.toString().startsWith("$IMMUTABLE_LIST->builder()") }) add("avatar_tabs")
-            if (method.name == "render" && SEARCH_CLEAR_TAG in strings) searchFieldRender = method
-            // Encrypted chats send typing through this msys mailbox call (thread id, typing).
-            if (method.parameterTypes == listOf("Ljava/lang/String;", "Z") && TYPING_MAILBOX_CALL in strings) add("typing_mailbox")
-            // An open chat marks itself read, which also sends Seen, only through the job its seen handler schedules here.
-            if (method.isChatSeenBroadcast()) add(HIDE_READ_RECEIPTS)
-            if (method.isReplyReadDispatch()) add(REPLY_READ)
-            // Opening a story card sends its seen state through the handler Messenger tags with this name.
-            if (method.returnType == "V" && method.parameterTypes == listOf(MONTAGE_CARD, "Z") &&
-                !AccessFlags.STATIC.isSet(method.accessFlags) && STORY_MARK_READ_TAG in strings) add("anonymous_stories")
-            // Every story preview is built here, so a card opened anonymously can start out seen in the chat list.
-            if (cls.type == MONTAGE_BUCKET_PREVIEW && method.name == "<init>" &&
-                method.parameterTypes.any { it.toString() == MONTAGE_CARD }) add("anonymous_stories")
-            // The story viewer's More options button builds its menu here, your own story's Save item included.
-            if (method.name == "onClick" && method.returnType == "V" && method.parameterTypes == listOf("Landroid/view/View;") &&
-                STORY_MENU_TAG in strings) add("save_stories")
-            // Notes open every tip sheet through this one suspend call, which returns whether it showed one.
-            if (!AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Ljava/lang/Object;" &&
-                strings.containsAll(setOf(NOTES_TIP_SHEET, NOTES_TIP_TYPE_ARG))) add("growth_notes")
-            // The story viewer adds its Share your own story card only while this daily cap check passes.
-            if (AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" && method.parameterTypes == listOf(cls.type) &&
-                refs.any { it.toString() in storyCardKeys }) add("growth_story_card")
-            if (cls.type == ANDROIDX_FRAGMENT && method.hookId() == FRAGMENT_ANIMATION) add("chat_animation")
-            // The chat and the inbox under it inherit that answer. androidx needs each fragment's no-argument
-            // constructor, so it names the class the animation hook tells apart.
-            if (method.name == "<init>" && method.parameterTypes.isEmpty()) {
-                if (original == CHAT_FRAGMENT_NAME) add("chat_fragment")
-                if (original == "M4TabNavigationFragment") add("chat_inbox")
-            }
-            if (original == CHAT_FRAGMENT_NAME && method.isChatJumpView()) add(CHAT_JUMP)
-            // Chats on Messenger's older route open in this fragment, which loads its own animation.
-            if (original == "ThreadViewFragment" && method.name == "onCreateAnimation" &&
-                method.hookId() == "${cls.type}->onCreateAnimation(IZI)$ANIMATION") add("chat_legacy")
-        }
+        for (method in cls.methods) scan.visit(cls, original, method)
     }
+    val searchFieldRender = scan.searchFieldRender
+    val changedViewer = scan.changedViewer
     val gridBinderType = found["menu_settings"].orEmpty()
         .firstOrNull { it.returnType == "V" && it.parameterTypes.size == 2 && it.parameterTypes[1] == "I" }
         ?.definingClass
     if (gridBinderType != null) {
-        for (cls in classes) {
+        var last: ClassDef? = null
+        for ((cls, _) in codeReferrers(classes, types = listOf(gridBinderType))) {
+            if (cls === last) continue
+            last = cls
             val instantiates = cls.methods.any { m ->
                 m.implementation?.instructions?.any { insn ->
                     insn.opcode == Opcode.NEW_INSTANCE &&
@@ -377,8 +195,8 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
             ?.let { found.getValue("ai_search_chip").add(it) }
     }
     if (changedViewer) found.getValue("screenshot_viewers").clear() else screenshotViewerRefusal = null
-    found.getValue(EMOJI_DRAWER).addAll(connectEmojiDrawer(drawerReaders, drawerAnchors))
-    found.getValue(INBOX_SEARCH_BAR).addAll(connectSearchBar(searchIconReaders, searchIconAnchors))
+    found.getValue(EMOJI_DRAWER).addAll(connectEmojiDrawer(scan.drawerReaders, scan.drawerAnchors, scan.drawerInterfaces))
+    found.getValue(INBOX_SEARCH_BAR).addAll(connectSearchBar(scan.searchIconReaders, scan.searchIconAnchors))
     found.getValue(EMOJI_SEARCH).addAll(findEmojiSearch(classes))
     found.getValue(TAB_BADGES).addAll(findTabBadges(classes))
     found.getValue(FACEBOOK_BADGE).addAll(findFacebookBadge(classes))
@@ -400,27 +218,35 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
     found.getValue(MESSAGE_ACTIONS).addAll(findMessageActions(classes))
     found.getValue(MESSAGE_ACTIONS_MORE).addAll(findMessageActionsMore(classes))
     found.getValue(ANALYTICS_UPLOADS).addAll(findAnalyticsUploads(classes) + findBoundUploadTasks(classes) +
-        findXAnalyticsUploadTimers(classes) + findInProcessUploadStarts(classes))
+        findXAnalyticsUploadTimers(classes) + findInProcessUploadStarts(classes, stringTables))
     found.getValue(ATTRIBUTION_UPLOADS).addAll(findAttributionUploads(classes))
     found.getValue(AD_EVENTS).addAll(findAdEvents(classes))
     found.getValue(MQTT_TELEMETRY).addAll(findMqttTelemetry(classes))
     findPinnedChats(classes).forEach { (hook, methods) -> found.getValue(hook).addAll(methods) }
-    findHiddenChats(classes).forEach { (hook, methods) -> found.getValue(hook).addAll(methods) }
+    val hiddenChats = findHiddenChats(classes)
+    hiddenChats.forEach { (hook, methods) -> found.getValue(hook).addAll(methods) }
+    found.getValue(CHAT_MENU_ITEMS).addAll(chatMenuRows(hiddenChats))
     found.getValue(NEARBY_SCANS).addAll(patchStage("Find nearby scans") { findNearbyScans(classes) })
     found.getValue(WIFI_IDENTITY).addAll(patchStage("Find Wi-Fi identity reads") { findWifiIdentityReads(classes) })
     found.getValue(PHONE_ID_SYNC).addAll(findPhoneIdSync(classes))
     found.getValue(STORY_HOLD).addAll(findStoryHold(classes))
     found.getValue(CHAT_PREVIEW).addAll(findChatPreview(classes))
+    found.getValue(CHAT_PREVIEW_SIZE).addAll(findChatPreviewSize(classes))
     found.getValue(LANDSCAPE_LOCK).addAll(findPortraitLock(classes))
     found.getValue(LANDSCAPE_MEDIA).addAll(findMediaOrientation(classes))
     found.getValue(BLOCKED_LIST_PICTURES).addAll(findBlockedListPictures(classes))
     found.getValue(RESTRICTED_NOTIFY).addAll(findRestrictedNotify(classes))
     found.getValue(SHARE_STORY).addAll(findShareStory(classes))
+    found.getValue(SHARE_STORY_TARGET).addAll(findShareStoryTarget(classes))
+    found.getValue(FLOATING_TAB_BAR).addAll(findFloatingTabBar(classes))
+    found.getValue(TAB_BAR_OVERLAY).addAll(findTabBarOverlay(classes))
+    found.getValue(TAB_BAR_SCROLL_AWAY).addAll(findTabBarScrollAway(classes))
     found.getValue(AVATAR_SHAPE).addAll(findAvatarShape(classes))
     found.getValue(STORY_RING).addAll(findStoryRing(classes))
     found.getValue(QUIET_CALL_RING).addAll(findQuietCallRing(classes))
     found.getValue(QUIET_CALL_NOTIFICATION).addAll(findQuietCallNotification(classes))
     found.getValue(CAR_MESSAGES).addAll(findCarMessages(classes))
+    found.getValue(CAR_EXTENSION_GATE).addAll(findCarExtensionGate(classes))
     found.getValue(LOCAL_CHAT_SEARCH).addAll(findLocalChatSearch(classes))
     found.getValue(CALL_RECORDING).addAll(findCallRecording(classes))
     found.getValue(HOME_HEADER).addAll(findHomeHeader(classes))
@@ -429,10 +255,17 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
     found.getValue(AUTO_REPLY).addAll(findMessageLogHook(classes))
     found.getValue(UNSENT_RECALL).addAll(findUnsentRecall(classes))
     found.getValue(UNSENT_CLEAR).addAll(findUnsentClear(classes))
+    found.getValue(QUIET_LOG_CHECK).addAll(findQuietLogCheck(classes))
+    found.getValue(QUIET_LOG_DROP).addAll(findQuietLogDrop(classes))
     found.getValue(CHAT_CHANNEL_KEEP).addAll(findChatChannelKeep(classes))
     found.getValue(CHAT_CHANNEL_RAISE).addAll(findChatChannelRaise(classes))
+    found.getValue(CHAT_HEAD_VIDEO).addAll(findChatHeadVideo(classes))
+    val callButtonBuilders = findCallButtonBuilt(classes, stringTables)
+    found.getValue(CALL_BUTTON_BUILT).addAll(callButtonBuilders)
+    found.getValue(HIDE_CALL_LISTS).addAll(findCallButtonLists(classes, callButtonBuilders))
     autoReplyPictureRecipe = resolveAutoReplyPictureRecipe(classes)
     messageLogContract = resolveMessageLogContract(classes)
+    quietChatContract = resolveQuietChatContract(classes, messageLogContract)
     readReceiptThreadFields = resolveReadReceiptThreadFields(classes)
     val (markReadBar, markReadClick) = findMarkReadButton(classes)
     found.getValue(MARK_READ_BAR).addAll(markReadBar)
@@ -444,10 +277,324 @@ internal fun findControls(classes: Iterable<ClassDef>, community: CommunityInbox
     found.getValue(APP_THEME_PICK).addAll(findAppThemePick(classes))
     found.getValue(SYSTEM_CAMERA).addAll(findSystemCamera(classes))
     found.getValue(EXTERNAL_GALLERY).addAll(findExternalGallery(classes))
+    found.getValue(INSTANT_GALLERY).addAll(findInstantGallery(classes))
+    found.getValue(SPECIAL_CONTACTS).addAll(findSpecialContacts(classes))
+    found.getValue(MENU_BLUR).addAll(findMenuBlur(classes))
     found.getValue(GALLERY_TEMP_FILE).addAll(findGalleryTempFile(classes))
     found.getValue(GALLERY_TO_CHAT).addAll(findGalleryToChat(classes))
     for ((hook, methods) in findCustomFont(classes)) found.getValue(hook).addAll(methods)
     return found
+}
+
+/**
+ * Static fields stored by any class initializer that mentions the Notifications tab's "hide suggestions" preference
+ * key. validatePeopleSection checks the exact key before anything is edited.
+ */
+private fun findPeopleJewelKeys(classes: Iterable<ClassDef>): Set<String> = classes.flatMap { cls ->
+        val code = cls.methods.singleOrNull { it.name == "<clinit>" }?.implementation?.instructions?.toList().orEmpty()
+        if (code.none { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == PEOPLE_JEWEL_KEY }) emptyList()
+        else code.filter { it.opcode == Opcode.SPUT_OBJECT }.map { (it as ReferenceInstruction).reference.toString() }
+}.toSet()
+
+/** The static field each class initializer stores the story card's last-shown date key in. */
+private fun findStoryCardKeys(classes: Iterable<ClassDef>): Set<String> = classes.flatMap { cls ->
+        val code = cls.methods.singleOrNull { it.name == "<clinit>" }?.implementation?.instructions?.toList().orEmpty()
+        code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == STORY_CARD_DATE_KEY }
+            .mapNotNull { at -> code.drop(at + 1).firstOrNull { it.opcode == Opcode.SPUT_OBJECT } }
+            .map { (it as ReferenceInstruction).reference.toString() }
+}.toSet()
+
+/** The methods that write a message row's debug string, with its text, id and unsent fields. */
+internal val messageDebugStrings = MethodCheck {
+    val fields = listOf("text=", "message_id=", "is_unsent=").map(::StringMatch)
+    val test: MethodTest = { _, m -> fields.all { it.inCode(m) } }
+    test
+}
+
+/** The getters the unsent hooks call on a message row, named by the row's debug string and the wrapper that serves it. */
+private fun resolveMessageGetterNames(classes: Iterable<ClassDef>) {
+    messageTextGetterName = ""
+    messageIdGetterName = ""
+    messageIsUnsentGetterName = ""
+    messageOtidGetterName = ""
+    messageTimestampGetterName = ""
+    messageSenderGetterName = ""
+    messageContentTypeGetterName = ""
+    messageContentSubtypeGetterName = ""
+    messageRowInterface = ""
+    var rawText = ""
+    var rawId = ""
+    var rawUnsent = ""
+    var rawOtid = ""
+    var rawTimestamp = ""
+    var rawSender = ""
+    var rawContentType = ""
+    var rawContentSubtype = ""
+    var debugClass: ClassDef? = null
+    for ((cls, m) in messageDebugStrings.sites(classes)) {
+        // A class's first debug string is the only one read, and none once the text getter is named.
+        if (cls === debugClass) continue
+        if (rawText.isNotEmpty()) break
+        debugClass = cls
+        var lastRef: DexMethodReference? = null
+        for (insn in m.implementation!!.instructions) {
+            val ref = (insn as? ReferenceInstruction)?.reference ?: continue
+            if (insn.opcode == Opcode.INVOKE_INTERFACE && ref is DexMethodReference) {
+                lastRef = ref
+            } else if (ref is StringReference && lastRef != null) {
+                when (ref.string) {
+                    "text=" -> if (lastRef.returnType == "Ljava/lang/String;") { rawText = lastRef.name; lastRef = null }
+                    "message_id=" -> if (lastRef.returnType == "Ljava/lang/String;") { rawId = lastRef.name; lastRef = null }
+                    "is_unsent=" -> if (lastRef.returnType == "Z") { rawUnsent = lastRef.name; lastRef = null }
+                    "offline_threading_id=" -> if (lastRef.returnType == "Ljava/lang/String;") { rawOtid = lastRef.name; lastRef = null }
+                    "timestamp_ms=" -> if (lastRef.returnType == "J") { rawTimestamp = lastRef.name; lastRef = null }
+                    "sender_id=" -> if (lastRef.returnType == "J") { rawSender = lastRef.name; lastRef = null }
+                    "message_content_type=" -> if (lastRef.returnType == "I") { rawContentType = lastRef.name; lastRef = null }
+                    "message_content_subtype=" -> if (lastRef.returnType == "I") { rawContentSubtype = lastRef.name; lastRef = null }
+                }
+            }
+        }
+    }
+    if (rawText.isNotEmpty()) {
+        messageTextGetterName = rawText
+        messageIdGetterName = rawId
+        messageIsUnsentGetterName = rawUnsent
+        messageOtidGetterName = rawOtid
+        for (wrapperCls in classes) {
+            if (!wrapperCls.isRowWrapper()) continue
+            fun resolve(raw: String, ret: String): String {
+                if (wrapperCls.methods.any { it.name == raw && it.returnType == ret && it.parameterTypes == listOf("I") }) return raw
+                return wrapperCls.methods.firstOrNull { wm ->
+                    wm.returnType == ret && wm.parameterTypes == listOf("I") &&
+                        wm.implementation?.instructions?.any { insn ->
+                            insn.opcode == Opcode.INVOKE_INTERFACE &&
+                                ((insn as? ReferenceInstruction)?.reference as? DexMethodReference)?.name == raw
+                        } == true
+                }?.name ?: raw
+            }
+            messageTextGetterName = resolve(rawText, "Ljava/lang/String;")
+            messageIdGetterName = resolve(rawId, "Ljava/lang/String;")
+            messageIsUnsentGetterName = resolve(rawUnsent, "Z")
+            if (rawOtid.isNotEmpty()) messageOtidGetterName = resolve(rawOtid, "Ljava/lang/String;")
+            if (rawTimestamp.isNotEmpty()) messageTimestampGetterName = resolve(rawTimestamp, "J")
+            if (rawSender.isNotEmpty()) messageSenderGetterName = resolve(rawSender, "J")
+            if (rawContentType.isNotEmpty()) messageContentTypeGetterName = resolve(rawContentType, "I")
+            if (rawContentSubtype.isNotEmpty()) messageContentSubtypeGetterName = resolve(rawContentSubtype, "I")
+            // The debug writer reads each item, while encrypted chats' CQL rows serve the row interface the wrapper does.
+            messageRowInterface = wrapperCls.interfaces.single().toString()
+            break
+        }
+    }
+}
+
+/** One method findControls looks at, with what its checks read taken out once. */
+private class ScannedMethod(
+    val found: Map<String, MutableList<Method>>,
+    val cls: ClassDef,
+    val original: String?,
+    val method: Method,
+    val instructions: List<Instruction>,
+) {
+    val refs = instructions.mapNotNull { (it as? ReferenceInstruction)?.reference }
+    /** Decoded only for a method whose shape passes a cheaper check first (#148, #150). */
+    val strings by lazy(LazyThreadSafetyMode.NONE) { refs.filterIsInstance<StringReference>().map { it.string }.toSet() }
+    // Read once: a dex-backed method decodes its return and parameter types again on every ask.
+    val ret: String = method.returnType
+    val params: List<CharSequence> = method.parameterTypes.toList()
+    val gate = ret == "Z" && params.isEmpty()
+
+    fun add(key: String) { found.getValue(key).add(method) }
+}
+
+/**
+ * The checks findControls runs on every method in the app, split over a few functions. Held in findControls itself they
+ * made it over 8000 bytes of bytecode, which the JVM never compiles (ART skips methods that size too), so the whole
+ * scan ran in the interpreter and took many minutes on a phone (#148, #150).
+ */
+private class ControlScan(
+    val found: Map<String, MutableList<Method>>,
+    val peopleJewelKeys: Set<String>,
+    val storyCardKeys: Set<String>,
+    val appIconManagers: Set<String>,
+    val stringTables: Map<String, Map<Int, String>>,
+) {
+    var searchFieldRender: Method? = null
+    var changedViewer = false
+    val drawerReaders = mutableListOf<Method>()
+    val drawerAnchors = mutableListOf<Method>()
+    val drawerInterfaces = mutableMapOf<String, List<String>>()
+    val searchIconReaders = mutableListOf<Method>()
+    val searchIconAnchors = mutableListOf<Method>()
+    // The checks every method meets ask for one string each, so they go by table index instead of decoding the method's
+    // strings, which only the shapes that pass a cheaper check get to (#148, #150).
+    val drawerAnchor = StringMatch(EMOJI_DRAWER_ANCHOR)
+    val searchAnchor = StringMatch(SEARCH_ICON_ANCHOR)
+    val aiFab = StringMatch("AiFabComponent")
+    val peopleSearch = StringMatch(PEOPLE_SEARCH_SOURCE)
+    val drawerRefresh = StringMatch(DRAWER_REFRESH)
+    val notesTip = StringMatch(NOTES_TIP_SHEET)
+
+    fun visit(cls: ClassDef, original: String?, method: Method) {
+        if ((cls.type == EPHEMERAL_VIEWER && (method.name in EPHEMERAL_DIALOGS || method.name == "onResume")) ||
+            (cls.type == QUICKSNAP_VIEWER && method.name == "onCreateView")) {
+            try {
+                method.screenshotViewerSites()
+                found.getValue("screenshot_viewers").add(method)
+            } catch (refusal: PatchException) {
+                // The reason would be lost behind the generic "hooks differ", so validateControls repeats it.
+                changedViewer = true
+                screenshotViewerRefusal = refusal.message
+            }
+        }
+        val instructions = method.implementation?.instructions?.toList() ?: return
+        val scanned = ScannedMethod(found, cls, original, method, instructions)
+        flagsAndGates(scanned)
+        privacyAndMenus(scanned)
+        storiesAndChats(scanned)
+    }
+
+    private fun flagsAndGates(scanned: ScannedMethod): Unit = with(scanned) {
+        if (instructions.any { it.isEmojiDrawerFlag() }) {
+            drawerReaders.add(method)
+            drawerInterfaces[cls.type] = cls.interfaces.toList()
+        }
+        if (refs.any { drawerAnchor.matches(it) }) drawerAnchors.add(method)
+        if (instructions.any { it.isSearchIconFlag() }) searchIconReaders.add(method)
+        if (refs.any { searchAnchor.matches(it) }) searchIconAnchors.add(method)
+        if (ret == "Z" && (params.isEmpty() ||
+            (AccessFlags.STATIC.isSet(method.accessFlags) && params == listOf(cls.type)))) {
+            val anchors = strings + method.tableStrings(stringTables)
+            for ((key, spec) in pluginGates) if (anchors.any { it in spec.anchors }) add(key)
+        }
+        if (gate && "com.facebook.messaging.friendsinboxunit.plugins.inboxunit.FriendsInboxUnitKillSwitch" in strings) add("stories")
+        if (cls.type in appIconManagers && method.isAppIconGate()) add(APP_ICONS)
+        if (method.isAppThemeGate()) add(APP_THEMES)
+        if (gate) {
+            val shortcuts = instructions.filter { it.opcode == Opcode.NEW_INSTANCE }
+                .mapNotNull { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type }
+                .filter { it in facebookPlugins }.toSet()
+            // A gate that builds only the chat details Profile button gets its own key, so Keep the Profile button can spare it.
+            if (shortcuts == setOf(FACEBOOK_PROFILE_BUTTON)) add(FACEBOOK_PROFILE)
+            else if (shortcuts.isNotEmpty()) add("facebook")
+        }
+        if (gate && strings.any {
+            it == "com.facebook.messaging.navigation.plugins.aicreationfolder.folderitem.AiCreationFolderItem" ||
+                it == "com.facebook.messaging.navigation.plugins.aihomefolder.folderitem.AiHomeFolderItem"
+        }) add("ai_menu")
+        if (refs.any { aiFab.matches(it) } && instructions.any { it.opcode == Opcode.RETURN_OBJECT }) add("ai_fab")
+        if (method.name == "run" && ret == "V" && params.isEmpty()) {
+            if (original == "InboxSubtabsItemSupplierImplementation\$onSubscribe\$1") add("subtabs")
+            if (original == "ConversationTypingContext\$sendActiveStateRunnable\$1") add("typing")
+            if (original == "SecureWindowUtils\$1") add("allow_screenshot")
+        }
+        if (gate && refs.any { it.toString() == "Landroid/os/Build\$VERSION;->SDK_INT:I" } &&
+            refs.any { it.toString() == "Landroid/app/ActivityManager;->isLowRamDevice()Z" }) add("bubbles")
+        if (!AccessFlags.STATIC.isSet(method.accessFlags) && ret == "Z" &&
+            params == listOf(BUBBLE_SESSION) && instructions.any {
+                it.opcode == Opcode.CONST_WIDE && (it as? WideLiteralInstruction)?.wideLiteral == BUBBLE_ROLLOUT
+            }) add("bubble_mode")
+    }
+
+    private fun privacyAndMenus(scanned: ScannedMethod): Unit = with(scanned) {
+        // The external-browser check is the launcher's own (Uri, session) instance check; it logs no skip reason.
+        if (ret == "Z" && cls.type == MESSENGER_BROWSER_LAUNCHER && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+            params == listOf("Landroid/net/Uri;", BUBBLE_SESSION)) add("browser")
+        if (ret == "Z" && AccessFlags.STATIC.isSet(method.accessFlags) && method.isPeopleSectionShape() &&
+            refs.any { it.toString() in peopleJewelKeys } && refs.any { it.toString() == activeProfile.preferenceGetter }) add("people_jewel")
+        if (AccessFlags.STATIC.isSet(method.accessFlags) && ret == "V" && params == listOf(cls.type) &&
+            refs.any { (it as? DexMethodReference)?.publishesSuggestions() == true } &&
+            cls.methods.any { other ->
+                other.implementation?.instructions?.any { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type == PEOPLE_TAB_FETCH } == true
+            }) add("people_tab")
+        if (!AccessFlags.STATIC.isSet(method.accessFlags) && refs.any { peopleSearch.matches(it) } &&
+            strings.containsAll(setOf(PEOPLE_SEARCH_SOURCE, "Failed to load people you may know"))) add("people_search")
+        if (AccessFlags.STATIC.isSet(method.accessFlags) && ret == "V" && params == listOf(cls.type) &&
+            STORY_SUGGESTIONS_QUERY in strings + method.tableStrings(stringTables)) add("people_story")
+        // The chat list supplier's items read, which first traces under its own name.
+        if (cls.type == INBOX_SUPPLIER && !AccessFlags.STATIC.isSet(method.accessFlags) && ret == IMMUTABLE_LIST &&
+            params.isEmpty() && INBOX_ITEMS_TRACE in strings) { add(INBOX_REFRESH_HOOK); add(PIN_LIST); add(HIDDEN_CHAT_LIST) }
+        if (cls.type == "Lcom/facebook/screenshot/ScreenshotContentObserver;" && method.name == "onChange" &&
+            ret == "V") add("allow_screenshot")
+        // Android 14 and newer report a screenshot here, and Messenger turns it into the in-chat notice.
+        if (method.name == "onScreenCaptured" && ret == "V" && params.isEmpty() &&
+            SCREEN_CAPTURE_CALLBACK in cls.interfaces) add("allow_screenshot")
+        // Photo and media viewers in protected chats lock their window through this one helper.
+        if (ret == "V" && params == listOf("Landroid/view/Window;") &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) &&
+            instructions.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == FLAG_SECURE } &&
+            refs.any { it.toString() == "Landroid/view/Window;->addFlags(I)V" }) add("allow_screenshot")
+        if (cls.type == MEDIA_TRANSCODER && method.hookId() in ORIGINAL_PHOTO_HOOKS) add("original_photo")
+        if (cls.type == MEDIA_TRANSCODER && method.isVideoTranscode(strings)) {
+            add(ORIGINAL_VIDEO)
+            if (method.parsesTranscodeSource()) add(XHE_TRANSCODE)
+        }
+        if (ret == "V" && method.isKeepUnsentShape() && strings.any { "ACTION_REVOKE_MESSAGE" in it }) add("keep_unsent")
+        // Both unsent hooks call the wrapper's own message id getter, so the wrapper that holds them has to have one.
+        // Encrypted chats read their rows straight from a CQL result set, so those row classes get the same hooks.
+        if (messageTextGetterName.isNotEmpty() && method.name == messageTextGetterName &&
+            ret == "Ljava/lang/String;" && params == listOf("I") &&
+            (cls.isRowWrapper() || cls.isCqlRowWrapper()) && cls.hasMessageIdGetter()) add("unsent_indicator")
+        if (messageIsUnsentGetterName.isNotEmpty() && method.name == messageIsUnsentGetterName &&
+            ret == "Z" && params == listOf("I") &&
+            (cls.isRowWrapper() || cls.isCqlRowWrapper()) && cls.hasMessageIdGetter()) add("delta_unsent")
+        // The gates are private instance methods with no parameter.
+        if (ret == "Z" && params.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+            strings.any { "SearchAiagentImplementationsKillSwitch" in it }) add("ai_search")
+        if (ret == "Landroid/graphics/Typeface;" && params.isEmpty() &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) &&
+            "FacebookEmojiTypefaceProviderImpl" in strings) add("emoji_typeface")
+        if (ret == "Ljava/util/ArrayList;" && params.size == 1 &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) &&
+            strings.any { "settingsfolder.folderitem.SettingsFolderItem" in it }) add("menu_settings")
+        if (ret == "V" && params.size == 2 &&
+            params[1] == "I" && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+            strings.contains("Unknown ViewHolder")) add("menu_settings")
+        if (method.name == "onClick" && ret == "V" &&
+            params == listOf("Landroid/view/View;") &&
+            DRAWER_FOLDER_SELECTED in strings) add("menu_settings")
+        if (ret == "V" && params.isEmpty() &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) && refs.any { drawerRefresh.matches(it) }) add("menu_settings")
+    }
+
+    private fun storiesAndChats(scanned: ScannedMethod): Unit = with(scanned) {
+        // The sticker keyboard's tab list is filled inline in a composer factory method that reads the avatar
+        // tab's activate event and returns the built list.
+        if (ret == IMMUTABLE_LIST && cls.type == COMPOSER_FACTORY &&
+            refs.any { it.toString().startsWith("$AVATAR_TAB_EVENT->") } &&
+            refs.any { it.toString().startsWith("$IMMUTABLE_LIST->builder()") }) add("avatar_tabs")
+        if (method.name == "render" && SEARCH_CLEAR_TAG in strings) searchFieldRender = method
+        // Encrypted chats send typing through this msys mailbox call (thread id, typing).
+        if (params == listOf("Ljava/lang/String;", "Z") && TYPING_MAILBOX_CALL in strings) add("typing_mailbox")
+        // An open chat marks itself read, which also sends Seen, only through the job its seen handler schedules here.
+        if (method.isChatSeenBroadcast()) add(HIDE_READ_RECEIPTS)
+        if (method.isReplyReadDispatch()) add(REPLY_READ)
+        // Opening a story card sends its seen state through the handler Messenger tags with this name.
+        if (ret == "V" && params == listOf(MONTAGE_CARD, "Z") &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) && STORY_MARK_READ_TAG in strings) add("anonymous_stories")
+        // Every story preview is built here, so a card opened anonymously can start out seen in the chat list.
+        if (cls.type == MONTAGE_BUCKET_PREVIEW && method.name == "<init>" &&
+            params.any { it.toString() == MONTAGE_CARD }) add("anonymous_stories")
+        // The story viewer's More options button builds its menu here, your own story's Save item included.
+        if (method.name == "onClick" && ret == "V" && params == listOf("Landroid/view/View;") &&
+            STORY_MENU_TAG in strings) add("save_stories")
+        // Notes open every tip sheet through this one suspend call, which returns whether it showed one.
+        if (!AccessFlags.STATIC.isSet(method.accessFlags) && ret == "Ljava/lang/Object;" && refs.any { notesTip.matches(it) } &&
+            strings.containsAll(setOf(NOTES_TIP_SHEET, NOTES_TIP_TYPE_ARG))) add("growth_notes")
+        // The story viewer adds its Share your own story card only while this daily cap check passes.
+        if (AccessFlags.STATIC.isSet(method.accessFlags) && ret == "Z" && params == listOf(cls.type) &&
+            refs.any { it.toString() in storyCardKeys }) add("growth_story_card")
+        if (cls.type == ANDROIDX_FRAGMENT && method.hookId() == FRAGMENT_ANIMATION) add("chat_animation")
+        // The chat and the inbox under it inherit that answer. androidx needs each fragment's no-argument
+        // constructor, so it names the class the animation hook tells apart.
+        if (method.name == "<init>" && params.isEmpty()) {
+            if (original == CHAT_FRAGMENT_NAME) add("chat_fragment")
+            if (original == "M4TabNavigationFragment") add("chat_inbox")
+        }
+        if (original == CHAT_FRAGMENT_NAME && method.isChatJumpView()) add(CHAT_JUMP)
+        // Chats on Messenger's older route open in this fragment, which loads its own animation.
+        if (original == "ThreadViewFragment" && method.name == "onCreateAnimation" &&
+            method.hookId() == "${cls.type}->onCreateAnimation(IZI)$ANIMATION") add("chat_legacy")
+    }
 }
 
 internal fun validateControls(
@@ -668,7 +815,7 @@ private fun Method.decodeFileCall(): Int {
     val scale = code.indexOfFirst { instruction ->
         instruction.opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) &&
             ((instruction as? ReferenceInstruction)?.reference as? DexMethodReference)?.let { reference ->
-                reference.returnType == BITMAP && reference.parameterTypes.map(CharSequence::toString) == SCALE_BITMAP_PARAMS
+                reference.returnType == BITMAP && reference.parameterTypes.map(CharSequence::toString) in SCALE_BITMAP_PARAMS
             } == true
     }
     if (call == null || call.opcode !in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) || call.registerList().size != 1 ||
@@ -845,12 +992,32 @@ internal fun ClassDef.isRowWrapper(): Boolean =
         fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.let { it.size == 1 && it[0].type == "Ljava/util/List;" } &&
         methods.any { it.name == "getCount" && it.returnType == "I" && it.parameterTypes.isEmpty() }
 
+internal const val CQL_RESULT_SET = "Lcom/facebook/msys/mci/CQLResultSet;"
+
+/** The getters an encrypted chat's text hook reads besides the message id, by name and return type. */
+private fun cqlRowGetters() = listOf(messageOtidGetterName to "Ljava/lang/String;", messageTimestampGetterName to "J",
+    messageSenderGetterName to "J", messageContentTypeGetterName to "I", messageContentSubtypeGetterName to "I")
+
+/**
+ * A row class built on a CQL result set that serves the message row interface itself, the way encrypted chats get their
+ * rows. Its text hook also asks for the row's offline threading id, time, sender, content type and subtype, so a class
+ * without those getters is left alone.
+ */
+internal fun ClassDef.isCqlRowWrapper(): Boolean =
+    messageRowInterface.isNotEmpty() && cqlRowGetters().all { (name, _) -> name.isNotEmpty() } &&
+        !AccessFlags.ABSTRACT.isSet(accessFlags) && !AccessFlags.INTERFACE.isSet(accessFlags) &&
+        interfaces.map { it.toString() } == listOf(messageRowInterface) &&
+        methods.any { it.name == "<init>" && it.parameterTypes.map { p -> p.toString() } == listOf(CQL_RESULT_SET) } &&
+        cqlRowGetters().all { (name, ret) ->
+            methods.any { it.name == name && it.returnType == ret && it.parameterTypes.map { p -> p.toString() } == listOf("I") }
+        }
+
 /** The unsent hooks are assembled with the message id getter's name, so an empty or missing one stops discovery. */
 internal fun ClassDef.hasMessageIdGetter(): Boolean = messageIdGetterName.isNotEmpty() &&
     methods.any { it.name == messageIdGetterName && it.returnType == "Ljava/lang/String;" && it.parameterTypes == listOf("I") }
 
-/** The Notifications tab's server flag ID as 586 numbers it. Meta renumbers it with each release. */
-private const val PEOPLE_SERVER_FLAG = 72344145666062935L
+/** The Notifications tab's server flag ID as 587 numbers it (586 read 72344145666062935). Meta renumbers it with each release. */
+private const val PEOPLE_SERVER_FLAG = 72344137076128710L
 
 /**
  * Where the Notifications tab loads its server flag: the method's only constant with that value, at 17, after the
@@ -1110,35 +1277,31 @@ private const val IMMUTABLE_LIST_BUILDER = "Lcom/google/common/collect/Immutable
 
 /**
  * The composer fills the keyboard's tab list inline and returns it: a local ArrayList of tab items goes into a fresh
- * ImmutableList.Builder through one addAll that is built on the very next instruction:
+ * ImmutableList.Builder through one static call that adds it all and builds, as 583 did (584 to 586 called addAll and
+ * then a static build):
  *
  *     invoke-static {}, ImmutableList;->builder()
  *     move-result-object vB
- *     invoke-virtual {vB, vList}, ImmutableList$Builder;->addAll(Iterable)
- *     invoke-static {vB}, <static (Builder) -> ImmutableList>
+ *     invoke-static {vB, vList}, <static (Builder, Iterable) -> ImmutableList>
  *
- * Returns the addAll's index and list register.
+ * Returns the copy's index and list register.
  */
 internal fun MutableMethod.validateKeyboardTabsInline(): Pair<Int, Int> {
     fun changed(): Nothing = throw PatchException("Messenger controls: the sticker keyboard tab list differs from the tested build")
     val code = implementation!!.instructions.toList()
     val copy = code.indices.filter { index ->
         val call = (code[index] as? ReferenceInstruction)?.reference as? DexMethodReference
-        code[index].opcode == Opcode.INVOKE_VIRTUAL && call != null && call.definingClass == IMMUTABLE_LIST_BUILDER &&
-            call.name == "addAll" && call.returnType == IMMUTABLE_LIST_BUILDER &&
-            call.parameterTypes.map { it.toString() } == listOf("Ljava/lang/Iterable;")
+        code[index].opcode == Opcode.INVOKE_STATIC && call != null && call.returnType == IMMUTABLE_LIST &&
+            call.parameterTypes.map { it.toString() } == listOf(IMMUTABLE_LIST_BUILDER, "Ljava/lang/Iterable;")
     }.singleOrNull()
     // Code inserted before a jump target would be skipped by whatever jumps there.
-    if (returnType != IMMUTABLE_LIST || copy == null || copy < 2 || copy + 1 >= code.size || copy in jumpTargets()) changed()
+    if (returnType != IMMUTABLE_LIST || copy == null || copy < 2 || copy in jumpTargets()) changed()
     val add = code[copy] as FiveRegisterInstruction
     val builder = (code[copy - 1] as? OneRegisterInstruction)?.takeIf { code[copy - 1].opcode == Opcode.MOVE_RESULT_OBJECT }?.registerA
     val made = (code[copy - 2] as? ReferenceInstruction)?.reference as? DexMethodReference
-    val build = (code[copy + 1] as? ReferenceInstruction)?.reference as? DexMethodReference
     if (builder == null || made?.toString() != "$IMMUTABLE_LIST->builder()$IMMUTABLE_LIST_BUILDER" ||
         code[copy - 2].opcode != Opcode.INVOKE_STATIC || add.registerCount != 2 || add.registerC != builder ||
-        add.registerD == builder || code[copy + 1].opcode != Opcode.INVOKE_STATIC || build == null ||
-        build.returnType != IMMUTABLE_LIST || build.parameterTypes.map { it.toString() } != listOf(IMMUTABLE_LIST_BUILDER) ||
-        (code[copy + 1] as FiveRegisterInstruction).let { it.registerCount != 1 || it.registerC != builder }) changed()
+        add.registerD == builder) changed()
     return copy to add.registerD
 }
 
@@ -1354,9 +1517,33 @@ internal fun MutableMethod.injectKeepUnsent() {
     """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(0)))
 }
 
-internal fun MutableMethod.validateUnsentIndicator() {
+/**
+ * Whether the getter reads one column straight from its row's CQL result set into v0 and returns it, the way encrypted
+ * chats' row classes do: `iget-object v1, p0, resultSet; const/16 v0, column; invoke-interface {v1, p1, v0}, get(II);
+ * move-result v0; return v0`, in a four-register instance method, so v1 is free once the column is read.
+ */
+private fun MutableMethod.readsOneCqlColumn(getter: String, moveResult: Opcode, ret: Opcode): Boolean {
+    val code = implementation!!.instructions.toList()
+    if (code.map { it.opcode } != listOf(Opcode.IGET_OBJECT, Opcode.CONST_16, Opcode.INVOKE_INTERFACE, moveResult, ret)) return false
+    val read = (code[2] as ReferenceInstruction).reference as? DexMethodReference ?: return false
+    // Only v0 and v1 are written, so p0 and p1 still hold the row and its index for the hook's own calls.
+    val writes = listOf(1, 0, -1, 0, 0)
+    return read.definingClass == CQL_RESULT_SET && "${read.name}(${read.parameterTypes.joinToString("")})${read.returnType}" == getter &&
+        code.indices.all { writes[it] < 0 || (code[it] as OneRegisterInstruction).registerA == writes[it] } &&
+        implementation!!.registerCount == 4 && !AccessFlags.STATIC.isSet(accessFlags)
+}
+
+/** Whether the text hook sits in an encrypted chat's CQL row class (true) or the list wrapper other chats use (false). */
+internal fun MutableMethod.validateUnsentIndicator(): Boolean {
     if (returnType != "Ljava/lang/String;") throw PatchException("Messenger controls: unsent_indicator hook must return String")
     if (parameterTypes != listOf("I")) throw PatchException("Messenger controls: unsent_indicator hook must take one int param")
+    if (readsOneCqlColumn("getString(II)Ljava/lang/String;", Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT)) {
+        if (messageOtidGetterName.isEmpty()) throw PatchException("Messenger controls: unsent_indicator hook needs the row's threading id getter")
+        if (messageTimestampGetterName.isEmpty() || messageSenderGetterName.isEmpty() || messageContentTypeGetterName.isEmpty() ||
+            messageContentSubtypeGetterName.isEmpty())
+            throw PatchException("Messenger controls: unsent_indicator hook needs the row's time, sender, content type and subtype getters")
+        return true
+    }
     val code = implementation!!.instructions.toList()
     // 584 takes the row from the wrapper's list, casts it and asks it for its text, ending in v0.
     val shape = listOf(Opcode.IGET_OBJECT, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST,
@@ -1365,12 +1552,25 @@ internal fun MutableMethod.validateUnsentIndicator() {
     if (code.map { it.opcode } != shape || (code.last() as OneRegisterInstruction).registerA != 0 || implementation!!.registerCount != 3 ||
         AccessFlags.STATIC.isSet(accessFlags))
         throw PatchException("Messenger controls: unsent_indicator hook no longer reads the row's text from its list")
+    return false
 }
 
 internal fun MutableMethod.injectUnsentIndicator() {
-    validateUnsentIndicator()
+    val cql = validateUnsentIndicator()
     val code = implementation!!.instructions.toList()
     val returnIndex = code.indexOfLast { it.opcode == Opcode.RETURN_OBJECT }
+    if (cql) {
+        // The row's ids, time, sender and type don't fit in the getter's four registers, so the class's helper
+        // (unsentRowHelper) reads them. Nothing is read when Keep unsent messages is off.
+        addInstructionsWithLabels(returnIndex, """
+            invoke-static {}, $SETTINGS->watchesUnsentRows()Z
+            move-result v1
+            if-eqz v1, :keep_text
+            invoke-static {p0, v0, p1}, $definingClass->$UNSENT_ROW_HELPER(${definingClass}Ljava/lang/String;I)Ljava/lang/String;
+            move-result-object v0
+        """.trimIndent(), ExternalLabel("keep_text", getInstruction(returnIndex)))
+        return
+    }
     addInstructions(returnIndex, """
         invoke-virtual {p0, p1}, $definingClass->$messageIdGetterName(I)Ljava/lang/String;
         move-result-object p1
@@ -1379,9 +1579,65 @@ internal fun MutableMethod.injectUnsentIndicator() {
     """.trimIndent())
 }
 
+internal const val UNSENT_ROW_HELPER = "hushUnsentRowText"
+
+/**
+ * The static helper an encrypted chat's text hook calls with the row, its text and its index. It reads the row's ids,
+ * time, sender, content type and subtype and asks the extension what to show. An unsent message's row comes back with
+ * no text, or, on 587, is hidden behind a "deleted a message" row with the same time and sender, so those come along to
+ * find the words it had.
+ */
+internal fun unsentRowHelper(row: String): MutableMethod {
+    val parameters = listOf(row, "Ljava/lang/String;", "I").map { ImmutableMethodParameter(it, null, null) }
+    // v0 to v8 hold the extension's arguments in order. p0 is the row, p1 its text, p2 its index.
+    return MutableMethod(ImmutableMethod(row, UNSENT_ROW_HELPER, parameters, "Ljava/lang/String;",
+        AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, ImmutableMethodImplementation(12, emptyList(), null, null)))
+        .apply {
+            addInstructions(0, """
+                move-object v0, p1
+                invoke-virtual {p0, p2}, $row->$messageIdGetterName(I)Ljava/lang/String;
+                move-result-object v1
+                invoke-virtual {p0, p2}, $row->$messageOtidGetterName(I)Ljava/lang/String;
+                move-result-object v2
+                invoke-virtual {p0, p2}, $row->$messageTimestampGetterName(I)J
+                move-result-wide v3
+                invoke-virtual {p0, p2}, $row->$messageSenderGetterName(I)J
+                move-result-wide v5
+                invoke-virtual {p0, p2}, $row->$messageContentTypeGetterName(I)I
+                move-result v7
+                invoke-virtual {p0, p2}, $row->$messageContentSubtypeGetterName(I)I
+                move-result v8
+                invoke-static/range {v0 .. v8}, $SETTINGS->labelKeptUnsentRow(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JJII)Ljava/lang/String;
+                move-result-object v0
+                return-object v0
+            """.trimIndent())
+        }
+}
+
+/** Whether an encrypted chat's row class can take [unsentRowHelper]: it serves every getter the helper calls. */
+internal fun ClassDef.checkUnsentRowHelper() {
+    if (methods.any { it.name == UNSENT_ROW_HELPER }) throw PatchException("Messenger controls: $type already has $UNSENT_ROW_HELPER")
+    val wanted = listOf(messageIdGetterName to "Ljava/lang/String;", messageOtidGetterName to "Ljava/lang/String;",
+        messageTimestampGetterName to "J", messageSenderGetterName to "J", messageContentTypeGetterName to "I",
+        messageContentSubtypeGetterName to "I")
+    for ((name, ret) in wanted) {
+        if (methods.none { it.name == name && it.returnType == ret && it.parameterTypes == listOf("I") && !AccessFlags.STATIC.isSet(it.accessFlags) })
+            throw PatchException("Messenger controls: $type has no $name(I)$ret for the unsent text helper")
+    }
+}
+
+/** Adds [unsentRowHelper] to an encrypted chat's row class once [checkUnsentRowHelper] passed. */
+internal fun MutableClass.addUnsentRowHelper(helper: MutableMethod) {
+    checkUnsentRowHelper()
+    methods.add(helper)
+    directMethods.add(helper)
+}
+
 internal fun MutableMethod.validateDeltaUnsent() {
     if (returnType != "Z") throw PatchException("Messenger controls: delta_unsent hook must return boolean")
     if (parameterTypes != listOf("I")) throw PatchException("Messenger controls: delta_unsent hook must take one int param")
+    // An encrypted chat's row reads the flag from its result set into v0, with p0 and p1 in v2 and v3.
+    if (readsOneCqlColumn("getBoolean(II)Z", Opcode.MOVE_RESULT, Opcode.RETURN)) return
     val code = implementation!!.instructions.toList()
     if (code.size != 5) throw PatchException("Messenger controls: delta_unsent hook has ${code.size} instructions, expected 5")
     if (code[4].opcode != Opcode.RETURN) throw PatchException("Messenger controls: delta_unsent hook must end with return")
@@ -1436,15 +1692,39 @@ internal fun MutableMethod.validateStorySeen(): Int {
     return cache
 }
 
+/**
+ * The gate hands the handler, the card and its flag to the extension, which keeps them for the Mark as seen button
+ * (#169) and says whether to skip the send. A tap replays this same handler, which the gate then lets through.
+ */
 internal fun MutableMethod.injectStorySeen() {
     val cache = validateStorySeen()
     addInstructionsWithLabels(1, """
-        invoke-static {}, $SETTINGS->viewStoriesAnonymously()Z
+        invoke-static/range {p0 .. p2}, $SETTINGS->holdStorySeen(Ljava/lang/Object;Ljava/lang/Object;I)Z
         move-result v0
         if-eqz v0, :stock_behavior
         const/4 v0, 0x0
         goto/16 :local_seen
     """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(1)), ExternalLabel("local_seen", getInstruction(cache)))
+}
+
+internal const val STORY_EYE = "Lapp/hushmessenger/extension/StoryEye;"
+internal const val STORY_VIEWER_CREATED = "$MONTAGE_VIEWER->onViewCreated(Landroid/view/View;Landroid/os/Bundle;)V"
+
+/** The story viewer's own onViewCreated, where the Mark as seen button joins the viewer's window. */
+internal fun ClassDef.storyViewerCreated(): Method {
+    val created = methods.filter { it.hookId() == STORY_VIEWER_CREATED }
+    val method = created.singleOrNull()
+    if (method == null || AccessFlags.STATIC.isSet(method.accessFlags) || method.implementation == null) {
+        throw PatchException("Messenger controls: the story viewer has no onViewCreated of its own to add the Mark as seen button in")
+    }
+    return method
+}
+
+internal fun MutableMethod.injectStoryViewerCreated() {
+    if (hookId() != STORY_VIEWER_CREATED || AccessFlags.STATIC.isSet(accessFlags)) {
+        throw PatchException("Messenger controls: ${hookId()} isn't the story viewer's onViewCreated")
+    }
+    addInstructions(0, "invoke-static/range {p0 .. p1}, $STORY_EYE->viewerCreated(Ljava/lang/Object;Landroid/view/View;)V")
 }
 
 internal const val FB_USER_SESSION = "Lcom/facebook/auth/usersession/FbUserSession;"
@@ -1646,8 +1926,13 @@ internal class StorySave(
     val fragmentType: String,
     val menuType: String,
     val controller: String,
-    /** Card controllers the item is offered for. */
+    /** Card controllers the item is offered for, as 586 listed them. Empty when [canSave] asks instead. */
     val saveable: List<String>,
+    /**
+     * 587's question to the card's controller, a no-argument boolean the controller base answers false and the
+     * savable card types override. Null when [saveable] lists the types.
+     */
+    val canSave: String?,
     val id: Long,
     val label: Long,
     val labelOf: String,
@@ -1715,19 +2000,29 @@ internal fun MutableMethod.validateStorySave(): StorySave {
     }
     val card = reg(entry + 3)
     val saveable = mutableListOf<String>()
+    var canSave: String? = null
     var add = entry + 4
-    if (op(add) != Opcode.INSTANCE_OF) fail("Save item's card test no longer matches the tested build")
-    // The card types are listed: a match jumps to the item, the last miss skips it.
-    while (op(add) == Opcode.INSTANCE_OF) {
-        val test = code[add] as TwoRegisterInstruction
-        if (test.registerB != card || reg(add + 1) != test.registerA) fail("Save item's card test no longer matches the tested build")
-        saveable += ((code[add] as ReferenceInstruction).reference as TypeReference).type
-        add += 2
-        if (op(add - 1) == Opcode.IF_EQZ && branch(add - 1) == skip) break
-        if (op(add - 1) != Opcode.IF_NEZ) fail("Save item's card test no longer matches the tested build")
-    }
-    if (op(add - 1) != Opcode.IF_EQZ || (entry + 5 until add - 1 step 2).any { branch(it) != add }) {
-        fail("Save item's card test no longer matches the tested build")
+    val ask = call(add)
+    if (op(add) == Opcode.INVOKE_VIRTUAL && ask != null && ask.definingClass == controller.returnType && ask.returnType == "Z" &&
+        ask.parameterTypes.isEmpty() && args(add) == listOf(card) && op(add + 1) == Opcode.MOVE_RESULT &&
+        op(add + 2) == Opcode.IF_EQZ && reg(add + 2) == reg(add + 1) && branch(add + 2) == skip) {
+        // 587 asks the controller itself whether its card can be saved, and a no skips the item.
+        canSave = ask.toString()
+        add += 3
+    } else {
+        if (op(add) != Opcode.INSTANCE_OF) fail("Save item's card test no longer matches the tested build")
+        // 586 listed the card types: a match jumps to the item, the last miss skips it.
+        while (op(add) == Opcode.INSTANCE_OF) {
+            val test = code[add] as TwoRegisterInstruction
+            if (test.registerB != card || reg(add + 1) != test.registerA) fail("Save item's card test no longer matches the tested build")
+            saveable += ((code[add] as ReferenceInstruction).reference as TypeReference).type
+            add += 2
+            if (op(add - 1) == Opcode.IF_EQZ && branch(add - 1) == skip) break
+            if (op(add - 1) != Opcode.IF_NEZ) fail("Save item's card test no longer matches the tested build")
+        }
+        if (op(add - 1) != Opcode.IF_EQZ || (entry + 5 until add - 1 step 2).any { branch(it) != add }) {
+            fail("Save item's card test no longer matches the tested build")
+        }
     }
     val id = literal(add)
     val label = literal(add + 1)
@@ -1751,7 +2046,7 @@ internal fun MutableMethod.validateStorySave(): StorySave {
     }
     val handler = handlers.singleOrNull() ?: fail("no longer sends its clicks to one handler")
     return StorySave(
-        others, fragment, menu, fragmentType, menuType, controller.toString(), saveable, id, label,
+        others, fragment, menu, fragmentType, menuType, controller.toString(), saveable, canSave, id, label,
         labelOf.toString(), icon.toString(), addItem.toString(), ((code[handler] as ReferenceInstruction).reference as TypeReference).type,
     )
 }
@@ -1775,9 +2070,10 @@ internal fun ClassDef.validateStoryMenuHandler(save: StorySave) {
 
 /** Offers Save on someone else's story the way the menu offers it on yours, while the switch is on. */
 internal fun storySaveHelper(definingClass: String, save: StorySave): MutableMethod {
-    val test = save.saveable.mapIndexed { i, type ->
-        "instance-of v1, v0, $type\n" + if (i == save.saveable.lastIndex) "if-eqz v1, :done" else "if-nez v1, :add"
-    }.joinToString("\n")
+    val test = save.canSave?.let { "invoke-virtual {v0}, $it\nmove-result v1\nif-eqz v1, :done" }
+        ?: save.saveable.mapIndexed { i, type ->
+            "instance-of v1, v0, $type\n" + if (i == save.saveable.lastIndex) "if-eqz v1, :done" else "if-nez v1, :add"
+        }.joinToString("\n")
     val parameters = listOf(save.fragmentType, save.menuType).map { ImmutableMethodParameter(it, null, null) }
     return MutableMethod(ImmutableMethod(definingClass, STORY_SAVE_HELPER, parameters, "V",
         AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, ImmutableMethodImplementation(6, emptyList(), null, null)))

@@ -68,18 +68,19 @@ public class RowChevronTest {
 
     /** Every row on the screen whose tap opens a dialog, a file picker, the browser, Android's settings or another page. */
     private static final Set<String> OPENS_SOMETHING = new LinkedHashSet<>(Arrays.asList(
-            "Jump to a section", "Switches that are on", "Pause length", "Break after", "Break length", "Reels in the feed", "Reels that play by themselves", "The Reels tab",
-            "Everything except Marketplace", "Menu tiles to hide", "Translate to", "Languages to leave alone", "Languages to keep",
-            "Tab bar position", "Tab bar while scrolling", "Tab order", "Tab to open on", "Feeds opens on", "Home shows", "Keep seen posts hidden for", "Words to hide", "Words that keep a post", "People, Pages and sites to hide", "Reels order", "Comment order", "Hide reaction counts", "Recently watched", "Keep watched entries for","Default quality", "Reels quality", "Stories quality", "Font file", "Home header text", "Emoji after the logo", "Home header picture", "Download quality", "Save on", "Save to", "Save folder",
+            "Jump to a section", "Switches that are on", "Pause length", "Break after", "Break length", "Reels in the feed", "Reels that play by themselves", "The Reels tab", "Turn gray over",
+            "Everything except Marketplace", "Menu tiles to hide", "Translate to", "Languages to leave alone", "Languages to keep", "Reaction", "Fold long posts", "Fold long comments",
+            "Tab bar position", "Tab bar while scrolling", "Tab order", "Tab to open on", "Feeds opens on", "Home shows", "Keep seen posts hidden for", "Words to hide", "Words that keep a post", "People, Pages and sites to hide", "Reels order", "Comment order", "Hide reaction counts", "Open comments at", "Recently watched", "Keep watched entries for","Default quality", "Reels quality", "Stories quality", "Font file", "Home header text", "Emoji after the logo", "Home header picture", "Download quality", "Save on", "Save to", "Save folder",
             "Video subfolder", "Photo subfolder",
             "Video file name", "Photo file name", "When you tap Download", "App to send to", "Share sheet items to hide", "Supported links", "Meta App Manager", "Messenger", "Instagram",
-            "Quiet hours start", "Quiet hours end", "Lock after", "Burn-in guard", "Dim after", "Show the post date as",
+            "Quiet hours start", "Quiet hours end", "Lock after", "Burn-in guard", "Dim after", "Show the post date as", "Box darkness",
             "Friends shown", "Followers shown", "Following shown", "Round picture size",
+            "Bar opacity", "Tab bar width", "Tab bar height", "Refresh rate", "3-dot menu items to hide",
             "Ads in the feed", "Ads on profiles", "Ads in Stories", "Ads in Reels", "Ads in search results",
             "Ads in Marketplace", "Ads in Instant Games", "Usage statistics uploads", "Reel watch history", "Text size", "Accent color", "Badge color", "Logo color", "Selected tab color","Hide posts with more reactions than",
             "Export settings", "Import settings",
             "Pick an app icon",
-            "Export diagnostic report", "Facebook's Whitehat settings", "Source code and issues", "Licenses"));
+            "Export diagnostic report", "Facebook's Whitehat settings", "Mark new settings", "Source code and issues", "Licenses"));
 
     /** Built by the first show(), after a test has set the text size it wants. */
     private ActivityController<Activity> controller;
@@ -302,8 +303,8 @@ public class RowChevronTest {
         assertNotNull("no list in the dialog", list);
         int width = controller.get().getResources().getDisplayMetrics().widthPixels;
         list.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(400_000, View.MeasureSpec.EXACTLY));
-        list.layout(0, 0, width, 400_000);
+                View.MeasureSpec.makeMeasureSpec(1_000_000, View.MeasureSpec.EXACTLY));
+        list.layout(0, 0, width, 1_000_000);
         List<View> rows = new ArrayList<>();
         for (int index = 0; index < list.getChildCount(); index++) rows.add(list.getChildAt(index));
         assertEquals("the list left rows off", list.getAdapter().getCount(), rows.size());

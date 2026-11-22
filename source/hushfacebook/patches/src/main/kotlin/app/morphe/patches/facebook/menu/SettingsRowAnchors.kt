@@ -7,6 +7,7 @@ package app.morphe.patches.facebook.menu
 import app.morphe.patches.facebook.feed.namesString
 import app.morphe.patches.facebook.feed.tableStringAt
 import app.morphe.util.ControlFlow
+import app.morphe.util.writersReaching
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -20,7 +21,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /**
- * Where a row in Facebook's Menu comes from, for the Hushfacebook row, on the 577 to 584 builds.
+ * Where a row in Facebook's Menu comes from, for the Hushfacebook row, on the 577 to 587 builds.
  *
  * The Menu's Settings and privacy group (see MenuSectionAnchors.kt for the groups) is drawn by the
  * native group section from a list of plain row items: a title, the address a tap opens, the
@@ -38,7 +39,8 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
  * and the row item, which loads the `bookmarks_menu` trace (582 and 584 ask a string table for it) and
  * picks what to open by the row's id. Two more static methods of the same class take the row item:
  * they log the row being seen, by its id (582's 32-bit build had dropped both). 583's 32-bit build
- * has no such handler: its body is inlined into a lambda ([inlinedRowTap]). The item
+ * has no such handler: its body is inlined into a lambda ([inlinedRowTap]). 587's handler names no
+ * trace and hands the logout row to a method that does ([rowHandOvers]). The item
  * class and every member are Redex names (`Lmp` on 584, `9iZ` on 583, `cTt` on 582, `9KG` on 580, `8oK` on 577,
  * which has one icon resource where 580 has two), so they're found by these shapes and by the trace.
  */
@@ -84,6 +86,29 @@ internal fun rowListBuilds(method: Method): List<MethodReference> =
         .distinctBy { "${it.definingClass}->${it.name}" }
 
 /**
+ * The method that makes the [native] section's row list builds: the section itself, or on 586 the
+ * one static method of its own class it calls for an ImmutableList (`LX/0D4P;->A01`), which picks
+ * the Settings and privacy or the Help and support build by the group and hands back what the build
+ * answers. 586's Android 9 build has both builds inlined into that method (`LX/0p49;->A00`), which
+ * keeps the lists the way 584's section does ([keptRowLists]). With builds or kept lists in neither
+ * it's the section, which may keep the lists itself (584). [classDef] finds a class of the app by type.
+ */
+internal fun rowListSite(native: Method, classDef: (String) -> ClassDef?): Method {
+    if (rowListBuilds(native).isNotEmpty()) return native
+    val called = native.implementation?.instructions?.toList().orEmpty()
+        .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+        .mapNotNull { (it as ReferenceInstruction).reference as? MethodReference }
+        .filter { it.definingClass == native.definingClass && it.returnType == IMMUTABLE_LIST }
+        .map { "${it.name}(${it.parameterTypes.joinToString("")})" }
+        .toSet()
+    val helpers = classDef(native.definingClass)?.methods?.toList().orEmpty().filter { method ->
+        method.isStatic() && "${method.name}(${method.parameterTypes.joinToString("")})" in called &&
+            (rowListBuilds(method).isNotEmpty() || keptRowLists(method) != null)
+    }
+    return helpers.singleOrNull() ?: native
+}
+
+/**
  * The Menu row tap handler: shaped like one ([isRowTapShape]) and naming [ROW_TAP_TRACE], loading
  * it or, as on 582 and 584, asking a string table [resolve] finds for it ([namesString]).
  */
@@ -96,6 +121,24 @@ internal fun isRowTapShape(method: Method): Boolean {
     return method.implementation != null && method.isStatic() && method.returnType == "V" &&
         parameters.size == 6 && parameters[0] == VIEW && parameters[1] == USER_SESSION &&
         parameters[3].startsWith("L")
+}
+
+/** Whether [method] takes the view and the user session and returns nothing, the way 587's row handlers do. */
+internal fun isRowHandOverShape(method: MethodReference): Boolean =
+    method.returnType == "V" && method.parameterTypes.map { it.toString() } == listOf(VIEW, USER_SESSION)
+
+/**
+ * The calls [method], shaped like a tap handler ([isRowTapShape]), hands a row over with. 587's
+ * handler names no trace itself: it passes the view and the session on to one method per kind of row
+ * on a controller it takes (`LX/0OvF;` on arm64, `LX/0Kwj;` on 32-bit), and the logout row's (`A06`)
+ * asks the string table for [ROW_TAP_TRACE]. These are the calls ([isRowHandOverShape]) on a class
+ * the handler takes.
+ */
+internal fun rowHandOvers(method: Method): List<MethodReference> {
+    if (!isRowTapShape(method)) return emptyList()
+    val parameters = method.parameters()
+    return method.implementation!!.instructions.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+        .filter { it.definingClass in parameters && isRowHandOverShape(it) }
 }
 
 /** The row item type [tap] takes. */
@@ -126,7 +169,8 @@ internal fun isLambdaInvoke(method: Method): Boolean =
  * The inlined tap in [method], a lambda's invoke naming [ROW_TAP_TRACE] (directly or through a string
  * table [resolve] finds): the last call answering a View before the trace, and before that the last
  * field read of a type [isRowItem] takes, with no way into the code between them but falling through
- * and no write to the item's register. Null for any other method.
+ * and no write to the item's register. Another way in before the view call is allowed when every
+ * write of the item reaching the hook reads that same field. Null for any other method.
  */
 internal fun inlinedRowTap(method: Method, resolve: (MethodReference) -> Method?, isRowItem: (String) -> Boolean): InlinedRowTap? {
     if (!isLambdaInvoke(method)) return null
@@ -154,8 +198,19 @@ internal fun inlinedRowTap(method: Method, resolve: (MethodReference) -> Method?
         flow.normal[from].forEach { into[it] += from }
         flow.exceptional[from].forEach { into[it] += from }
     }
-    if ((itemRead + 1..hook).any { at -> into[at] != listOf(at - 1) }) return null
-    if ((itemRead + 1 until hook).any { at -> writes(code[at], item) }) return null
+    if ((viewCall + 1..hook).any { at -> into[at] != listOf(at - 1) }) return null
+    if ((itemRead + 1..viewCall).all { at -> into[at] == listOf(at - 1) }) {
+        if ((itemRead + 1 until hook).any { at -> writes(code[at], item) }) return null
+    } else {
+        // 585's Android 9 build joins a second case of `LX/0V2Y;->invoke` (4, sharing the tap of 3, 5
+        // and 6) in after the item read, once it has read the item from the same field. So with another
+        // way in, every write of the item reaching the hook has to be a read of that one field.
+        val field = (code[itemRead] as ReferenceInstruction).reference as FieldReference
+        val writers = method.writersReaching(hook, item)
+        if (writers.any { at -> at < 0 || code[at].opcode != Opcode.IGET_OBJECT || (code[at] as ReferenceInstruction).reference != field }) {
+            return null
+        }
+    }
     return InlinedRowTap(method, hook, view, item, ((code[itemRead] as ReferenceInstruction).reference as FieldReference).type)
 }
 

@@ -56,7 +56,9 @@ data class InstalledApkInfo(
  *
  * [apk] and [version] are both withheld from a patched install, so neither the patcher nor the UI
  * can take Morphe's own output for the app it was built from. [hasStockInstall] outlives them,
- * because a mount install overlays the app rather than replacing it.
+ * because a mount install overlays the app rather than replacing it. [version] is also withheld
+ * from an app that is disabled or still at the version its system image shipped, which tells
+ * nothing about where the app is now.
  */
 data class InstalledAppSource(
     val hasStockInstall: Boolean = false,
@@ -191,7 +193,7 @@ class LocalApkSources(
             )
         }
     } catch (e: Exception) {
-        Log.e(tag, "Failed to load saved APK info", e)
+        Log.e(LOG_TAG, "Failed to load saved APK info", e)
         null
     }
 
@@ -232,11 +234,13 @@ class LocalApkSources(
                     )
                 }
 
-                InstalledAppSource(hasStockInstall = true, apk = apk, version = version)
+                // Only the version is withheld, the archive of such an app still patches
+                val inUse = appInfo?.enabled != false && !isUnmodifiedSystemApp(appInfo?.flags)
+                InstalledAppSource(hasStockInstall = true, apk = apk, version = version.takeIf { inUse })
             }
         }
     } catch (e: Exception) {
-        Log.e(tag, "Failed to load installed app info", e)
+        Log.e(LOG_TAG, "Failed to load installed app info", e)
         InstalledAppSource.None
     }
 
@@ -305,10 +309,10 @@ class LocalApkSources(
     }
 
     /**
-     * Whether the bind mount or NoMount redirect behind a mount install is active, read through
-     * root from the global mount table or NoMount's rules. Morphe's own namespace is not asked,
-     * because root managers can hide module mounts from it while the patched app still runs. Null
-     * when root is unavailable.
+     * Whether the bind mount or redirect behind a mount install is active, read through root from
+     * the global mount table, NoMount's rules or the APK the stock path serves. Morphe's own
+     * namespace is not asked, because root managers can hide module mounts from it while the
+     * patched app still runs. Null when root is unavailable.
      */
     private suspend fun mountState(app: InstalledApp, installedPackageInfo: PackageInfo?): Boolean? {
         if (app.installType != InstallType.MOUNT || installedPackageInfo == null) return null
@@ -319,7 +323,7 @@ class LocalApkSources(
             // A superseded refresh is not a failure to read the table
             throw e
         } catch (e: Exception) {
-            Log.e(tag, "Failed to read the mount table", e)
+            Log.e(LOG_TAG, "Failed to read the mount table", e)
             null
         }
     }

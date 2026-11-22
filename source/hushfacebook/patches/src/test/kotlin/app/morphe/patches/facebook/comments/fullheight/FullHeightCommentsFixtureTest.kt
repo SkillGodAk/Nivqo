@@ -9,11 +9,17 @@ import app.morphe.PatchContexts
 import app.morphe.patches.facebook.comments.summaries.descriptor
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
+import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.isStringTable
+import app.morphe.patches.facebook.feed.namesString
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
@@ -69,6 +75,27 @@ class FullHeightCommentsFixtureTest {
     private fun holders(bundle: File, string: String) =
         FixtureDex.classesHolding(bundle, string).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
 
+    /** [string]'s holders, and the classes asking one of them, a string table, for it, as the patch finds them. */
+    private fun namers(bundle: File, string: String): List<ClassDef> {
+        val held = holders(bundle, string)
+        val tables = held.associateBy { it.type }
+        val resolve: (MethodReference) -> Method? = { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
+        val asking = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in tables } }) {
+            !isStringTable(it) && !holdsString(it, string) && namesString(it, string, resolve)
+        }.map { it.definingClass }.toSet()
+        val holding = held.filter { owner -> owner.methods.any { !isStringTable(it) && holdsString(it, string) } }
+        return holding + FixtureDex.classes(bundle, asking).values
+    }
+
+    /** The methods naming [string] themselves or asking a string table holding it, as the patch finds them (587's launchers). */
+    private fun namingMethods(bundle: File, string: String): List<Method> {
+        val tables = holders(bundle, string).associateBy { it.type }
+        val resolve: (MethodReference) -> Method? = { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
+        return FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in tables } }) {
+            !isStringTable(it) && namesString(it, string, resolve)
+        }
+    }
+
     private fun sheet(bundle: File) {
         val params = FixtureDex.classes(bundle, setOf(POPOVER_PARAMS)).values.single()
         val constructor = sheetConstructor(params)
@@ -102,8 +129,8 @@ class FullHeightCommentsFixtureTest {
     private fun launchers(bundle: File) {
         val name = bundle.name
         val launchers = splitScreenLaunchers(
-            (holders(bundle, REEL_FOOTER) + holders(bundle, UNIT_NOT_MEASURED)).distinctBy { it.type },
-            holders(bundle, NOT_ENTERED),
+            (namers(bundle, REEL_FOOTER) + holders(bundle, UNIT_NOT_MEASURED)).distinctBy { it.type },
+            namingMethods(bundle, NOT_ENTERED),
         )
         assertEquals("$name: five split-screen launchers", 5, launchers.size)
         assertEquals("$name: three build the split screen's Intent", 3, launchers.count(::buildsSplitScreen))
@@ -143,13 +170,22 @@ class FullHeightCommentsFixtureTest {
         assertEquals("$where: the share is a float", "F", share.type)
         val at = site.index
         val owner = site.method.definingClass
+        val self = site.method.implementation!!.registerCount - 1
         if (owner == SIMPLE_POPOVER) {
             // 584: the override is folded into the popover's own answer, and the hook follows the
-            // one cast of this to the comment sheet's fragment.
-            val cast = site.method.implementation!!.instructions.toList()[at - 1]
+            // one cast of this to the comment sheet's fragment. 585's Android 9 build casts a copy
+            // of this made right before the cast.
+            val code = site.method.implementation!!.instructions.toList()
+            val cast = code[at - 1]
             assertEquals("$where: the hook follows the cast", Opcode.CHECK_CAST, cast.opcode)
             assertEquals("$where: the cast is to the comment sheet's fragment", UFI_POPOVER, cast.reference())
-            assertEquals("$where: of this", site.fragment, (cast as OneRegisterInstruction).registerA)
+            assertEquals("$where: of the fragment's register", site.fragment, (cast as OneRegisterInstruction).registerA)
+            if (site.fragment != self) {
+                val copy = code[at - 2]
+                assertTrue("$where: v${site.fragment} is a copy of this", copy.opcode == Opcode.MOVE_OBJECT || copy.opcode == Opcode.MOVE_OBJECT_FROM16)
+                assertEquals("$where: v${site.fragment} is a copy of this", listOf(site.fragment, self),
+                    (copy as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+            }
         } else {
             assertEquals("$where: an override of the comment sheet's fragment", UFI_POPOVER, owner)
             assertEquals("$where: asks first", 0, at)
@@ -166,7 +202,7 @@ class FullHeightCommentsFixtureTest {
         val register = (patched[at] as TwoRegisterInstruction).registerA
         assertTrue("$where: the hook writes v$register, which isn't a local", register < method.localRegisterCount())
         assertTrue("$where: the hook writes v$register, which is still read", register !in RegisterLiveness.of(site.method).liveInto(at))
-        assertEquals("$where: from this fragment", method.implementation!!.registerCount - 1, (patched[at] as TwoRegisterInstruction).registerB)
+        assertEquals("$where: from this fragment", site.fragment, (patched[at] as TwoRegisterInstruction).registerB)
         assertEquals("$where: the extension is asked", Opcode.INVOKE_STATIC, patched[at + 1].opcode)
         assertEquals("$where: the extension is asked", FILLS_SCREEN, patched[at + 1].reference())
         val call = patched[at + 1] as FiveRegisterInstruction
@@ -237,8 +273,10 @@ class FullHeightCommentsFixtureTest {
     }
 
     private fun tapThrough(bundle: File) {
-        val popover = FixtureDex.classes(bundle, setOf(SIMPLE_POPOVER)).values.single()
-        val site = tapThroughSite(popover)
+        // 587 moved the setup from the base popover into the comment popover's override.
+        val popovers = FixtureDex.classes(bundle, setOf(SIMPLE_POPOVER, UFI_POPOVER)).values.toList()
+        assertEquals("${bundle.name}: both popover classes", 2, popovers.size)
+        val site = tapThroughSite(popovers)
         val where = "${bundle.name}: ${site.method.descriptor()}"
         val code = site.method.implementation!!.instructions.toList()
         val at = site.index
@@ -250,8 +288,8 @@ class FullHeightCommentsFixtureTest {
         assertEquals("$where: the dialog is the one parameter", site.method.implementation!!.registerCount - 1, site.dialog)
         assertEquals("$where: the surface is the one unboxed", (code[at - 1] as OneRegisterInstruction).registerA, site.source)
 
-        val context = PatchContexts.of(listOf(popover))
-        val method = context.mutableClassDefBy(SIMPLE_POPOVER).methods.single { it.descriptor() == site.method.descriptor() }
+        val context = PatchContexts.of(popovers)
+        val method = context.mutableClassDefBy(site.method.definingClass).methods.single { it.descriptor() == site.method.descriptor() }
         val original = method.implementation!!.instructions.toList()
         method.tapThrough(site)
         val patched = method.implementation!!.instructions.toList()
@@ -273,7 +311,9 @@ class FullHeightCommentsFixtureTest {
     }
 
     private fun description(bundle: File) {
-        val gate = descriptionGate(holders(bundle, DESCRIPTION_TAP))
+        // 585's Android 9 build asks a string table for the tap's name.
+        val tables = holders(bundle, DESCRIPTION_TAP).associateBy { it.type }
+        val gate = descriptionGate(holders(bundle, DESCRIPTION_SPLIT)) { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
         val where = "${bundle.name}: ${gate.method.descriptor()}"
         val code = gate.method.implementation!!.instructions.toList()
         val at = gate.index

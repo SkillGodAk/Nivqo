@@ -153,9 +153,7 @@ class UpdateViewModel(
     fun downloadUpdate(ignoreInternetCheck: Boolean = false) = viewModelScope.launch {
         messages.reportingFailure(R.string.failed_to_download_update, "Failed to download update") {
             val release = releaseInfo ?: return@reportingFailure
-            val allowMeteredUpdates = prefs.allowMeteredUpdates.get()
-
-            if (!allowMeteredUpdates && networkInfo.isMetered() && !ignoreInternetCheck) {
+            if (!prefs.autoUpdates.get().downloadsOnMobileData && networkInfo.isMetered() && !ignoreInternetCheck) {
                 showInternetCheckDialog = true
                 return@reportingFailure
             }
@@ -307,7 +305,7 @@ class UpdateViewModel(
                 val hint = app.getString(R.string.installer_hint_conflict)
                 failInstall(hint, userMessage = hint)
             }
-            is InstallResult.Failure -> failInstall(result.message ?: "Unknown error")
+            is InstallResult.Failure -> failInstall(result.message ?: app.getString(R.string.patcher_unknown_error))
         }
     }
 
@@ -460,7 +458,7 @@ class UpdateViewModel(
                 throw e
             } catch (e: Exception) {
                 // The dialog shows the failure in place of the list, next to its retry
-                Log.e(tag, "Failed to load changelog", e)
+                Log.e(LOG_TAG, "Failed to load changelog", e)
                 changelogError = e
             }
         }
@@ -513,7 +511,7 @@ class UpdateViewModel(
                 throw e
             } catch (e: Exception) {
                 // The list itself shows the failure next to its retry, so no message on top
-                Log.e(tag, "Failed to load older releases", e)
+                Log.e(LOG_TAG, "Failed to load older releases", e)
                 olderEntriesFailed = true
             } finally {
                 isLoadingOlderEntries = false

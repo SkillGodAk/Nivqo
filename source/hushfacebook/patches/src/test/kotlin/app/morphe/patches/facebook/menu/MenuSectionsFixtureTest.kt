@@ -50,9 +50,15 @@ class MenuSectionsFixtureTest {
      * it. The unpacked 583 table is the check still owed. 584's header component (`LX/Lmm;`) loads
      * the same five ids as 583's (`LX/S3S;`) in the same order, each 9 higher, so its label is 0x7f140460.
      * 585's (`LX/0IqZ;->A17` arm64) loads 584's five in the same order, each 6 higher, so 0x7f140466.
+     * 586's header asks the bookmark UI's kept `getHeadContentDescription` for its words, which formats
+     * 0x7f14046c with the title, 585's two states (each 6 higher) and its two actions (each 8 higher),
+     * since 586 adds a one-argument label behind a MobileConfig flag between them. 587's
+     * `getHeadContentDescription` (`LX/0HF4;` arm64) is 586's with every id 12 higher, so 0x7f140478.
      */
     private val headerLabel = mapOf(
         "585.0.0.47.54" to 0x7f140466,
+        "586.0.0.52.53" to 0x7f14046c,
+        "587.0.0.39.55" to 0x7f140478,
     )
 
     private val testKeys = listOf(UPGRADES_TEST_KEY, ALSO_FROM_META_TEST_KEY)
@@ -62,6 +68,9 @@ class MenuSectionsFixtureTest {
     private fun loadsLiteral(method: Method, value: Int): Boolean = method.instructionList().any {
         it.opcode in setOf(Opcode.CONST, Opcode.CONST_HIGH16) && (it as NarrowLiteralInstruction).narrowLiteral == value
     }
+
+    private fun calledMethods(method: Method): List<MethodReference> = method.instructionList()
+        .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
 
     private fun created(method: Method): Set<String> = method.instructionList()
         .filter { it.opcode == Opcode.NEW_INSTANCE }
@@ -76,11 +85,11 @@ class MenuSectionsFixtureTest {
         .filter { it.opcode.name.startsWith("invoke-") }
         .map { ((it as ReferenceInstruction).reference as MethodReference).returnType }
 
-    /** The classes of the no-argument static calls [method] makes. */
-    private fun noArgumentStatics(method: Method): List<String> = method.instructionList()
+    /** The classes of the static calls [method] makes that answer an object, as a list factory does. */
+    private fun objectStatics(method: Method): List<String> = method.instructionList()
         .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
         .map { (it as ReferenceInstruction).reference as MethodReference }
-        .filter { it.parameterTypes.isEmpty() }
+        .filter { it.returnType.startsWith("L") }
         .map { it.definingClass }
 
     private fun calls(instruction: Any, method: Method): Boolean =
@@ -210,8 +219,9 @@ class MenuSectionsFixtureTest {
                 val enum = classes.getValue(nativeRead.type)
 
                 // Both hand their children back through the same list, which the hooks build empty.
-                // 582 makes it through a static factory, so the sections' no-argument statics come along.
-                val factories = FixtureDex.classes(bundle, (noArgumentStatics(native) + noArgumentStatics(server)).toSet())
+                // 582 makes it through a static factory, and 586's Android 9 build through one taking two
+                // arguments, so the classes of the sections' statics answering an object come along.
+                val factories = FixtureDex.classes(bundle, (objectStatics(native) + objectStatics(server)).toSet())
                 val factory: (MethodReference) -> Method? = { call -> factories[call.definingClass]?.let { resolveStatic(it, call) } }
                 val nativeList = childrenList(native, factory)
                 assertNotNull("${bundle.name}: the native section's children list", nativeList)
@@ -233,6 +243,13 @@ class MenuSectionsFixtureTest {
                     assertTrue("${bundle.name}: v${free.single()} in ${method.name}", free.single() <= 15)
                 }
 
+                // The server section adds the bookmarks folder Facebook draws inside it, Your shortcuts
+                // in the PROFILE group's, once after checking it's there, with a local free for the
+                // folder hook both there and where the check lands (#445).
+                val folderAdd = nativeFolderAdd(server, serverRead)
+                assertNotNull("${bundle.name}: the server section's one native folder add", folderAdd)
+                server.freeLocalsAt(PATCH, folderAdd!!.check, 1, targets = listOf(folderAdd.skip), highest = 255)
+
                 // The native section reads whether its group is folded once, from the state it casts,
                 // before the group, and two such locals are free for the fold hook (issue #224).
                 assertNotNull("${bundle.name}: the native section's one fold read before its group", foldRead(native, nativeRead))
@@ -241,11 +258,39 @@ class MenuSectionsFixtureTest {
                 val borrowed = native.freeLocalsAt(PATCH, nativeRead.index + 1, 2)
                 assertTrue("${bundle.name}: v${borrowed.joinToString(", v")} in ${native.name}", borrowed.all { it <= 15 })
 
+                // The header keeps its own collapsed state after the seed and flips it on a tap, so the
+                // section marks the header it makes, with a local free right after the seed, and the
+                // header's render and tap handler each read that state once where the mark can go in
+                // beside it (#224 follow-up).
+                val seed = headerSeed(native, nativeRead, startRead(native, nativeRead)!!)
+                assertNotNull("${bundle.name}: the native section's store of its header seed", seed)
+                val flag = native.freeLocalsAt(PATCH, seed!!.index + 1, 1).single()
+                assertTrue("${bundle.name}: v$flag after the header seed", flag <= 15)
+                val headerClass = FixtureDex.classes(bundle, setOf(seed.headerClass))[seed.headerClass]
+                assertNotNull("${bundle.name}: the seeded header ${seed.headerClass}", headerClass)
+                val stateReads = headerStateReads(headerClass!!)
+                assertNotNull("${bundle.name}: ${seed.headerClass}'s reads of its collapsed state", stateReads)
+                assertEquals("${bundle.name}: tap handlers reading the header's state", 1, stateReads!!.count { it.click })
+                assertTrue("${bundle.name}: renders reading the header's state", stateReads.any { !it.click })
+
                 // The native section draws the group's collapsible header, the one TalkBack reads
                 // as "Upgrades, header. Section is expanded." on the phone.
-                val headers = created(native).mapNotNull(classes::get)
-                    .filter { component -> component.methods.any { loadsLiteral(it, label) } }
+                // 586's header asks a method of another class for those words, so the label may
+                // load one call away.
+                val components = created(native).mapNotNull(classes::get)
+                val callees = FixtureDex.classes(bundle,
+                    components.flatMap { component -> component.methods.flatMap(::calledMethods) }.map { it.definingClass }.toSet())
+                val loadsLabel = { call: MethodReference ->
+                    callees[call.definingClass]?.methods?.any {
+                        it.name == call.name && it.parameterTypes.map(Any::toString) == call.parameterTypes.map(Any::toString) &&
+                            loadsLiteral(it, label)
+                    } == true
+                }
+                val headers = components.filter { component ->
+                    component.methods.any { method -> loadsLiteral(method, label) || calledMethods(method).any(loadsLabel) }
+                }
                 assertEquals("${bundle.name}: header components the native section creates", 1, headers.size)
+                assertEquals("${bundle.name}: the header the seed goes to", headers.single().type, seed.headerClass)
 
                 // Where the root adds the Upgrades and Also from Meta groups, it tags each with its
                 // test key, reads the group's constant, and builds both hooked sections.

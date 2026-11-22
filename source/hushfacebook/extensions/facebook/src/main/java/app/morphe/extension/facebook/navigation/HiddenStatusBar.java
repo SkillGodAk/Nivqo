@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -16,6 +17,7 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
 import java.util.Map;
@@ -44,7 +46,10 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *
  * <p>On Android 15 and up Facebook draws a strip of its own behind the bar and pads the screen below
  * it, both sized from the window's system insets, which keep the bar's height after it's asked
- * away. {@link #topInset} closes that strip while the bar is gone.
+ * away. {@link #topInset} closes that strip while the bar is gone, and keeps it closed while a
+ * window over the main screen has the bar back: the comment sheet over a reel is one, and opening
+ * the strip under it re-padded the reel as the sheet slid up and left a black band above the top
+ * bar as it closed (#456).
  *
  * <p>Any failure leaves that screen's bar as it is and stops the checks there.
  */
@@ -95,29 +100,53 @@ public final class HiddenStatusBar {
      * window's system insets, which keep the bar's height after it's asked away, so a bar this hid
      * left a strip of background above the top bar (S22, 2026-10-18: 75 px). On the main screen,
      * with the switch on and the bar gone, the answer is 0, so the strip closes and the top bar
-     * moves up to the edge. Anything else keeps Facebook's inset, and so does a failure. A bar
-     * swiped in for a moment doesn't change the insets, so it shows over the top bar.
+     * moves up to the edge. A window opened over the main screen with a bar of its own, the comment
+     * sheet over a reel, makes the main screen's insets report the bar again, and the answer stays
+     * 0 while this asked the main screen's bar away: the sheet's window pads for its own bar, and
+     * the reel under it keeps its place. Anything else keeps Facebook's inset, and so does a failure.
      */
     public static int topInset(View content, int top) {
         try {
             if (top <= 0 || content == null || !on()) return top;
             WindowInsets insets = content.getRootWindowInsets();
-            Boolean showing = insets == null ? null : insets.isVisible(WindowInsets.Type.statusBars());
-            return topInset(top, screenOf(content.getContext()), showing);
+            // Android 10 and older can't say, and Facebook draws no strip there anyway.
+            Boolean showing = null;
+            if (insets != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                showing = insets.isVisible(WindowInsets.Type.statusBars());
+            }
+            Activity screen = screenOf(content.getContext());
+            return topInset(top, screen, showing, askedAway(content, screen));
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "hidden status bar strip", failure);
             return top;
         }
     }
 
-    /** [top], or 0 when [screen] is the main screen and its bar is known to be gone. */
-    static int topInset(int top, @Nullable Activity screen, @Nullable Boolean showing) {
-        if (screen == null || !MAIN_SCREEN.equals(screen.getClass().getName()) || !Boolean.FALSE.equals(showing)) {
+    /**
+     * [top], or 0 when [screen] is the main screen and its bar is gone, or showing only because
+     * another window brought it back while this has it [askedAway].
+     */
+    static int topInset(int top, @Nullable Activity screen, @Nullable Boolean showing, boolean askedAway) {
+        if (screen == null || !MAIN_SCREEN.equals(screen.getClass().getName()) || showing == null
+                || (showing && !askedAway)) {
             return top;
         }
         HookStatus.invoked(FAMILY);
         HookStatus.counted(FAMILY, STRIP_CLOSED);
         return 0;
+    }
+
+    /**
+     * Whether [content] sits in [screen]'s own window, not a sheet or dialog opened over it, and
+     * this asked that window's bar away and hasn't given it back.
+     */
+    static boolean askedAway(View content, @Nullable Activity screen) {
+        Window window = screen == null ? null : screen.getWindow();
+        if (window == null || content.getRootView() != window.peekDecorView()) return false;
+        synchronized (WINDOWS) {
+            Checks checks = WINDOWS.get(window);
+            return checks != null && checks.asking();
+        }
     }
 
     @Nullable
@@ -135,7 +164,7 @@ public final class HiddenStatusBar {
         synchronized (WINDOWS) {
             Checks checks = WINDOWS.get(window);
             if (checks == null) {
-                checks = new Checks(new WindowBar(window));
+                checks = new Checks(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ? new WindowBar(window) : new FlagsBar(window));
                 WINDOWS.put(window, checks);
                 ViewTreeObserver observer = window.getDecorView().getViewTreeObserver();
                 observer.addOnGlobalLayoutListener(checks);
@@ -198,7 +227,62 @@ public final class HiddenStatusBar {
         void forget(Checks checks);
     }
 
+    /** Stops [window]'s layout and focus calls to [checks]. */
+    private static void unwatch(@Nullable Window window, Checks checks) {
+        if (window == null) return;
+        ViewTreeObserver observer = window.getDecorView().getViewTreeObserver();
+        if (!observer.isAlive()) return;
+        observer.removeOnGlobalLayoutListener(checks);
+        observer.removeOnWindowFocusChangeListener(checks);
+    }
+
+    /**
+     * A window's own status bar on Android 9 and 10, through the flags its decor view asks of the
+     * system. The sticky kind lets a swipe show the bar for a moment and keeps the flags, so it's
+     * still asked away after.
+     */
+    @SuppressWarnings("deprecation") // The flags are all Android had before 11.
+    static final class FlagsBar implements Bar {
+        static final int AWAY = View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+
+        private final WeakReference<Window> window;
+
+        FlagsBar(Window window) {
+            this.window = new WeakReference<>(window);
+        }
+
+        @Nullable
+        @Override
+        public Boolean showing() {
+            Window window = this.window.get();
+            if (window == null) return null;
+            return (window.getDecorView().getSystemUiVisibility() & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0;
+        }
+
+        @Override
+        public void hide() {
+            Window window = this.window.get();
+            if (window == null) return;
+            View decor = window.getDecorView();
+            decor.setSystemUiVisibility(decor.getSystemUiVisibility() | AWAY);
+        }
+
+        @Override
+        public void show() {
+            Window window = this.window.get();
+            if (window == null) return;
+            View decor = window.getDecorView();
+            decor.setSystemUiVisibility(decor.getSystemUiVisibility() & ~AWAY);
+        }
+
+        @Override
+        public void forget(Checks checks) {
+            unwatch(window.get(), checks);
+        }
+    }
+
     /** A window's own status bar, through its insets. */
+    @RequiresApi(Build.VERSION_CODES.R)
     static final class WindowBar implements Bar {
         private final WeakReference<Window> window;
 
@@ -231,12 +315,7 @@ public final class HiddenStatusBar {
 
         @Override
         public void forget(Checks checks) {
-            Window window = this.window.get();
-            if (window == null) return;
-            ViewTreeObserver observer = window.getDecorView().getViewTreeObserver();
-            if (!observer.isAlive()) return;
-            observer.removeOnGlobalLayoutListener(checks);
-            observer.removeOnWindowFocusChangeListener(checks);
+            unwatch(window.get(), checks);
         }
 
         @Nullable
@@ -256,6 +335,11 @@ public final class HiddenStatusBar {
 
         Checks(Bar bar) {
             this.bar = bar;
+        }
+
+        /** Whether this has the bar asked away now: a failure stopped the checks, so it doesn't. */
+        boolean asking() {
+            return hid && !stopped;
         }
 
         @Override

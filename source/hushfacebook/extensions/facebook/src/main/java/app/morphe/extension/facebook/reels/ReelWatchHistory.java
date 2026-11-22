@@ -30,6 +30,13 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * <p>It fails open. The runnable is recognised by the name Redex keeps on its class, and anything
  * else goes to the executor as Facebook handed it over: a runnable this doesn't recognise, the
  * switch off, a pause, settings that aren't ready yet, or a failure in here.
+ *
+ * <p>"Videos you've watched" in your activity log comes from none of those sends (#408). Every
+ * video player logs a {@value #PLAYBACK_EVENTS} analytics event as it plays, and that event is what
+ * puts the video in the log (S22, 585, 2026-11-08: holding only those events kept watched reels
+ * out of it, holding every other candidate didn't). Every analytics event is made by one factory,
+ * where {@code AnalyticsEvents} asks {@link #holdPlaybackEvent}; while the switch is on those
+ * events come back as Facebook's own "not logged" event, so they're never sent.
  */
 public final class ReelWatchHistory {
     /** The name Redex keeps on the runnable Facebook's seen-state helper hands its executor. */
@@ -43,6 +50,21 @@ public final class ReelWatchHistory {
 
     /** What a batch held back is counted under. */
     static final String HELD_BACK = "watched reels";
+
+    /** What a held back watched-position mutation is counted under (#408). */
+    static final String POSITION = "watched position";
+
+    /** What a held back view-time event is counted under (#408). */
+    static final String VIEW_TIME = "view time";
+
+    /** What a held back playback event is counted under (#408). */
+    static final String PLAYBACK = "playback event";
+
+    /**
+     * How the analytics events a video player logs as it plays start: media_playback_compound and
+     * its _fast, _debug and _second_channel forms, the only names that start this way (585).
+     */
+    static final String PLAYBACK_EVENTS = "media_playback_compound";
 
     /** The send's class once it has been recognised, so later batches skip the lookup. */
     private static volatile Class<?> recognised;
@@ -74,6 +96,50 @@ public final class ReelWatchHistory {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_WATCH_HISTORY, "reel watch history send", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injection point, first in the method that sends SfdVideoPositionWatchedMutation: the furthest
+     * point you reached in a video you watched 10 seconds or more of, wherever it played. True
+     * returns before anything is built. Never throws.
+     */
+    public static boolean holdWatchedPosition() {
+        return hold(POSITION, "watched position send");
+    }
+
+    /**
+     * Injection point, first in the VOD/Reels view-time logger: the video's id, how long you
+     * watched it and the feed it came from. True returns before the event is built. Never throws.
+     */
+    public static boolean holdViewTime() {
+        return hold(VIEW_TIME, "view time event");
+    }
+
+    /**
+     * Injection point, through {@code AnalyticsEvents}, first where Facebook makes an analytics
+     * event, handed its name. True for a {@link #PLAYBACK_EVENTS} event while the switch is on, so
+     * the video stays out of "Videos you've watched". Every event the app logs comes through here,
+     * so the name is checked first, and other events answer false without being counted. Never throws.
+     */
+    public static boolean holdPlaybackEvent(String event) {
+        if (event == null || !event.startsWith(PLAYBACK_EVENTS)) return false;
+        return hold(PLAYBACK, "playback event");
+    }
+
+    /** True when the switch is on, counted under [what]. Never throws. */
+    private static boolean hold(String what, String hook) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_WATCH_HISTORY);
+            FeedFilterCounters.sawList(ROUTE, 1);
+            FeedFilterCounters.sawKind(ROUTE, what);
+            if (!Utils.settingsReady() || !Settings.DONT_SEND_REEL_WATCH_HISTORY.get()) return false;
+            FeedFilterCounters.removed(ROUTE, 1, what);
+            Logger.printDebug(() -> "Reel watch history: held back a " + what);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_WATCH_HISTORY, hook, failure);
             return false;
         }
     }

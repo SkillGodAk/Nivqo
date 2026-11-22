@@ -10,7 +10,11 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.breakLengthRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.category;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.commentOrderRow;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.commentsHeightRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.feedsSubtabRow;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.foldCommentsRow;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.foldPostsRow;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.holdReactionRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.homeFeedRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.info;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.pauseLengthRow;
@@ -41,6 +45,7 @@ import app.morphe.extension.facebook.feed.HiddenTally;
 import app.morphe.extension.facebook.feed.SeenPosts;
 import app.morphe.extension.facebook.feed.TranslateLanguages;
 import app.morphe.extension.facebook.misc.BreakTimer;
+import app.morphe.extension.facebook.misc.PostMenuItems;
 import app.morphe.extension.facebook.navigation.MarketplaceOnly;
 import app.morphe.extension.facebook.profile.LocalProfileCounts;
 import app.morphe.extension.facebook.settings.SettingsRows.Row;
@@ -172,11 +177,20 @@ final class FeedPages {
                 || build.contains(PatchFamily.AFFILIATE_LINKS)
                 || build.contains(PatchFamily.POST_WORDS)
                 || build.contains(PatchFamily.POST_PROMPTS)
+                || build.contains(PatchFamily.PROFILE_PICTURES)
                 || build.contains(PatchFamily.SEEN_POSTS)
                 || build.contains(PatchFamily.META_AI_QUESTIONS)
                 || build.contains(PatchFamily.POST_DATES)
                 || build.contains(PatchFamily.AUTO_TRANSLATION)
-                || build.contains(PatchFamily.FEEDS_HEADER)) {
+                || build.contains(PatchFamily.ASK_BEFORE_LIKE)
+                || build.contains(PatchFamily.FEEDS_HEADER)
+                || build.contains(PatchFamily.FULL_POST_TEXT)
+                || build.contains(PatchFamily.FOLD_LONG_TEXT)
+                || build.contains(PatchFamily.TRANSLATE_POSTS)
+                || build.contains(PatchFamily.REEL_GESTURES)
+                || build.contains(PatchFamily.WHO_SHARED)
+                || build.contains(PatchFamily.PHOTO_CAROUSEL)
+                || build.contains(PatchFamily.POST_MENU_ITEMS)) {
             PreferenceCategory feed = category(screen, L10n.t("News feed"));
             // The families whose rules run in the feed guard, which keeps the tally.
             if (build.contains(PatchFamily.SPONSORED_POSTS) || build.contains(PatchFamily.SUGGESTED_POSTS)
@@ -218,11 +232,19 @@ final class FeedPages {
                                 ? L10n.t("Hides friend suggestions between posts, on your own profile, and as cards with an Add button in the "
                                         + "Stories tray.")
                                 : L10n.t("Hides friend suggestions between posts and on your own profile.")));
+                // The groups card between reels goes through the Reels mid-card hook, which only
+                // Clean up Reels and Hide reel interest prompts put in.
                 feed.addPreference(toggle(context, Settings.HIDE_SUGGESTED_GROUPS,
-                        L10n.t("Hides the row of groups to join between posts. Posts from groups you're in stay.")));
+                        build.contains(PatchFamily.REEL_DECLUTTER) || build.contains(PatchFamily.REEL_PROMPTS)
+                                ? L10n.t("Hides the row of groups to join between posts and the groups card between reels. "
+                                        + "Posts from groups you're in stay.")
+                                : L10n.t("Hides the row of groups to join between posts. Posts from groups you're in stay.")));
                 feed.addPreference(toggle(context, Settings.HIDE_GROUP_POSTS_NOT_JOINED,
                         L10n.t("Hides posts from groups you haven't joined, like a friend's post in a public group, and a "
                                 + "group post a friend commented on or shared. Posts from your groups stay.")));
+                feed.addPreference(toggle(context, Settings.HIDE_GROUP_POSTS,
+                        L10n.t("Hides every post from a group in your feed, your own groups' too, and a group post a friend "
+                                + "commented on or shared. The Groups tab keeps its feed.")));
                 feed.addPreference(toggle(context, Settings.HIDE_STORIES_YOU_MIGHT_LIKE,
                         L10n.t("Hides the row of Stories from people you aren't connected to, between posts. Your friends' Stories "
                                 + "and the Stories tray stay.")));
@@ -272,9 +294,15 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.HIDE_POST_FOLLOW_LINK,
                         L10n.t("Hides the \"Follow\" link next to the name on posts from Pages and people you don't follow. "
                                 + "Tapping the name still opens the profile. A change shows on the posts drawn after it.")));
+                feed.addPreference(toggle(context, Settings.HIDE_POST_SUBSCRIBE_LINK,
+                        L10n.t("Hides the \"Subscribe\" link next to a creator's name on posts and videos. "
+                                + "Tapping the name still opens the profile. A change shows on the posts drawn after it.")));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_JOIN_BUTTON,
                         L10n.t("Hides the Join button next to the group's name on posts from groups you haven't joined, "
                                 + "and the Join group bar under their videos. A change shows on the posts drawn after it.")));
+                feed.addPreference(toggle(context, Settings.HIDE_POST_X,
+                        L10n.t("Takes the X off the top corner of posts in your feed. The three-dot menu next to it stays. "
+                                + "A change shows on the posts drawn after it.")));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_COUNTS,
                         L10n.t("Takes the numbers off the Like, Comment and Share buttons under posts, so each shows "
                                 + "just its word. The buttons stay where they are. A change shows on the posts drawn after it.")));
@@ -282,6 +310,12 @@ final class FeedPages {
                         L10n.t("Hides the stacked reaction icons and the reactions count under posts. The space stays, "
                                 + "so a tap where they were still opens the list of reactions. To take the number off the Like "
                                 + "button too, turn on Hide counts on posts.")));
+            }
+            if (build.contains(PatchFamily.PROFILE_PICTURES)) {
+                // Read as each post's header is built, so a change shows on the posts drawn after it.
+                feed.addPreference(toggle(context, Settings.HIDE_FEED_PROFILE_PICTURES,
+                        L10n.t("Takes the profile picture off the top of posts, so the name starts where the picture "
+                                + "was. A change shows on the posts drawn after it.")));
             }
             if (build.contains(PatchFamily.META_AI_QUESTIONS)) {
                 feed.addPreference(toggle(context, Settings.HIDE_META_AI_QUESTIONS,
@@ -301,8 +335,17 @@ final class FeedPages {
                         + "a post with all of its buttons hidden shows no row.");
                 feed.addPreference(toggle(context, Settings.HIDE_POST_LIKE_BUTTON, hides));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_COMMENT_BUTTON, hides));
+                feed.addPreference(toggle(context, Settings.HIDE_POST_REPOST_BUTTON, hides));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_SHARE_BUTTON, hides));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_SEND_BUTTON, hides));
+            }
+            if (build.contains(PatchFamily.ASK_BEFORE_LIKE)) {
+                // Read on each tap, so a change shows on the next one.
+                feed.addPreference(toggle(context, Settings.ASK_BEFORE_LIKING_POSTS,
+                        L10n.t("A tap on Like under a post asks first, and only Continue likes or unlikes it.")));
+                feed.addPreference(toggle(context, Settings.ASK_BEFORE_FOLLOWING_POSTS,
+                        L10n.t("A tap on Follow in a post, beside the poster's name or on its Follow button, asks first, "
+                                + "and only Continue follows or unfollows.")));
             }
             if (build.contains(PatchFamily.POST_DATES)) {
                 feed.addPreference(toggle(context, Settings.KEEP_POST_DATES,
@@ -311,8 +354,12 @@ final class FeedPages {
             }
             if (build.contains(PatchFamily.FULL_POST_TEXT)) {
                 feed.addPreference(toggle(context, Settings.SHOW_FULL_POST_TEXT,
-                        L10n.t("Posts in the feed and captions on reels show all of their text, so there's no See more to tap. "
-                                + "Tap the text to fold it back.")));
+                        L10n.t("Posts in the feed show all of their text, so there's no See more to tap. Tap the text to fold "
+                                + "it back. Reel captions have their own switch under Reels and Watch.")));
+            }
+            if (build.contains(PatchFamily.FOLD_LONG_TEXT)) {
+                // Read as each post's text is cut, so a change shows on the posts drawn after it.
+                feed.addPreference(foldPostsRow(context));
             }
             if (build.contains(PatchFamily.TRANSLATE_POSTS)) {
                 feed.addPreference(toggle(context, Settings.TRANSLATE_POST_LINK,
@@ -329,6 +376,13 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.SELECT_POST_TEXT,
                         L10n.t("Holding a post's text opens it in a box where you can select just the part you want "
                                 + "and copy that, or copy all of it. The hold itself copies nothing.")));
+                feed.addPreference(toggle(context, Settings.HOLD_PHOTO_TO_REACT,
+                        L10n.t("Holding a post's photo opens its reactions, as holding Like does. It comes before "
+                                + "Long press opens comments.")));
+                feed.addPreference(toggle(context, Settings.HOLD_VIDEO_TO_REACT,
+                        L10n.t("Holding a post's video opens its reactions too. It comes before Long press opens "
+                                + "comments. With Hold a feed video for 2x on, that one wins and the video plays fast.")));
+                feed.addPreference(holdReactionRow(context));
             }
             if (build.contains(PatchFamily.WHO_SHARED)) {
                 feed.addPreference(toggle(context, Settings.SEE_WHO_SHARED,
@@ -403,7 +457,8 @@ final class FeedPages {
             if (build.contains(PatchFamily.POST_WORDS)) {
                 feed.addPreference(toggle(context, Settings.HIDE_POSTS_WITH_WORDS,
                         L10n.t("Hides posts containing a word or phrase from your list below. Words that keep a post win over it. "
-                                + "Your words stay on this phone unless you export them.")));
+                                + "Your words stay on this phone unless you export them. Posts on profiles, Pages and in groups go too, "
+                                + "and Reels tab reels go by their captions.")));
                 feed.addPreference(page.wordsRow(context, Settings.HIDDEN_WORDS, true));
                 feed.addPreference(page.wordsRow(context, Settings.KEPT_WORDS, false));
                 feed.addPreference(toggle(context, Settings.POST_WORDS_WHOLE_WORDS,
@@ -417,7 +472,8 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.HIDE_VIDEO_POSTS,
                         L10n.t("Hides posts with a video, including shares. Reels in the feed have their own switch.")));
                 feed.addPreference(toggle(context, Settings.HIDE_LINK_POSTS,
-                        L10n.t("Hides posts that share a link to a website, with its preview card.")));
+                        L10n.t("Hides posts that share a link to a website, with its preview card. On profiles, Pages, groups and "
+                                + "the Reels tab, a post or reel whose words name a website goes too.")));
                 feed.addPreference(toggle(context, Settings.HIDE_BACKGROUND_POSTS,
                         L10n.t("Hides short posts shown as big text on a colored background.")));
                 feed.addPreference(toggle(context, Settings.HIDE_REPOSTS,
@@ -426,6 +482,10 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.HIDE_PAGE_POSTS,
                         L10n.t("Hides posts written by Pages, the ones you follow too. Posts from friends and groups "
                                 + "stay, and so does a friend's share of a Page's post.")));
+                feed.addPreference(toggle(context, Settings.ONLY_FRIENDS_POSTS,
+                        L10n.f("Shows only posts your friends wrote and hides Pages, groups, ads, suggested posts and "
+                                + "feed reels. A post whose author it can't tell stays. Turn on %1$s too for the newest "
+                                + "posts first.", L10n.isolate(SwitchLabels.title(Settings.FOLLOWING_FEED_HOME)))));
                 feed.addPreference(toggle(context, Settings.HIDE_OTHER_LANGUAGES,
                         L10n.t("Hides posts and Reels tab reels in a language you don't keep, going by the phone's own "
                                 + "guess at each post's words or reel's caption. Ones it isn't sure about stay, and nothing "
@@ -438,11 +498,76 @@ final class FeedPages {
                     feed.addPreference(feedTypesRow(page, context));
                 }
             }
+            if (build.contains(PatchFamily.POST_MENU_ITEMS)) feed.addPreference(postMenuItemsRow(page, context));
         }
     }
 
     /** The row's key, for the settings search. No setting is behind it. */
     static final String FEED_TYPES_ROW = "action_feed_types";
+
+    /** The row's key, for the settings search. No setting is behind it. */
+    static final String POST_MENU_ITEMS_ROW = "action_post_menu_items";
+
+    /** Post menu items' row: the rows it keeps out of a post's 3-dot menu, picked from a list of checkboxes. */
+    static Preference postMenuItemsRow(HushfacebookPreferenceFragment page, Context context) {
+        Row row = new Row(context);
+        row.setKey(POST_MENU_ITEMS_ROW);
+        row.setTitle(L10n.t("3-dot menu items to hide"));
+        row.setPersistent(false);
+        row.setSummary(postMenuItemsSummary(PostMenuItems.hidden()));
+        row.setOnPreferenceClickListener(p -> {
+            showPostMenuItems(page, context, row);
+            return true;
+        });
+        return row;
+    }
+
+    /** The row's summary: the rows kept out, by the names the list gives them, or none. */
+    static String postMenuItemsSummary(Set<String> hidden) {
+        if (hidden.isEmpty()) return L10n.t("None picked yet.");
+        List<String> names = new ArrayList<>();
+        for (String kind : hidden) names.add(PostMenuItems.label(kind));
+        return L10n.f("Hidden: %s", L10n.join(names));
+    }
+
+    /**
+     * The list: every kind of row it knows, ticked when it's kept out. Save keeps the ticks, or, when
+     * they need more room than the setting has or the phone doesn't keep the write, keeps the list
+     * open with its ticks, so Save can be tried again.
+     */
+    private static void showPostMenuItems(HushfacebookPreferenceFragment page, Context context, Preference row) {
+        List<String> kinds = PostMenuItems.choices();
+        Set<String> hidden = PostMenuItems.hidden();
+        String[] names = new String[kinds.size()];
+        boolean[] ticked = new boolean[kinds.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = PostMenuItems.label(kinds.get(i));
+            ticked[i] = hidden.contains(kinds.get(i));
+        }
+        AlertDialog list = page.show(new AlertDialog.Builder(context)
+                .setTitle(L10n.t("Hide from the 3-dot menus of posts and reels"))
+                .setMultiChoiceItems(names, ticked, (shown, which, isTicked) -> ticked[which] = isTicked)
+                .setPositiveButton(L10n.t("Save"), null)
+                .setNegativeButton(L10n.t("Cancel"), null));
+        if (list == null) return;
+        list.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(button -> {
+            List<String> picked = new ArrayList<>();
+            for (int i = 0; i < ticked.length; i++) {
+                if (ticked[i]) picked.add(kinds.get(i));
+            }
+            PostMenuItems.Hidden saved = PostMenuItems.hide(picked);
+            if (saved == PostMenuItems.Hidden.NO_ROOM) {
+                Utils.showToastLong(L10n.t("This list needs more room than it has. Shorten it, then save again."));
+                return;
+            }
+            if (saved == PostMenuItems.Hidden.NOT_STORED) {
+                Utils.showToastLong(L10n.t("Couldn't save the change. Try again."));
+                return;
+            }
+            row.setSummary(postMenuItemsSummary(PostMenuItems.hidden()));
+            list.dismiss();
+        });
+    }
 
     /** The row's key, for the settings search. The setting it writes is a list of codes. */
     static final String LEAVE_ALONE_ROW = "action_translate_leave_alone";
@@ -640,6 +765,11 @@ final class FeedPages {
         feed.addPreference(forget);
     }
 
+    /** Whether [build] boxes story names: Show full post text with its story-name hook in (#490). */
+    private static boolean storyNamesBoxed(Set<PatchFamily> build) {
+        return build.contains(PatchFamily.FULL_POST_TEXT) && VideoPages.storyNamesInBuild();
+    }
+
     /** Stories. */
     static void stories(HushfacebookPreferenceFragment page, PreferenceScreen screen, Context context,
             Set<PatchFamily> build) {
@@ -648,7 +778,8 @@ final class FeedPages {
                 || build.contains(PatchFamily.STORY_DOWNLOAD) || build.contains(PatchFamily.STORY_UPLOAD_HD)
                 || build.contains(PatchFamily.STORY_MUSIC_LENGTH) || build.contains(PatchFamily.STORIES_TRAY_CIRCLES)
                 || build.contains(PatchFamily.STORY_TAPS) || build.contains(PatchFamily.STORY_VIEWER_CLEANUP)
-                || build.contains(PatchFamily.PINCH_TO_ZOOM)) {
+                || build.contains(PatchFamily.STORY_RINGS) || build.contains(PatchFamily.PINCH_TO_ZOOM)
+                || storyNamesBoxed(build)) {
             PreferenceCategory stories = category(screen, L10n.t("Stories"));
             if (build.contains(PatchFamily.SPONSORED_STORIES)) {
                 stories.addPreference(toggle(context, Settings.HIDE_SPONSORED_STORIES,
@@ -666,17 +797,28 @@ final class FeedPages {
                 stories.addPreference(toggle(context, Settings.HIDE_STORY_PROMPTS,
                         L10n.t("Hides cards beside Create story that suggest a story to make, like Share music you love. Applies "
                                 + "when Facebook next loads the tray.")));
+                stories.addPreference(toggle(context, Settings.HIDE_CREATE_STORY,
+                        L10n.t("Takes the Create story tile off the start of the Stories tray. The stories stay. "
+                                + "Applies when Facebook next loads the tray.")));
                 stories.addPreference(toggle(context, Settings.HIDE_PAGE_STORIES,
                         L10n.t("Shows only people's stories in the Stories tray, without the Pages you follow. Applies when "
                                 + "Facebook next loads the tray.")));
                 stories.addPreference(toggle(context, Settings.HIDE_SEEN_STORIES,
                         L10n.t("Stories you've already watched leave the Stories tray until there's a new one. Applies when "
                                 + "Facebook next loads the tray.")));
+                // Kept, but after the ones you haven't watched (#489).
+                stories.addPreference(toggle(context, Settings.SEEN_STORIES_LAST,
+                        L10n.t("Stories you've already watched move to the end of the Stories tray, after the ones you "
+                                + "haven't. Hide seen stories goes first while it's on. Applies when Facebook next loads the tray.")));
                 // The other way round, so the tray flips between the two with one switch (#340).
                 stories.addPreference(toggle(context, Settings.SHOW_ONLY_WATCHED_STORIES,
                         L10n.t("The Stories tray keeps only the stories you've already watched, so you can find one again. "
                                 + "Turn it off to see the new ones. Hide seen stories waits while this is on. Applies when "
                                 + "Facebook next loads the tray.")));
+                // Stories that showed in Home's tray count as seen, watched or not (#463).
+                stories.addPreference(toggle(context, Settings.HIDE_PASSED_STORIES,
+                        L10n.t("A story you scrolled past in the Stories tray leaves it the next time you open Facebook, "
+                                + "even if you didn't watch it. A new story brings that person back.")));
             }
             if (build.contains(PatchFamily.STORY_AUTO_ADVANCE)) {
                 stories.addPreference(toggle(context, Settings.BLOCK_STORY_AUTO_ADVANCE,
@@ -723,6 +865,13 @@ final class FeedPages {
                                 + "Home loads its stories.")));
                 stories.addPreference(HushfacebookPreferenceFragment.sizeRow(context));
             }
+            if (storyNamesBoxed(build)) {
+                // Show full post text's story half (#490), asked as each name is built.
+                stories.addPreference(toggle(context, Settings.DIM_STORY_NAMES,
+                        L10n.t("Names in the stories row and on an open story sit on a dark box, so a bright story "
+                                + "doesn't hide them. Box darkness under Reels and Watch sets how dark. A change shows "
+                                + "the next time the stories load.")));
+            }
             if (build.contains(PatchFamily.STORY_TAPS)) {
                 // Read on each tap, so a change shows from the next one.
                 stories.addPreference(toggle(context, Settings.STORY_PLAY_BUTTON,
@@ -741,13 +890,41 @@ final class FeedPages {
                 stories.addPreference(toggle(context, Settings.HIDE_STORY_REPLY_SUGGESTIONS,
                         L10n.t("Takes the row of suggested replies off the bottom of a story. The reply box stays. "
                                 + "Applies from the next story you open.")));
+                stories.addPreference(toggle(context, Settings.HIDE_STORY_SUBSCRIBE,
+                        L10n.t("Takes the Subscribe button off the top of a story. Applies from the next story you open.")));
+                stories.addPreference(toggle(context, Settings.HIDE_STORY_CREATE_CARDS,
+                        L10n.t("Takes out the card between stories that asks you to make one, including the ones "
+                                + "built from photos in your gallery. Applies the next time you open stories.")));
                 stories.addPreference(toggle(context, Settings.STORY_PROGRESS_BAR,
                         L10n.t("Shows a thin bar along the bottom of a story that fills as it plays, like the one on Reels.")));
+            }
+            if (build.contains(PatchFamily.STORY_RINGS)) {
+                // Read each time a picture draws, so a change shows on what's drawn after it.
+                stories.addPreference(toggle(context, Settings.HIDE_FEED_STORY_RINGS,
+                        L10n.t("Takes the story and LIVE rings off the profile pictures at the top of posts. Tapping "
+                                + "the picture opens the profile. Applies to posts drawn after the change.")));
+                stories.addPreference(toggle(context, Settings.HIDE_COMMENT_STORY_RINGS,
+                        L10n.t("Takes the story ring off the profile pictures next to comments. Applies to comments "
+                                + "drawn after the change.")));
+                stories.addPreference(toggle(context, Settings.HIDE_PROFILE_STORY_RINGS,
+                        L10n.t("Takes the story and LIVE rings off the picture on a profile, and in the lists and "
+                                + "search results that show it the same way. Applies the next time the picture draws.")));
+            }
+            if (build.contains(PatchFamily.TAP_TO_PLAY)) {
+                // Read as each story's video draws, so a change shows on the story that's open.
+                stories.addPreference(toggle(context, Settings.STORY_SEEK_BAR,
+                        L10n.t("Shows a bar along the bottom of a video story that you drag to move through it. The "
+                                + "story waits while you drag. Progress bar at the bottom makes way for it on video stories.")));
+                stories.addPreference(toggle(context, Settings.STORY_SEEK_BAR_FADE,
+                        L10n.t("With Seek bar on stories on, the bar fades a few seconds after the story starts or you "
+                                + "last touched it. A touch or a pause brings it back."))
+                        .needs(Settings.STORY_SEEK_BAR));
             }
             if (build.contains(PatchFamily.PINCH_TO_ZOOM)) {
                 // Asked as each second finger lands, so a change shows from the next pinch.
                 stories.addPreference(toggle(context, Settings.PINCH_TO_ZOOM,
-                        L10n.t("Pinch a story or a photo on someone's profile to zoom in. It goes back when you let go.")));
+                        L10n.t("Pinch a story, a video in your feed, or a photo on someone's profile or in Photo carousel "
+                                + "to zoom in. It goes back when you let go.")));
                 stories.addPreference(toggle(context, Settings.PINCH_TO_ZOOM_KEEP,
                         L10n.t("With Pinch to zoom on, the photo or story stays zoomed when you let go, and a story "
                                 + "stays paused. Drag with one finger or pinch again. Tap or press Back when you're done."))
@@ -761,9 +938,9 @@ final class FeedPages {
                                 + "Turn it off to keep the rest of the screen as it is."))
                         .needs(Settings.PINCH_TO_ZOOM));
                 stories.addPreference(toggle(context, Settings.PINCH_TO_ZOOM_LIVE,
-                        L10n.t("With Pinch to zoom on, a video you zoom on a profile or Page keeps playing. "
-                                + "With Stay zoomed on too, press and hold the zoom to pause the video, and again to play it. "
-                                + "Stories hold still while you zoom."))
+                        L10n.t("With Pinch to zoom on, a video you zoom keeps playing, stories included. "
+                                + "To zoom a story on a still frame, hold it first and then pinch. "
+                                + "With Stay zoomed on too, press and hold the zoom to pause the video, and again to play it."))
                         .needs(Settings.PINCH_TO_ZOOM));
             }
         }
@@ -781,7 +958,10 @@ final class FeedPages {
         boolean reactions = build.contains(PatchFamily.POST_PROMPTS);
         boolean fullHeight = build.contains(PatchFamily.FULL_HEIGHT_COMMENTS);
         boolean tags = build.contains(PatchFamily.TAG_SUGGESTIONS);
-        if (!order && !summaries && !options && !reactions && !fullHeight && !tags) return;
+        boolean pictures = build.contains(PatchFamily.PROFILE_PICTURES);
+        boolean ask = build.contains(PatchFamily.ASK_BEFORE_LIKE);
+        boolean fold = build.contains(PatchFamily.FOLD_LONG_TEXT);
+        if (!order && !summaries && !options && !reactions && !fullHeight && !tags && !pictures && !ask && !fold) return;
         PreferenceCategory comments = category(screen, L10n.t("Comments and writing"));
         if (order) {
             comments.addPreference(toggle(context, Settings.DEFAULT_COMMENT_ORDER,
@@ -798,6 +978,21 @@ final class FeedPages {
                     L10n.t("Hides the stacked reaction icons in the corner of a comment. The space stays, so a tap "
                             + "where they were still opens the list of reactions.")));
         }
+        if (pictures) {
+            // Read as each comment is built, so a change shows on the comments drawn after it.
+            comments.addPreference(toggle(context, Settings.HIDE_COMMENT_PROFILE_PICTURES,
+                    L10n.t("Takes the profile picture off comments, so the name and text start where the picture "
+                            + "was. A change shows on the comments drawn after it.")));
+        }
+        if (fold) {
+            // Read as each comment's text is cut, so a change shows on the comments drawn after it.
+            comments.addPreference(foldCommentsRow(context));
+        }
+        if (ask) {
+            // Read on each tap, so a change shows on the next one.
+            comments.addPreference(toggle(context, Settings.ASK_BEFORE_LIKING_COMMENTS,
+                    L10n.t("A tap on Like under a comment asks first, and only Continue likes or unlikes it.")));
+        }
         if (options) {
             comments.addPreference(toggle(context, Settings.LIKE_ONLY,
                     L10n.t("A long press on Like doesn't open the reactions. A tap still likes.")));
@@ -807,6 +1002,8 @@ final class FeedPages {
                     L10n.t("The row of emoji over the comment box goes away. You can still type emoji from your keyboard.")));
             comments.addPreference(toggle(context, Settings.HIDE_COMMENT_BOX_LINE,
                     L10n.t("The thin line along the top of the comment box goes away.")));
+            comments.addPreference(toggle(context, Settings.HIDE_COMMENT_BOX,
+                    L10n.t("The Write a comment box under a post's comments goes away. You can still read every comment.")));
             comments.addPreference(toggle(context, Settings.HIDE_VIDEO_COMMENT_COMPOSER,
                     L10n.t("The Add a comment box under a full-screen video goes away. Comment boxes on posts stay.")));
             comments.addPreference(toggle(context, Settings.OPEN_REPLY_THREADS,
@@ -823,6 +1020,10 @@ final class FeedPages {
                     L10n.t("Takes the thumbs-down off comments. Like and Reply stay.")));
             comments.addPreference(toggle(context, Settings.HIDE_COMMENT_LIKE_BUTTON,
                     L10n.t("Takes Like off the row under comments. Reply and the reaction count stay.")));
+            comments.addPreference(toggle(context, Settings.HIDE_COMMENT_REPLY_BUTTON,
+                    L10n.t("Takes Reply off the row under comments. View replies, Like and the reaction count stay.")));
+            comments.addPreference(toggle(context, Settings.HIDE_COMMENTER_BADGES,
+                    L10n.t("Takes Top fan, Subscriber and the other badges off commenters' names. The name and the comment stay.")));
             comments.addPreference(toggle(context, Settings.COMMENT_BLOCK_BUTTON,
                     L10n.t("The thumbs-down on a comment becomes Block. One tap opens Facebook's own block screen for that person.")));
             comments.addPreference(toggle(context, Settings.REACTOR_BLOCK_BUTTON,
@@ -842,12 +1043,14 @@ final class FeedPages {
                     L10n.t("Takes away the line that says someone is typing a comment. Your own typing is a separate switch under Privacy.")));
             comments.addPreference(toggle(context, Settings.HIDE_NEW_COMMENTS_PILL,
                     L10n.t("The \"new comments\" bubble no longer pops up while you read comments. New comments still show in the list.")));
+            // Read as each comment's row is built, so a change shows on the comments drawn after it.
+            comments.addPreference(toggle(context, Settings.SHOW_EVERY_COMMENT_REACTION,
+                    L10n.t("Where Facebook shows only a comment's top reaction next to its count, keeps Like, Reply and every "
+                            + "reaction instead. A change shows on the comments drawn after it.")));
             comments.addPreference(reactionCountsRow(context));
         }
         if (fullHeight) {
-            comments.addPreference(toggle(context, Settings.OPEN_COMMENTS_FULL_HEIGHT,
-                    L10n.t("Comments open on a sheet that fills the screen instead of stopping part way up. On reels and "
-                            + "videos, Comment opens that sheet in place of the split view with the video on top.")));
+            comments.addPreference(commentsHeightRow(context));
             // The pause goes through Tap to play's player bridge (#266).
             if (build.contains(PatchFamily.TAP_TO_PLAY)) {
                 comments.addPreference(toggle(context, Settings.PAUSE_REELS_UNDER_COMMENTS,
@@ -858,6 +1061,15 @@ final class FeedPages {
             comments.addPreference(toggle(context, Settings.TAP_REELS_ABOVE_COMMENTS,
                     L10n.t("Tapping the reel above its comments plays or pauses it, and the comments stay open. "
                             + "Works while comments open part way up, not at full height.")));
+            comments.addPreference(toggle(context, Settings.SEARCH_COMMENTS,
+                    L10n.t("A magnifier at the top of the comments opens a search box that finds the comments with "
+                            + "your words.")));
+            // The comments leave the list through Comment sheet options' hooks on the comment and the list.
+            if (options) {
+                comments.addPreference(toggle(context, Settings.FILTER_COMMENT_SEARCH,
+                        L10n.t("While the search box holds words, comments without them are hidden. Clearing the "
+                                + "box brings them back.")));
+            }
         }
         // Writing had a section of its own for this one switch.
         if (tags) {

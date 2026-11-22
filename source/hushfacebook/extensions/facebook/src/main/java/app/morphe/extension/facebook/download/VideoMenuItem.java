@@ -12,6 +12,7 @@ import android.view.View;
 import java.lang.reflect.Method;
 import java.util.List;
 
+import app.morphe.extension.facebook.media.PostMenuSpeed;
 import app.morphe.extension.facebook.media.SkipSilence;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
@@ -32,6 +33,7 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * ({@link SendLink}), the item is Send to app and hands over the video's facebook.com link.
  * While Skip silent parts is on and a video has started, the same call adds that patch's row below
  * Facebook's ({@link SkipSilence}), so it shows only where Download any video is patched too.
+ * Playback speed in the post menu adds its Playback speed row the same way ({@link PostMenuSpeed}).
  *
  * <p>Nothing here names a class or member that Facebook renames. The post and its attachment are
  * kept GraphQL model classes, and the patch finds their getters by the GraphQL field each one
@@ -79,7 +81,8 @@ public final class VideoMenuItem {
             boolean handOff = Settings.OPEN_IN_ANOTHER_APP.get();
             boolean saving = download || handOff;
             boolean silence = SkipSilence.offersRow();
-            if (!saving && !silence) return;
+            boolean speed = PostMenuSpeed.offersRow();
+            if (!saving && !silence && !speed) return;
             if (menu == null) return;
             if (saving) HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
 
@@ -120,6 +123,16 @@ public final class VideoMenuItem {
                     });
                 }
             }
+            if (speed) {
+                MenuItem entry = menu.add(PostMenuSpeed.rowTitle());
+                PostMenuSpeed.remember(entry);
+                if (entry != null) {
+                    entry.setOnMenuItemClickListener(tapped -> {
+                        PostMenuSpeed.open(context, video.id);
+                        return true;
+                    });
+                }
+            }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "video menu", t);
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE,
@@ -154,15 +167,22 @@ public final class VideoMenuItem {
             }
             Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "Download to phone tapped");
             if (MediaDownload.busy(application)) return;
-            if (MediaDownload.saveFeedVideo(application, video.details, video.hd, video.sd)) return;
-
-            Feedback.show(application,
-                L10n.t(application, "Couldn't save this video. Play it for a moment, then try again."), true);
+            // With Choose quality on each save on, the list asks first and its pick starts the save (#448).
+            if (QualityChooser.ask(context, () -> save(application, video))) return;
+            save(application, video);
         } catch (Throwable t) {
             // It runs inside Facebook's click dispatch, on the thread that draws the app.
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "video menu tap", t);
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "the Download to phone tap failed", t);
         }
+    }
+
+    /** The save of [video], or a message saying it didn't start. Answers whether it started. */
+    private static boolean save(Context application, Video video) {
+        if (MediaDownload.saveFeedVideo(application, video.details, video.hd, video.sd)) return true;
+        Feedback.show(application,
+            L10n.t(application, "Couldn't save this video. Play it for a moment, then try again."), true);
+        return false;
     }
 
     /**

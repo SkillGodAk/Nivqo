@@ -98,6 +98,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyRings() {
+        return false;
+    }
+
     public static boolean storiesTrayCircles() {
         return false;
     }
@@ -135,6 +139,10 @@ public final class SettingsStatus {
     }
 
     public static boolean doubleTapLike() {
+        return false;
+    }
+
+    public static boolean askBeforeLike() {
         return false;
     }
 
@@ -191,6 +199,10 @@ public final class SettingsStatus {
     }
 
     public static boolean pictureInPicture() {
+        return false;
+    }
+
+    public static boolean backgroundPlay() {
         return false;
     }
 
@@ -258,6 +270,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean locationPrompts() {
+        return false;
+    }
+
     public static boolean typingIndicator() {
         return false;
     }
@@ -303,6 +319,10 @@ public final class SettingsStatus {
     }
 
     public static boolean gmsCore() {
+        return false;
+    }
+
+    public static boolean cloneInstall() {
         return false;
     }
 
@@ -390,6 +410,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean profilePictures() {
+        return false;
+    }
+
     public static boolean seenPosts() {
         return false;
     }
@@ -403,6 +427,10 @@ public final class SettingsStatus {
     }
 
     public static boolean fullPostText() {
+        return false;
+    }
+
+    public static boolean foldLongText() {
         return false;
     }
 
@@ -454,6 +482,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean postMenuItems() {
+        return false;
+    }
+
     public static boolean metaAiSearch() {
         return false;
     }
@@ -467,6 +499,10 @@ public final class SettingsStatus {
     }
 
     public static boolean searchPostsTab() {
+        return false;
+    }
+
+    public static boolean searchSavedButton() {
         return false;
     }
 

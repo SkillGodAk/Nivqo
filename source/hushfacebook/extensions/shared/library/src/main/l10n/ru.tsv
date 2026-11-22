@@ -317,10 +317,15 @@ Hide comment and reaction previews	Скрывать предварительны
 The comment Facebook previews under a reel and the bubbles of friends who reacted. Open the comments to see them all.	Скрывает комментарий, который Facebook показывает под Reels, и аватары друзей, поставивших реакцию. Откройте комментарии, чтобы увидеть их все.
 Hide Threads cards between reels	Скрывать карточки Threads между Reels
 Hides the "Threads you might like" card between reels. Off by default, since it hasn't been tried on a real account yet.	Скрывает карточку «Возможно, вам понравится в Threads» между Reels. По умолчанию выключено, поскольку функция еще не проверялась на реальном аккаунте.
+Hide post cards between reels	Скрывать карточки публикаций между Reels
+Hides the carousels of posts Facebook puts between reels, like "Catch up on conversations" from your groups. Off by default.	Скрывает карусели публикаций, которые Facebook вставляет между Reels, например «Будьте в курсе обсуждений» из ваших групп. По умолчанию выключено.
 Only reels from accounts I follow	Только Reels от аккаунтов, на которые я подписан
 The Reels tab only shows reels from people and Pages you follow, starting with the next batch Facebook loads. The tab can take longer to fill. Off by default.	На вкладке Reels остаются только ролики людей и Страниц, на которые вы подписаны, начиная со следующей порции, которую загрузит Facebook. Вкладка может заполняться дольше. По умолчанию выключено.
 Facebook has no more reels your filters would keep, so these reels aren't filtered for now.	У Facebook больше нет роликов, которые оставили бы ваши фильтры, поэтому пока эти ролики не фильтруются.
+Hush hid the suggested posts after this, so Home ends here.	Hush скрыл рекомендованные публикации после этого места, поэтому лента «Главная» заканчивается здесь.
 Download quality	Качество скачивания
+Choose quality on each save	Выбирать качество при каждом сохранении
+A reel's Download button and a video's Download to phone show the qualities first, and the save takes the one you pick. Download quality stays as it is.	Кнопка «Скачать» у Reels и «Скачать на телефон» у видео сначала показывают варианты качества, и сохраняется выбранный. Качество скачивания остаётся прежним.
 Best	Наилучшее
 Smallest	Минимальный размер
 Each video saves at the best quality the player streams.	Каждое видео сохраняется в наилучшем качестве, доступном для воспроизведения.
@@ -369,7 +374,7 @@ People looking at a post don't see that you're writing a comment.	Другие �
 Hide read receipts	Скрывать уведомления о прочтении
 People you chat with in Facebook's own chats can't see that you've read their messages. The chat can stay unread on this phone.	Собеседники во встроенных чатах Facebook не видят, что вы прочитали их сообщения. На этом телефоне чат может оставаться непрочитанным.
 Facebook can't tell when you take a screenshot or record your screen, so it can't react.	Facebook не может определить, когда вы делаете снимок или запись экрана, и поэтому не может на это реагировать.
-Stops sending Facebook your list of watched reels. It uses the list to rank your feed, so reels you've watched may come back.	Не позволяет Facebook получать список просмотренных вами Reels. Facebook использует его для формирования Ленты, поэтому просмотренные Reels могут появляться снова.
+Stops sending Facebook your list of watched reels, and where you stopped in each video and how long you watched it. Facebook ranks your feed with these, so videos you've watched may come back.	Не позволяет Facebook получать список просмотренных вами Reels, а также место, где вы остановились в каждом видео, и время просмотра. Facebook использует их для формирования Ленты, поэтому просмотренные видео могут появляться снова.
 # context: switch title under Reels and Watch; the Reels tab shows the most recently posted reels before older ones
 Newest reels first	Сначала новые Reels
 # context: summary of that switch; "loaded" means the reels the app has already downloaded in the background, "placed" means reels already lined up as the next ones
@@ -468,6 +473,10 @@ The Also from Meta section leaves Facebook's Menu, with its links to Meta's othe
 Hide Help and support	Скрывать справку и поддержку
 # context: summary of that switch; Settings and privacy is Facebook's own Menu section
 The Help and support section leaves Facebook's Menu, header and all. Settings and privacy stays.	Раздел «Справка и поддержка» полностью удаляется из меню Facebook, включая заголовок. Раздел «Настройки и конфиденциальность» остается.
+Hide Your shortcuts	Скрывать «Ваши ярлыки»
+The Your shortcuts row leaves Facebook's Menu, with the groups and Pages Facebook keeps putting back in it. The Menu tiles under it stay.	Строка «Ваши ярлыки» удаляется из меню Facebook вместе с группами и страницами, которые Facebook снова и снова туда добавляет. Плитки меню под ней остаются.
+Hide Create Facebook Page	Скрывать «Создать страницу Facebook»
+The Create Facebook Page row leaves the top of Facebook's Menu. Your profile above it stays.	Строка «Создать страницу Facebook» удаляется из верхней части меню Facebook. Ваш профиль над ней остаётся.
 # context: switch title under Menu; Settings and privacy is a section of Facebook's own Menu that folds and unfolds when its header is tapped
 Keep Settings and privacy expanded	Не сворачивать «Настройки и конфиденциальность»
 # context: summary of that switch
@@ -495,6 +504,12 @@ Hide dislike on comments	Скрывать дизлайки в комментар
 Takes the thumbs-down off comments. Like and Reply stay.	Удаляет значок дизлайка из комментариев. Кнопки «Нравится» и «Ответить» остаются.
 Hide Like on comments	Скрывать «Нравится» в комментариях
 Takes Like off the row under comments. Reply and the reaction count stay.	Удаляет кнопку «Нравится» из строки под комментариями. Кнопка «Ответить» и счетчик реакций остаются.
+Hide Reply on comments	Скрывать «Ответить» в комментариях
+Takes Reply off the row under comments. View replies, Like and the reaction count stay.	Удаляет кнопку «Ответить» из строки под комментариями. «Посмотреть ответы», кнопка «Нравится» и счетчик реакций остаются.
+# context: switch title under Comments and writing, right under Hide Reply on comments; on, the small badges Facebook puts by a commenter's name (Top fan, Subscriber, group roles) go away; use Facebook's own name for the Top fan badge in your language
+Hide badges like Top fan on comments	Скрыть значки вроде «Самый активный фанат» в комментариях
+# context: description of that switch; "Top fan" and "Subscriber" are Facebook's badge names, use Facebook's wording in your language; only the badge goes, the commenter's name and comment stay
+Takes Top fan, Subscriber and the other badges off commenters' names. The name and the comment stay.	Убирает «Самый активный фанат», «Подписчик» и другие значки у имён в комментариях. Имя и комментарий остаются.
 # context: switch title under Comments; Like is the button under a post or a comment
 Like only	Только «Нравится»
 # context: summary of that switch; the reactions are the row of Love, Haha, Wow and the rest that a long press on Like opens
@@ -571,11 +586,13 @@ Adds a Download button under posts with a video or photos. It saves the video, t
 Hide Like under posts	Скрывать кнопку «Нравится» под публикациями
 # context: switch title under News feed; Comment is Facebook's own button under a post
 Hide Comment under posts	Скрывать кнопку «Комментировать» под публикациями
+# context: switch title under News feed; Repost is Facebook's own button under a post, the two arrows between Comment and Share
+Hide Repost under posts	Скрывать кнопку «Репост» под публикациями
 # context: switch title under News feed; Share is Facebook's own button under a post
 Hide Share under posts	Скрывать кнопку «Поделиться» под публикациями
 # context: switch title under News feed; Send is Facebook's own button under a post that sends it in a chat
 Hide Send under posts	Скрывать кнопку «Отправить» под публикациями
-# context: summary shared by those four switches
+# context: summary shared by those five switches
 Takes this button out of the row under posts in the feed. The other buttons stay, and a post with all of its buttons hidden shows no row.	Удаляет эту кнопку из строки под публикациями в Ленте. Остальные кнопки остаются. Если скрыты все кнопки публикации, строка не отображается.
 # context: what stays in while Hushfacebook is paused, followed by the patch name in brackets; the row in Facebook's own Menu that opens Hushfacebook settings
 # context: a short message when the Hushfacebook row in Facebook's Menu couldn't open the settings
@@ -584,6 +601,7 @@ Hushfacebook settings can't open here. Long-press the Facebook logo instead.	З�
 Hide suggested groups	Скрывать рекомендации групп
 # context: summary of that switch; Discover more groups is the label of Facebook's own button under that row
 Hides the row of groups to join between posts. Posts from groups you're in stay.	Скрывает строку с предложениями вступить в группы между публикациями. Публикации из групп, в которых вы состоите, остаются.
+Hides the row of groups to join between posts and the groups card between reels. Posts from groups you're in stay.	Скрывает строку с предложениями вступить в группы между публикациями и карточку групп между Reels. Публикации из групп, в которых вы состоите, остаются.
 # context: switch title under News feed; Facebook's own header of a row of Stories from people you don't know, shown between posts
 Hide "Stories you might like"	Скрывать «Истории, которые могут вам понравиться»
 Hide Memories in the feed	Скрывать Воспоминания в Ленте
@@ -682,7 +700,7 @@ Your list of people, Pages and sites to hide will hold %1$d entries.	В спис
 Your list of people, Pages and sites to hide will hold %1$d entries.|few	В списке людей, Страниц и сайтов для скрытия будет %1$d записи.
 Your list of people, Pages and sites to hide will hold %1$d entries.|many	В списке людей, Страниц и сайтов для скрытия будет %1$d записей.
 # context: summary of that switch; the keep list is the second list under it, and a settings file is the one Export settings writes
-Hides posts containing a word or phrase from your list below. Words that keep a post win over it. Your words stay on this phone unless you export them.	Скрывает публикации, содержащие слово или фразу из списка ниже. Слова, разрешающие публикацию, имеют приоритет. Список хранится на этом телефоне, если вы не экспортируете его.
+Hides posts containing a word or phrase from your list below. Words that keep a post win over it. Your words stay on this phone unless you export them. Posts on profiles, Pages and in groups go too, and Reels tab reels go by their captions.	Скрывает публикации, содержащие слово или фразу из списка ниже. Слова, разрешающие публикацию, имеют приоритет. Список хранится на этом телефоне, если вы не экспортируете его. Публикации в профилях, на Страницах и в группах тоже скрываются, а видео во вкладке Reels фильтруются по подписи.
 # context: title of the row and dialog holding the list of words and phrases that hide a post
 Words to hide	Слова для скрытия
 # context: title of the row and dialog holding the list of words and phrases that keep a post even when it has a word to hide
@@ -857,10 +875,44 @@ Saving... To cancel, open Downloads in Hushfacebook settings.	Сохранени
 Turn off double tap to like	Отключить отметку «Нравится» двойным нажатием
 # context: summary of that switch; Like is the name of Facebook's own button, as Facebook shows it in this language
 A double tap on a reel, a video or a photo in the feed no longer likes it or shows a heart. A single tap and the Like button work as before.	Двойное нажатие на Reels, видео или фото в Ленте больше не ставит отметку «Нравится» и не показывает сердечко. Одиночное нажатие и кнопка «Нравится» работают как прежде.
+# context: switch title on the News feed page; on, a tap on Like under a post asks first
+Ask before liking a post	Спрашивать перед отметкой «Нравится» для публикации
+# context: summary of that switch; Like is Facebook's own button as Facebook shows it in this language; Continue is the question's button, as translated below
+A tap on Like under a post asks first, and only Continue likes or unlikes it.	Нажатие на «Нравится» под публикацией сначала спрашивает, и только «Продолжить» ставит или снимает отметку.
+# context: switch title under Reels and Watch; on, a tap on Like beside a reel asks first
+Ask before liking a reel	Спрашивать перед отметкой «Нравится» для видео Reels
+# context: summary of that switch
+A tap on Like beside a reel asks first, and only Continue likes or unlikes it.	Нажатие на «Нравится» рядом с видео Reels сначала спрашивает, и только «Продолжить» ставит или снимает отметку.
+# context: switch title under Comments and writing; on, a tap on Like under a comment asks first
+Ask before liking a comment	Спрашивать перед отметкой «Нравится» для комментария
+# context: summary of that switch
+A tap on Like under a comment asks first, and only Continue likes or unlikes it.	Нажатие на «Нравится» под комментарием сначала спрашивает, и только «Продолжить» ставит или снимает отметку.
+# context: the question shown after a tap on Like under a post; Continue goes ahead with the like or unlike, Cancel leaves it
+Like or unlike this post?	Поставить или снять отметку «Нравится» для этой публикации?
+# context: the same question for a reel
+Like or unlike this reel?	Поставить или снять отметку «Нравится» для этого видео Reels?
+# context: the same question for a comment
+Like or unlike this comment?	Поставить или снять отметку «Нравится» для этого комментария?
+# context: switch title on the News feed page, under Ask before liking a post; on, a tap on Follow in a post asks first
+Ask before following from a post	Спрашивать перед подпиской из публикации
+# context: summary of that switch; Follow is Facebook's own button as Facebook shows it in this language, here the link beside the name of whoever posted and the Follow button on a shared Page or profile; Continue is the question's button
+A tap on Follow in a post, beside the poster's name or on its Follow button, asks first, and only Continue follows or unfollows.	Нажатие на «Подписаться» в публикации, рядом с именем автора или на её кнопке «Подписаться», сначала спрашивает, и только «Продолжить» оформляет или отменяет подписку.
+# context: switch title under Reels and Watch, under Ask before liking a reel; on, a tap on Follow beside a reel's author asks first
+Ask before following from a reel	Спрашивать перед подпиской из Reels
+# context: summary of that switch
+A tap on Follow beside a reel's author asks first, and only Continue follows or unfollows.	Нажатие на «Подписаться» рядом с автором видео Reels сначала спрашивает, и только «Продолжить» оформляет или отменяет подписку.
+# context: the question shown after a tap on Follow in a post or beside a reel; Continue goes ahead with the follow or unfollow, Cancel leaves it
+Follow or unfollow this account?	Подписаться на этот аккаунт или отменить подписку?
+# context: the question's button that goes ahead
+Continue	Продолжить
 # context: switch title under Reels and Watch; on, a double tap on the left or right edge of a reel or a video skips back or forward in it
 Double tap to skip	Перемотка двойным нажатием
 # context: summary of that switch; the edge is about a fifth of the player's width, and 30 seconds is the whole length of the reel or video
 A double tap on the left or right edge of a reel or video skips back or forward 10 seconds, or 5 on one under 30 seconds. A double tap in the middle works as before.	Двойное нажатие на левый или правый край Reels или видео перематывает его на 10 секунд назад или вперед, а видео короче 30 секунд на 5 секунд. Двойное нажатие по центру работает как обычно.
+# context: switch title under Reels and Watch, right under Double tap to skip; on, the "+5s" or "-10s" Facebook shows over the player when a double tap skips stays hidden
+Hide the skip seconds	Скрывать секунды перемотки
+# context: description of that switch; keep +5s and -10s as written, they're what Facebook shows on screen; Facebook can give an account the skip on its own, without the switch above
+A double tap on the edge still skips, but the +5s or -10s over the reel or video stays hidden. It also works when Facebook turned the skip on for you.	Двойное нажатие на край по-прежнему перематывает, но +5s или -10s поверх Reels или видео не показывается. Работает и тогда, когда Facebook сам включил вам перемотку.
 # context: switch title under Reels and Watch; on, a tap on a playing reel shows its controls without pausing it
 Tap shows the controls	Нажатие показывает элементы управления
 # context: summary of that switch; the button in the middle is the play and pause button in the reel's controls
@@ -882,7 +934,7 @@ Holding a video in the feed or in Watch plays it at double speed until you let g
 Locked at 2x. Tap the video to go back.	Скорость 2x закреплена. Нажмите на видео, чтобы вернуть прежнюю.
 Hide the pull down to lock hint	Скрывать подсказку о блокировке скорости свайпом вниз
 Hide the 2x popups	Скрывать всплывающие подсказки 2x
-Holding a video for 2x shows no pill at all, so no "Speed: 2x", "Release to lock" or "Locked at 2x speed". The hold and the lock still work.	При удержании видео для скорости 2x подсказка не появляется совсем: ни «Скорость: 2x», ни «Отпустите, чтобы зафиксировать», ни «Зафиксирована скорость 2x». Удержание и фиксация по-прежнему работают.
+Holding a video for 2x shows no pill at all, so no "Speed: 2x", "Release to lock" or "Locked at 2x speed", and feed videos drop the "2x speed" tip. The hold and the lock still work.	При удержании видео для скорости 2x подсказка не появляется совсем: ни «Скорость: 2x», ни «Отпустите, чтобы зафиксировать», ни «Зафиксирована скорость 2x», а видео в ленте больше не показывают подсказку «Скорость 2x». Удержание и фиксация по-прежнему работают.
 # context: summary of that switch; the quoted hint is Facebook's own text on the pill over a video held for 2x, translate it the way Facebook would; the switches above are Hold a reel for 2x's
 Holding a video for 2x shows the plain 2x pill, without the "Pull down to lock 2x speed" hint. Pulling down still locks it. It works without the switches above.	При удержании видео на скорости 2x показывается только значок 2x без подсказки «Проведите вниз, чтобы зафиксировать скорость 2x». Свайп вниз по-прежнему фиксирует скорость. Работает независимо от переключателей выше.
 Default playback quality	Качество воспроизведения по умолчанию
@@ -1000,6 +1052,10 @@ Hides the strip on some posts, like "Are you interested in this post?" or who re
 Hide the Follow link on posts	Скрывать ссылку «Подписаться» в публикациях
 # context: description of that switch; "Follow" is Facebook's own word for the link, so use Facebook's wording in your language if you know it
 Hides the "Follow" link next to the name on posts from Pages and people you don't follow. Tapping the name still opens the profile. A change shows on the posts drawn after it.	Скрывает ссылку «Подписаться» рядом с именем в публикациях Страниц и людей, на которых вы не подписаны. Нажатие на имя по-прежнему открывает профиль. Изменение применяется к публикациям, отображенным после его внесения.
+# context: switch title under News feed, right under Hide the Follow link on posts; the Subscribe link is the small "Subscribe" text after a creator's name in a post's header, use Facebook's own word for it
+Hide the Subscribe link on posts	Скрывать ссылку «Оформить подписку» в публикациях
+# context: description of that switch; "Subscribe" is Facebook's own word for the link
+Hides the "Subscribe" link next to a creator's name on posts and videos. Tapping the name still opens the profile. A change shows on the posts drawn after it.	Скрывает ссылку «Оформить подписку» рядом с именем автора в публикациях и видео. Нажатие на имя по-прежнему открывает профиль. Изменение применяется к публикациям, отображенным после его внесения.
 # context: switch title under News feed; Meta AI is the name of Meta's assistant, and the questions are the row of suggested questions for it that Facebook puts under some posts
 Hide Meta AI questions under posts	Скрывать вопросы Meta AI под публикациями
 # context: description of that switch; a link card is the preview of a shared link inside a post
@@ -1025,7 +1081,57 @@ The phone's language	Язык телефона
 Languages to leave alone	Языки без перевода
 None picked. Posts in every language can be translated.	Ничего не выбрано. Можно переводить публикации на любом языке.
 Left alone: %s	Без перевода: %s
-Posts in the feed and captions on reels show all of their text, so there's no See more to tap. Tap the text to fold it back.	Публикации в Ленте и подписи к Reels отображаются полностью, поэтому нажимать «Еще» не нужно. Нажмите на текст, чтобы снова свернуть его.
+Posts in the feed show all of their text, so there's no See more to tap. Tap the text to fold it back. Reel captions have their own switch under Reels and Watch.	Публикации в Ленте отображаются полностью, поэтому нажимать «Еще» не нужно. Нажмите на текст, чтобы снова свернуть его. Для подписей к Reels есть отдельный переключатель в разделе Reels и Watch.
+# context: title of the list that picks how many lines a long post shows before See more
+Fold long posts	Сворачивать длинные публикации
+# context: one entry in those lists, a single line
+%1$d line	%1$d строка
+# context: the same entry for two or more lines
+%1$d lines	%1$d строки
+%1$d lines|few	%1$d строки
+%1$d lines|many	%1$d строк
+Long posts fold where Facebook folds them.	Длинные публикации сворачиваются там же, где их сворачивает Facebook.
+# context: %1$s is a line count such as 3 lines; See more is Facebook's link under a folded post
+A long post shows %1$s before See more.	Сколько видно у длинной публикации до кнопки «Еще»: %1$s.
+# context: Show full post text is the name of the switch just above
+Show full post text comes first while it's on.	Пока включен параметр «Показывать полный текст публикаций», он важнее.
+# context: title of the list that picks how many lines a long comment shows before See more
+Fold long comments	Сворачивать длинные комментарии
+Long comments fold where Facebook folds them.	Длинные комментарии сворачиваются там же, где их сворачивает Facebook.
+A long comment shows %1$s before See more.	Сколько видно у длинного комментария до кнопки «Еще»: %1$s.
+# context: sentence after a settings import; Fold long posts is the list's title
+Fold long posts will fold posts where Facebook does.	«Сворачивать длинные публикации» будет сворачивать публикации там же, где Facebook.
+Fold long posts will show %1$s before See more.	«Сворачивать длинные публикации» будет показывать до кнопки «Еще»: %1$s.
+Fold long comments will fold comments where Facebook does.	«Сворачивать длинные комментарии» будет сворачивать комментарии там же, где Facebook.
+Fold long comments will show %1$s before See more.	«Сворачивать длинные комментарии» будет показывать до кнопки «Еще»: %1$s.
+Show full reel captions	Показывать полные подписи к Reels
+Long captions on reels show all of their text right away. Tap the caption to fold it back. A change shows from the next reel.	Длинные подписи к Reels сразу отображаются полностью. Нажмите на подпись, чтобы снова свернуть ее. Изменение действует со следующего ролика.
+# context: switch title under Reels and Watch, below Show full reel captions; once a reel's caption is opened, a dark see-through box sits behind its text, like movie subtitles
+Dark box behind open captions	Темная подложка под открытыми подписями
+# context: summary of that switch
+An open reel caption sits on a dark box, like subtitles, so it's easy to read over a bright video. A change shows from the next reel.	Открытая подпись к Reels лежит на темной подложке, как субтитры, и ее легко читать поверх светлого видео. Изменение действует со следующего ролика.
+Dark box behind folded captions	Темная подложка под свернутыми подписями
+A folded reel caption, the short one with more at the end, sits on the same dark box. Turn on both to box every caption. A change shows from the next reel.	Свернутая подпись к Reels, короткая, с «Еще» в конце, лежит на той же темной подложке. Включите оба переключателя, чтобы подложка была под каждой подписью. Изменение действует со следующего ролика.
+# context: switch title under Reels and Watch, below the caption boxes; the name of who posted a reel, at its bottom, gets the same dark see-through box
+Dark box behind reel names	Темная подложка под именами в Reels
+# context: summary of that switch
+The name at the bottom of a reel sits on the same dark box, so it's easy to read over a bright video. A change shows from the next reel.	Имя внизу Reels лежит на той же темной подложке, поэтому его легко читать поверх яркого видео. Изменение применяется со следующего Reels.
+# context: row title under Reels and Watch and its dialog title; how dark every box behind captions and names is, as a percent of black
+Box darkness	Темнота подложек
+# context: the message in that row's dialog; %1$s and %2$s are the lowest and highest percent, %3$s the percent a blank row gives
+How dark the boxes behind captions and names are, in percent, from %1$s to %2$s. Leave it blank for %3$s.	Насколько темные подложки под подписями и именами, в процентах, от %1$s до %2$s. Оставьте поле пустым для значения %3$s.
+# context: that row's summary while it's blank; %1$s is a whole percent
+The dark boxes are %1$s percent black. Type a number to change it.	Темные подложки затемнены на %1$s из 100. Введите число, чтобы изменить.
+# context: that row's summary once a number is typed; %1$s is a whole percent
+The dark boxes are %1$s percent black.	Темные подложки затемнены на %1$s из 100.
+# context: switch title under Reels and Watch; the dark boxes fade out softly at their edges
+Soft box edges	Мягкие края подложек
+# context: summary of that switch
+The dark boxes fade out at their edges instead of ending sharp. A change shows from the next reel or story.	Темные подложки плавно растворяются по краям, а не обрываются резко. Изменение применяется со следующего Reels или истории.
+# context: switch title on the Stories page; the names in the stories row and on an open story get a dark see-through box
+Dark box behind story names	Темная подложка под именами в историях
+# context: summary of that switch; Box darkness is the row title above and Reels and Watch the settings page it's on
+Names in the stories row and on an open story sit on a dark box, so a bright story doesn't hide them. Box darkness under Reels and Watch sets how dark. A change shows the next time the stories load.	Имена в строке Историй и в открытой истории лежат на темной подложке, поэтому яркая история их не скрывает. Насколько темно, задает «Темнота подложек» в разделе Reels и Watch. Изменение применяется при следующей загрузке Историй.
 # context: switch title under News feed and the row it adds to a post's three-dot menu; it opens the list of people who shared the post
 See who shared	Посмотреть, кто поделился
 Adds See who shared to a post's menu. It opens Facebook's list of the people who shared it.	Добавляет пункт «Посмотреть, кто поделился» в меню публикации. Он открывает список пользователей Facebook, которые поделились ею.
@@ -1040,8 +1146,8 @@ Hide the Feeds header	Скрывать заголовок вкладки «Ле�
 Shows the Feeds tab straight on its posts, without the title row or the filters. Restart Facebook to see the change.	Открывает вкладку «Ленты» сразу со списком публикаций, без строки заголовка и фильтров. Перезапустите Facebook, чтобы увидеть изменения.
 # context: switch title under Reels and Watch; the prompt is Facebook's "Are you interested in this reel?" question on a reel
 Hide reel interest prompts	Скрывать вопросы об интересе к Reels
-# context: description of that switch; the quoted text is Facebook's own prompt, so use Facebook's wording in your language if you know it
-No "Are you interested in this reel?" prompt on reels. The reel plays as usual.	В Reels больше не появляется вопрос «Вам интересен этот Reels?». Видео воспроизводится как обычно.
+# context: description of that switch; the quoted text is Facebook's own prompt, so use Facebook's wording in your language if you know it; the survey card is Facebook's "To what extent does this video match your interests?" card shown between reels
+No "Are you interested in this reel?" prompt on reels, and no survey card between them asking how well a video matches your interests.	В Reels больше не появляется вопрос «Вам интересен этот Reels?», а между видео нет опроса о том, насколько ролик соответствует вашим интересам.
 # context: switch title under News feed; affiliate product links are the shop links creators add to their posts to earn a commission
 Hide affiliate product links	Скрывать партнерские ссылки на товары
 Hides product cards from shopping links that creators add to posts, reels and comments.	Скрывает карточки товаров из партнерских ссылок, которые авторы добавляют в публикации, Reels и комментарии.
@@ -1102,6 +1208,10 @@ Hides the Stories tray card that asks to upload your contacts. Applies when Face
 Hide story prompts	Скрывать подсказки для Историй
 # context: summary of that switch; Share music you love is the name of one such card
 Hides cards beside Create story that suggest a story to make, like Share music you love. Applies when Facebook next loads the tray.	Скрывает карточки рядом с кнопкой «Создать историю» с предложениями для новых Историй, например «Поделитесь любимой музыкой». Применяется при следующей загрузке панели Facebook.
+# context: switch title under Stories; Create story is the first tile of the Stories tray, the one that starts a new story of your own
+Hide Create story	Скрывать «Создать историю»
+# context: summary of that switch
+Takes the Create story tile off the start of the Stories tray. The stories stay. Applies when Facebook next loads the tray.	Убирает плитку «Создать историю» из начала панели Историй. Истории остаются. Применяется при следующей загрузке панели Facebook.
 # context: summary of Hide "People you may know" when the build also hides tray cards; Add is the card's button
 Hides friend suggestions between posts, on your own profile, and as cards with an Add button in the Stories tray.	Скрывает рекомендации друзей между публикациями, в вашем профиле и в виде карточек с кнопкой «Добавить» на панели Историй.
 Feeds opens on	Вкладка «Ленты» открывается на
@@ -1282,6 +1392,7 @@ Couldn't save this post's photos. Try again in a moment.	Не удалось с�
 Save GIF	Сохранить GIF
 # context: message after a tap on Save GIF when the save didn't start
 Couldn't save this GIF. Try again in a moment.	Не удалось сохранить этот GIF. Повторите попытку позже.
+Couldn't save this photo. Try again in a moment.	Не удалось сохранить это фото. Повторите попытку позже.
 # context: sentence added after the summary of the Save any photo switch; Save GIF is the row's name, keep it as translated for that row
 A GIF comment gets Save GIF when you long-press it.	При долгом нажатии на GIF в комментарии появляется пункт «Сохранить GIF».
 Couldn't save this story's photo. Try again in a moment.	Не удалось сохранить фото из этой Истории. Повторите попытку позже.
@@ -1387,7 +1498,7 @@ Hides posts with a photo or album, including shares.	Скрывает публи
 # context: summary of the Hide video posts switch
 Hides posts with a video, including shares. Reels in the feed have their own switch.	Скрывает публикации с видео, включая репосты. Для Reels в Ленте есть отдельный переключатель.
 # context: summary of the Hide link posts switch
-Hides posts that share a link to a website, with its preview card.	Скрывает публикации со ссылкой на сайт и карточкой предпросмотра.
+Hides posts that share a link to a website, with its preview card. On profiles, Pages, groups and the Reels tab, a post or reel whose words name a website goes too.	Скрывает публикации со ссылкой на сайт и карточкой предпросмотра. В профилях, на Страницах, в группах и во вкладке Reels тоже скрываются публикации и видео, в тексте которых указан сайт.
 # context: summary of the Hide posts on a colored background switch
 Hides short posts shown as big text on a colored background.	Скрывает короткие публикации, отображаемые крупным текстом на цветном фоне.
 # context: switch title under News feed: hides posts that share someone else's post, the ones Facebook heads "shared a post"; use Facebook's own word for a shared post in this language
@@ -1396,6 +1507,10 @@ Hide reposts	Скрывать репосты
 Hides posts that share another post, with or without a caption. Original posts stay. Off by default, since it hasn't been tried on a real feed yet.	Скрывает публикации, которыми делятся другие публикации, с подписью или без нее. Исходные публикации остаются. По умолчанию выключено, поскольку функция еще не проверялась на реальной Ленте.
 Hide posts from Pages	Скрывать публикации Страниц
 Hides posts written by Pages, the ones you follow too. Posts from friends and groups stay, and so does a friend's share of a Page's post.	Скрывает публикации Страниц, в том числе тех, на которые вы подписаны. Публикации друзей и групп остаются, как и репосты публикаций Страниц, которыми поделились друзья.
+# context: switch title under News feed; the feed keeps only posts written by the user's Facebook friends
+Only friends' posts	Только публикации друзей
+# context: summary of that switch; %1$s is the name of the Following feed on Home switch, which puts the newest posts first
+Shows only posts your friends wrote and hides Pages, groups, ads, suggested posts and feed reels. A post whose author it can't tell stays. Turn on %1$s too for the newest posts first.	Показывает только публикации ваших друзей и скрывает Страницы, группы, рекламу, рекомендованные публикации и Reels в ленте. Публикация, автора которой не удалось определить, остаётся. Включите также %1$s, чтобы сначала видеть самые новые публикации.
 Hide posts in other languages	Скрывать публикации на других языках
 Hides posts and Reels tab reels in a language you don't keep, going by the phone's own guess at each post's words or reel's caption. Ones it isn't sure about stay, and nothing leaves the phone.	Скрывает публикации и ролики во вкладке Reels на языке, которого нет в вашем списке, по собственной оценке телефона для текста каждой публикации или подписи к ролику. То, в чём он не уверен, остаётся, и ничего не покидает телефон.
 Languages to keep	Оставляемые языки
@@ -1412,6 +1527,7 @@ A few seconds after you leave Facebook, it closes all the way and leaves your re
 Facebook asks for your fingerprint, face or screen lock at startup and when you return after the time below. Your phone needs a screen lock.	При запуске Facebook и после возвращения в приложение по истечении указанного ниже времени запрашивает отпечаток пальца, распознавание лица или блокировку экрана. На телефоне должна быть настроена блокировка экрана.
 # context: toast when Lock Facebook is turned on and the phone has no screen lock to ask for
 Set a screen lock in your phone's settings first, so Facebook has something to ask for.	Сначала настройте блокировку экрана в параметрах телефона, чтобы Facebook мог запрашивать ее.
+Lock Facebook needs Android 10 or newer.	Чтобы блокировать Facebook, нужен Android 10 или новее.
 # context: title of the row and list that picks how long Facebook may be away before it locks
 Lock after	Блокировать через
 # context: Lock after choice: Facebook locks the moment you leave it
@@ -1577,6 +1693,8 @@ Only the first reel waits	Только первый Reels ожидает наж�
 With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed, Watch and stories always wait.	Если включен переключатель выше, после запуска первого Reels следующие ролики, к которым вы переходите свайпом, воспроизводятся автоматически. Лента, Watch и Истории всегда ждут нажатия.
 Slower speeds	Более низкая скорость
 Adds 0.1x and 0.25x to the speed menu of reels and of feed and Watch videos, for slowing down a fast moment.	Добавляет скорости 0,1x и 0,25x в меню скорости Reels, видео в Ленте и Watch, чтобы замедлять быстрые моменты.
+Faster speeds	Более высокая скорость
+Adds 2.5x and 3x to the speed menu of reels and of feed and Watch videos, for watching faster.	Добавляет скорости 2,5x и 3x в меню скорости Reels, видео в Ленте и Watch, чтобы смотреть быстрее.
 Speed on finished live videos	Скорость завершенных прямых эфиров
 A live video that has ended gets Playback speed in its gear menu, like other videos. Videos that are still live, and ads, keep Facebook's menu.	В меню настроек завершенного прямого эфира появляется пункт «Скорость воспроизведения», как и у других видео. Для продолжающихся эфиров и рекламы остается меню Facebook.
 Share now	Поделиться сейчас
@@ -1766,11 +1884,21 @@ On carriers with Facebook Flex, hides the purple Free mode bar. That bar is also
 # context: switch title under Picture-in-picture on the Playback page: the small window opens only from the Picture-in-picture row this adds to a reel's three-dot More menu, not when you leave Facebook
 Only from a reel's More menu	Только из меню «Еще» в Reels
 # context: summary of that switch; Picture-in-picture is the name of the row in the reel's menu, translated as the row is; the three dots are the reel's own menu button
-Leaving Facebook doesn't open the window. Tap Picture-in-picture in a reel's More menu (the three dots) when you want one. That row shows on upright reels, not wide ones.	При выходе из Facebook окно не открывается автоматически. Когда захотите, выберите «Картинка в картинке» в меню «Еще» (три точки) у Reels. Этот пункт отображается у вертикальных Reels, но не у горизонтальных.
+Leaving Facebook doesn't open the window. Tap Picture-in-picture in a reel's More menu (the three dots) when you want one.	При выходе из Facebook окно не открывается автоматически. Когда захотите, выберите «Картинка в картинке» в меню «Еще» (три точки) у Reels.
 # context: switch title under Picture-in-picture on the Playback page; the button floats over a reel or video and opens the small window when tapped
 Picture-in-picture button	Кнопка «Картинка в картинке»
 # context: summary of that switch; "the window" is the small picture-in-picture window
 Shows a small button at the left edge of a reel or video that has the window ready. Tap it to open the window right away. Works with Picture-in-picture on.	Показывает небольшую кнопку у левого края Reels или видео, чтобы быстро открыть плавающее окно. Нажмите ее, чтобы сразу открыть окно. Работает при включенной функции «Картинка в картинке».
+# context: switch title under Playback; on, a video you started keeps its sound after you leave Facebook; also the label of a headphones button in the picture-in-picture window
+Keep playing in the background	Продолжать воспроизведение в фоне
+# context: summary of that switch; the notification is the one Facebook shows with the video's play and pause buttons
+A video you started with a tap keeps its sound after you leave Facebook, and its notification can pause it. Swiping the notification away or taking a call stops it.	Видео, которое вы запустили нажатием, продолжает звучать после выхода из Facebook, а его уведомление позволяет поставить его на паузу. Если смахнуть уведомление или ответить на звонок, воспроизведение остановится.
+# context: title of that notification when the video has none of its own
+Facebook video	Видео Facebook
+# context: switch title under Playback; on, the small picture-in-picture window gets a headphones button that keeps the sound playing after the window closes
+Background play button in the window	Кнопка фонового воспроизведения в окне
+# context: summary of that switch; "the window" is the small picture-in-picture window
+Adds a headphones button to the picture-in-picture window. Tap it to close the window and keep the sound playing, with a notification to pause it.	Добавляет кнопку с наушниками в окно «Картинка в картинке». Нажмите ее, чтобы закрыть окно и продолжить слушать звук, а уведомление позволит поставить его на паузу.
 # context: switch title under Stories; it makes videos you post to your own Story ask for high quality when they upload
 Upload Stories in HD	Загружать Истории в HD
 # context: summary of that switch; standard is the normal upload quality, high the better one
@@ -1781,8 +1909,8 @@ Longer music on photo stories	Увеличить длительность муз
 A song you add to a photo for your Story plays for up to 30 seconds instead of 15. Applies to the next song you pick.	Добавленная к фото для Истории песня воспроизводится до 30 секунд вместо 15. Применяется к следующей выбранной песне.
 # context: switch title under Stories; two fingers spread apart on a story or a profile photo make it bigger
 Pinch to zoom	Масштабирование жестом
-# context: summary of that switch; "let go" means lifting your fingers off the screen
-Pinch a story or a photo on someone's profile to zoom in. It goes back when you let go.	Разведите пальцы на Истории или фото в чужом профиле, чтобы увеличить изображение. После отпускания пальцев масштаб вернется.
+# context: summary of that switch; "let go" means lifting your fingers off the screen; "Photo carousel" is the label of another switch, so use its translation
+Pinch a story, a video in your feed, or a photo on someone's profile or in Photo carousel to zoom in. It goes back when you let go.	Разведите пальцы на Истории, видео в ленте или фото в чужом профиле или в карусели фото, чтобы увеличить изображение. После отпускания пальцев масштаб вернется.
 # context: switch title under Stories, right below Pinch to zoom; the zoomed picture stays zoomed after the fingers lift
 Stay zoomed	Сохранять масштаб
 # context: summary of that switch; "Pinch to zoom" is the label of the switch above it, so use its translation; "Back" is the phone's Back button
@@ -1797,8 +1925,8 @@ Dim around a zoom	Затемнять вокруг увеличения
 With Pinch to zoom on, the screen around a photo or story darkens as you zoom in. Turn it off to keep the rest of the screen as it is.	Если включено масштабирование жестом, экран вокруг фото или Истории темнеет, пока вы увеличиваете. Выключите, чтобы остальная часть экрана оставалась как есть.
 # context: a switch under Pinch to zoom; with it on, a video you zoom keeps moving instead of freezing on the frame it showed
 Keep videos playing while zoomed	Не останавливать видео при увеличении
-# context: that switch's summary; "Pinch to zoom" and "Stay zoomed" are the labels of switches above it, so use their translations; a Page is a business's or public figure's Facebook page; a story is the full-screen picture or video someone shares for a day
-With Pinch to zoom on, a video you zoom on a profile or Page keeps playing. With Stay zoomed on too, press and hold the zoom to pause the video, and again to play it. Stories hold still while you zoom.	Если включено масштабирование жестом, видео, которое вы увеличили в профиле или на Странице, продолжает играть. Если также включено «Сохранять масштаб», нажмите и удерживайте увеличенное изображение, чтобы поставить видео на паузу, и еще раз, чтобы воспроизвести его. Истории во время увеличения не двигаются.
+# context: that switch's summary; "Pinch to zoom" and "Stay zoomed" are the labels of switches above it, so use their translations; a story is the full-screen picture or video someone shares for a day; "hold it first" means pressing and holding one finger on the story before the second finger comes down
+With Pinch to zoom on, a video you zoom keeps playing, stories included. To zoom a story on a still frame, hold it first and then pinch. With Stay zoomed on too, press and hold the zoom to pause the video, and again to play it.	Если включено масштабирование жестом, видео, которое вы увеличили, продолжает играть, в том числе в Историях. Чтобы увеличить Историю на неподвижном кадре, сначала нажмите и удерживайте ее, а затем разведите пальцы. Если также включено «Сохранять масштаб», нажмите и удерживайте увеличенное изображение, чтобы поставить видео на паузу, и еще раз, чтобы воспроизвести его.
 No ads downloaded in advance	Не загружать рекламу заранее
 No ad tracking	Не отслеживать рекламу
 No Facebook ads in other apps	Не показывать рекламу Facebook в других приложениях
@@ -1856,9 +1984,11 @@ Hides the WhatsApp button beside reels and videos. WhatsApp stays in the Share m
 Hide Like on reels	Скрывать «Нравится» в Reels
 # context: switch title under Reels and Watch; Comment is Facebook's own label for that button down a reel's right side, so use Facebook's wording in your language
 Hide Comment on reels	Скрывать «Комментировать» в Reels
+# context: switch title under Reels and Watch; Repost is Facebook's own label for the two-arrows button down a reel's right side, so use Facebook's wording in your language
+Hide Repost on reels	Скрывать «Репост» в Reels
 # context: switch title under Reels and Watch; Share is Facebook's own label for that button down a reel's right side, so use Facebook's wording in your language
 Hide Share on reels	Скрывать «Поделиться» в Reels
-# context: summary shared by the Like, Comment and Share switches on reels
+# context: summary shared by the Like, Comment, Repost and Share switches on reels
 Takes this button off the side of reels. The buttons above it move down. A change shows from the next reel.	Удаляет эту кнопку с боковой панели Reels. Кнопки выше перемещаются вниз. Изменение применяется начиная со следующего Reels.
 # context: switch title under Reels and Watch; Save is Facebook's own label for the bookmark button down a reel's right side, so use Facebook's wording in your language
 Hide Save on reels	Скрывать «Сохранить» в Reels
@@ -1958,10 +2088,20 @@ List cleared	Список очищен
 Nothing here yet. With Remember what you watch on, the reels, videos and stories you watch show up here.	Пока здесь ничего нет. Когда включена настройка «Запоминать просмотренное», просмотренные Reels, видео и Истории будут появляться здесь.
 # context: shown in the Recently watched list when the picked chip has no entries
 Nothing of this kind yet.	Пока нет элементов этого типа.
-# context: switch title under Comments; on, the comment sheet opens at the full height of the screen
-Open comments at full height	Открывать комментарии на весь экран
-# context: summary of that switch; Comment is the button under a reel or video, the split view shows the video above the comments
+# context: summary of the Full height choice; Comment is the button under a reel or video, the split view shows the video above the comments
 Comments open on a sheet that fills the screen instead of stopping part way up. On reels and videos, Comment opens that sheet in place of the split view with the video on top.	Комментарии открываются на панели во весь экран, а не на панели, которая занимает только часть экрана. В Reels и видео кнопка «Комментировать» открывает такую панель вместо разделенного экрана с видео сверху.
+# context: title of the list that picks how high the comments sheet opens; its choices follow
+Open comments at	Высота комментариев
+Facebook's height	Как в Facebook
+Full height	Во весь экран
+Half height	На пол-экрана
+# context: summary of the Half height choice; Comment is the button under a reel or video
+Comments open on a sheet that covers half the screen, and the reel or video keeps playing above it. On reels and videos, Comment opens that sheet in place of the split view.	Комментарии открываются на панели в половину экрана, а Reels или видео продолжает играть над ней. В Reels и видео кнопка «Комментировать» открывает такую панель вместо разделенного экрана.
+Comments open where Facebook stops them, part way up on reels and videos.	Комментарии открываются на той высоте, где их останавливает Facebook, в Reels и видео это часть экрана.
+# context: sentences in a settings import preview
+Comments will open at full height.	Комментарии будут открываться во весь экран.
+Comments will open at half height.	Комментарии будут открываться на пол-экрана.
+Comments will open where Facebook stops them.	Комментарии будут открываться на той высоте, где их останавливает Facebook.
 # context: switch title under Appearance; on, Android's status bar (clock, battery) is hidden on Facebook's main screen
 Hide the status bar	Скрывать строку состояния
 # context: summary of that switch; a swipe down from the top edge shows the bar briefly
@@ -1970,6 +2110,30 @@ Takes the phone's status bar, with the time and battery, off Facebook's main scr
 Open feed videos on their own	Открывать видео из Ленты отдельно
 # context: summary of that switch; the Reels tab itself still scrolls normally
 A video you tap in the feed opens full screen by itself, with no reels to swipe to after it. The Reels tab keeps scrolling. Off by default, since it hasn't been tried on a real account yet.	При нажатии на видео в Ленте оно открывается отдельно в полноэкранном режиме, без возможности перелистывать следующие Reels. Вкладка Reels продолжает прокручиваться. По умолчанию выключено, поскольку функция еще не проверялась на реальном аккаунте.
+# context: switch title under Reels and Watch; on, tapping Watch again when a video in the news feed ends plays it again in the feed instead of opening it in the Reels viewer
+Replay feed videos in place	Повторять видео из Ленты на месте
+# context: summary of that switch; Watch again is Facebook's own button shown when a feed video ends, so use Facebook's wording in your language if you know it
+Watch again at the end of a feed video plays it again right there, instead of opening it in Reels.	Кнопка «Посмотреть снова» в конце видео из Ленты запускает его заново прямо там, а не открывает в Reels.
+# context: switch title under Reels and Watch; on, a video tapped in Facebook's Saved list plays in the regular video player instead of the Reels viewer
+Open saved videos in the video player	Открывать сохранённые видео в видеоплеере
+# context: summary of that switch; Saved is Facebook's own list of things you saved, so use Facebook's name for it in your language if you know it
+A video you tap in Saved plays in the video player instead of Reels, where the next swipe is a suggested reel.	Видео, которое вы нажимаете в разделе «Сохранённое», воспроизводится в видеоплеере, а не в Reels, где следующий свайп показывает рекомендованный ролик.
+# context: switch title under Reels and Watch; on, a reel opened from Facebook's Saved list goes on to the next saved video when it ends or is swiped past, instead of Facebook's suggested reels
+Play saved videos in a row	Воспроизводить сохранённые видео подряд
+# context: summary of that switch; Saved is Facebook's own list of things you saved, so use Facebook's name for it in your language if you know it
+A video you open from Saved goes on to the next one in Saved when it ends or when you swipe up, instead of a suggested reel. Swipe down to go back one.	Видео, открытое из раздела «Сохранённое», по окончании или при свайпе вверх переходит к следующему видео из «Сохранённого», а не к рекомендованному ролику. Свайп вниз возвращает к предыдущему.
+# context: switch title under Play saved videos in a row; on, a saved video that ends stays where it is instead of moving on to the next saved one
+Stay on a saved video when it ends	Оставаться на сохранённом видео после окончания
+# context: summary of that switch
+A saved video that ends stays on screen instead of opening the next one. Swipe up when you want the next.	Сохранённое видео после окончания остаётся на экране, а не переходит к следующему. Свайпните вверх, когда захотите следующее.
+# context: switch title under Reels and Watch; on, Facebook stops pausing reels and videos to ask "Are you still watching?", which is Facebook's own prompt, so use the wording Facebook shows in this language
+Skip "Are you still watching?"	Пропускать «Вы ещё смотрите?»
+# context: summary of that switch; reels and videos go on to the next one by themselves
+Reels and videos keep going to the next one without pausing to ask if you're still watching.	Reels и видео переходят к следующему без остановки и не спрашивают, смотрите ли вы ещё.
+# context: switch title under Reels and Watch; on, a reel that would show black bars above and below (or at the sides) is enlarged until it fills the whole screen
+Fill the screen with reels	Растягивать Reels на весь экран
+# context: summary of that switch; the reel is zoomed in until it reaches every edge, so a little of the picture at two of its edges is cut off
+Reels and full-screen videos that would leave black bars fill the screen instead, with a little cut off the edges. Pinch in on a reel to see all of it, or pinch out to fill it again.	Reels и полноэкранные видео, которые оставили бы чёрные полосы, заполняют экран, а края немного обрезаются. Сведите пальцы на Reels, чтобы увидеть его целиком, или разведите, чтобы снова заполнить экран.
 Hide the new comments pop-up	Скрывать всплывающее уведомление о новых комментариях
 # context: the bubble Facebook shows over an open comment list when new comments arrive, like "3 new comments"
 The "new comments" bubble no longer pops up while you read comments. New comments still show in the list.	Пузырь «Новые комментарии» больше не появляется во время чтения комментариев. Новые комментарии по-прежнему отображаются в списке.
@@ -1991,6 +2155,10 @@ Skipping silent parts again	Снова пропускать тихие фраг�
 Hide posts from groups you're not in	Скрывать публикации из групп, в которых вы не состоите
 # context: summary of that switch; a group post a friend commented on or shared reaches the feed wrapped in the friend's activity, and the switch hides it too
 Hides posts from groups you haven't joined, like a friend's post in a public group, and a group post a friend commented on or shared. Posts from your groups stay.	Скрывает публикации из групп, в которых вы не состоите, например публикацию друга в открытой группе или публикацию группы, которую прокомментировал или которой поделился друг. Публикации из ваших групп остаются.
+# context: switch title under News feed; hides every post that comes from a group, including groups the user is a member of
+Hide all group posts	Скрывать все публикации из групп
+# context: summary of that switch; the Groups tab is Facebook's own tab of group posts, which this switch leaves alone
+Hides every post from a group in your feed, your own groups' too, and a group post a friend commented on or shared. The Groups tab keeps its feed.	Скрывает в ленте все публикации из групп, в том числе из ваших, и публикации групп, которые друг прокомментировал или которыми поделился. Лента во вкладке «Группы» остаётся.
 # context: switch title under Search; For you is the section of searches Facebook suggests on the search screen before anything is typed, under a header that reads For you
 Hide For you in search	Скрывать «Для вас» в поиске
 # context: summary of that switch; recent searches are the user's own past searches, and the suggestions as you type are the ones under the search box while typing
@@ -2194,7 +2362,22 @@ Cast button on feed videos	Кнопка трансляции для видео �
 Adds a cast button to feed videos. It hands the video to a casting app you have, such as Web Video Caster, which sends it to your TV. Facebook has no casting of its own anymore.	Добавляет кнопку трансляции к видео в Ленте. Она передает видео в установленное приложение для трансляции, например Web Video Caster, которое отправляет его на телевизор. В Facebook больше нет собственной функции трансляции.
 Cast this video	Транслировать это видео
 Full player button on feed videos	Кнопка полного плеера для видео в Ленте
+Skip buttons on feed videos	Кнопки перемотки для видео в Ленте
+Speed button on feed videos	Кнопка скорости для видео в Ленте
+Times on the seek bar	Время на полосе перемотки
+Back 10 seconds	Назад на 10 секунд
+Ahead 10 seconds	Вперёд на 10 секунд
+Playback speed	Скорость воспроизведения
+Adds buttons to feed videos that jump back or ahead 10 seconds, like Facebook's own player has. Live videos and ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.	Добавляет к видео в Ленте кнопки, которые перематывают на 10 секунд назад или вперёд, как в собственном плеере Facebook. Для прямых эфиров и рекламы остаются собственные элементы управления. Если включено воспроизведение по нажатию, необходимо также включить встроенные элементы управления видео в Ленте.
+Adds a button to feed videos that shows their speed. Each tap moves to the next one: 1x, 1.25x, 1.5x, 2x, then 0.5x. Live videos and ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.	Добавляет к видео в Ленте кнопку, которая показывает скорость. Каждое нажатие переключает на следующую: 1x, 1.25x, 1.5x, 2x, затем 0.5x. Для прямых эфиров и рекламы остаются собственные элементы управления. Если включено воспроизведение по нажатию, необходимо также включить встроенные элементы управления видео в Ленте.
+Shows how far into a feed video you are at the left end of its seek bar, and how much is left at the right end. Needs Seek bar on feed videos on.	Показывает на левом конце полосы перемотки видео в Ленте, сколько уже просмотрено, а на правом, сколько осталось. Нужна включённая «Полоса перемотки для видео в Ленте».
+Full length on the seek bar	Полная длительность на полосе перемотки
+Shows a feed video's full length at the right end of its seek bar, in place of the time left. Needs Times on the seek bar on.	Показывает на правом конце полосы перемотки видео в Ленте его полную длительность вместо оставшегося времени. Нужно включённое «Время на полосе перемотки».
 Adds a button to feed videos that opens the video in Facebook's own full player, with all its controls. Live videos get it too. With Tap to play on, it needs Inline feed video controls on too.	Добавляет к видео в Ленте кнопку, которая открывает видео в полном плеере Facebook со всеми его элементами управления. Прямые эфиры тоже ее получают. Если включено воспроизведение по нажатию, необходимо также включить встроенные элементы управления видео в Ленте.
+# context: switch title under Playback; on, the full player button sits in a feed video's bottom corner next to Facebook's speaker (mute) button
+Full player button by the speaker	Кнопка полного плеера рядом с кнопкой звука
+# context: summary of that switch; "the other buttons" are the play/pause and skip buttons along the video's top
+Puts a feed video's full player button in its bottom corner, next to Facebook's speaker button, which moves over to make room. Live videos, and videos without Facebook's speaker, keep it up with the other buttons. Needs Full player button on feed videos on.	Ставит кнопку полного плеера видео в Ленте в нижний угол, рядом с кнопкой звука Facebook, которая сдвигается, освобождая место. У прямых эфиров и видео без кнопки звука Facebook она остаётся наверху с другими кнопками. Нужна включённая «Кнопка полного плеера для видео в Ленте».
 # context: a switch under Video and audio; with it on, a video opened full screen starts with its details and comments panel closed, so the video is in the middle of the screen
 Open full screen videos centered	Открывать полноэкранные видео по центру
 # context: that switch's summary; the arrow is the small button under the video that opens and closes the details and comments panel
@@ -2202,6 +2385,14 @@ Videos you open full screen, from a comment or a link, start with their details 
 Open in the full player	Открыть в полном плеере
 Seek bar on feed videos	Полоса перемотки для видео в Ленте
 Shows a bar along the bottom of a feed video. Drag it and let go to jump to that point. Live videos and ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.	Показывает внизу видео в Ленте полосу перемотки. Перетащите ползунок и отпустите, чтобы перейти к нужному моменту. Для прямых эфиров и рекламы остаются собственные элементы управления. Если включено воспроизведение по нажатию, необходимо также включить встроенные элементы управления видео в Ленте.
+Fade the seek bar and speaker	Приглушать полосу перемотки и кнопку звука
+Lower the seek bar and speaker	Опустить полосу перемотки и кнопку звука
+While a feed video plays, its seek bar and Facebook's speaker button fade a few seconds after it starts or you last touch them. Touch the bar or pause the video and they come back. Needs Seek bar on feed videos on.	Пока видео в Ленте воспроизводится, его полоса перемотки и кнопка звука Facebook становятся бледнее через несколько секунд после начала или после последнего касания. Коснитесь полосы или поставьте видео на паузу, и они вернутся. Нужна включённая «Полоса перемотки для видео в Ленте».
+Moves a feed video's seek bar closer to the bottom edge, along with Facebook's speaker and tagged people buttons. Needs Seek bar on feed videos on.	Опускает полосу перемотки видео в Ленте ближе к нижнему краю вместе с кнопками звука и отмеченных людей Facebook. Нужна включённая «Полоса перемотки для видео в Ленте».
+Seek bar on the bottom edge	Полоса перемотки по нижнему краю
+Puts a feed video's seek bar right on its bottom edge, so it's out of the way while you scroll. Facebook's speaker and tagged people buttons move up to sit above it. Wins over Lower the seek bar and speaker. Needs Seek bar on feed videos on.	Ставит полосу перемотки видео в Ленте прямо на нижний край, чтобы она не мешала при прокрутке. Кнопки звука и отмеченных людей Facebook поднимаются над ней. Имеет приоритет над «Опустить полосу перемотки и кнопку звука». Нужна включённая «Полоса перемотки для видео в Ленте».
+Thin line seek bar	Тонкая полоса перемотки
+Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot or times until you drag it. Live videos get it too while they can be rewound. Let go at the far right end to go back to live. Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.	Показывает полосу перемотки видео в Ленте тонкой линией прямо на нижнем краю, как в Instagram, без точки и времени, пока вы её не потянете. Прямые эфиры тоже её получают, пока их можно перемотать назад. Отпустите на правом конце, чтобы вернуться к эфиру. Кнопки звука и отмеченных людей Facebook поднимаются над ней. Нужна включённая «Полоса перемотки для видео в Ленте».
 Feed video position	Позиция видео в Ленте
 # context: title of the row that holds a color code for the count badges on the tabs
 Badge color	Цвет значков
@@ -2253,6 +2444,23 @@ Shows when a reel or a video you open full screen was posted, under the name of 
 Keeps the Comment button on reels whose comments are turned off, so you can still read the ones already there. A change shows from the next reel.	Оставляет кнопку «Комментировать» в Reels, где комментарии отключены, чтобы вы могли читать уже существующие комментарии. Изменение применяется начиная со следующего Reels.
 Select part of a post's text	Выбирать часть текста публикации
 Holding a post's text opens it in a box where you can select just the part you want and copy that, or copy all of it. The hold itself copies nothing.	Удержание текста публикации открывает его в окне, где можно выделить только нужную часть и скопировать её или скопировать всё. Само удержание ничего не копирует.
+Hold a feed photo to react	Удержание фото в Ленте для реакции
+Hold a feed video to react	Удержание видео в Ленте для реакции
+Holding a post's photo opens its reactions, as holding Like does. It comes before Long press opens comments.	Удержание фото публикации открывает её реакции, как удержание кнопки «Нравится». Это срабатывает раньше, чем «Долгое нажатие открывает комментарии».
+Holding a post's video opens its reactions too. It comes before Long press opens comments. With Hold a feed video for 2x on, that one wins and the video plays fast.	Удержание видео публикации тоже открывает её реакции. Это срабатывает раньше, чем «Долгое нажатие открывает комментарии». Если включено «Удерживать видео в Ленте для скорости 2x», срабатывает оно, и видео играет быстрее.
+Reaction	Реакция
+Pick one each time	Выбирать каждый раз
+Like	Нравится
+Love	Супер
+Care	Мы вместе
+Haha	Ха-ха
+Wow	Ух ты
+Sad	Сочувствую
+Angry	Возмутительно
+Pick one each time. The reactions open over the post, so slide to one and let go, or let go and tap one.	Выбирать каждый раз. Реакции открываются поверх публикации: проведите к нужной и отпустите или отпустите и нажмите на неё.
+%1$s. Holding a post gives it straight away.	%1$s. Удержание публикации сразу ставит эту реакцию.
+Holding a post to react will open the reactions to pick from.	Удержание публикации для реакции откроет реакции для выбора.
+Holding a post to react will give %1$s.	Удержание публикации для реакции поставит «%1$s».
 Select text	Выбрать текст
 Done	Готово
 Copy all	Копировать всё
@@ -2528,12 +2736,18 @@ Show only watched stories	Показывать только просмотрен
 The Stories tray keeps only the stories you've already watched, so you can find one again. Turn it off to see the new ones. Hide seen stories waits while this is on. Applies when Facebook next loads the tray.	В ленте Историй остаются только те, что вы уже посмотрели, чтобы можно было найти нужную. Выключите, чтобы видеть новые. Пока это включено, «Скрывать просмотренные Истории» не действует. Сработает, когда Facebook снова загрузит ленту.
 Show Posts in search	Показывать «Публикации» в поиске
 Puts Posts back in the row over search results, after Reels, so you can see only posts for what you searched.	Возвращает «Публикации» в ряд над результатами поиска, после Reels, чтобы видеть только публикации по вашему запросу.
+Saved button in search	Кнопка «Сохраненное» в поиске
+Puts a Saved button at the end of the search bar, so your saved posts and videos are one tap away. Restart Facebook to see the change.	Добавляет кнопку «Сохраненное» в конец строки поиска, чтобы сохраненные публикации и видео были в одном касании. Перезапустите Facebook, чтобы увидеть изменения.
 Restore feed sound after opened videos	Возвращать звук Ленты после открытых видео
 A video you open plays with its sound as usual. Back in the feed, the sound is what it was before you opened it, even after a long watch.	Открытое видео воспроизводится со звуком как обычно. После возврата в Ленту звук будет таким же, как до открытия видео, даже после долгого просмотра.
 Hide the Join button on posts	Скрывать кнопку «Вступить» в публикациях
 Hides the Join button next to the group's name on posts from groups you haven't joined, and the Join group bar under their videos. A change shows on the posts drawn after it.	Скрывает кнопку «Вступить» рядом с названием группы в публикациях из групп, в которые вы не вступили, а также панель «Вступить в группу» под их видео. Изменение видно в публикациях, загруженных после него.
+Hide the X on posts	Скрывать крестик в публикациях
+Takes the X off the top corner of posts in your feed. The three-dot menu next to it stays. A change shows on the posts drawn after it.	Убирает крестик из верхнего угла публикаций в ленте. Меню с тремя точками рядом остаётся. Изменение видно в публикациях, загруженных после него.
 Hide the Reels title	Скрывать заголовок Reels
 Takes the word Reels off the top of the Reels tab. The buttons beside it stay.	Убирает слово Reels в верхней части вкладки Reels. Кнопки рядом остаются.
+Hide Back on opened videos	Скрывать «Назад» у открытых видео
+Takes the Back arrow off the top of a video or reel you open, and Menu off the top of the Reels tab. Your phone's back gesture or button still goes back.	Убирает стрелку «Назад» в верхней части открытого видео или Reels и кнопку «Меню» вверху вкладки Reels. Жест или кнопка «Назад» на телефоне по-прежнему работает.
 Videos in search results wait for a tap	Видео в результатах поиска ждут нажатия
 Videos in search results don't start by themselves. Tap one to play it. Works with Tap to play on or off.	Видео в результатах поиска не запускаются сами. Нажмите на видео, чтобы его включить. Работает при включенной и выключенной функции «Нажать для воспроизведения».
 Custom color	Свой цвет
@@ -2544,6 +2758,7 @@ Pick Custom color again to change it.	Выберите Свой цвет ещё 
 Switches that are on	Включённые переключатели
 Every switch you have on, in one list. Turn one off here and it's off everywhere.	Все включённые вами переключатели в одном списке. Выключите один здесь, и он выключится везде.
 No switches are on yet.	Пока ни один переключатель не включён.
+Turned off lately	Недавно выключенные
 Emoji after the logo	Эмодзи после логотипа
 An emoji drawn right after the Facebook logo at the top of Home, in its own colors. Leave it blank for none.	Эмодзи сразу после логотипа Facebook вверху Главной, в собственных цветах. Оставьте поле пустым, если он не нужен.
 No emoji after the logo. Type one to show it there.	Эмодзи после логотипа нет. Введите его, чтобы он появился там.
@@ -2563,15 +2778,16 @@ Hide pictures on the Blocked list	Скрывать фото в списке за
 People you've blocked show without their profile pictures on the Blocking page in Facebook's settings. Reopen the page if it's already open.	Заблокированные вами люди показываются без фото профиля на странице блокировки в настройках Facebook. Если страница уже открыта, откройте её заново.
 Hide Up next on videos	Скрывать «Далее» в видео
 Takes the UP NEXT bar with the next video off the bottom of a video you open from the feed, and the empty space kept for it, so the seek bar stays at the bottom. A change shows from the next video you open.	Убирает полосу ДАЛЕЕ со следующим видео внизу видео, открытого из Ленты, вместе с пустым местом под неё, так что шкала воспроизведения остаётся внизу. Изменение действует со следующего видео, которое вы откроете.
-Icons look soft on this screen. Repatch with the 120-640dpi bundle.	Значки на этом экране выглядят размытыми. Повторите патчинг с пакетом 120-640dpi.
+Icons look soft on this screen. Repatch with the 240-640dpi bundle.	Значки на этом экране выглядят размытыми. Повторите патчинг с пакетом 240-640dpi.
 Icons look soft on this screen	Значки на этом экране выглядят размытыми
-The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (120-640dpi) bundle on APKMirror, which has images for every screen.	В пропатченном вами Facebook нет изображений для этого экрана, поэтому некоторые значки увеличены. Пропатчите Facebook заново из пакета (arm64-v8a) (120-640dpi) с APKMirror, в котором есть изображения для любого экрана.
+The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (240-640dpi) bundle on APKMirror, which has images for every screen.	В пропатченном вами Facebook нет изображений для этого экрана, поэтому некоторые значки увеличены. Пропатчите Facebook заново из пакета (arm64-v8a) (240-640dpi) с APKMirror, в котором есть изображения для любого экрана.
 Let each post come back once	Показывать каждую публикацию ещё раз
 A post you scrolled past shows up one more time, and scrolling past it again hides it. Fewer posts go missing after a quick scroll.	Публикация, мимо которой вы прокрутили, появится ещё один раз, а если снова прокрутить мимо, она будет скрыта. Так после быстрой прокрутки теряется меньше публикаций.
 There's no Facebook link in what you shared.	В том, чем вы поделились, нет ссылки на Facebook.
 Open in Facebook from the share menu	Open in Facebook в меню «Поделиться»
 Share a Facebook link from Messenger's browser or any other app and pick Open in Facebook, and it opens here.	Поделитесь ссылкой на Facebook из браузера Messenger или другого приложения и выберите Open in Facebook, чтобы открыть её здесь.
 GmsCore support	Поддержка GmsCore
+Clone install under another package name	Установка клона под другим именем пакета
 Version %1$s for Facebook %2$s	Версия %1$s для Facebook %2$s
 Show all settings as a list	Показать все настройки списком
 Show settings by category	Показать настройки по категориям
@@ -2581,9 +2797,207 @@ A tap in the middle of a story shows a play and pause button, like Reels. Taps o
 Stories change only on a double tap, the left side for the one before and anywhere else for the next. A single tap pauses or plays the story, or shows the play button when that's on.	Истории переключаются только двойным нажатием, слева на предыдущую, в любом другом месте на следующую. Одиночное нажатие ставит Историю на паузу или продолжает её, либо показывает кнопку воспроизведения, если она включена.
 Pause story	Приостановить Историю
 Play story	Воспроизвести Историю
+Replay story	Воспроизвести Историю снова
 Hide song and effect credits	Скрыть подписи песни и эффекта
 Hide reply suggestions	Скрыть варианты ответа
 Takes the song and effect credits off the line under the poster's name on a story. Applies from the next story you open.	Убирает подписи песни и эффекта из строки под именем автора Истории. Действует со следующей открытой Истории.
 Takes the row of suggested replies off the bottom of a story. The reply box stays. Applies from the next story you open.	Убирает ряд предложенных ответов внизу Истории. Поле ответа остаётся. Действует со следующей открытой Истории.
+Hide the Subscribe button	Скрыть кнопку «Подписаться»
+Takes the Subscribe button off the top of a story. Applies from the next story you open.	Убирает кнопку «Подписаться» вверху Истории. Действует со следующей открытой Истории.
+Hide create story cards	Скрыть карточки создания Истории
+Takes out the card between stories that asks you to make one, including the ones built from photos in your gallery. Applies the next time you open stories.	Убирает карточку между Историями, которая предлагает создать свою, в том числе собранную из фото вашей галереи. Действует при следующем открытии Историй.
 Progress bar at the bottom	Полоса прогресса внизу
 Shows a thin bar along the bottom of a story that fills as it plays, like the one on Reels.	Показывает внизу Истории тонкую полосу, которая заполняется по мере воспроизведения, как в Reels.
+Seek bar on stories	Полоса перемотки в Историях
+Fade the story seek bar	Приглушать полосу перемотки Историй
+Story position	Позиция в Истории
+Shows a bar along the bottom of a video story that you drag to move through it. The story waits while you drag. Progress bar at the bottom makes way for it on video stories.	Показывает внизу видеоистории полосу, которую можно тянуть, чтобы перемещаться по ней. Пока вы тянете, История ждёт. «Полоса прогресса внизу» уступает ей место в видеоисториях.
+With Seek bar on stories on, the bar fades a few seconds after the story starts or you last touched it. A touch or a pause brings it back.	Когда включена «Полоса перемотки в Историях», полоса становится бледнее через несколько секунд после начала Истории или после последнего касания. Касание или пауза возвращают её.
+Clean mode	Чистый режим
+Clean mode button on reels	Кнопка чистого режима в Reels
+Adds a Clean mode button to the buttons down the side of a reel. Tap it to hide them, and Clean mode stays on as you swipe. Facebook's own Clean mode button brings them back.	Добавляет кнопку чистого режима к кнопкам сбоку от Reels. Нажмите ее, чтобы скрыть их, и чистый режим останется включенным при пролистывании. Собственная кнопка чистого режима Facebook возвращает их.
+Open chats in Messenger	Открывать чаты в Messenger
+Opens chats in the Messenger app instead of inside Facebook, the Message button on a profile included, while Messenger is installed and enabled. Without Messenger, chats stay in Facebook. Restart Facebook after changing it.	Чаты открываются в приложении Messenger, а не внутри Facebook, в том числе по кнопке «Отправить сообщение» в профиле, пока Messenger установлен и включён. Без Messenger чаты остаются в Facebook. Перезапустите Facebook после изменения.
+Hide the Fullscreen button	Скрывать кнопку «Во весь экран»
+Takes the Fullscreen button off the space under a wide video in Reels. A change shows from the next video.	Убирает кнопку «Во весь экран» из пустого места под широким видео в Reels. Изменение применяется начиная со следующего видео.
+# context: switch title under Reels and Watch, right under Hide the Fullscreen button; on, a video playing in the feed or in search results loses its full-screen arrows and its picture-in-picture (PiP) button
+Hide the full-screen and PiP buttons	Скрывать кнопки «Во весь экран» и «Картинка в картинке»
+# context: description of that switch; "a live video that has ended" is a past Facebook Live shown as a video; the video still plays, only the two buttons go
+Takes the full-screen and picture-in-picture buttons off videos that play in the feed and in search results, like a live video that has ended. A change shows from the next video.	Убирает кнопки полноэкранного режима и режима «картинка в картинке» с видео, которые воспроизводятся в ленте и в результатах поиска, например с завершившегося прямого эфира. Изменение действует со следующего видео.
+Hide rings in the feed	Скрыть кольца в ленте
+Hide rings in comments	Скрыть кольца в комментариях
+Hide rings on profiles	Скрыть кольца в профилях
+Takes the story and LIVE rings off the profile pictures at the top of posts. Tapping the picture opens the profile. Applies to posts drawn after the change.	Убирает кольца Историй и LIVE с фото профиля вверху публикаций. Нажатие на фото открывает профиль. Действует для публикаций, показанных после изменения.
+Takes the story ring off the profile pictures next to comments. Applies to comments drawn after the change.	Убирает кольцо Истории с фото профиля рядом с комментариями. Действует для комментариев, показанных после изменения.
+Takes the story and LIVE rings off the picture on a profile, and in the lists and search results that show it the same way. Applies the next time the picture draws.	Убирает кольца Историй и LIVE с фото в профиле, а также в списках и результатах поиска, где оно показано так же. Действует со следующего показа фото.
+Hide profile pictures on posts	Скрывать фото профиля в публикациях
+Hide profile pictures in comments	Скрывать фото профиля в комментариях
+Takes the profile picture off the top of posts, so the name starts where the picture was. A change shows on the posts drawn after it.	Убирает фото профиля в верхней части публикаций, и имя начинается там, где было фото. Изменение видно на публикациях, показанных после него.
+Takes the profile picture off comments, so the name and text start where the picture was. A change shows on the comments drawn after it.	Убирает фото профиля у комментариев, и имя с текстом начинаются там, где было фото. Изменение видно на комментариях, показанных после него.
+Search comments	Поиск по комментариям
+Previous match	Предыдущее совпадение
+Next match	Следующее совпадение
+Close search	Закрыть поиск
+No matches	Нет совпадений
+No more matches	Больше совпадений нет
+Not found yet	Пока не найдено
+A magnifier at the top of the comments opens a search box that finds the comments with your words.	Лупа вверху комментариев открывает поле поиска, которое находит комментарии с вашими словами.
+Open shared reels on their own	Открывать присланные Reels отдельно
+A reel you open from a link in another app or from a chat plays by itself, with no reels to swipe to after it.	Reels, открытый по ссылке из другого приложения или из чата, играет сам по себе, без других Reels для пролистывания после него.
+# context: switch title under Reels and Watch, right under Open shared reels on their own; on, the sheet "[Name] shared this reel. Add him as a friend to make sharing even easier" with Add friend and Not now no longer opens over a reel a non-friend sent; use Facebook's own label for its Add friend button
+Hide the Add friend pop-up on shared reels	Скрыть окно «Добавить в друзья» у присланных Reels
+# context: description of that switch; the sheet only opens for a reel shared by someone who isn't your Facebook friend; only the sheet goes, the reel still plays
+Opening a reel from someone who isn't your friend yet no longer pops up a sheet asking you to add them. A change shows from the next shared reel.	Когда вы открываете Reels от человека, который ещё не у вас в друзьях, больше не всплывает окно с предложением добавить его. Изменение видно со следующего присланного Reels.
+Light bars on the Reels tab	Светлые панели на вкладке Reels
+In light mode, the Reels tab keeps the same light status bar, top bar and tab bar as the other tabs, instead of turning them dark.	В светлой теме вкладка Reels сохраняет такие же светлые строку состояния, верхнюю панель и панель вкладок, как другие вкладки, а не делает их тёмными.
+Bar opacity	Непрозрачность панелей
+How much of their color the see-through bars keep, in percent, from %1$s to %2$s. Lower lets more of the feed and its blur show. Leave it blank for %3$s, or %4$s over the blur.	Сколько своего цвета сохраняют прозрачные панели, в процентах, от %1$s до %2$s. Чем меньше, тем лучше видны Лента и её размытие. Оставьте поле пустым, чтобы использовать %3$s, или %4$s поверх размытия.
+The bars keep %1$s percent of their color, or %2$s percent over the blur. Type a number to change it.	Панели сохраняют %1$s процентов своего цвета, или %2$s процентов поверх размытия. Введите число, чтобы изменить.
+The see-through bars keep %1$s percent of their color.	Прозрачные панели сохраняют %1$s процентов своего цвета.
+Tab bar width	Ширина панели вкладок
+Percent of the screen's width, from %1$s to %2$s. The icons grow and shrink with it. Leave it blank for %3$s.	Процент ширины экрана, от %1$s до %2$s. Значки увеличиваются и уменьшаются вместе с ней. Оставьте поле пустым, чтобы использовать %3$s.
+The rounded tab bar is %1$s percent of the screen wide.	Ширина скруглённой панели вкладок: %1$s процентов ширины экрана.
+Tab bar height	Высота панели вкладок
+Percent of its full height the rounded tab bar keeps, from %1$s to %2$s, trimmed above and below the icons. Over 100 makes it taller, mostly toward the bottom of the screen. Leave it blank for %3$s.	Сколько процентов полной высоты сохраняет скруглённая панель вкладок, от %1$s до %2$s, с обрезкой сверху и снизу от значков. Больше 100 делает её выше, в основном к нижнему краю экрана. Оставьте поле пустым, чтобы использовать %3$s.
+The rounded tab bar keeps %1$s percent of its height.	Скруглённая панель вкладок сохраняет %1$s процентов своей высоты.
+# context: title of a row under About that picks how long a dot marks settings an update added
+Mark new settings	Отмечать новые настройки
+# context: choice in that row; the dot goes once the page holding the setting is left
+Until I leave the page	Пока я не уйду со страницы
+# context: summary of that row when Off is picked
+Settings an update adds get no dot.	Настройки, добавленные обновлением, не отмечаются точкой.
+# context: summary of that row for the default choice
+A dot marks each setting an update adds, until you leave the page it's on.	Точка отмечает каждую настройку, добавленную обновлением, пока вы не уйдете со страницы, где она находится.
+# context: summary of that row; %1$s is a time such as 3 days
+A dot marks each setting an update adds, for %1$s from the first time you open its page.	Точка отмечает каждую настройку, добавленную обновлением, на %1$s с первого открытия ее страницы.
+# context: sentence in the import preview when the file turns that row Off
+Settings an update adds won't get a dot.	Настройки, добавленные обновлением, не будут отмечаться точкой.
+# context: sentence in the import preview for the default choice
+Settings an update adds will get a dot until you leave their page.	Настройки, добавленные обновлением, будут отмечаться точкой, пока вы не уйдете с их страницы.
+# context: sentence in the import preview; %1$s is a time such as 3 days
+Settings an update adds will get a dot for %1$s from the first time you open their page.	Настройки, добавленные обновлением, будут отмечаться точкой на %1$s с первого открытия их страницы.
+Turn gray over	Обесцвечивать за
+Reels are gray from the start.	Reels серые с самого начала.
+# context: %1$s is a time such as 10 minutes
+Reels lose their color over %1$s of watching. 15 minutes away starts them in color again.	Reels теряют цвет за %1$s просмотра. 15 минут перерыва возвращают им цвет.
+Show Reels in gray will make reels gray from the start.	Reels в оттенках серого сделает Reels серыми с самого начала.
+# context: sentence in the import preview; %1$s is a time such as 10 minutes
+Show Reels in gray will take reels from color to gray over %1$s.	Reels в оттенках серого переведёт Reels из цвета в серый за %1$s.
+Show time in Reels	Показывать время в Reels
+A small label at the top of Reels shows the minutes you've watched. Time on other tabs doesn't count, and 15 minutes away starts it over.	Небольшая метка вверху Reels показывает, сколько минут вы посмотрели. Время на других вкладках не считается, а после 15 минут вне Reels счёт начинается заново.
+# context: a short label on the Reels screen; %1$d is a number of minutes
+%1$d min	%1$d мин
+Hide the tab bar on the Reels tab	Скрывать панель вкладок на вкладке Reels
+The tab bar goes away while the Reels tab is open, and the reel gets the whole screen. The other tabs keep the bar. Restart Facebook to see the change.	Панель вкладок исчезает, пока открыта вкладка Reels, и рилс занимает весь экран. На остальных вкладках панель остаётся. Перезапустите Facebook, чтобы увидеть изменения.
+Playback speed in the post menu	Скорость воспроизведения в меню публикации
+A feed or Watch video's 3-dot menu gets Playback speed, from 0.5x to 3x, live videos too. Off by default, since it hasn't been tried on a real account yet.	В меню с тремя точками у видео в Ленте или Watch появляется пункт «Скорость воспроизведения» от 0,5x до 3x, в том числе для прямых эфиров. По умолчанию выключено, поскольку функция еще не проверялась на реальном аккаунте.
+Double tap to skip on feed videos	Перемотка двойным нажатием для видео в Ленте
+Double tap the right side of a playing feed video to jump ahead 10 seconds, or the left side to go back 10. Keep tapping to go further. Live videos work too when they can be rewound. One tap on a side still opens the video, a moment later than usual. With Tap to play on, it needs Inline feed video controls on too.	Дважды нажмите на правую часть воспроизводимого видео в Ленте, чтобы перемотать на 10 секунд вперед, или на левую, чтобы вернуться на 10 секунд назад. Продолжайте нажимать, чтобы перемотать дальше. Прямые эфиры тоже поддерживаются, если их можно перематывать назад. Одно нажатие на край по-прежнему открывает видео, но чуть позже обычного. Если включено воспроизведение по нажатию, необходимо также включить встроенные элементы управления видео в Ленте.
+Show only comments that match	Показывать только подходящие комментарии
+While the search box holds words, comments without them are hidden. Clearing the box brings them back.	Пока в поле поиска есть слова, комментарии без них скрыты. Если очистить поле, они вернутся.
+Queue reel saves	Очередь сохранения Reels
+Each reel you tap Download on joins a queue that saves one reel at a time in the background. Pause or cancel it from its notification or from Downloads here. A reel already in the queue is skipped, and one that fails gets one more try. The queue lasts until Facebook closes. Hold Download to save that reel and the ones after it, 10 to 150 at a time.	Каждое видео Reels, на котором вы нажимаете «Скачать», попадает в очередь, которая сохраняет видео по одному в фоновом режиме. Приостановить или отменить её можно из её уведомления или здесь, в разделе «Загрузки». Видео, которое уже есть в очереди, пропускается, а несохранившееся получает ещё одну попытку. Очередь существует, пока Facebook не закроется. Удерживайте «Скачать», чтобы сохранить это видео и следующие за ним, от 10 до 150 за раз.
+Added to the reel queue	Добавлено в очередь Reels
+Added to the reel queue. To pause or cancel it, open Downloads in Hushfacebook settings.	Добавлено в очередь Reels. Чтобы приостановить или отменить её, откройте раздел «Загрузки» в настройках Hushfacebook.
+Already in the reel queue	Уже в очереди Reels
+That reel is already saved	Это видео уже сохранено
+The reel queue is full. Try again when it's shorter.	Очередь Reels заполнена. Повторите попытку, когда она станет короче.
+Saving queued reels	Сохранение видео из очереди
+Reel queue paused	Очередь Reels приостановлена
+Reel queue done	Очередь Reels завершена
+%1$d saved, %2$d waiting, %3$d failed	Сохранено: %1$d, в очереди: %2$d, с ошибкой: %3$d
+Reel queue canceled	Очередь Reels отменена
+Cancel the reel queue	Отменить очередь Reels
+Save this reel and the ones after it	Сохранить это видео Reels и следующие
+%1$d reels	Видео Reels: %1$d
+Going through %1$d reels for the reel queue. Hold Download again or cancel the queue to stop.	Просматриваю видео для очереди Reels: %1$d. Чтобы остановить, снова удерживайте «Скачать» или отмените очередь.
+Put %1$d reels in the reel queue	В очередь Reels добавлено видео: %1$d
+No more reels came. %1$d went in the reel queue.	Больше видео не появилось. В очередь Reels добавлено: %1$d.
+Stopped going through reels	Просмотр видео Reels остановлен
+Reel from %1$s	Reels от %1$s
+Reel %1$d	Reels %1$d
+Saving now	Сохраняется
+Waiting	Ожидает
+Paused	Приостановлено
+Pause this reel	Приостановить это видео
+Resume this reel	Возобновить это видео
+Cancel this reel	Отменить это видео
+Hide stories you scrolled past	Скрывать пролистанные Истории
+A story you scrolled past in the Stories tray leaves it the next time you open Facebook, even if you didn't watch it. A new story brings that person back.	История, мимо которой вы пролистали в панели Историй, исчезает из неё при следующем открытии Facebook, даже если вы её не смотрели. Новая История возвращает этого человека.
+# context: row under Home header picture that puts Hushfacebook's logo there (#467)
+Use the Hushfacebook logo	Использовать логотип Hushfacebook
+# context: summary under Use the Hushfacebook logo
+Shows Hushfacebook's logo at the top of Home in place of your words and Facebook's logo. Restart Facebook to see it.	Показывает логотип Hushfacebook в верхней части Главной вместо вашего текста и логотипа Facebook. Перезапустите Facebook, чтобы увидеть его.
+# context: the name Home header picture shows once the logo is picked
+Hushfacebook logo	логотип Hushfacebook
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row asking for more posts like this one
+Interested	Интересно
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row asking for fewer posts like this one
+Not interested	Неинтересно
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that opens its feed preferences
+Manage your Feed	Управление Лентой
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that reports the post
+Report	Пожаловаться
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that plays the video on a TV
+Cast	Транслировать
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that adds the poster to Favorites
+Add to Favorites	Добавить в Избранное
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide
+Why am I seeing this post?	Почему я вижу эту публикацию?
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide
+Turn on notifications for this post	Включить уведомления об этой публикации
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide
+Hide post	Скрыть публикацию
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that hides a poster for 30 days
+Snooze	Отложить на 30 дней
+# context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide
+Unfollow	Отменить подписку
+# context: switch title under Playback speed in the post menu
+Playback speed on the menu's first page	Скорость воспроизведения на первой странице меню
+# context: summary of that switch; Playback speed, Save, Report and More options are rows of the menu
+Puts Playback speed on the menu's first page, with Save and Report, so it's one tap away. Off, it stays under More options.	Показывает «Скорость воспроизведения» на первой странице меню, рядом с «Сохранить» и «Пожаловаться», в одно касание. Если выключено, пункт остается в «Другие параметры».
+# context: row title in News feed settings: the rows of a post's 3-dot menu the user picks to hide
+3-dot menu items to hide	Пункты меню с тремя точками для скрытия
+# context: title of that row's list of checkboxes
+Hide from the 3-dot menus of posts and reels	Скрывать в меню с тремя точками у публикаций и Reels
+# context: import preview and toast, no 3-dot menu row will be in that list after the import
+Your list of 3-dot menu items to hide will be empty.	Список пунктов меню с тремя точками для скрытия будет пуст.
+# context: import preview and toast, one 3-dot menu row will be in that list after the import
+Your list of 3-dot menu items to hide will hold %1$d item.	В списке пунктов меню с тремя точками для скрытия будет %1$d пункт.
+# context: import preview and toast, several 3-dot menu rows will be in that list after the import
+Your list of 3-dot menu items to hide will hold %1$d items.	В списке пунктов меню с тремя точками для скрытия будет %1$d пунктов.
+Your list of 3-dot menu items to hide will hold %1$d items.|few	В списке пунктов меню с тремя точками для скрытия будет %1$d пункта.
+Your list of 3-dot menu items to hide will hold %1$d items.|many	В списке пунктов меню с тремя точками для скрытия будет %1$d пунктов.
+Refresh rate	Частота обновления
+Highest your screen offers	Максимальная для экрана
+Facebook runs at whatever refresh rate your phone picks for it.	Facebook работает с той частотой обновления, которую выбирает для него телефон.
+Facebook asks for your screen's highest refresh rate, so scrolling and reels look smoother. It uses a bit more battery, and your phone's own refresh rate setting still caps it.	Facebook запрашивает максимальную частоту обновления экрана, чтобы прокрутка и Reels выглядели плавнее. Это расходует чуть больше заряда, а верхний предел по-прежнему задает настройка частоты обновления в телефоне.
+Facebook asks your screen for %1$s. Your phone's own refresh rate setting still caps it.	Facebook запрашивает у экрана %1$s. Верхний предел по-прежнему задает настройка частоты обновления в телефоне.
+Facebook will run at the refresh rate your phone picks for it.	Facebook будет работать с частотой обновления, которую выбирает для него телефон.
+Facebook will ask for your screen's highest refresh rate.	Facebook будет запрашивать максимальную частоту обновления экрана.
+Facebook will ask your screen for %1$s.	Facebook будет запрашивать у экрана %1$s.
+Hide the comment box	Скрывать поле комментария
+The Write a comment box under a post's comments goes away. You can still read every comment.	Поле «Напишите комментарий» под комментариями к публикации исчезает. Все комментарии можно читать как раньше.
+Captions	Субтитры
+Clear mode	Режим без элементов
+Scroll to next reel automatically	Автоматически переходить к следующему Reels
+Transcript	Расшифровка
+Audio and language	Аудио и язык
+Reset settings	Сбросить настройки
+Turns every switch and choice that Export settings saves back to how a new install has them. Pause, Debug logging and the update check stay as they are.	Возвращает все переключатели и параметры, которые сохраняет «Экспортировать настройки», к состоянию новой установки. Приостановка, журнал отладки и проверка обновлений остаются как есть.
+Undo the reset	Отменить сброс
+Brings back the switches and choices you had before the last reset.	Возвращает переключатели и параметры, которые были до последнего сброса.
+Couldn't reset the settings. Nothing was changed.	Не удалось сбросить настройки. Изменения не внесены.
+Your settings already match a new install.	Ваши настройки уже совпадают с новой установкой.
+Resetting settings	Сброс настроек
+Settings reset. Undo the reset puts yours back.	Настройки сброшены. «Отменить сброс» вернёт ваши.
+Couldn't undo the reset. Nothing was changed.	Не удалось отменить сброс. Изменения не внесены.
+Putting your settings back	Возврат ваших настроек
+Your settings are back the way they were before the reset.	Ваши настройки снова такие же, как до сброса.
+Couldn't finish, and couldn't put back the settings you had. Check the switches on this screen.	Не удалось завершить и восстановить прежние настройки. Проверьте переключатели на этом экране.
+Show every reaction on comments	Показывать все реакции в комментариях
+Where Facebook shows only a comment's top reaction next to its count, keeps Like, Reply and every reaction instead. A change shows on the comments drawn after it.	Там, где Facebook показывает рядом со счётчиком только главную реакцию комментария, остаются «Нравится», «Ответить» и все реакции. Изменение видно на комментариях, показанных после него.
+Move seen stories to the end	Перемещать просмотренные Истории в конец
+Stories you've already watched move to the end of the Stories tray, after the ones you haven't. Hide seen stories goes first while it's on. Applies when Facebook next loads the tray.	Уже просмотренные Истории переходят в конец панели Историй, после непросмотренных. Пока включено «Скрывать просмотренные Истории», оно действует первым. Применяется при следующей загрузке панели Facebook.
+Skip location prompts	Пропускать запросы геолокации
+Facebook's page asking you to allow Location Services, the one with Skip and Continue, doesn't show. Location you turn on yourself still works.	Экран Facebook с просьбой разрешить службы геолокации, тот, где «Пропустить» и «Продолжить», не показывается. Геолокация, которую вы включаете сами, по-прежнему работает.

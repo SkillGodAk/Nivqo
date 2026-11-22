@@ -8,6 +8,7 @@ import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
@@ -17,6 +18,7 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.layout.theme.branchTargets
+import app.morphe.patches.facebook.media.resume.VIDEO_PLAYER_PARAMS
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
@@ -25,6 +27,7 @@ import app.morphe.patches.facebook.misc.extension.liveAcrossInjection
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.search.branchTarget
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.classDefForEachReferencing
@@ -125,6 +128,7 @@ internal const val SET_VIEW_ALPHA = "Landroid/view/View;->setAlpha(F)V"
 /** 1.0f's bits, the `const/high16` an alpha back to full loads. */
 internal const val FULL_ALPHA = 0x3f800000
 internal const val KEEPS_CONTROLS = "$PROGRESS_BAR->keepsControls()Z"
+internal const val POSTS_CONTROLS_HIDE = "$PROGRESS_BAR->postsControlsHide(Landroid/os/Handler;Ljava/lang/Runnable;J)Z"
 internal const val HIDE_TIME_LABEL = "$PROGRESS_BAR->hideTimeLabel(Landroid/view/ViewGroup;)V"
 internal const val BARS_EVERY_REEL = "$PROGRESS_BAR->barsEveryReel()Z"
 internal const val HAS_BAR = "$PROGRESS_BAR->hasBar(ZI)Z"
@@ -167,6 +171,12 @@ internal const val KEEPS_OVERLAY = "$PROGRESS_BAR->keepsOverlayWhileSeeking()Z"
 
 /** The extension's stub the patch fills with a call to the scrubber base's progress update. */
 internal const val UPDATE_AGAIN_STUB = "updateAgain"
+
+/** The extension's stub the patch fills with Facebook's own end of a scroll, run on a scrubber still marked as scrolling. */
+internal const val END_SCROLL_STUB = "endScroll"
+
+/** The helper the patch adds to the scrubber base, which [END_SCROLL_STUB] calls. */
+internal const val END_SCROLL_HELPER = "hushfacebookEndScroll"
 internal const val BAR_RELEASED = "$PROGRESS_BAR->barReleased(Ljava/lang/Object;Landroid/view/View;)V"
 internal const val SEEK_BAR_LISTENER = "Landroid/widget/SeekBar\$OnSeekBarChangeListener;"
 internal const val ON_STOP_TRACKING = "onStopTrackingTouch(Landroid/widget/SeekBar;)V"
@@ -271,6 +281,13 @@ internal const val INVALIDATE = "Landroid/view/View;->invalidate()V"
  * played with its bar at the start and no time (#120). So the mount's hook hands the extension the
  * scrubber too, and the patch fills the extension's [UPDATE_AGAIN_STUB] with a run of the base's
  * progress update, which the extension calls every half second until the update draws the reel.
+ * That update returns at once while the scrubber is marked as hidden for a scroll, a mark Facebook
+ * sets and clears from its list scroll tracker. The tracker counts a view as scrolling until that
+ * view reports it stopped, and after opening a reel from the feed and swiping on within a moment one
+ * view never did, so every scrubber that registered for the next minute was told a scroll was on and
+ * the bar and its time sat at 0:00 until the next swipe (#426). So the patch fills the extension's
+ * [END_SCROLL_STUB] with a call to Facebook's own end of a scroll ([scrollHide], in [endScrollHelper]),
+ * run only on a scrubber that still carries the mark, which shows the bar and starts its update again.
  *
  * The Reels footer lays the caption out from a seek bar status (582 `LX/AGv;` holding a `LX/AGw;`):
  * HIDDEN while a reel plays, VISIBLE while it's paused, DRAGGING during a drag. Only VISIBLE lifts
@@ -304,8 +321,13 @@ internal const val INVALIDATE = "Landroid/view/View;->invalidate()V"
  *
  * The newer Litho player hides its controls through an extension named [CONTROLS_EXTENSION] (581
  * `LX/RbF;`). Its one method that drops its pending callbacks and posts a runnable (581 `A0N`) sets
- * the hide 3 seconds after the controls are touched, 10 with accessibility on. The same hook goes
- * first there.
+ * the hide 3 seconds after the controls are touched, 10 with accessibility on. There the hook
+ * takes the place of that post alone ([noHidePostWhileKept]), since on 586 the method is shared
+ * with fifteen other video extensions (#447). The extension's render also hands the same runnable to
+ * a callback that posts it 3 seconds after the controls mount, the only hide the portrait video
+ * viewer runs (a past live, a reel's details with the panel closed), so the hook also goes first in
+ * that runnable's `run()` ([extensionFadeRunnable]). A tap still hides them, as the tap handler sends
+ * the controls the hide itself.
  *
  * The player the video viewer's Enter fullscreen landscape mode opens on 577 to 581 runs on the
  * Reels controls component instead, whose updater traces [PLAYER_CONTROL_UPDATE] (581
@@ -363,6 +385,8 @@ val keepProgressBarPatch = bytecodePatch(
         val scrubber = vddScrubber(
             classDefByStrings(SCRUBBER_PASSIVE, StringComparisonType.EQUALS)
                 .filterNot { it.type.startsWith(EXTENSION_CLASSES) },
+            classDefByStrings(SCRUBBER_ACTIVE, StringComparisonType.EQUALS)
+                .filterNot { it.type.startsWith(EXTENSION_CLASSES) },
         )
         // The older bottom bar plugin is kept hooked where a build still has it, but needn't exist.
         val pluginHolders = classDefByStrings(REEL_SEEK_BAR_PLUGIN, StringComparisonType.EQUALS)
@@ -377,13 +401,13 @@ val keepProgressBarPatch = bytecodePatch(
             classDefByStrings(CONTROLS_EXTENSION, StringComparisonType.EQUALS)
                 .filterNot { it.type.startsWith(EXTENSION_CLASSES) },
         )
+        val (fade, fadeRun) = extensionFadeRunnable(hide) { classDefByOrNull(it) }
         val updater = controlsUpdater(
             classDefByStrings(PLAYER_CONTROL_UPDATE, StringComparisonType.EQUALS)
                 .filterNot { it.type.startsWith(EXTENSION_CLASSES) },
         ) { classDefByOrNull(it) }
         val graph = graphHide(scrubber) { classDefByOrNull(it) }
         val scrubberClass = classDefByOrNull(scrubber.type) ?: refuse("${scrubber.type} went missing")
-        val lengthChecks = scrubberLengthChecks(scrubberClass)
         val progress = progressUpdate(
             classDefByStrings(SCRUBBER_UPDATE, StringComparisonType.EQUALS)
                 .filterNot { it.type.startsWith(EXTENSION_CLASSES) },
@@ -391,7 +415,9 @@ val keepProgressBarPatch = bytecodePatch(
         if (progress.base.type != scrubberBase(scrubber) || progress.base.type !in listOfNotNull(scrubberClass.type, scrubberClass.superclass)) {
             refuse("${progress.base.type}, which updates the progress, isn't the class holding ${scrubber.type}'s views")
         }
-        progress.update.freeLocalsAt(PATCH, dragCheck(progress.update, progress), 2)
+        val checksOwner = lengthCheckOwner(scrubberClass, progress.base)
+        val lengthChecks = scrubberLengthChecks(checksOwner)
+        progress.body.freeLocalsAt(PATCH, dragCheck(progress.body, progress), 2)
         val info = barInfo(progress.base, lengthChecks?.minimum)
         val handOver = reelHandOver(
             classDefByStrings(NEW_REELS_UNIT_SHOWN, StringComparisonType.EQUALS)
@@ -399,7 +425,13 @@ val keepProgressBarPatch = bytecodePatch(
             progress.base.type,
         )
         handOver.method.freeLocalsAt(PATCH, handOver.at, 3, parameters = true)
-        val returns = registryReturns(handOver)
+        val returns = registryReturns(handOver) {
+            buildList {
+                classDefForEachReferencing(types = listOf(handOver.method.definingClass)) { caller ->
+                    if (caller.methods.any { method -> method.implementation?.instructions?.any { callsMethod(it, handOver.method) } == true }) add(caller)
+                }
+            }
+        }
         val another = anotherVideo(progress.base, info.builder.returnType, handOver)
         val load = scrubberLoad(progress.base, another, returns)
         load.method.freeLocalsAt(PATCH, load.at, 3)
@@ -448,7 +480,7 @@ val keepProgressBarPatch = bytecodePatch(
             if (takesUpdater(it, updater)) controllers += it
             if (it.fields.any { field -> field.type == status.type }) statusOwners += it
             if (it.fields.any { field -> field.type == FUNCTION1 }) visibilityOwners += it
-            if (lengthChecks != null && it.type != scrubber.type &&
+            if (lengthChecks != null && it.type != checksOwner.type &&
                 it.methods.any { method -> method.sameAs(lengthChecks.minimum) || method.sameAs(lengthChecks.short) }
             ) {
                 checkHolders += it
@@ -467,9 +499,14 @@ val keepProgressBarPatch = bytecodePatch(
             refuse("$PROGRESS_BAR has no static void $UPDATE_AGAIN_STUB(Object)")
         }
         checkUpdateAgain(progress)
-        checkHandOverAgain(handOver, returns, another) { classDefByOrNull(it) }
+        if (classDefByOrNull(PROGRESS_BAR)?.methods?.any(::isEndScrollStub) != true) {
+            refuse("$PROGRESS_BAR has no static boolean $END_SCROLL_STUB(Object)")
+        }
+        val scroll = scrollHide(progress)
+        checkEndScroll(progress, scroll) { classDefByOrNull(it) }
+        checkHandOverAgain(returns, another) { classDefByOrNull(it) }
         val overrides = if (lengthChecks == null) emptyList() else {
-            lengthCheckOverrides(checkHolders, scrubber.type, listOf(lengthChecks.minimum, lengthChecks.short)) {
+            lengthCheckOverrides(checkHolders, checksOwner.type, listOf(lengthChecks.minimum, lengthChecks.short)) {
                 classDefByOrNull(it)?.superclass
             }
         }
@@ -484,6 +521,26 @@ val keepProgressBarPatch = bytecodePatch(
         if (!extendsType(barType, SEEK_BAR) { classDefByOrNull(it)?.superclass }) refuse("$barType, the scrubber's bar, isn't a SeekBar")
         val touch = barTouch(classDefByOrNull(barType) ?: refuse("$barType, the scrubber's SeekBar, isn't in this APK"))
         val release = barRelease(barListeners, progress.base.type)
+        // The bar's seek on a live video, which Facebook skips unless the player was marked rewound (#482).
+        val seekRequest = seekRequest(
+            classDefByStrings(SEEK_REQUEST_FORMAT, StringComparisonType.EQUALS)
+                .filterNot { it.type.startsWith(EXTENSION_CLASSES) },
+        )
+        scrubberSeekSite(release.method, seekRequest)
+        val liveChecks = mutableListOf<LiveSeekCheck>()
+        classDefForEachReferencing(types = listOf(seekRequest.type)) { holder ->
+            if (!holder.type.startsWith(EXTENSION_CLASSES)) liveChecks += liveSeekChecks(holder, seekRequest)
+        }
+        val liveCheck = liveChecks.singleOrNull()
+            ?: refuse("${liveChecks.size} seek handlers skip a live video's ${seekRequest.type}, expected one")
+        checkLiveSeekThrough(liveCheck)
+        val player = classDefByOrNull(liveCheck.live.definingClass) ?: refuse("${liveCheck.live.definingClass}, the player, isn't in this APK")
+        val liveNow = liveNowField(classDefByOrNull(VIDEO_PLAYER_PARAMS) ?: refuse("VideoPlayerParams isn't in this APK"))
+        val liveRewind = liveRewind(player, liveCheck, liveNow)
+        // The scrubber search results open a live video with seeks from its bar straight in the player's own seek.
+        val liveGate = liveGate(player, liveCheck, liveNow, liveRewind)
+        // Search results open some live videos with settings that say they aren't live, whose seeks skip the live offset.
+        val liveShift = liveShift(player, liveCheck) { classDefByOrNull(it) }
 
         mutableClassDefBy(scrubber.type).methods.single { it.sameAs(scrubber.passive) }
             .activeInstead(scrubber, graph)
@@ -500,14 +557,17 @@ val keepProgressBarPatch = bytecodePatch(
         }
         handOverMethod.notesHandOver(handOver, scrubber, another)
         // The registry's two early returns come ahead of the hook at the id's test, the later one first.
-        handOverMethod.notesNoScrubber(returns)
-        handOverMethod.notesRegistryAsk(returns)
+        // Up to 585 the registry's method is the hand-over's, on the Android 9 build a caller of it.
+        mutableClassDefBy(returns.method.definingClass).methods.single { it.sameAs(returns.method) }.apply {
+            notesNoScrubber(returns)
+            notesRegistryAsk(returns)
+        }
         mutableClassDefBy(progress.base.type).methods.single { it.sameAs(load.method) }.reportsLoad(scrubber, load, another)
         mutableClassDefBy(progress.base.type).methods.single { it.sameAs(holderClear.method) }.keepsNewerHolder(holderClear, load, returns)
         // 584 has no length checks of their own: the bar info hook answers them in the builder.
         if (lengthChecks != null) {
-            mutableClassDefBy(scrubber.type).methods.single { it.sameAs(lengthChecks.minimum) }.longEnoughWhileKept()
-            mutableClassDefBy(scrubber.type).methods.single { it.sameAs(lengthChecks.short) }.notShortWhileKept()
+            mutableClassDefBy(checksOwner.type).methods.single { it.sameAs(lengthChecks.minimum) }.longEnoughWhileKept()
+            mutableClassDefBy(checksOwner.type).methods.single { it.sameAs(lengthChecks.short) }.notShortWhileKept()
         }
         for ((type, check) in overrides) {
             val method = mutableClassDefBy(type).methods.single { it.sameAs(check) }
@@ -516,7 +576,7 @@ val keepProgressBarPatch = bytecodePatch(
         mutableClassDefBy(progress.base.type).methods.single { it.sameAs(info.builder) }.hasBarWhileKept(info)
         // The look check goes in after the time refresh, at the index the refresh took, so it lands
         // in front of it and a no to the look check still runs the refresh.
-        mutableClassDefBy(progress.base.type).methods.single { it.sameAs(progress.update) }.apply {
+        mutableClassDefBy(progress.base.type).methods.single { it.sameAs(progress.body) }.apply {
             val dragAt = dragCheck(this, progress)
             refreshesTimeWithBar(progress, scrubber)
             looksAgainFirst(scrubber, dragAt)
@@ -543,16 +603,26 @@ val keepProgressBarPatch = bytecodePatch(
         fillFooterLift(footer)
         mutableClassDefBy(footerSeek.type).methods.single { it.sameAs(footerSeek.method) }.keepsOverlayOnPress(footerSeek, visibility)
         fillUpdateAgain(progress)
-        fillHandOverAgain(handOver, another)
+        fillEndScroll(progress, scroll)
+        fillHandOverAgain(returns, another)
         if (plugin != null && sizes != null) {
             mutableClassDefBy(plugin.type).methods.single { it.sameAs(sizes.shrink) }
                 .fullSizeInstead(plugin.type, sizes.fullSize)
         }
         mutableClassDefBy(controls.type).methods.single { it.sameAs(timer) }.noTimerWhileKept()
-        mutableClassDefBy(extension.type).methods.single { it.sameAs(hide) }.noTimerWhileKept()
+        mutableClassDefBy(extension.type).methods.single { it.sameAs(hide) }.noHidePostWhileKept()
+        mutableClassDefBy(fade.type).methods.single { it.sameAs(fadeRun) }.noTimerWhileKept()
         mutableClassDefBy(hider.type).methods.single { it.sameAs(hiderRun) }.noTimerWhileKept()
         mutableClassDefBy(barType).methods.single { it.sameAs(touch) }.takesTapsToSeek()
-        mutableClassDefBy(release.method.definingClass).methods.single { it.sameAs(release.method) }.reportsBarRelease(release)
+        mutableClassDefBy(release.method.definingClass).methods.single { it.sameAs(release.method) }.apply {
+            reportsBarRelease(release)
+            reportsScrubberSeek(seekRequest)
+        }
+        mutableClassDefBy(liveCheck.method.definingClass).methods.single { it.sameAs(liveCheck.method) }
+            .letsLiveSeekThrough(liveCheck)
+        mutableClassDefBy(liveRewind.player).methods.single { it.sameAs(liveGate.method) }.rewindsForTheBar(liveGate)
+        fillLiveRewound(liveRewind)
+        fillLiveShift(liveShift)
         enableStatus("keepProgressBar")
     }
 }
@@ -602,20 +672,35 @@ internal fun scrubberBase(looks: ScrubberLooks): String = looks.viewsField.subst
 
 /**
  * The scrubber class: the one of [holders] with an instance `()V` method tracing
- * [SCRUBBER_ACTIVE] and another tracing [SCRUBBER_PASSIVE]. Refuses unless there's exactly one
- * such class with exactly one method of each.
+ * [SCRUBBER_ACTIVE] and another tracing [SCRUBBER_PASSIVE]. 587 moved the active look's body to the
+ * scrubber's one subclass (`LX/0A6t;->A1F`), leaving the scrubber (`LX/0A6u;`) an abstract
+ * declaration of it, so a scrubber tracing no active look takes that body when exactly one subclass
+ * among [activeHolders] traces it and the scrubber declares it abstract, which keeps a call of the
+ * look through the scrubber valid. Refuses unless there's exactly one such class with exactly one
+ * method of each.
  */
-internal fun vddScrubber(holders: List<ClassDef>): ScrubberLooks {
+internal fun vddScrubber(holders: List<ClassDef>, activeHolders: List<ClassDef> = holders): ScrubberLooks {
     fun look(holder: ClassDef, string: String) = methodsHolding(holder, string).filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.isEmpty()
     }
-    val scrubbers = holders.distinctBy { it.type }.filter { look(it, SCRUBBER_ACTIVE).size == 1 && look(it, SCRUBBER_PASSIVE).size == 1 }
+    fun active(holder: ClassDef): Method? {
+        val own = look(holder, SCRUBBER_ACTIVE)
+        if (own.isNotEmpty()) return own.singleOrNull()
+        val body = activeHolders.distinctBy { it.type }.filter { it.superclass == holder.type }
+            .flatMap { look(it, SCRUBBER_ACTIVE) }.singleOrNull() ?: return null
+        return body.takeIf {
+            holder.methods.any {
+                AccessFlags.ABSTRACT.isSet(it.accessFlags) && it.name == body.name && it.returnType == "V" && it.parameterTypes.isEmpty()
+            }
+        }
+    }
+    val scrubbers = holders.distinctBy { it.type }.filter { active(it) != null && look(it, SCRUBBER_PASSIVE).size == 1 }
     val scrubber = scrubbers.singleOrNull()
         ?: refuse("expected one class tracing both \"$SCRUBBER_ACTIVE\" and \"$SCRUBBER_PASSIVE\", found ${scrubbers.size}")
     val passive = look(scrubber, SCRUBBER_PASSIVE).single()
     val (viewsField, labelField) = timeLabelFields(scrubber, passive)
     val barField = seekBarField(passive, labelField.substringBefore("->"))
-    return ScrubberLooks(scrubber.type, look(scrubber, SCRUBBER_ACTIVE).single(), passive, viewsField, labelField, barField)
+    return ScrubberLooks(scrubber.type, active(scrubber)!!, passive, viewsField, labelField, barField)
 }
 
 /**
@@ -736,7 +821,9 @@ internal class ChapterReset(val owner: String, val method: Method, val field: St
  * into its base and left the marks to a helper the concrete scrubber holds (`LX/9iw;->A04`, a
  * `LX/7la;` whose own field leads back to the scrubber): then it's a method of the class of a final
  * instance field one of [subclasses], the classes extending [scrubber], declares, looked up through
- * [classOf]. Refuses unless there's one, and when it's private, since the light mount runs it.
+ * [classOf]. 585's Android 9 build has the scrubber itself hold it (`LX/0AFM;->A04`, a `LX/09Rz;`
+ * reset by `A01`), which is looked at when no subclass holds one. Refuses unless there's one, and
+ * when it's private, since the light mount runs it.
  */
 internal fun chapterReset(
     scrubber: ClassDef,
@@ -752,15 +839,16 @@ internal fun chapterReset(
             code.any { it.reference() == looks.barField } &&
             code.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == FULL_ALPHA }
     }
-    val own = resets(scrubber).map { ChapterReset(scrubber.type, it, null) }
-    val held = if (own.isNotEmpty()) emptyList() else subclasses.distinctBy { it.type }.flatMap { subclass ->
-        subclass.fields.filter {
+    fun heldBy(holders: List<ClassDef>) = holders.distinctBy { it.type }.flatMap { holder ->
+        holder.fields.filter {
             !AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.FINAL.isSet(it.accessFlags) && it.type.startsWith("L")
         }.flatMap { field ->
             val helper = classOf(field.type) ?: return@flatMap emptyList()
-            resets(helper).map { ChapterReset(subclass.type, it, "${subclass.type}->${field.name}:${field.type}") }
+            resets(helper).map { ChapterReset(holder.type, it, "${holder.type}->${field.name}:${field.type}") }
         }
     }
+    val own = resets(scrubber).map { ChapterReset(scrubber.type, it, null) }
+    val held = if (own.isNotEmpty()) emptyList() else heldBy(subclasses).ifEmpty { heldBy(listOf(scrubber)) }
     val found = own + held
     val reset = found.singleOrNull()
         ?: refuse("${scrubber.type} and what its subclasses hold have ${found.size} static method(s) clearing its chapter marks and showing the bar again, expected one")
@@ -968,14 +1056,15 @@ internal fun reelHandOver(holders: List<ClassDef>, base: String): ReelHandOver {
 }
 
 /**
- * The two ways the Reels scrubber registry's hand-over returns ahead of [ReelHandOver.at] (583
- * `LX/8fL;->A00`, indices 2 to 5 and 13): the test of its hide flag ([test]), a boolean field of its
- * own read into [flag] right before, which when set has its own one-`Integer` method hide every
- * scrubber's bar for the reel's key ([key]) and returns; and its test for a scrubber holder
- * ([noHolder], of [holder]), the reel's own or its default one, which returns at that same
- * `return-void` when there's neither.
+ * The two ways the Reels scrubber registry returns ahead of its hand-over, in the registry's method
+ * ([method], 583 `LX/8fL;->A00`, indices 2 to 5 and 13): the test of its hide flag ([test]), a boolean
+ * field of the registry read into [flag] right before, which when set has the registry's own
+ * one-`Integer` method hide every scrubber's bar for the reel's key ([key]) and returns; and its test
+ * for a scrubber holder ([noHolder], of [holder]), the reel's own or its default one, which returns at
+ * that same `return-void` when there's neither.
  */
 internal class RegistryReturns(
+    val method: Method,
     val test: Int,
     val flag: Int,
     val key: Int,
@@ -985,57 +1074,81 @@ internal class RegistryReturns(
     val defaultHolder: String,
 )
 
+/** Whether [instruction] calls [method]. */
+private fun callsMethod(instruction: Instruction, method: Method): Boolean {
+    val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    return call.definingClass == method.definingClass && call.name == method.name && call.returnType == method.returnType &&
+        call.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+}
+
 /**
- * Finds [RegistryReturns] in [handOver]'s method. Refuses unless the flag is read off the method's
- * own class ahead of the hand-over's hook and tested right after, with nothing else jumping onto
- * the test; the hide is the one call between that test and a `return-void`, on the method's own
- * class, taking just the key, which nothing writes before; exactly one other instruction, an
- * `if-eqz` ahead of the hook that only the instruction before reaches, jumps onto that return, and
- * that instruction reads the default holder off a field of the method's own class into the
- * register tested; and the flag, key and holder sit at v15 or below.
+ * The index ahead of [before] in [code] where a boolean field is read and tested right after by an
+ * `if-eqz`, then a void method of the field's class hides every bar for the key it's given, and a
+ * `return-void` follows: the registry's hide flag.
  */
-internal fun registryReturns(handOver: ReelHandOver): RegistryReturns {
-    val method = handOver.method
+private fun hideFlagRead(code: List<Instruction>, before: Int): Int? = (0 until minOf(before, code.size - 3)).firstOrNull { index ->
+    val field = (code[index] as? ReferenceInstruction)?.reference as? FieldReference
+    val hides = (code[index + 2] as? ReferenceInstruction)?.reference as? MethodReference
+    code[index].opcode == Opcode.IGET_BOOLEAN && field != null &&
+        code[index + 1].opcode == Opcode.IF_EQZ &&
+        (code[index + 1] as OneRegisterInstruction).registerA == (code[index] as TwoRegisterInstruction).registerA &&
+        code[index + 2].opcode == Opcode.INVOKE_VIRTUAL && hides != null && hides.definingClass == field.definingClass &&
+        hides.returnType == "V" && hides.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Integer;") &&
+        code[index + 3].opcode == Opcode.RETURN_VOID
+}
+
+/**
+ * Finds [RegistryReturns]. Up to 585 the registry's logic sits in [handOver]'s own method, ahead of its
+ * hook. 585's Android 9 build left the hand-over a method of the holder (`LX/09Rr;->A00`) and inlined
+ * the registry into its callers, and of those only `LX/0BDl;->A00` returns at the hide the way the
+ * registry does, so the registry's method is then the one of the methods [callers] declare that calls
+ * the hand-over with that hide ahead of the call. The other two copies (`LX/08a0;->A0D`,
+ * `LX/09xw;->A08`) go on past the hide or test the flag the other way round, and stay as they are.
+ * Refuses unless there's one such method, nothing but the read jumps onto the flag's test, and of the
+ * instructions jumping onto the hide's return, one is an `if-eqz` past the hide and ahead of the
+ * hand-over that only the instruction before reaches, that instruction reading the default holder off
+ * a field of the registry into the register tested; and the flag, key and holder sit at v15 or below.
+ * The Android 9 build's registry returns there for a reel whose player has no parameters yet too, ahead
+ * of the flag.
+ */
+internal fun registryReturns(handOver: ReelHandOver, callers: () -> List<ClassDef>): RegistryReturns {
+    val own = handOver.method.implementation!!.instructions.toList()
+    val (method, before) = if (hideFlagRead(own, handOver.at) != null) handOver.method to handOver.at else {
+        val found = callers().distinctBy { it.type }.flatMap { caller ->
+            caller.methods.mapNotNull { method ->
+                val code = method.implementation?.instructions?.toList() ?: return@mapNotNull null
+                val call = code.indices.firstOrNull { callsMethod(code[it], handOver.method) } ?: return@mapNotNull null
+                (method to call).takeIf { hideFlagRead(code, call) != null }
+            }
+        }
+        found.singleOrNull() ?: refuse(
+            "${handOver.method.definingClass}->${handOver.method.name} no longer reads a hide flag ahead of its hand-over, " +
+                "and ${found.size} of its callers do before calling it, expected one",
+        )
+    }
     val where = "${method.definingClass}->${method.name}"
     val code = method.implementation!!.instructions.toList()
-    val read = (0 until handOver.at).firstOrNull { index ->
-        code[index].opcode == Opcode.IGET_BOOLEAN &&
-            ((code[index] as ReferenceInstruction).reference as FieldReference).definingClass == method.definingClass
-    } ?: refuse("$where no longer reads a flag of its own ahead of its hand-over")
+    val read = hideFlagRead(code, before)!!
     val flag = (code[read] as TwoRegisterInstruction).registerA
+    val registry = ((code[read] as ReferenceInstruction).reference as FieldReference).definingClass
     val test = read + 1
-    if (code.getOrNull(test)?.opcode != Opcode.IF_EQZ || (code[test] as OneRegisterInstruction).registerA != flag) {
-        refuse("$where no longer tests its flag right after reading it")
-    }
-    val hide = code.getOrNull(test + 1)
-    val hides = (hide as? ReferenceInstruction)?.reference as? MethodReference
-    if (hide?.opcode != Opcode.INVOKE_VIRTUAL || hides == null || hides.definingClass != method.definingClass ||
-        hides.returnType != "V" || hides.parameterTypes.map(CharSequence::toString) != listOf("Ljava/lang/Integer;")
-    ) {
-        refuse("$where no longer hides every bar for the reel's key when its flag is set")
-    }
-    val key = (hide as FiveRegisterInstruction).registerD
-    if ((0 until test).any { writes(code[it], key) }) refuse("$where writes v$key, the reel's key, before its flag's test")
+    val key = (code[test + 1] as FiveRegisterInstruction).registerD
     val back = test + 2
-    if (code.getOrNull(back)?.opcode != Opcode.RETURN_VOID) refuse("$where no longer returns right after hiding every bar")
     val flow = ControlFlow.of(method)
     if (code.indices.any { it != read && test in flow.normal[it] }) refuse("$where has a jump onto its test of the flag")
-    val jumps = code.indices.filter { it != test + 1 && back in flow.normal[it] }
-    val noHolder = jumps.singleOrNull()
-        ?: refuse("$where returns at its hide's return-void from ${jumps.size} other places, expected one")
-    if (code[noHolder].opcode != Opcode.IF_EQZ || noHolder >= handOver.at) {
-        refuse("$where no longer tests for a scrubber holder ahead of its hand-over")
+    fun readsDefault(index: Int): Boolean {
+        val fallback = code.getOrNull(index - 1) ?: return false
+        return fallback.opcode == Opcode.IGET_OBJECT &&
+            (fallback as TwoRegisterInstruction).registerA == (code[index] as OneRegisterInstruction).registerA &&
+            ((fallback as ReferenceInstruction).reference as FieldReference).definingClass == registry
     }
+    val tests = code.indices.filter { it > back && it < before && back in flow.normal[it] && code[it].opcode == Opcode.IF_EQZ && readsDefault(it) }
+    val noHolder = tests.singleOrNull()
+        ?: refuse("$where tests ${tests.size} default scrubber holder(s) of $registry ahead of its hand-over and returns where it hides every bar, expected one")
     if (code.indices.any { it != noHolder - 1 && noHolder in flow.normal[it] }) refuse("$where has a jump onto its test for a scrubber holder")
     val holder = (code[noHolder] as OneRegisterInstruction).registerA
-    val fallback = code.getOrNull(noHolder - 1)
-    if (fallback?.opcode != Opcode.IGET_OBJECT || (fallback as TwoRegisterInstruction).registerA != holder ||
-        ((fallback as ReferenceInstruction).reference as FieldReference).definingClass != method.definingClass
-    ) {
-        refuse("$where no longer reads its default scrubber holder right before testing for one")
-    }
     if (maxOf(flag, key, holder) > 15) refuse("$where keeps its flag, the reel's key or the holder past v15")
-    return RegistryReturns(test, flag, key, noHolder, holder, (fallback as ReferenceInstruction).reference.toString())
+    return RegistryReturns(method, test, flag, key, noHolder, holder, (code[noHolder - 1] as ReferenceInstruction).reference.toString())
 }
 
 /**
@@ -1152,8 +1265,27 @@ private fun lengthChecks(scrubber: ClassDef, vararg opcodes: Opcode): List<Metho
         // The parameters take the last three registers: this, then the length and the boolean in their order.
         val parameters = check.parameterTypes.map(CharSequence::toString)
         val length = implementation.registerCount - parameters.size + parameters.indexOf("I")
-        implementation.instructions.any { it.opcode in opcodes && (it as TwoRegisterInstruction).registerA == length }
+        val holding = lengthRegisters(implementation.instructions.toList(), length)
+        implementation.instructions.any { it.opcode in opcodes && (it as TwoRegisterInstruction).registerA in holding }
     }
+
+private val MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
+
+/**
+ * The [length] parameter's register and every register a plain `move` copies it into. 585's Android 9
+ * build copies the length before its short-reel compare (`LX/0AEa;->A1M`: `move/from16 v1, v17`, then
+ * `if-gt v1, v0`), where the other builds compare the parameter itself.
+ */
+private fun lengthRegisters(code: List<Instruction>, length: Int): Set<Int> {
+    val holding = mutableSetOf(length)
+    do {
+        val before = holding.size
+        for (instruction in code) {
+            if (instruction.opcode in MOVES && (instruction as TwoRegisterInstruction).registerB in holding) holding += instruction.registerA
+        }
+    } while (holding.size != before)
+    return holding
+}
 
 /** The scrubber's two length checks, [minimumLengthCheck] and [shortReelCheck]. */
 internal class LengthChecks(val minimum: Method, val short: Method)
@@ -1167,6 +1299,14 @@ internal fun scrubberLengthChecks(scrubber: ClassDef): LengthChecks? {
     if (lengthChecks(scrubber, *MINIMUM_COMPARES).isEmpty() && lengthChecks(scrubber, *SHORT_COMPARES).isEmpty()) return null
     return LengthChecks(minimumLengthCheck(scrubber), shortReelCheck(scrubber))
 }
+
+/**
+ * The class declaring the scrubber's length checks: the scrubber itself, or its [base] when the
+ * scrubber extends it and only the base has them. 585's Android 9 build moved the looks into a class
+ * extending the base (`LX/0AFM;` below `LX/0AEa;`) and left the checks on the base (`A1M`, `A1N`).
+ */
+internal fun lengthCheckOwner(scrubber: ClassDef, base: ClassDef): ClassDef =
+    if (base.type == scrubber.superclass && scrubberLengthChecks(scrubber) == null && scrubberLengthChecks(base) != null) base else scrubber
 
 /**
  * The scrubber's check that a reel is long enough for a bar (583 `LX/9h9;->A1U`). The scrubber has
@@ -1260,9 +1400,11 @@ internal class SameLookSkip(val branch: Int, val flow: Int, val read: String, va
  * selector's state, which Facebook takes from a flow (an `invoke-interface` of a `()Object` method,
  * `move-result-object`, `check-cast` to the state class, `iget-object` of an Integer field). The
  * state class has two instance Integer fields, the look the bar has and the one parked to apply once
- * a reel's player change ends, which is the one the skip doesn't read. [stateClass] looks the state
- * class up. Refuses unless all that holds, the skip jumps to a `return-void`, only the instruction
- * before it leads onto it and the flow's register still holds the flow there.
+ * a reel's player change ends, which is the one the skip doesn't read. 586's Android 9 build reads
+ * the look through a static helper taking the flow (`LX/09je;->A01`) that does those four steps.
+ * [stateClass] looks the state class up, and the helper's. Refuses unless all that holds, the skip
+ * jumps to a `return-void`, only the instruction before it leads onto it and the flow's register
+ * still holds the flow there.
  */
 internal fun sameLookSkip(selector: Method, stateClass: (String) -> ClassDef?): SameLookSkip {
     val where = "${selector.definingClass}->${selector.name}"
@@ -1271,36 +1413,71 @@ internal fun sameLookSkip(selector: Method, stateClass: (String) -> ClassDef?): 
     val branch = code.indices.firstOrNull { index ->
         code[index].opcode == Opcode.IF_EQ && (code[index] as TwoRegisterInstruction).let { it.registerA == look || it.registerB == look }
     } ?: refuse("$where has no if-eq of the look it's asked for")
-    if (branch < 4) refuse("$where compares the look before reading its state")
-    val read = code[branch - 4] as? FiveRegisterInstruction
-    val readCall = (read as? ReferenceInstruction)?.reference as? MethodReference
-    val result = code[branch - 3] as? OneRegisterInstruction
-    val cast = code[branch - 2]
-    val current = code[branch - 1]
-    val currentField = (current as? ReferenceInstruction)?.reference as? FieldReference
-    val state = cast.reference()
-    val held = (current as? TwoRegisterInstruction)?.registerA
     val compared = (code[branch] as TwoRegisterInstruction).let { if (it.registerA == look) it.registerB else it.registerA }
-    if (read == null || read.opcode != Opcode.INVOKE_INTERFACE || read.registerCount != 1 || readCall == null ||
-        readCall.parameterTypes.isNotEmpty() || readCall.returnType != "Ljava/lang/Object;" ||
-        result == null || code[branch - 3].opcode != Opcode.MOVE_RESULT_OBJECT ||
-        cast.opcode != Opcode.CHECK_CAST || (cast as OneRegisterInstruction).registerA != result.registerA ||
-        current.opcode != Opcode.IGET_OBJECT || (current as TwoRegisterInstruction).registerB != result.registerA ||
-        currentField == null || currentField.definingClass != state || currentField.type != "Ljava/lang/Integer;" ||
-        held != compared || read.registerC == result.registerA || read.registerC == held
-    ) {
-        refuse("$where no longer reads the bar's look off its state right before comparing it with the one asked for")
+    val notRead = "$where no longer reads the bar's look off its state right before comparing it with the one asked for"
+    val helper = (code.getOrNull(branch - 2) as? ReferenceInstruction)?.reference as? MethodReference
+    val read = if (helper != null && code[branch - 2].opcode == Opcode.INVOKE_STATIC && helper.returnType == "Ljava/lang/Integer;") {
+        val call = code[branch - 2] as FiveRegisterInstruction
+        val result = code[branch - 1]
+        if (call.registerCount != 1 || helper.parameterTypes.size != 1 || result.opcode != Opcode.MOVE_RESULT_OBJECT ||
+            (result as OneRegisterInstruction).registerA != compared || call.registerC == compared
+        ) {
+            refuse(notRead)
+        }
+        val body = stateClass(helper.definingClass)?.methods?.singleOrNull {
+            it.name == helper.name && AccessFlags.STATIC.isSet(it.accessFlags) &&
+                it.parameterTypes.map(CharSequence::toString) == helper.parameterTypes.map(CharSequence::toString)
+        }?.implementation ?: refuse("$where reads its look through $helper, which isn't in this APK")
+        val steps = body.instructions.toList()
+        val inner = stateRead(steps, 0) ?: refuse(notRead)
+        val back = steps.getOrNull(4)
+        if (steps.size != 5 || inner.flow != body.registerCount - 1 || back?.opcode != Opcode.RETURN_OBJECT ||
+            (back as OneRegisterInstruction).registerA != inner.held
+        ) {
+            refuse(notRead)
+        }
+        StateRead(call.registerC, inner.call, inner.state, inner.field, compared)
+    } else {
+        stateRead(code, branch - 4)?.takeIf { it.held == compared && it.flow != it.result && it.flow != it.held } ?: refuse(notRead)
     }
     val flow = ControlFlow.of(selector)
     val target = flow.normal[branch].firstOrNull { it != branch + 1 }
     if (target == null || code[target].opcode != Opcode.RETURN_VOID) refuse("$where no longer returns on a look the bar has")
     if (code.indices.any { it != branch - 1 && branch in flow.normal[it] }) refuse("$where has a jump onto its skip of a look the bar has")
-    val integers = stateClass(state!!)?.fields
+    val state = read.state
+    val integers = stateClass(state)?.fields
         ?.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == "Ljava/lang/Integer;" }
         ?: refuse("$where reads its look off $state, which isn't in this APK")
-    val parked = integers.filter { it.name != currentField!!.name }
+    val parked = integers.filter { it.name != read.field.name }
     if (integers.size != 2 || parked.size != 1) refuse("$state has ${integers.size} Integer fields, expected the look and the parked one")
-    return SameLookSkip(branch, read.registerC, readCall.toString(), state, "$state->${parked.single().name}:Ljava/lang/Integer;")
+    return SameLookSkip(branch, read.flow, read.call.toString(), state, "$state->${parked.single().name}:Ljava/lang/Integer;")
+}
+
+/**
+ * A read of the selector's state off its [flow] register: the flow's `()Object` [call], its result
+ * in [result], cast to [state], and the Integer [field] of the state read into [held].
+ */
+private class StateRead(val flow: Int, val call: MethodReference, val state: String, val field: FieldReference, val held: Int, val result: Int = -1)
+
+/** The state read whose `invoke-interface` is at [at] in [code], or null where those four steps aren't there. */
+private fun stateRead(code: List<Instruction>, at: Int): StateRead? {
+    if (at < 0 || at + 3 >= code.size) return null
+    val read = code[at] as? FiveRegisterInstruction ?: return null
+    val call = (read as? ReferenceInstruction)?.reference as? MethodReference ?: return null
+    val result = code[at + 1]
+    val cast = code[at + 2]
+    val current = code[at + 3]
+    val field = (current as? ReferenceInstruction)?.reference as? FieldReference ?: return null
+    val state = cast.reference() ?: return null
+    if (read.opcode != Opcode.INVOKE_INTERFACE || read.registerCount != 1 || call.parameterTypes.isNotEmpty() ||
+        call.returnType != "Ljava/lang/Object;" || result.opcode != Opcode.MOVE_RESULT_OBJECT ||
+        cast.opcode != Opcode.CHECK_CAST || (cast as OneRegisterInstruction).registerA != (result as OneRegisterInstruction).registerA ||
+        current.opcode != Opcode.IGET_OBJECT || (current as TwoRegisterInstruction).registerB != result.registerA ||
+        field.definingClass != state || field.type != "Ljava/lang/Integer;"
+    ) {
+        return null
+    }
+    return StateRead(read.registerC, call, state, field, current.registerA, result.registerA)
 }
 
 /**
@@ -1397,8 +1574,40 @@ internal fun barInfo(base: ClassDef, lengthCheck: Method?): BarInfo {
 
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference?.toString()
 
-/** The scrubber base's progress update and the method writing its time. */
-internal class ProgressUpdate(val base: ClassDef, val update: Method, val writeTime: Method)
+/**
+ * The scrubber base's progress update, the method writing its time, and the update's [body], where
+ * the update moves the bar and asks for a drag: the update itself, or the one method it hands that
+ * work to ([updateBody]).
+ */
+internal class ProgressUpdate(val base: ClassDef, val update: Method, val writeTime: Method, val body: Method = update)
+
+/**
+ * Where [update] moves the bar: [update] itself when it calls [writer], or else the one private
+ * instance `()V` method of [base] that calls [writer] and that [update] runs on the base it takes.
+ * 585's Android 9 build keeps the update a trace around such a method (LX/0AEa;->A08 runs
+ * LX/0AEa;->A06), and there `p0` is the same base the update takes, so every hook in the body reads
+ * it the same way. [update] itself when there's no such method, which [dragCheck] then refuses.
+ */
+internal fun updateBody(base: ClassDef, update: Method, writer: Method): Method {
+    val writerCall = "${base.type}->${writer.name}(${base.type})V"
+    if (update.calls(writerCall)) return update
+    val code = update.implementation?.instructions?.toList() ?: return update
+    val baseRegister = update.implementation!!.registerCount - 1
+    val bodies = code.mapNotNull { instruction ->
+        if (instruction.opcode != Opcode.INVOKE_DIRECT || (instruction as FiveRegisterInstruction).registerCount != 1 ||
+            instruction.registerC != baseRegister
+        ) {
+            return@mapNotNull null
+        }
+        val call = (instruction as ReferenceInstruction).reference as MethodReference
+        if (call.definingClass != base.type || call.returnType != "V" || call.parameterTypes.isNotEmpty()) return@mapNotNull null
+        base.methods.singleOrNull {
+            it.name == call.name && it.returnType == "V" && it.parameterTypes.isEmpty() &&
+                AccessFlags.PRIVATE.isSet(it.accessFlags) && !AccessFlags.STATIC.isSet(it.accessFlags) && it.calls(writerCall)
+        }
+    }.distinctBy { it.name }
+    return bodies.singleOrNull() ?: update
+}
 
 /**
  * The scrubber base's progress update (582 `LX/9c4;->A04`), the one static `(base)V` method of
@@ -1418,7 +1627,7 @@ internal fun progressUpdate(holders: List<ClassDef>): ProgressUpdate {
     val writers = base.methods.filter { base.takesItself(it) && it.calls(TEXT_VIEW_SET_TEXT) }
     val writer = writers.singleOrNull()
         ?: refuse("${base.type} has ${writers.size} static methods setting text, expected one, its time writer")
-    return ProgressUpdate(base, update, writer)
+    return ProgressUpdate(base, update, writer, updateBody(base, update, writer))
 }
 
 /**
@@ -1428,6 +1637,11 @@ internal fun progressUpdate(holders: List<ClassDef>): ProgressUpdate {
  * reading the reel's position and length, finding a position other than -1 and a length above 0,
  * and moving the bar. Returns that instruction's index. Refuses unless the writer is called once,
  * right after such a check.
+ *
+ * 586 (`LX/0A4r;->A06`) jumps to the writer on a drag instead, from an `if-eq` right after the
+ * `sget-object` of the drag state (`LX/00Tm;->A01`), and falls through to more checks that can also
+ * end at the writer. The answer is that `sget-object`, the first thing after the state is read, with
+ * the bar already moved. Refuses unless exactly one such jump goes to the writer.
  */
 internal fun dragCheck(update: Method, progress: ProgressUpdate): Int {
     val base = progress.base.type
@@ -1438,12 +1652,17 @@ internal fun dragCheck(update: Method, progress: ProgressUpdate): Int {
     }
     val call = calls.singleOrNull()
         ?: refuse("$base->${update.name} calls its time writer ${calls.size} times, expected once, during a drag")
-    val branch = code.getOrNull(call - 1)?.takeIf { it.opcode == Opcode.IF_NE } as? TwoRegisterInstruction
-    val state = code.getOrNull(call - 2)?.takeIf { it.opcode == Opcode.SGET_OBJECT } as? OneRegisterInstruction
-    if (branch == null || state == null || state.registerA !in setOf(branch.registerA, branch.registerB)) {
-        refuse("$base->${update.name} no longer checks for a drag right before calling its time writer")
-    }
-    return call - 2
+    if (stateCompared(code, call - 2, call - 1, Opcode.IF_NE)) return call - 2
+    val jumps = code.indices.filter { stateCompared(code, it - 1, it, Opcode.IF_EQ) && branchTarget(code, it) == call }
+    return jumps.singleOrNull()?.minus(1)
+        ?: refuse("$base->${update.name} no longer checks for a drag right before calling its time writer")
+}
+
+/** Whether [code] reads a static object at [state] and compares it at [compare], an [opcode] branch. */
+private fun stateCompared(code: List<Instruction>, state: Int, compare: Int, opcode: Opcode): Boolean {
+    val branch = code.getOrNull(compare)?.takeIf { it.opcode == opcode } as? TwoRegisterInstruction ?: return false
+    val read = code.getOrNull(state)?.takeIf { it.opcode == Opcode.SGET_OBJECT } as? OneRegisterInstruction ?: return false
+    return read.registerA in setOf(branch.registerA, branch.registerB)
 }
 
 /**
@@ -1455,7 +1674,7 @@ internal fun dragCheck(update: Method, progress: ProgressUpdate): Int {
  */
 internal fun frameDelay(progress: ProgressUpdate): Method {
     val base = progress.base
-    val calls = progress.update.implementation!!.instructions.mapNotNull { instruction ->
+    val calls = progress.body.implementation!!.instructions.mapNotNull { instruction ->
         ((instruction as? ReferenceInstruction)?.takeIf { instruction.opcode == Opcode.INVOKE_STATIC }?.reference as? MethodReference)
             ?.takeIf {
                 it.definingClass == base.type && it.returnType == "J" &&
@@ -1463,7 +1682,7 @@ internal fun frameDelay(progress: ProgressUpdate): Method {
             }
     }.distinctBy { it.toString() }
     val call = calls.singleOrNull()
-        ?: refuse("${base.type}->${progress.update.name} asks ${calls.size} static methods for a wait, expected one")
+        ?: refuse("${base.type}->${progress.body.name} asks ${calls.size} static methods for a wait, expected one")
     return base.methods.singleOrNull { it.name == call.name && it.returnType == "J" && it.parameterTypes.size == 1 }
         ?: refuse("$call, the wait before the next progress update, isn't declared on ${base.type}")
 }
@@ -1817,6 +2036,46 @@ internal fun extensionFadeTimer(holders: List<ClassDef>): Pair<ClassDef, Method>
 }
 
 /**
+ * The runnable the newer player's controls [hide] posts (587 `LX/0Otp;`, v7a `LX/0KvW;`, kept as
+ * `VideoControlsExtension$getAutoFadeOutRunnable$runnable$1`): the hide builds it once into the
+ * register its [POST_DELAYED] posts and stores it straight into a Runnable field, the cache it reads
+ * first. Where Redex merged the hide with other video extensions' (587 v7a `LX/0Ksp;->A0I`, a dozen
+ * runnables) that cache is what tells it apart. The extension's render (587 `LX/0Oru;->A0G`) gives the
+ * same runnable to a visibility callback (`LX/0f2E;`) that posts it 3 seconds after the controls
+ * mount, which is how the portrait video viewer hides them, so the hook in [hide] alone never reached
+ * that viewer. The hook goes first in its `run()`, so it has to be a runnable of its own: a class with
+ * nothing but constructors and that `run()`, with no switch picking among merged runnables (#447).
+ * [classOf] reads a class of the APK.
+ */
+internal fun extensionFadeRunnable(hide: Method, classOf: (String) -> ClassDef?): Pair<ClassDef, Method> {
+    val code = hide.implementation?.instructions?.toList().orEmpty()
+    val post = code.singleOrNull { (it as? ReferenceInstruction)?.reference?.toString() == POST_DELAYED } as? FiveRegisterInstruction
+        ?: refuse("${hide.definingClass}->${hide.name} has no one invoke-virtual of postDelayed")
+    val types = code.indices.mapNotNull { at ->
+        val build = code[at].takeIf { it.opcode == Opcode.NEW_INSTANCE } ?: return@mapNotNull null
+        val register = (build as OneRegisterInstruction).registerA
+        if (register != post.registerD) return@mapNotNull null
+        val cached = code.subList(at + 1, minOf(code.size, at + 3)).any {
+            it.opcode == Opcode.IPUT_OBJECT && (it as TwoRegisterInstruction).registerA == register &&
+                ((it as ReferenceInstruction).reference as FieldReference).type == RUNNABLE
+        }
+        ((build as ReferenceInstruction).reference as TypeReference).type.takeIf { cached }
+    }.distinct().filter { classOf(it)?.interfaces?.contains(RUNNABLE) == true }
+    val type = types.singleOrNull()
+        ?: refuse("${hide.definingClass}->${hide.name} caches and posts ${types.size} runnables, expected the one controls hide")
+    val runnable = classOf(type)!!
+    val others = runnable.methods.filterNot { it.name == "<init>" || it.name == "run" }
+    val run = runnable.methods.singleOrNull { it.name == "run" && it.returnType == "V" && it.parameterTypes.isEmpty() }
+    if (run == null || others.isNotEmpty() || runnable.methods.count { it.name == "run" } != 1) {
+        refuse("$type, the controls' fade runnable, isn't a class of its own with one run()V")
+    }
+    if (run.implementation?.instructions?.any { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH } != false) {
+        refuse("$type->run picks among merged runnables")
+    }
+    return runnable to run
+}
+
+/**
  * The landscape player's controls updater as its controller is built on it: [type] is the interface
  * the updater implements (581 `LX/9Wi;`, 582 `LX/9tH;`), which the controller's constructor takes,
  * unless [folded]. On 583 Redex folded the updater into its one controller, as a static method of the
@@ -1852,9 +2111,52 @@ internal fun controlsUpdater(holders: List<ClassDef>, classOf: (String) -> Class
                 }
             }
         }
-    }.distinctBy { it.type }
+    }.distinctBy { it.type }.ifEmpty { foldedFromCase(holders, classOf) }
     return found.singleOrNull()
         ?: refuse("expected one interface or controller for the controls updater tracing \"$PLAYER_CONTROL_UPDATE\", found ${found.size}")
+}
+
+/**
+ * The folded updater a lambda case among [holders] leads to, when no updater traces
+ * [PLAYER_CONTROL_UPDATE] itself. On 587 the folded updater (arm64 `LX/09Uw;->A00`) traces nothing,
+ * and a bridge lambda case (`LX/0A6J;->A1A`) traces the string just after it writes the controller's
+ * control state field. The updater is the controller's one static `V` method taking it last that
+ * writes the same field.
+ */
+private fun foldedFromCase(holders: List<ClassDef>, classOf: (String) -> ClassDef?): List<ControlsUpdater> {
+    fun lambda(method: Method) = AccessFlags.BRIDGE.isSet(method.accessFlags) || AccessFlags.SYNTHETIC.isSet(method.accessFlags)
+    fun FieldReference.key() = Triple(definingClass, name, type)
+    val fields = holders.distinctBy { it.type }.flatMap { holder ->
+        methodsHolding(holder, PLAYER_CONTROL_UPDATE).filter(::lambda).flatMap(::caseWrites)
+    }.distinctBy { it.key() }
+    return fields.mapNotNull { field ->
+        val controller = classOf(field.definingClass) ?: return@mapNotNull null
+        val updates = controller.methods.filter { method ->
+            AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+                method.parameterTypes.lastOrNull()?.toString() == controller.type &&
+                method.implementation?.instructions?.any { instruction ->
+                    instruction.opcode == Opcode.IPUT_OBJECT &&
+                        ((instruction as ReferenceInstruction).reference as FieldReference).key() == field.key()
+                } == true
+        }
+        val update = updates.singleOrNull() ?: return@mapNotNull null
+        ControlsUpdater(controller.type, true, "${controller.type}->${update.name}(${update.parameterTypes.joinToString("")})V")
+    }.distinctBy { it.type }
+}
+
+/**
+ * The object field [case] writes last before each place it traces [PLAYER_CONTROL_UPDATE], looking
+ * back only through instructions that continue to the next one.
+ */
+private fun caseWrites(case: Method): List<FieldReference> {
+    val code = case.implementation?.instructions?.toList().orEmpty()
+    return code.indices.filter { at ->
+        ((code[at] as? ReferenceInstruction)?.reference as? StringReference)?.string == PLAYER_CONTROL_UPDATE
+    }.mapNotNull { traced ->
+        (traced - 1 downTo 0).takeWhile { code[it].opcode.canContinue() }
+            .firstOrNull { code[it].opcode == Opcode.IPUT_OBJECT }
+            ?.let { (code[it] as ReferenceInstruction).reference as FieldReference }
+    }
 }
 
 /**
@@ -2223,6 +2525,161 @@ internal fun BytecodePatchContext.fillUpdateAgain(progress: ProgressUpdate) {
     )
 }
 
+/**
+ * The mark the scrubber's progress update returns on while a list scrolls, and Facebook's own way
+ * of clearing it (#426), as smali text: the base's [state] field (585 `LX/0AE0;->A0O`), the [value]
+ * method that gives that flow's current state, the state's class ([stateType], `LX/09RG;`) and its
+ * [flag] the update tests (`A04`), and the base's [setter] (`A1I(Z)V`). Facebook's scroll listener
+ * runs the setter with true as a scroll starts, which stops the update, and with false as the scroll
+ * ends, which applies a look held back meanwhile and schedules the update again.
+ */
+internal class ScrollHide(val state: String, val value: String, val stateType: String, val flag: String, val setter: Method)
+
+/**
+ * Finds [ScrollHide] for [progress]: the one `iget-boolean` the update's body tests with `if-nez`
+ * right after casting what its state field's flow gives, and the one non-private instance `(Z)V`
+ * method of the base that builds a new state without reading that flag (the flag being its
+ * argument) and schedules the next update. Refuses unless there's exactly one of each.
+ */
+internal fun scrollHide(progress: ProgressUpdate): ScrollHide {
+    val base = progress.base.type
+    val body = progress.body
+    val code = body.implementation!!.instructions.toList()
+    val where = "$base->${body.name}"
+    val reads = code.indices.mapNotNull { at ->
+        if (at < 3 || code[at].opcode != Opcode.IGET_BOOLEAN) return@mapNotNull null
+        val read = code[at] as TwoRegisterInstruction
+        val skip = code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.IF_NEZ } as? OneRegisterInstruction
+        val cast = code[at - 1].takeIf { it.opcode == Opcode.CHECK_CAST } as? OneRegisterInstruction
+        val result = code[at - 2].takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction
+        val ask = code[at - 3].takeIf { it.opcode == Opcode.INVOKE_INTERFACE } as? FiveRegisterInstruction
+        if (skip?.registerA != read.registerA || cast == null || result == null || ask == null || ask.registerCount != 1 ||
+            result.registerA != cast.registerA || read.registerB != cast.registerA
+        ) {
+            return@mapNotNull null
+        }
+        val stateType = code[at - 1].reference() ?: return@mapNotNull null
+        val flag = (read as ReferenceInstruction).reference as FieldReference
+        val value = (ask as ReferenceInstruction).reference as MethodReference
+        if (flag.definingClass != stateType || value.returnType != "Ljava/lang/Object;" || value.parameterTypes.isNotEmpty()) {
+            return@mapNotNull null
+        }
+        // The flow is the one the base's own field holds, read into the register the ask is made on.
+        val load = body.writersReaching(at - 3, ask.registerC).singleOrNull()?.let { code.getOrNull(it) }
+        val field = (load?.takeIf { it.opcode == Opcode.IGET_OBJECT } as? ReferenceInstruction)?.reference as? FieldReference
+        if (field == null || field.definingClass != base || field.type != value.definingClass) return@mapNotNull null
+        ScrollHide(field.toString(), value.toString(), stateType, flag.toString(), body)
+    }.distinctBy { it.flag }
+    val found = reads.singleOrNull()
+        ?: refuse("$where tests ${reads.size} flags of its state before moving the bar, expected one, the scroll's")
+    fun builds(instruction: Instruction): Boolean {
+        val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        return (instruction.opcode == Opcode.INVOKE_STATIC || instruction.opcode == Opcode.INVOKE_STATIC_RANGE) &&
+            call.definingClass == found.stateType && call.returnType == found.stateType
+    }
+    fun schedules(instruction: Instruction): Boolean {
+        val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        return instruction.opcode == Opcode.INVOKE_STATIC && call.definingClass == base && call.returnType == "V" &&
+            call.parameterTypes.map(CharSequence::toString) == listOf(base, "J")
+    }
+    val setters = progress.base.methods.filter { method ->
+        val instructions = method.implementation?.instructions?.toList() ?: return@filter false
+        method.returnType == "V" && method.parameterTypes.map(CharSequence::toString) == listOf("Z") &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) && !AccessFlags.PRIVATE.isSet(method.accessFlags) &&
+            instructions.any(::builds) && instructions.any(::schedules) &&
+            instructions.none { it.opcode == Opcode.IGET_BOOLEAN && it.reference() == found.flag }
+    }
+    val setter = setters.singleOrNull()
+        ?: refuse("$base has ${setters.size} methods setting ${found.flag} from their flag and scheduling the update, expected one")
+    return ScrollHide(found.state, found.value, found.stateType, found.flag, setter)
+}
+
+/** Whether [method] is the extension's [END_SCROLL_STUB]: static, boolean, taking one Object. */
+internal fun isEndScrollStub(method: Method) = method.name == END_SCROLL_STUB &&
+    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
+    method.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Object;")
+
+/**
+ * Refuses unless everything [endScrollHelper] uses is there and public, as redex leaves it: the state
+ * field and its flow's class, the state's class and its flag, and the setter. [checkUpdateAgain] covers
+ * the base the extension's stub calls.
+ */
+internal fun checkEndScroll(progress: ProgressUpdate, scroll: ScrollHide, classOf: (String) -> ClassDef?) {
+    checkUpdateAgain(progress)
+    if (!AccessFlags.PUBLIC.isSet(scroll.setter.accessFlags)) refuse("${progress.base.type}->${scroll.setter.name}, the scroll's setter, isn't public")
+    fun publicField(descriptor: String) {
+        val owner = descriptor.substringBefore("->")
+        val name = descriptor.substringAfter("->").substringBefore(":")
+        val type = classOf(owner) ?: refuse("$owner, holding $descriptor, isn't in this APK")
+        if (!AccessFlags.PUBLIC.isSet(type.accessFlags)) refuse("$owner, holding $descriptor, isn't public")
+        val field = type.fields.singleOrNull { it.name == name } ?: refuse("$descriptor isn't declared on $owner")
+        if (!AccessFlags.PUBLIC.isSet(field.accessFlags)) refuse("$descriptor isn't public")
+    }
+    publicField(scroll.state)
+    publicField(scroll.flag)
+    val flow = scroll.value.substringBefore("->")
+    val flowClass = classOf(flow)
+    // A flow class from outside the APK (the framework's or a library's) is public to everyone.
+    if (flowClass != null && !AccessFlags.PUBLIC.isSet(flowClass.accessFlags)) refuse("$flow, the scrubber's state flow, isn't public")
+}
+
+/**
+ * The helper on the scrubber base: when the scrubber it's handed still carries the scroll mark
+ * ([ScrollHide.flag]), runs the base's setter with false, as Facebook's scroll listener does when a
+ * scroll ends, and answers true, otherwise false. One local for the state, and the scrubber cast in p0.
+ */
+internal fun endScrollHelper(base: String, scroll: ScrollHide): MutableMethod = ImmutableMethod(
+    base,
+    END_SCROLL_HELPER,
+    listOf(ImmutableMethodParameter("Ljava/lang/Object;", null, null)),
+    "Z",
+    AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
+    null,
+    null,
+    MutableMethodImplementation(2),
+).toMutable().apply {
+    addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, $base
+            iget-object v0, p0, ${scroll.state}
+            invoke-interface { v0 }, ${scroll.value}
+            move-result-object v0
+            check-cast v0, ${scroll.stateType}
+            iget-boolean v0, v0, ${scroll.flag}
+            if-eqz v0, :unmarked
+            const/4 v0, 0x0
+            invoke-virtual { p0, v0 }, $base->${scroll.setter.name}(Z)V
+            const/4 v0, 0x1
+            return v0
+            :unmarked
+            const/4 v0, 0x0
+            return v0
+        """,
+    )
+}
+
+/**
+ * Adds [endScrollHelper] to the scrubber base and fills the extension's [END_SCROLL_STUB] with a call
+ * to it. d8 gives the stub no locals of its own, so the answer goes back in p0.
+ */
+internal fun BytecodePatchContext.fillEndScroll(progress: ProgressUpdate, scroll: ScrollHide) {
+    checkEndScroll(progress, scroll) { classDefByOrNull(it) }
+    val base = progress.base.type
+    val owner = mutableClassDefBy(base)
+    if (owner.methods.none { it.name == END_SCROLL_HELPER }) owner.methods.add(endScrollHelper(base, scroll))
+    val stub = mutableClassDefBy(PROGRESS_BAR).methods.singleOrNull(::isEndScrollStub)
+        ?: refuse("$PROGRESS_BAR has no static boolean $END_SCROLL_STUB(Object)")
+    stub.addInstructions(
+        0,
+        """
+            invoke-static { p0 }, $base->$END_SCROLL_HELPER(Ljava/lang/Object;)Z
+            move-result p0
+            return p0
+        """,
+    )
+}
+
 /** The registry's hand-over takes this many arguments, the reel's key and an int last, after its own instance. */
 internal const val HAND_OVER_PARAMETERS = 9
 
@@ -2248,12 +2705,11 @@ internal fun isSetBarInfoStub(method: Method) = method.name == SET_BAR_INFO_STUB
  * its type are all reachable from the extension's package.
  */
 internal fun checkHandOverAgain(
-    handOver: ReelHandOver,
     returns: RegistryReturns,
     another: AnotherVideo,
     classOf: (String) -> ClassDef?,
 ) {
-    val method = handOver.method
+    val method = returns.method
     val where = "${method.definingClass}->${method.name}"
     val types = method.parameterTypes.map(CharSequence::toString)
     if (types.size != HAND_OVER_PARAMETERS || types[HAND_OVER_PARAMETERS - 2] != "Ljava/lang/Integer;" || types.last() != "I") {
@@ -2287,8 +2743,8 @@ internal fun checkHandOverAgain(
  * [HELD_BAR_INFO_STUB] and [SET_BAR_INFO_STUB] with the read and write of the scrubber's bar info. d8
  * gives these stubs no locals of their own, so everything happens in the argument registers.
  */
-internal fun BytecodePatchContext.fillHandOverAgain(handOver: ReelHandOver, another: AnotherVideo) {
-    val method = handOver.method
+internal fun BytecodePatchContext.fillHandOverAgain(returns: RegistryReturns, another: AnotherVideo) {
+    val method = returns.method
     val types = method.parameterTypes.map(CharSequence::toString)
     val extension = mutableClassDefBy(PROGRESS_BAR)
     val again = extension.methods.singleOrNull(::isHandOverAgainStub) ?: refuse("$PROGRESS_BAR has no static void $HAND_OVER_AGAIN_STUB")
@@ -2870,6 +3326,32 @@ internal fun MutableMethod.fullSizeInstead(plugin: String, fullSize: Method) {
         """,
         ExternalLabel("facebook", getInstruction(0)),
     )
+}
+
+/**
+ * The newer player's controls hide: its one [POST_DELAYED] call becomes a call to the extension
+ * with the same registers, which posts the hide unless the controls are kept. Nothing else in the
+ * method changes, so branches that jump there still land on it. On 586 Redex merged the controls
+ * extension's method with fifteen other video extensions' into one that picks the extension by
+ * class (`LX/0YE3;->A0J`), and a return at its top stopped every one of them while the switch was
+ * on, which left a live video's chat folded away (#447).
+ */
+internal fun MutableMethod.noHidePostWhileKept() {
+    val code = implementation!!.instructions.toList()
+    val posts = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == POST_DELAYED }
+    val index = posts.singleOrNull()
+        ?: refuse("$definingClass->$name posts ${posts.size} runnables with a delay, expected the one controls hide")
+    val post = code[index]
+    val call = when (post.opcode) {
+        Opcode.INVOKE_VIRTUAL -> (post as FiveRegisterInstruction).let {
+            "invoke-static { v${it.registerC}, v${it.registerD}, v${it.registerE}, v${it.registerF} }, $POSTS_CONTROLS_HIDE"
+        }
+        Opcode.INVOKE_VIRTUAL_RANGE -> (post as RegisterRangeInstruction).let {
+            "invoke-static/range { v${it.startRegister} .. v${it.startRegister + it.registerCount - 1} }, $POSTS_CONTROLS_HIDE"
+        }
+        else -> refuse("$definingClass->$name posts the controls hide with ${post.opcode}, expected an invoke-virtual")
+    }
+    replaceInstruction(index, call)
 }
 
 /**

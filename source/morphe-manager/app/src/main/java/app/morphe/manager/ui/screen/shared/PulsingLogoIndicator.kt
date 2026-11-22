@@ -11,14 +11,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -94,13 +95,15 @@ fun PulsingLogoIndicator(
 }
 
 /**
- * [PulsingLogoIndicator] with a centered caption below the logo, used to describe
- * the operation running behind a full-screen overlay.
+ * [PulsingLogoIndicator] with a centered caption below the logo, describing the operation running
+ * behind a full-screen overlay. [subtitle] names what it runs on and [counter] how far along it is.
  */
 @Composable
 fun PulsingLogoWithCaption(
     caption: String,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    counter: String? = null,
     size: Dp = 180.dp,
     spacing: Dp = 20.dp
 ) {
@@ -110,11 +113,40 @@ fun PulsingLogoWithCaption(
         verticalArrangement = Arrangement.spacedBy(spacing)
     ) {
         PulsingLogoIndicator(size = size, contentDescription = caption)
-        Text(
-            text = caption,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            counter?.let {
+                CrossfadeText(
+                    text = it,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = Defaults.SpaceExtraSmall),
+                    transitionSpec = Animations.counterTransitionSpec,
+                    label = "caption_counter"
+                )
+            }
+            CrossfadeText(
+                text = caption,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+                label = "caption"
+            )
+            CrossfadeText(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (subtitle != null) Modifier.padding(top = Defaults.SpaceExtraSmall) else Modifier),
+                transitionSpec = Animations.counterTransitionSpec,
+                label = "caption_subtitle"
+            )
+        }
     }
 }

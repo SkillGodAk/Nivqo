@@ -8,6 +8,7 @@ import androidx.annotation.Nullable;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -54,6 +55,19 @@ import app.morphe.extension.shared.settings.BaseSettings;
  * node without the string is matched by the module names its template carries, and its Debug line
  * lists them as {@code template_modules}.
  *
+ * <p>Not every query row has that key: on the S22 the Visited entities row names VISITED_ENTITIES
+ * only as a value deeper in its template (585, 2026-11-05), and a reporter's For you and People you
+ * may know stayed with nothing but RECENT_SEARCH and one unnamed row in the log (#80, 0.21.0). A node
+ * whose template names no module is matched by {@link #FOR_YOU_MODULE} or
+ * {@link #PEOPLE_YOU_MAY_KNOW_MODULE} standing whole anywhere in its template, and its Debug line lists
+ * the constants the template carries as {@code template_names}, so two unnamed rows no longer log as
+ * one line.
+ *
+ * <p>A reporter's For you and People you may know still stayed on 586 (#80, 0.22.0), logged as a query
+ * row with no template the patch could read at all. A node like that is matched the same way through
+ * the tree's own debug text of everything it holds, a {@code module_name} key first, and its Debug
+ * line lists what that text names as {@code debug_names}.
+ *
  * <p>With Debug logging on, this logs the GraphQL type names of the node and the module, read through
  * {@link FeedFilter#typeName}'s checks, and the module names. Only names survive: a type or module
  * name that isn't letters, underscores and at most four digits is logged as "other", so no id, title
@@ -76,6 +90,14 @@ public final class PreSearchSections {
     private static final int TEMPLATE_TREE = "nt_bundle_tree".hashCode();
     /** A module name in a template's logging data: the {@code module_name} key, its quotes and colon, the name. */
     private static final Pattern TEMPLATE_MODULE = Pattern.compile("module_name[^A-Za-z0-9_]{1,40}([A-Z][A-Z0-9_]*)(?![A-Za-z0-9_])");
+    /** A constant in a template, the way the server names modules and row kinds: capitals and digits joined by underscores, read whole. */
+    private static final Pattern TEMPLATE_CONSTANT = Pattern.compile("(?<![A-Za-z0-9_])[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+(?![A-Za-z0-9_])");
+    /** How many distinct constants are read off one node's templates at most. */
+    static final int MAX_TEMPLATE_NAMES = 256;
+    /** The tree's own spelled-out text of everything it holds, kept public on Facebook's JNI tree. */
+    private static final String DEBUG_TEXT = "toExpensiveHumanReadableDebugString";
+    /** How much of a node's debug text is read at most. */
+    static final int MAX_DEBUG_TEXT = 1 << 18;
 
     /** The node type of the For you and People you may know entries. */
     static final String NULL_STATE_NODE = "SearchNullStateNativeTemplatesResult";
@@ -104,6 +126,12 @@ public final class PreSearchSections {
     private static boolean budgetNoticed;
     /** Set once the budget is spent, so later entries aren't read at all. */
     private static volatile boolean full;
+    /**
+     * The diagnostic clear the logged lines belong to. A clear empties the report, so every line
+     * logs again after one: Facebook builds the search screen once at start, and a report taken after
+     * a clear otherwise had no line for it (#285).
+     */
+    private static long shapesGeneration = -1;
 
     private PreSearchSections() {
     }
@@ -237,8 +265,9 @@ public final class PreSearchSections {
 
     /**
      * What the node's entry is, as the line it's counted under, when its switch is on: its type, and
-     * its module names, read whole, from its template when it has no {@code rendered_modules}. Null
-     * for any other entry, and nothing is read with both off.
+     * its module names, read whole, from its template when it has no {@code rendered_modules}, and
+     * when the template names none, the module's name standing whole anywhere in it. Null for any
+     * other entry, and nothing is read with both off.
      */
     @Nullable
     static String hidden(@Nullable Object node, boolean forYou, boolean people) {
@@ -246,7 +275,15 @@ public final class PreSearchSections {
         if (!NULL_STATE_NODE.equals(FeedFilter.typeName(node))) return null;
         String modules = renderedModules(node);
         if (modules == null) modules = templateModules(node);
-        if (modules == null) return null;
+        if (modules == null) {
+            // No module_name key either: the name can sit elsewhere in the template (#80).
+            Set<String> names = templateNames(node);
+            // No template to read at all: the node's own debug text still names the row (#80, 586).
+            if (names.isEmpty()) names = debugNames(debugText(node));
+            if (forYou && names.contains(FOR_YOU_MODULE)) return HIDDEN;
+            if (people && names.contains(PEOPLE_YOU_MAY_KNOW_MODULE)) return HIDDEN_PEOPLE;
+            return null;
+        }
         for (String name : modules.split(",")) {
             String module = name.trim();
             if (forYou && FOR_YOU_MODULE.equals(module)) return HIDDEN;
@@ -260,7 +297,9 @@ public final class PreSearchSections {
      * alone), and which of Facebook's builders handed it over when {@code from} names one.
      */
     private static void log(@Nullable Object node, @Nullable Object module, boolean moduleRead, @Nullable String from) {
-        if (!enabled() || full) return;
+        if (!enabled()) return;
+        startOverIfCleared();
+        if (full) return;
         try {
             String nodeType = FeedFilter.typeName(node);
             // A node whose type can't be read may be released, and its strings aren't asked.
@@ -270,6 +309,13 @@ public final class PreSearchSections {
             if (NULL_STATE_NODE.equals(nodeType) && renderedModules(node) == null) {
                 String named = templateModules(node);
                 template = " template_modules=" + (named == null ? "none" : names(named));
+                Set<String> constants = named == null ? templateNames(node) : Collections.emptySet();
+                if (!constants.isEmpty()) template += " template_names=" + names(String.join(",", constants));
+                String text = named == null && constants.isEmpty() ? debugText(node) : null;
+                if (text != null) {
+                    Set<String> spelled = debugNames(text);
+                    template += " debug_names=" + (spelled.isEmpty() ? "none" : names(String.join(",", spelled)));
+                }
             }
             String source = from == null ? "" : " from=" + from;
             record("node=" + name(nodeType) + moduleName + " rendered_modules=" + modules + template + source);
@@ -320,17 +366,80 @@ public final class PreSearchSections {
      */
     @Nullable
     static String templateModules(Object node) {
-        Object view = PostDetails.tree(node, TEMPLATES_VIEW);
-        List<?> bundles = view == null ? null : PostDetails.trees(view, TEMPLATE_BUNDLES);
-        if (bundles == null) return null;
         Set<String> names = new LinkedHashSet<>();
-        for (Object bundle : bundles) {
-            String template = bundle == null ? null : PostDetails.string(bundle, TEMPLATE_TREE);
-            if (template == null) continue;
+        for (String template : templates(node)) {
             Matcher found = TEMPLATE_MODULE.matcher(template);
             while (names.size() <= MAX_MODULES && found.find()) names.add(found.group(1));
         }
         return names.isEmpty() ? null : String.join(",", names);
+    }
+
+    /**
+     * The constants the node's templates carry anywhere, in the order they first show, each one a
+     * {@link #name}, at most {@link #MAX_TEMPLATE_NAMES}. Empty when the node isn't live or has no
+     * template.
+     */
+    static Set<String> templateNames(Object node) {
+        Set<String> names = new LinkedHashSet<>();
+        for (String template : templates(node)) {
+            Matcher found = TEMPLATE_CONSTANT.matcher(template);
+            while (names.size() < MAX_TEMPLATE_NAMES && found.find()) {
+                String constant = found.group();
+                if (!"other".equals(name(constant))) names.add(constant);
+            }
+        }
+        return names;
+    }
+
+    /**
+     * The node's whole tree as Facebook spells it out, at most {@link #MAX_DEBUG_TEXT} characters of
+     * it. Null when the node isn't live or the text can't be read. A reporter's For you and People you
+     * may know rows on 586 carried no template bundle the patch could read (#80), and this text holds
+     * whatever the row is drawn from.
+     */
+    @Nullable
+    static String debugText(@Nullable Object node) {
+        if (!PostDetails.isLiveTree(node)) return null;
+        try {
+            Object text = node.getClass().getMethod(DEBUG_TEXT).invoke(node);
+            if (!(text instanceof String)) return null;
+            String spelled = (String) text;
+            return spelled.length() > MAX_DEBUG_TEXT ? spelled.substring(0, MAX_DEBUG_TEXT) : spelled;
+        } catch (Throwable unreadable) {
+            return null;
+        }
+    }
+
+    /**
+     * The module names in a node's debug [text]: those after a {@code module_name} key when it has
+     * any, taken at their word, and otherwise every constant standing whole in it, each one a
+     * {@link #name}. Empty for null.
+     */
+    static Set<String> debugNames(@Nullable String text) {
+        Set<String> names = new LinkedHashSet<>();
+        if (text == null) return names;
+        Matcher keyed = TEMPLATE_MODULE.matcher(text);
+        while (names.size() <= MAX_MODULES && keyed.find()) names.add(keyed.group(1));
+        if (!names.isEmpty()) return names;
+        Matcher found = TEMPLATE_CONSTANT.matcher(text);
+        while (names.size() < MAX_TEMPLATE_NAMES && found.find()) {
+            String constant = found.group();
+            if (!"other".equals(name(constant))) names.add(constant);
+        }
+        return names;
+    }
+
+    /** The text of each of the node's templates, empty when it has none or isn't live. */
+    private static List<String> templates(Object node) {
+        Object view = PostDetails.tree(node, TEMPLATES_VIEW);
+        List<?> bundles = view == null ? null : PostDetails.trees(view, TEMPLATE_BUNDLES);
+        List<String> templates = new ArrayList<>();
+        if (bundles == null) return templates;
+        for (Object bundle : bundles) {
+            String template = bundle == null ? null : PostDetails.string(bundle, TEMPLATE_TREE);
+            if (template != null) templates.add(template);
+        }
+        return templates;
     }
 
     /** Module names for the log, each through {@link #name}, at most {@link #MAX_MODULES} of them. */
@@ -365,6 +474,18 @@ public final class PreSearchSections {
             }
         }
         return name;
+    }
+
+    /** Forgets what was logged once a diagnostic clear started a new report. */
+    private static void startOverIfCleared() {
+        long current = HookStatus.generation();
+        synchronized (shapes) {
+            if (shapesGeneration == current) return;
+            shapesGeneration = current;
+            shapes.clear();
+            budgetNoticed = false;
+            full = false;
+        }
     }
 
     private static void record(String shape) {

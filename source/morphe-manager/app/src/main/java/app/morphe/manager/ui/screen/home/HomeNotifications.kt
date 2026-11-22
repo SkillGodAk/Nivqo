@@ -47,6 +47,7 @@ import app.morphe.manager.R
 import app.morphe.manager.domain.batch.BatchRunState
 import app.morphe.manager.domain.batch.SavedBatchQueue
 import app.morphe.manager.domain.bundles.PatchBundleSource
+import app.morphe.manager.domain.manager.base.Preference
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.ui.screen.shared.*
 import app.morphe.manager.ui.viewmodel.BundleUpdateStatus
@@ -57,16 +58,32 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Visibility flag paired with the tap callback of a single alert in the strip. */
-@Immutable
-data class AlertState(val visible: Boolean, val onShow: () -> Unit)
-
 /**
- * The apps whose patches have moved on, and the tap that queues them. Shown from one app up,
- * which is also when the cards themselves start showing their update badge.
+ * Visibility flag paired with the tap callback of a single alert in the strip.
+ *
+ * @param revision What the alert is about, which brings it back from behind the bell once it changes.
+ * @param count How many things the alert is about, for an alert that names their number.
  */
 @Immutable
-data class RepatchAlertState(val count: Int, val visible: Boolean, val onShow: () -> Unit)
+data class AlertState(
+    val visible: Boolean,
+    val revision: String = "",
+    val count: Int = 0,
+    val onShow: () -> Unit
+) {
+    companion object {
+        /** An alert raised while there are any [subjects], and raised anew once they change. */
+        fun about(subjects: Collection<Any>, onShow: () -> Unit) = AlertState(
+            visible = subjects.isNotEmpty(),
+            revision = revisionOf(subjects),
+            count = subjects.size,
+            onShow = onShow
+        )
+    }
+}
+
+/** A revision naming [subjects] whatever order they come in. */
+private fun revisionOf(subjects: Collection<Any>) = subjects.map(Any::toString).sorted().joinToString(",")
 
 /**
  * The batch queue while it waits to be started, patches or holds results nobody closed yet, and
@@ -91,8 +108,8 @@ data class HomeNotificationsUi(
     val heldBackSources: AlertState,
     val blockedSources: AlertState,
     val metadataErrors: AlertState,
-    val meteredSkipped: AlertState,
-    val repatchAvailable: RepatchAlertState,
+    val sourceUpdates: AlertState,
+    val repatchAvailable: AlertState,
     val batchQueue: BatchQueueAlertState,
     val bundleUpdate: BundleUpdateState
 )
@@ -103,8 +120,13 @@ data class HomeNotificationsUi(
  * @param snoozable Whether a swipe may put it away. Alerts that are the only way back to running
  *   work, or that block patching outright, stay put.
  * @param revision Changes when the alert has something new to say, which brings a snoozed one back.
- * @param passing Whether it only reports on something under way, which a swipe puts away for good
- *   rather than behind the bell, since brought back it would have nothing left to say.
+ * @param passing Whether it only reports on something under way, shown on every page. Once that
+ *   has ended a swipe puts it away for good rather than behind the bell, since brought back it
+ *   would have nothing left to say.
+ * @param ongoing Whether what a [passing] alert reports on is still running, so a swipe puts it
+ *   behind the bell like any other until it ends.
+ * @param remembered Whether it stays behind the bell across launches until its [revision] changes,
+ *   for an alert whose revision says what it is about. Any other is snoozed for the session.
  */
 internal class HomeAlert(
     val key: String,
@@ -112,13 +134,15 @@ internal class HomeAlert(
     val snoozable: Boolean = true,
     val revision: String = "",
     val passing: Boolean = false,
+    val ongoing: Boolean = false,
+    val remembered: Boolean = false,
     val card: @Composable () -> Unit
 )
 
 /**
- * The alerts of the main screen for this session: every one raised or not, and the revision each
- * the user swiped aside was swiped at. Read by the strip that shows them and by the bell in the
- * apps page's header that brings back what was swiped aside.
+ * The alerts of the main screen: every one raised or not, and the revision each the user swiped
+ * aside was swiped at. Read by the strip that shows them and by the bell in the apps page's header
+ * that brings back what was swiped aside.
  */
 class HomeAlerts internal constructor(
     internal val all: List<HomeAlert>,
@@ -130,34 +154,60 @@ class HomeAlerts internal constructor(
         snoozed[alert.key] = alert.revision
     }
 
+    /** Whether a swipe puts it away for good rather than behind the bell. */
+    private val HomeAlert.ended get() = passing && !ongoing
+
     /** Alerts still up that were swiped aside behind the bell. */
     val snoozedCount: Int
-        get() = all.count { it.visible && !it.passing && it.isSnoozed() }
+        get() = all.count { it.visible && !it.ended && it.isSnoozed() }
 
-    /** Brings back what was swiped aside, but not the passing alerts, with nothing left to say. */
+    /** Brings back what was swiped aside, but not the ended passing alerts, with nothing left to say. */
     fun restoreSnoozed() {
-        val passingKeys = all.filter { it.passing }.mapTo(HashSet()) { it.key }
-        snoozed.keys.retainAll(passingKeys)
+        val endedKeys = all.filter { it.ended }.mapTo(HashSet()) { it.key }
+        snoozed.keys.retainAll(endedKeys)
     }
 }
 
-/** The [HomeAlerts] raised from [notifications], their snoozes kept across navigation and rotation. */
+/**
+ * The [HomeAlerts] raised from [notifications], their snoozes kept across navigation and rotation,
+ * and those of the remembered alerts in [savedSnoozes] across launches too.
+ */
 @Composable
-fun rememberHomeAlerts(notifications: HomeNotificationsUi): HomeAlerts {
+fun rememberHomeAlerts(notifications: HomeNotificationsUi, savedSnoozes: Preference<Set<String>>): HomeAlerts {
     val snoozed = rememberSaveable(saver = SnoozeSaver) { mutableStateMapOf() }
     val all = homeAlerts(notifications)
-    // An alert that goes away forgets its snooze, so raised again it is shown again
-    val hiddenKeys = all.filterNot { it.visible }.map { it.key }
+    val rememberedKeys = all.filter { it.remembered }.mapTo(HashSet()) { it.key }
+
+    LaunchedEffect(savedSnoozes) {
+        // What an earlier launch swiped aside, unless this session already had its say
+        savedSnoozes.get().forEach { saved ->
+            val (key, revision) = saved.split(SNOOZE_SEPARATOR, limit = 2)
+            snoozed.putIfAbsent(key, revision)
+        }
+        snapshotFlow {
+            snoozed.filterKeys(rememberedKeys::contains).mapTo(HashSet()) { (key, revision) ->
+                key + SNOOZE_SEPARATOR + revision
+            }
+        }.collect(savedSnoozes::update)
+    }
+
+    // An alert that goes away forgets its snooze, so raised again it is shown again. A remembered
+    // one keeps it, as its revision already tells a new state from the old, and on a launch it is
+    // not raised until its sources are read
+    val hiddenKeys = all.filterNot { it.visible || it.remembered }.map { it.key }
     LaunchedEffect(hiddenKeys) { hiddenKeys.forEach(snoozed::remove) }
     return HomeAlerts(all, snoozed)
 }
+
+// Alert keys never hold it, so the revision after it is read back whole
+private const val SNOOZE_SEPARATOR = "="
 
 /**
  * The [alerts] of the main screen, under the header of the page on screen.
  *
  * Alerts stack behind the most pressing one, so however many are raised they cover no more of the
- * screen than one. A swipe snoozes an alert for the session, and the bell in the apps page's
- * header brings it back.
+ * screen than one. A swipe snoozes an alert for the session, or until it has something new to say
+ * for a remembered one, and the bell in the apps page's header brings it back.
  *
  * The whole stack is laid out from one model: each card's height, how far it has come in, how far
  * it is swiped aside and how far the stack is unfolded. Every change moves the cards from wherever
@@ -423,79 +473,80 @@ private fun homeAlerts(notifications: HomeNotificationsUi): List<HomeAlert> {
     val batchRunning = batchRun?.isActive == true
     val batchFinished = batchRun?.hasOutcome == true
     val batchSucceeded = (batchRun?.succeeded ?: 0) > 0
-    val queuedCount = notifications.batchQueue.saved?.queuedCount ?: 0
+    val queued = notifications.batchQueue.saved?.queued.orEmpty()
     val repatch = notifications.repatchAvailable
     val bundleUpdate = notifications.bundleUpdate
 
     return listOf(
         // Leads while it lasts, so the progress of a running update stays in sight until swiped
-        // aside, and how the update ended brings it back
+        // aside behind the bell, and how the update ended brings it back
         HomeAlert(
             key = "bundle_update",
             visible = bundleUpdate.visible,
             revision = bundleUpdate.status.name,
-            passing = true
+            passing = true,
+            ongoing = bundleUpdate.status == BundleUpdateStatus.Updating
         ) {
             BundleUpdateCard(status = bundleUpdate.status, progress = bundleUpdate.progress)
         },
         // Blocked source alert takes priority and cannot be dismissed while the block persists
         alert(
             key = "blocked_sources",
-            visible = notifications.blockedSources.visible,
+            state = notifications.blockedSources,
             tone = SemanticTone.Error,
             icon = MaterialSymbols.Rounded.Block,
             title = stringResource(R.string.home_blocked_source_title),
             subtitle = stringResource(R.string.home_blocked_source_subtitle),
-            onClick = notifications.blockedSources.onShow,
             snoozable = false
         ),
         // The one alert raised by something that already went wrong rather than something
         // that might, so it sits above the rest
         alert(
             key = "held_back_sources",
-            visible = notifications.heldBackSources.visible,
+            state = notifications.heldBackSources,
             tone = SemanticTone.Error,
             icon = MaterialSymbols.Rounded.Error,
             title = stringResource(R.string.home_held_back_title),
             subtitle = stringResource(R.string.home_held_back_subtitle),
-            onClick = notifications.heldBackSources.onShow
+            remembered = true
         ),
         // A source built for a newer patcher stays unusable until the app itself is updated
         alert(
             key = "outdated_manager",
-            visible = notifications.outdatedManager.visible,
+            state = notifications.outdatedManager,
             tone = SemanticTone.Error,
             icon = MaterialSymbols.Rounded.System_update,
             title = stringResource(R.string.home_outdated_manager_title),
             subtitle = stringResource(R.string.home_outdated_manager_subtitle),
-            onClick = notifications.outdatedManager.onShow
+            remembered = true
         ),
+        // Found by a check that left the download to the user
         alert(
-            key = "metered_skipped",
-            visible = notifications.meteredSkipped.visible,
-            tone = SemanticTone.Warning,
-            icon = MaterialSymbols.Rounded.Signal_cellular_alt,
-            title = stringResource(R.string.home_metered_skipped_title),
-            subtitle = stringResource(R.string.home_metered_skipped_subtitle),
-            onClick = notifications.meteredSkipped.onShow
+            key = "source_updates",
+            state = notifications.sourceUpdates,
+            tone = SemanticTone.Primary,
+            icon = MaterialSymbols.Rounded.Download,
+            title = stringResource(R.string.home_source_updates_title),
+            subtitle = stringResource(R.string.home_source_updates_subtitle),
+            remembered = true
         ),
         alert(
             key = "metadata_errors",
-            visible = notifications.metadataErrors.visible,
+            state = notifications.metadataErrors,
             tone = SemanticTone.Warning,
             icon = MaterialSymbols.Rounded.Cloud_off,
             title = stringResource(R.string.home_metadata_errors_title),
             subtitle = stringResource(R.string.home_metadata_errors_subtitle),
-            onClick = notifications.metadataErrors.onShow
+            remembered = true
         ),
+        // Snoozed for the session only, as a Morphe update is what keeps the rest working
         alert(
             key = "manager_update",
-            visible = notifications.managerUpdate.visible,
+            state = notifications.managerUpdate,
             tone = SemanticTone.Primary,
             icon = MaterialSymbols.Rounded.Update,
             title = stringResource(R.string.home_update_available),
-            subtitle = stringResource(R.string.home_update_available_subtitle),
-            onClick = notifications.managerUpdate.onShow
+            subtitle = stringResource(R.string.home_update_available_subtitle)
         ),
         // Once its screen is gone this is the only way back to a running queue, which holds
         // single-app patching back meanwhile, so it cannot be swiped away
@@ -533,29 +584,54 @@ private fun homeAlerts(notifications: HomeNotificationsUi): List<HomeAlert> {
         ),
         alert(
             key = "batch_queued",
-            visible = queuedCount > 0 && !batchRunning && !batchFinished,
+            visible = queued.isNotEmpty() && !batchRunning && !batchFinished,
             tone = SemanticTone.Primary,
             icon = MaterialSymbols.Rounded.Playlist_add.autoMirrored,
-            title = pluralStringResource(R.plurals.batch_queue_pending_count, queuedCount, queuedCount.toString()),
+            title = pluralStringResource(R.plurals.batch_queue_pending_count, queued.size, queued.size.toString()),
             subtitle = stringResource(R.string.batch_queue_pending_subtitle),
             onClick = notifications.batchQueue.onShow,
-            revision = queuedCount.toString()
+            revision = revisionOf(queued.map { it.id }),
+            remembered = true
         ),
         // The badges on the cards say the same thing one app at a time. This says it once
         // and queues every one of them, which is the part that is otherwise several taps.
         // While a queue is patching or awaiting review, its own alert stands in for this one
         alert(
             key = "repatch_available",
-            visible = repatch.visible && repatch.count > 0 && !batchRunning && !batchFinished,
+            visible = repatch.visible && !batchRunning && !batchFinished,
             tone = SemanticTone.Primary,
             icon = MaterialSymbols.Rounded.Auto_fix_high,
             title = pluralStringResource(R.plurals.repatch_available_count, repatch.count, repatch.count.toString()),
             subtitle = stringResource(R.string.home_repatch_available_subtitle),
             onClick = repatch.onShow,
-            revision = repatch.count.toString()
+            revision = repatch.revision,
+            remembered = true
         )
     )
 }
+
+/** An alert drawn as a [StatusCard], raised and tapped as [state] says. */
+private fun alert(
+    key: String,
+    state: AlertState,
+    tone: SemanticTone,
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    snoozable: Boolean = true,
+    remembered: Boolean = false
+) = alert(
+    key = key,
+    visible = state.visible,
+    tone = tone,
+    icon = icon,
+    title = title,
+    subtitle = subtitle,
+    onClick = state.onShow,
+    snoozable = snoozable,
+    revision = state.revision,
+    remembered = remembered
+)
 
 /**
  * An alert drawn as a [StatusCard].
@@ -573,8 +649,9 @@ private fun alert(
     onClick: () -> Unit,
     snoozable: Boolean = true,
     revision: String = "",
+    remembered: Boolean = false,
     progress: Float? = null
-) = HomeAlert(key = key, visible = visible, snoozable = snoozable, revision = revision) {
+) = HomeAlert(key = key, visible = visible, snoozable = snoozable, revision = revision, remembered = remembered) {
     StatusCard(
         tone = tone,
         title = title,
@@ -692,8 +769,7 @@ private val BundleUpdateStatus.tone: SemanticTone
     get() = when (this) {
         BundleUpdateStatus.Updating -> SemanticTone.Neutral
         BundleUpdateStatus.Success -> SemanticTone.Success
-        BundleUpdateStatus.Warning -> SemanticTone.Warning
-        BundleUpdateStatus.Error -> SemanticTone.Error
+        BundleUpdateStatus.Offline, BundleUpdateStatus.Error -> SemanticTone.Error
     }
 
 /** The card of the bundle update, from its progress while it runs to how it ended. */
@@ -719,8 +795,7 @@ private fun BundleUpdateCard(
         when (status) {
             BundleUpdateStatus.Updating -> R.string.home_updating_sources
             BundleUpdateStatus.Success -> R.string.home_update_success
-            BundleUpdateStatus.Warning -> R.string.home_update_skipped_metered
-            BundleUpdateStatus.Error -> R.string.home_update_error
+            BundleUpdateStatus.Offline, BundleUpdateStatus.Error -> R.string.home_update_error
         }
     )
 
@@ -737,12 +812,16 @@ private fun BundleUpdateCard(
     val subtitle = when (status) {
         BundleUpdateStatus.Updating -> listOfNotNull(activeName, arrived).joinToString(DETAIL_SEPARATOR)
         BundleUpdateStatus.Success -> stringResource(R.string.home_update_success_subtitle)
-        BundleUpdateStatus.Warning -> stringResource(R.string.home_update_skipped_metered_subtitle)
+        BundleUpdateStatus.Offline -> stringResource(R.string.no_network_toast)
         BundleUpdateStatus.Error -> stringResource(R.string.home_update_error_subtitle)
     }
     val badge = when {
         status != BundleUpdateStatus.Updating || progress == null -> null
-        progress.total > 1 -> stringResource(R.string.home_update_bundle_count, progress.completed, progress.total)
+        progress.total > 1 -> stringResource(
+            R.string.progress_count,
+            progress.completed.toString(),
+            progress.total.toString()
+        )
         isDownloading -> stringResource(R.string.patcher_percentage, (downloadFraction * 100).toInt().toString())
         else -> null
     }
@@ -751,11 +830,15 @@ private fun BundleUpdateCard(
     val activeSource = progress?.activeUids?.firstOrNull()?.let(sourcesByUid::get)
         ?.takeIf { it.state is PatchBundleSource.State.Available }
 
+    // A download's percentage ticks over in place, while the count of sources slides to the next
+    val countsSources = progress != null && progress.total > 1
+
     StatusCard(
         tone = status.tone,
         title = title,
         subtitle = subtitle,
         badge = badge,
+        badgeKey = { if (countsSources) it else Unit },
         leading = {
             Crossfade(targetState = status, label = "bundleUpdateLeading") { shown ->
                 when (shown) {
@@ -767,7 +850,7 @@ private fun BundleUpdateCard(
                         }
                     }
                     BundleUpdateStatus.Success -> StatusDisc(MaterialSymbols.Rounded.Check, SemanticTone.Success)
-                    BundleUpdateStatus.Warning -> StatusDisc(MaterialSymbols.Rounded.Signal_cellular_alt, SemanticTone.Warning)
+                    BundleUpdateStatus.Offline -> StatusDisc(MaterialSymbols.Rounded.Cloud_off, SemanticTone.Error)
                     BundleUpdateStatus.Error -> StatusDisc(MaterialSymbols.Rounded.Warning, SemanticTone.Error)
                 }
             }
@@ -839,6 +922,7 @@ private fun StatusCard(
     subtitle: String,
     leading: @Composable () -> Unit,
     badge: String? = null,
+    badgeKey: (String) -> Any? = { it },
     onClick: (() -> Unit)? = null
 ) {
     val neutral = tone == SemanticTone.Neutral
@@ -902,7 +986,11 @@ private fun StatusCard(
             }
 
             if (badge != null) {
-                StatusBadge(text = badge, tone = if (neutral) SemanticTone.Primary else tone)
+                CounterBadge(
+                    text = badge,
+                    tone = if (neutral) SemanticTone.Primary else tone,
+                    contentKey = badgeKey
+                )
             }
             if (onClick != null) {
                 ForwardChevronIcon(size = 18.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)

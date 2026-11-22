@@ -12,9 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
-import app.morphe.patches.facebook.ads.sponsoredreels.filterSectionsFirst
-import app.morphe.patches.facebook.ads.sponsoredreels.reelPages
-import app.morphe.patches.facebook.ads.sponsoredreels.toBinaryName
+import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
@@ -29,6 +27,7 @@ import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.classDefForEachReferencing
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -41,6 +40,7 @@ internal const val HIDE_FOLLOW_BUTTON = "$DECLUTTER->hideFollowButton()Z"
 internal const val HIDE_FOLLOWING_BUTTON = "$DECLUTTER->hideFollowingButton()Z"
 internal const val SKIP_HOT_COMMENT = "$DECLUTTER->skipHotComment()Z"
 internal const val SKIP_SOCIAL_BUBBLES = "$DECLUTTER->skipSocialBubbles()Z"
+internal const val SKIP_CAPTION_COMMENT = "$DECLUTTER->skipCaptionComment()Z"
 
 private const val PATCH = "Clean up Reels"
 
@@ -80,7 +80,20 @@ private const val PATCH = "Clean up Reels"
  * reels from accounts you follow on the Reels tab, by the follow status the reel's Follow button
  * reads (#349, see FollowedReels.kt). A twenty-second, also off, takes the UP NEXT bar with the next
  * video off the bottom of a video opened from the feed, with the room kept for it (#367, #375, see
- * FeedUpNext.kt). With Debug
+ * FeedUpNext.kt). A twenty-third, also off, takes the Fullscreen pill off the space under a wide
+ * video (#394, see ReelFullscreenPill.kt). A twenty-fourth, also off, has Watch again at the end of
+ * a feed video play it again where it is instead of opening it in Reels (#403, see WatchAgain.kt). A
+ * twenty-fifth, also off, plays a video tapped in Saved in the video player instead of Reels (#404,
+ * see SavedVideos.kt). A twenty-sixth, also off, keeps reels going without the "Are you still
+ * watching?" stop (#427, see StillWatching.kt). A twenty-seventh, also off, plays the reels in Saved
+ * one after another, going back to Saved for the next card when one ends or is swiped past (#404,
+ * see SavedChain.kt). A twenty-eighth, also off, fills a tall screen with a reel instead of fitting
+ * it between black bars (#453, see ReelFill.kt). A twenty-ninth, also off, takes the full-screen and
+ * picture-in-picture buttons off videos that play in the feed and in search results (#478, see
+ * ReelFullscreenPill.kt); a build where those buttons can't be found keeps them and only warns. A
+ * thirtieth, also off, keeps the Add friend sheet from opening over a reel someone who isn't your
+ * friend shared (#486, see SharedReelFriendSheet.kt); a build without that sheet's runnable keeps it
+ * and only warns. With Debug
  * logging on, it also reports whether a reel that ends
  * is on the player the Reels auto-advance controller holds (see ReelBinding.kt), with no switch.
  *
@@ -97,11 +110,11 @@ val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides clutter on reels, such as the Follow button, comment previews, Remix and Use template " +
         "buttons and Threads cards between reels, so more of the video shows, and can play each reel once " +
-        "instead of over and over, keep its original audio instead of a Meta AI dub, drop the search suggestions under the caption, over the comments and at the top of a profile's reels, or hide the like, comment and share counts, the Like, Comment, Share, Save or speaker button, or the line naming the reel's sound. It can also keep the Reels tab to accounts you follow, open a video you tap in the feed on its own, with no reels after it, take the UP NEXT bar off the bottom of a video you open from the feed, stop the \"This is taking a while\" message when a video is slow to load, and play whole reels in the feed's Reels row instead of the same second over and over, or keep the Comment button on reels with comments turned off so you can read them, and hide the one-tap Subscribe button some authors get instead of Follow, or Search and the button beside it at the top of a video you open and of the Reels tab, and show when a reel or video was posted. Its Burn-in guard can fade a reel's buttons, caption and bars when you leave them alone, so they don't burn into the screen. With Turn off HDR brightness patched too, it can show Reels in gray, video and all. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
+        "instead of over and over, keep its original audio instead of a Meta AI dub, drop the search suggestions under the caption, over the comments and at the top of a profile's reels, or hide the like, comment and share counts, the Like, Comment, Repost, Share, Save or speaker button, or the line naming the reel's sound. It can also keep the Reels tab to accounts you follow, open a video you tap in the feed on its own, with no reels after it, do the same for a reel you open from a link or a chat, keep the Add friend pop-up off a reel someone who isn't your friend sent you, play a feed video again right there when you tap Watch again instead of opening Reels, play a video you tap in Saved in the video player instead of Reels, go on to the next reel in Saved instead of a suggested one, keep reels playing without stopping to ask \"Are you still watching?\", fill a tall screen with a reel or a full-screen video instead of leaving black bars around it, with a pinch to see one reel whole, take the UP NEXT bar off the bottom of a video you open from the feed, hide the Fullscreen button under a wide video or the full-screen and picture-in-picture buttons on videos in the feed and search results, stop the \"This is taking a while\" message when a video is slow to load, and play whole reels in the feed's Reels row instead of the same second over and over, or keep the Comment button on reels with comments turned off so you can read them, and hide the one-tap Subscribe button some authors get instead of Follow, or Search and the button beside it at the top of a video you open and of the Reels tab, and show when a reel or video was posted. Its Burn-in guard can fade a reel's buttons, caption and bars when you leave them alone, so they don't burn into the screen. With Turn off HDR brightness patched too, it can show Reels in gray, video and all. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
 ) {
     category("Reels")
     dependsOn(settingsPatch)
-    dependsOn(facebookExtensionPatch, reelLoopPatch, reelBindingPatch)
+    dependsOn(facebookExtensionPatch, reelLoopPatch, reelBindingPatch, feedVideoOpeningPatch, reelMidCardsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
@@ -114,7 +127,7 @@ val cleanUpReelsPatch = bytecodePatch(
         audioLine.returnNullWhen(HIDE_AUDIO_LINE)
         hideFollowButtons()
         skipFooterQueries()
-        hideThreadsCards()
+        // #85, #441: the Threads card and the post carousels between reels go through reelMidCardsPatch's hook.
         startReelsInCleanMode()
         // #304: and its button over a clean reel switches Clean mode off and back on.
         toggleReelCleanMode()
@@ -138,6 +151,14 @@ val cleanUpReelsPatch = bytecodePatch(
         val storyType = showReelPostDate()
         // #357: and in front of the song line, which takes that spot on most reels in the Reels tab.
         dateReelsTabAudioLine(audioLine, storyType)
+        // #496: and where a recommendation reason would push the date and every label off that line.
+        keepPostDateBesideReason()
+        // #496: and in front of a silent reel's "Reel has no sound", which takes the song line's place.
+        try {
+            dateSoundLabels(storyType)
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so a reel without sound shows no date beside its sound label.")
+        }
         // #291: the Subscribe pill beside a video's author, in the viewer's row and wherever the shared builder's lands.
         hideSubscribePill()
         // #311: Search and the button beside it at the top of the full-screen player, by the bar's id.
@@ -154,8 +175,27 @@ val cleanUpReelsPatch = bytecodePatch(
         }
         // #161: a feed video's player asks for no more reels after it.
         keepFeedVideosAlone()
+        // #403: Watch again at the end of a feed video, which opens the video in Reels, and #404: a video
+        // tapped in Saved, which opens in the Reels viewer through the same ask.
+        hookWatchAgainAsk().forEach { patchLog.warning(it) }
         // #222: the "This is taking a while" message a stalled video posts.
         hideSlowConnectionMessage()
+        // #394: the Fullscreen pill under a wide video in the Reels viewer.
+        hideFullscreenPill()
+        // #478: the full-screen and picture-in-picture buttons on a video in the feed or search results,
+        // at each button's include check.
+        try {
+            hideFeedVideoButtons()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so Hide the full-screen and PiP buttons leaves them on feed videos.")
+        }
+        // #486: the Add friend sheet over a reel someone who isn't your friend shared, at the run()
+        // of the runnable that opens it.
+        try {
+            hideSharedReelFriendSheet()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so Hide the Add friend pop-up on shared reels leaves it.")
+        }
         // #367: the UP NEXT bar under a video opened from the feed, at its lookup and its getter,
         // and #375: the room the player keeps for it under the seek bar.
         hideUpNext()
@@ -168,6 +208,31 @@ val cleanUpReelsPatch = bytecodePatch(
             keepFollowedReels()
         } catch (exception: PatchException) {
             patchLog.warning("${exception.message}, so Only reels from accounts I follow leaves the Reels tab as it is.")
+        }
+        // #427: the auto-advance controller's idle check, which holds the next video back and asks
+        // "Are you still watching?".
+        try {
+            skipStillWatching()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so Skip \"Are you still watching?\" leaves Facebook's prompt as it is.")
+        }
+        // #404: the card a press lands on, for a reel that opens from Saved and goes on to the next one.
+        try {
+            observeSavedTouches()
+        } catch (exception: PatchException) {
+            patchLog.warning("$PATCH: ${exception.message}, so Play saved videos in a row leaves Facebook's suggestions after a saved reel.")
+        }
+        // #453: the helper that works out a player view's size, asked to fill instead of fit.
+        try {
+            fillReels()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so Fill the screen with reels leaves reels sized as Facebook fits them.")
+        }
+        // #466: a pinch on a reel shows it whole or fills it, from the touch hook every screen shares.
+        try {
+            pinchReels()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so a pinch on a reel leaves it as Fill the screen with reels has it.")
         }
         enableStatus("reelDeclutter")
     }
@@ -359,17 +424,38 @@ private fun MutableMethod.answerWhen(hook: String, answer: Boolean) {
     )
 }
 
-/** The two footer runnables return before they query when the switch is on. */
+/**
+ * The footer runnables return before they query when the switch is on. The footer builds one of two
+ * hot comment runnables as a MobileConfig flag says. 586's each hold their query, plain or MFC, but
+ * 587's `$2` (arm64 `LX/0CT7;`) only hands a lambda the plain or XAR query beside the MFC `$1`
+ * (`LX/0WKq;`), so they're found by name, every one a build has, and at least one has to be there
+ * (#464). The bubbles runnable is found by the one literal it loads. The author and caption row's
+ * own comment runnable, which swaps a comment in for the caption a few seconds in, goes under the
+ * same switch (#464).
+ */
 private fun BytecodePatchContext.skipFooterQueries() {
-    listOf(
-        Triple(HOT_COMMENT_RUNNABLE, INLINE_COMMENTS_QUERY, SKIP_HOT_COMMENT),
-        Triple(SOCIAL_BUBBLES_RUNNABLE, VIDEO_ID, SKIP_SOCIAL_BUBBLES),
-    ).forEach { (redexName, holding, hook) ->
-        val runs = classDefByStrings(holding, StringComparisonType.EQUALS)
-            .mapNotNull { owner -> footerRunnable(owner, redexName, holding)?.let { owner to it } }
-        val (owner, run) = runs.singleOrNull() ?: throw PatchException(
-            "$PATCH: expected one Runnable named $redexName whose run() holds \"$holding\", found ${runs.size}",
-        )
+    val bubbles = classDefByStrings(VIDEO_ID, StringComparisonType.EQUALS)
+        .mapNotNull { owner -> footerRunnable(owner, SOCIAL_BUBBLES_RUNNABLE, VIDEO_ID)?.let { owner to it } }
+    val (bubblesOwner, bubblesRun) = bubbles.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one Runnable named $SOCIAL_BUBBLES_RUNNABLE whose run() holds \"$VIDEO_ID\", found ${bubbles.size}",
+    )
+    // Found by their kept names, which reads no code, and changed once the walk is done.
+    val hotComments = mutableListOf<Pair<ClassDef, Method>>()
+    val captionComments = mutableListOf<Pair<ClassDef, Method>>()
+    classDefForEach { classDef ->
+        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEach
+        namedRunnable(classDef, HOT_COMMENT_RUNNABLE)?.let { hotComments += classDef to it }
+        captionCommentRunnable(classDef)?.let { captionComments += classDef to it }
+    }
+    if (hotComments.isEmpty()) throw PatchException("$PATCH: expected a Runnable named $HOT_COMMENT_RUNNABLE and a number, found none")
+    val caption = captionComments.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one Runnable named $CAPTION_ROW_RUNNABLE and a number whose run() holds " +
+            CAPTION_COMMENT_QUERIES.joinToString(" or ") { "\"$it\"" } + ", found ${captionComments.size}",
+    )
+    val skips = hotComments.map { it to SKIP_HOT_COMMENT } + ((bubblesOwner to bubblesRun) to SKIP_SOCIAL_BUBBLES) +
+        (caption to SKIP_CAPTION_COMMENT)
+    for ((found, hook) in skips) {
+        val (owner, run) = found
         mutableClassDefBy(owner).methods.first { it.sameSignatureAs(run) }.returnVoidWhen(hook)
     }
 }
@@ -390,20 +476,6 @@ internal fun MutableMethod.returnVoidWhen(hook: String) {
         """,
         ExternalLabel("facebooks_query", getInstruction(0)),
     )
-}
-
-/**
- * The Threads card between reels comes off each page of sections the Reels controller takes, through
- * the same walk the sponsored reels and GenAI filters use, with the mid-card item's class beside it.
- * The extension reads each mid-card's type through the stub this fills, and drops the Threads one.
- */
-private fun BytecodePatchContext.hideThreadsCards() {
-    val scan = MidCardScan()
-    classDefForEach { classDef -> if (!classDef.type.startsWith(EXTENSION_PACKAGE)) scan.visit(classDef) }
-    val resolved = scan.resolve()
-    val card = resolved.found ?: throw PatchException("$PATCH: ${resolved.problem}")
-    fillMidCardTypeStub(card)
-    reelPages(PATCH).addPage.filterSectionsFirst(card.item.toBinaryName(), THREADS_CARD_SECTION_FILTER, PATCH)
 }
 
 private fun MutableMethod.sameSignatureAs(other: MethodReference) =

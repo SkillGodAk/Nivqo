@@ -52,7 +52,9 @@ public class ReelBarFollowTest {
     private FrameLayout pager;
     private LithoView leaving;
     private LithoView coming;
+    private LithoView viewer;
     private FrameLayout host;
+    private FrameLayout plugin;
     private FrameLayout label;
     private FrameLayout screen;
     private TabBarContainerLayout tabBar;
@@ -63,7 +65,7 @@ public class ReelBarFollowTest {
         HookStatus.clear();
         Settings.KEEP_PROGRESS_BAR.save(true);
         activity = Robolectric.buildActivity(Activity.class).setup().get();
-        LithoView viewer = new LithoView(activity);
+        viewer = new LithoView(activity);
         FrameLayout list = new FrameLayout(activity);
         place(viewer, list, 0, 0, 1080, PAGE_HEIGHT);
         pager = new FrameLayout(activity);
@@ -74,7 +76,7 @@ public class ReelBarFollowTest {
         place(pager, coming, 0, PAGE_HEIGHT, 1080, 2 * PAGE_HEIGHT);
         host = new FrameLayout(activity);
         place(viewer, host, 0, 986, 1080, 2066);
-        FrameLayout plugin = new FrameLayout(activity);
+        plugin = new FrameLayout(activity);
         place(host, plugin, 0, 0, 1080, 1080);
         label = new FrameLayout(activity);
         place(plugin, label, 0, 918, 291, 1080);
@@ -254,6 +256,130 @@ public class ReelBarFollowTest {
         Settings.KEEP_PROGRESS_BAR.save(false);
         frame();
         assertEquals(0f, host.getTranslationY(), 0f);
+    }
+
+    @Test
+    public void aScrubberFacebookMountsInANewHostIsLiftedThere() {
+        // See-through bars stretched the page 126 px under the tab bar, and Facebook mounted the
+        // scrubber in a new host that much lower (#395). The old host was the one still moving.
+        addTabBar(1980);
+        ReelBarFollow.updated(label);
+        frame();
+        assertTrue(host.getTranslationY() < 0f);
+
+        FrameLayout newHost = new FrameLayout(activity);
+        host.removeView(plugin);
+        viewer.removeView(host);
+        place(viewer, newHost, 0, 986 + 126, 1080, 2066 + 126);
+        place(newHost, plugin, 0, 0, 1080, 1080);
+        layOut();
+        frame();
+        frame();
+
+        float lift = 2018 + 126 + 6 * activity.getResources().getDisplayMetrics().density - 1980;
+        assertEquals("the line clears the tab bar again", -lift, newHost.getTranslationY(), 0f);
+        assertEquals("the old host has its place back", 0f, host.getTranslationY(), 0f);
+        frame();
+        assertEquals("and stays there", -lift, newHost.getTranslationY(), 0f);
+        assertTrue(HookStatus.report().toString().contains(ReelBarFollow.REHOSTED + " 1"));
+    }
+
+    /**
+     * #412: Rounded tab bar or See-through bars stretch the reel under the tabs, so Facebook's own
+     * scrubber, up while a reel is paused, sits behind them. With Keep the progress bar off it still
+     * rises above the tabs, and only rises: a drag leaves it where Facebook has it.
+     */
+    @Test
+    public void aReelStretchedUnderTheTabsLiftsFacebooksOwnScrubberWithTheBarNotKept() {
+        Settings.KEEP_PROGRESS_BAR.save(false);
+        addTabBar(1980);
+        float lift = 2018 + 6 * activity.getResources().getDisplayMetrics().density - 1980;
+        try {
+            ReelBarFollow.updated(label);
+            frame();
+            assertEquals("with no switch that stretches the reel, Facebook's scrubber stays", 0f, host.getTranslationY(), 0f);
+
+            ReelBarFollow.resetForTests();
+            Settings.ROUNDED_TAB_BAR.save(true);
+            ReelBarFollow.updated(label);
+            frame();
+            assertEquals("the line and its time clear the rounded bar", -lift, host.getTranslationY(), 0f);
+            drag(-400);
+            assertEquals("a drag doesn't move it, as the bar isn't kept", -lift, host.getTranslationY(), 0f);
+            drag(400);
+            assertTrue(HookStatus.report().toString().contains(ReelBarFollow.LIFTED + " 1"));
+
+            Settings.ROUNDED_TAB_BAR.save(false);
+            frame();
+            assertEquals("turning the rounded bar off gives Facebook its place back", 0f, host.getTranslationY(), 0f);
+
+            Settings.TRANSLUCENT_BARS.save(true);
+            frame();
+            assertEquals("see-through bars stretch the reel the same way", -lift, host.getTranslationY(), 0f);
+        } finally {
+            Settings.ROUNDED_TAB_BAR.resetToDefault();
+            Settings.TRANSLUCENT_BARS.resetToDefault();
+        }
+    }
+
+    @Test
+    public void aTabBarFacebookBuildsAgainIsTheOneTheLineClears() {
+        addTabBar(1980);
+        ReelBarFollow.updated(label);
+        frame();
+
+        screen.removeView(tabBar);
+        addTabBar(1900);
+        frame();
+
+        float lift = 2018 + 6 * activity.getResources().getDisplayMetrics().density - 1900;
+        assertEquals(-lift, host.getTranslationY(), 0f);
+    }
+
+    @Test
+    public void aViewerDrawnOverTheTabBarKeepsTheLineWhereFacebookPutsIt() {
+        // A reel opened from a feed video: the viewer covers the whole window and the tab bar,
+        // still shown, sits under it, so lifting the line put it on the caption (#469).
+        addTabBar(1980);
+        viewer.bringToFront();
+        layOut();
+
+        ReelBarFollow.updated(label);
+        frame();
+
+        assertEquals(0f, host.getTranslationY(), 0f);
+        assertFalse(HookStatus.report().toString().contains(ReelBarFollow.LIFTED));
+
+        drag(-400);
+        assertEquals("the bar still rides on its reel", -400f, host.getTranslationY(), 0f);
+    }
+
+    @Test
+    public void aTabBarDrawnOverTheReelsStillLiftsTheLineWhenRaisedAboveThem() {
+        addTabBar(1980);
+        viewer.bringToFront();
+        tabBar.setZ(4f);
+        layOut();
+
+        ReelBarFollow.updated(label);
+        frame();
+
+        float lift = 2018 + 6 * activity.getResources().getDisplayMetrics().density - 1980;
+        assertEquals(-lift, host.getTranslationY(), 0f);
+    }
+
+    @Test
+    public void aTabBarFadedRightOutLeavesTheLineAlone() {
+        addTabBar(1980);
+        tabBar.setAlpha(0f);
+
+        ReelBarFollow.updated(label);
+        frame();
+
+        assertEquals(0f, host.getTranslationY(), 0f);
+        tabBar.setAlpha(1f);
+        frame();
+        assertTrue("it rises once the tabs show", host.getTranslationY() < 0f);
     }
 
     @Test

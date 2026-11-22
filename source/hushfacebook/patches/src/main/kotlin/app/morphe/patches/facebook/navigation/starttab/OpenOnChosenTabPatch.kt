@@ -7,6 +7,7 @@ package app.morphe.patches.facebook.navigation.starttab
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
@@ -27,6 +28,7 @@ import com.android.tools.smali.dexlib2.builder.BuilderInstruction
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 /**
  * Opens Facebook on the tab chosen in Hushfacebook's settings when it's started from its launcher
@@ -41,7 +43,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
  * it keeps that tab. Each reads and writes only registers Facebook's own code already uses there,
  * except where 585 runs that last check inline: there the hook borrows one register nothing reads.
  * Three more go in the Feeds tab, so a start sent there can open on a chosen filter: see
- * FeedsSubtabAnchors.kt.
+ * FeedsSubtabAnchors.kt. One more goes first in its onBackPressed, so Back leaves the Feeds page a
+ * start opens, which Facebook's feed otherwise keeps Back on.
  *
  * In the default selection with its switch off and the tab as Marketplace: it changes where
  * Facebook opens, which is a choice to make.
@@ -76,13 +79,17 @@ val openOnChosenTabPatch = bytecodePatch(
         val inline = steps.flatMap { owner ->
             owner.methods.mapNotNull { method -> sanitizedIntentHandOver(method)?.let { method to it } }
         }
+        fun body(call: MethodReference): Method? = classDefByOrNull(call.definingClass)?.let { stepBody(it, call) }
         // 585 moves the step's body out of the dispatcher, so it's the method the step's case calls.
         val handOvers = inline.ifEmpty {
             steps.flatMap { owner -> owner.methods.flatMap(::sanitizeStepCalls) }.distinctBy { it.toString() }
-                .mapNotNull { call ->
-                    val body = classDefByOrNull(call.definingClass)?.let { stepBody(it, call) } ?: return@mapNotNull null
-                    sanitizedCopyHandOver(body)?.let { body to it }
-                }
+                .mapNotNull { call -> body(call)?.let { step -> sanitizedCopyHandOver(step)?.let { step to it } } }
+        }.ifEmpty {
+            // 587 only makes the copy in a method of its own, and the step's case sets what it answers.
+            val makesCopy = { call: MethodReference -> body(call)?.let { returnsSanitizedCopy(it, ::body) } == true }
+            steps.flatMap { owner ->
+                owner.methods.mapNotNull { method -> sanitizeCaseHandOver(method, makesCopy)?.let { method to it } }
+            }
         }
         val handOver = exactlyOne(
             handOvers,
@@ -121,6 +128,8 @@ val openOnChosenTabPatch = bytecodePatch(
         handler.askExtensionForFilter(feedsHandlerAnchors(handler)!!)
         fragment.methods.single { it.name == "onResume" && it.parameterTypes.isEmpty() && it.returnType == "V" }
             .tellExtensionAtResumeReturns()
+        fragment.methods.single { it.name == "onBackPressed" && it.parameterTypes.isEmpty() && it.returnType == "Z" }
+            .askExtensionFirstOnBack()
         mutable(handOver.first).handSanitizedIntentToExtension(handOver.second)
         mutable(gate.first).askExtensionAfterGate(gate.second)
         keeps.singleOrNull()?.let { mutable(it).askExtensionAtReturns() }
@@ -198,6 +207,26 @@ internal fun MutableMethod.askExtensionAtReturns() {
         addInstruction(index + 1, "move-result v$register")
         addInstruction(index + 2, "return v$register")
     }
+}
+
+/**
+ * Asks the extension first thing in the Feeds tab's onBackPressed. The method has no register of
+ * its own to spare, so the answer goes in `this`'s: the tab back, cast to it again, and Facebook's
+ * own code runs from its first instruction, or null, and the method answers that it took Back.
+ */
+internal fun MutableMethod.askExtensionFirstOnBack() {
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { p0 .. p0 }, $FEEDS_PAGE_BACK
+            move-result-object p0
+            check-cast p0, $FEED_FILTERS_FRAGMENT
+            if-nez p0, :facebook
+            const/4 p0, 0x1
+            return p0
+        """,
+        ExternalLabel("facebook", getInstruction(0)),
+    )
 }
 
 /**

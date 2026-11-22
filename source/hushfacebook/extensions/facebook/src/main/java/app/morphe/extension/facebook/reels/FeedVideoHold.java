@@ -50,10 +50,18 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * When the timer runs out, the press must sit inside a shown container of a player whose nearest
  * list scrolls up and down, as a feed does, on a row smaller than that list: a reel's full-size page
  * has Hold a reel for 2x, and a video in a carousel, a pager or the feed's sideways Reels row is left
- * alone. Then the player's speed is read, the player goes to 2x, the phone gives the long-press
+ * alone. A player the Reels viewer plays is left alone by its origin too, since See-through bars
+ * stretch that viewer's list past its pages, and a page shorter than its list looks like a feed row.
+ * Then the player's speed is read, the player goes to 2x, the phone gives the long-press
  * buzz, and the rest of the gesture goes to Facebook as a cancel, so the lift doesn't also open the
  * video. The lift or a cancel puts back the speed it had. A video already at 2x or faster, and a
  * press anywhere else, are Facebook's.
+ *
+ * <p>Facebook 585 has a hold of its own on feed videos, and its timer can run out first (#387). So
+ * the press notes the speed of the video under it as it goes down, and a video that only went fast
+ * during the press is still this hold's, at the speed it had before. Facebook's hold puts its own
+ * speed back when the rest of the gesture reaches it as a cancel, so after each cancel this one
+ * plays the held video at 2x again ({@link #reassert}).
  *
  * <p>Pulling down before the lift keeps the video at 2x with no finger on it (#229's follow-up). A tap
  * on that video puts its speed back without opening it. A scroll that starts on it still scrolls. The
@@ -78,6 +86,9 @@ public final class FeedVideoHold {
     /** Counted for each feed video a pull down kept at 2x. */
     static final String KEPT = "feed video kept at 2x";
 
+    /** Counted for each hold that found Facebook's own hold had sped the video up during the press. */
+    static final String TAKEN_FROM_FACEBOOK = "feed video hold taken from Facebook's";
+
     /** How far down a hold's finger goes, in dp, before its lift keeps the video at 2x. */
     static final int PULL_TO_KEEP_DP = 64;
 
@@ -87,6 +98,12 @@ public final class FeedVideoHold {
     /** The kept name of the list every feed is drawn in; Facebook's own lists extend it. */
     private static final String LIST = PostLongPress.LIST;
 
+    /**
+     * What a player's origin holds when the Reels viewer plays it, before or after the "::", as in
+     * "video_home::fb_shorts_viewer" on the Reels tab or "fb_shorts_viewer::search_results_page".
+     */
+    static final String REELS_VIEWER = "fb_shorts_viewer";
+
     /** Every player Facebook attached a view container to, weakly, so a released one goes. */
     private static final Set<Object> players = Collections.newSetFromMap(new WeakHashMap<>());
 
@@ -94,6 +111,10 @@ public final class FeedVideoHold {
     interface Players {
         @Nullable
         ViewGroup view(Object player);
+
+        /** The player's PlayerOrigin, or null when the build can't read it. */
+        @Nullable
+        Object origin(Object player);
 
         float speed(Object player);
 
@@ -105,6 +126,12 @@ public final class FeedVideoHold {
         @Override
         public ViewGroup view(Object player) {
             return playerView(player);
+        }
+
+        @Nullable
+        @Override
+        public Object origin(Object player) {
+            return playerOrigin(player);
         }
 
         @Override
@@ -135,6 +162,9 @@ public final class FeedVideoHold {
     /** The player a hold sped up, weakly, and the speed it played at before. */
     private static WeakReference<Object> heldPlayer = new WeakReference<>(null);
     private static float before = 1f;
+    /** The video under the finger as it went down, weakly, and the speed it played at then. */
+    private static WeakReference<Object> downPlayer = new WeakReference<>(null);
+    private static float downSpeed = Float.NaN;
     /** The hold's finger is past the pull, so its lift keeps the speed. */
     private static boolean pulled;
     private static float pullPixels;
@@ -145,6 +175,7 @@ public final class FeedVideoHold {
     private static WeakReference<View> keptRoot = new WeakReference<>(null);
     private static WeakReference<ViewGroup> keptView = new WeakReference<>(null);
     private static final Runnable FIRE = FeedVideoHold::fire;
+    private static final Runnable REASSERT = FeedVideoHold::reassert;
     private static final ViewTreeObserver.OnWindowFocusChangeListener FOCUS = focused -> {
         if (!focused) letGo();
     };
@@ -167,6 +198,12 @@ public final class FeedVideoHold {
     /** Filled in by the patch: FbGrootPlayer's player view container. Only a player may be passed. */
     @Nullable
     public static ViewGroup playerView(Object player) {
+        return null;
+    }
+
+    /** Filled in by the patch: FbGrootPlayer's PlayerOrigin getter. Only a player may be passed. */
+    @Nullable
+    public static Object playerOrigin(Object player) {
         return null;
     }
 
@@ -232,6 +269,7 @@ public final class FeedVideoHold {
                     return;
                 }
             }
+            notePressedVideo(root);
             pressedRoot = new WeakReference<>(root);
             timing = true;
             main().postDelayed(FIRE, ViewConfiguration.getLongPressTimeout());
@@ -255,6 +293,11 @@ public final class FeedVideoHold {
                 letGo();
             }
             event.setAction(MotionEvent.ACTION_CANCEL);
+            // Runs once Facebook has had the cancel, which ends its own hold and its speed with it.
+            if (holding || kept) {
+                main().removeCallbacks(REASSERT);
+                main().post(REASSERT);
+            }
             return;
         }
         if (!timing) return;
@@ -284,10 +327,16 @@ public final class FeedVideoHold {
             float speed = players.speed(player);
             if (Float.isNaN(speed) || speed <= 0f) speed = 1f;
             if (speed >= DOUBLE_SPEED - ReelHold.SAME) {
-                HookStatus.counted(FAMILY, ALREADY_FAST);
-                float was = speed;
-                Logger.printDebug(() -> "Feed video hold: the video already plays at " + was + "x");
-                return;
+                float atDown = downPlayer.get() == player ? downSpeed : Float.NaN;
+                if (!(atDown < DOUBLE_SPEED - ReelHold.SAME)) {
+                    HookStatus.counted(FAMILY, ALREADY_FAST);
+                    float was = speed;
+                    Logger.printDebug(() -> "Feed video hold: the video already plays at " + was + "x");
+                    return;
+                }
+                // Facebook's own hold got there first; the press is still this one's.
+                HookStatus.counted(FAMILY, TAKEN_FROM_FACEBOOK);
+                speed = atDown;
             }
             before = speed;
             heldPlayer = new WeakReference<>(player);
@@ -300,6 +349,35 @@ public final class FeedVideoHold {
             HookStatus.counted(FAMILY, HELD);
             float was = speed;
             Logger.printDebug(() -> "Feed video hold: " + DOUBLE_SPEED + "x, the video was at " + was + "x");
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "feed video hold", failure);
+        }
+    }
+
+    /** Notes the feed video under a finger going down on [root], if any, and the speed it plays at. */
+    private static void notePressedVideo(View root) {
+        downPlayer = new WeakReference<>(null);
+        downSpeed = Float.NaN;
+        Object player = videoAt(root, Math.round(downX), Math.round(downY));
+        if (player == null) return;
+        float speed = access.speed(player);
+        downPlayer = new WeakReference<>(player);
+        downSpeed = Float.isNaN(speed) || speed <= 0f ? 1f : speed;
+    }
+
+    /**
+     * After a cancel Facebook heard during a hold or a lock: a hold of Facebook's own that ran in the
+     * same press puts its speed back on that cancel, so the held video goes back to 2x. Never throws.
+     */
+    private static void reassert() {
+        if (!holding && !kept) return;
+        Object player = heldPlayer.get();
+        if (player == null) return;
+        try {
+            Players players = access;
+            if (Math.abs(players.speed(player) - DOUBLE_SPEED) < ReelHold.SAME) return;
+            players.speed(player, DOUBLE_SPEED);
+            Logger.printDebug(() -> "Feed video hold: back at " + DOUBLE_SPEED + "x after Facebook's own hold let go");
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "feed video hold", failure);
         }
@@ -391,10 +469,25 @@ public final class FeedVideoHold {
     }
 
     /**
+     * Whether a feed video shows at the screen point ([x], [y]) inside [root], whatever this switch
+     * says, so a hold to react can tell a post's video from its photo (#454). Never throws: a
+     * failure is reported and reads as no video.
+     */
+    static boolean videoUnder(@Nullable View root, int x, int y) {
+        try {
+            return root != null && videoAt(root, x, y) != null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "feed post hold video", failure);
+            return false;
+        }
+    }
+
+    /**
      * The player whose feed video shows at the screen point ([x], [y]) inside [root], or null: its
      * container is shown in [root]'s window with the point inside it and inside its list, and the
      * list scrolls up and down with the container's row smaller than it, with no scroller or pager
-     * between. The smallest such container wins, should two overlap.
+     * between, and the Reels viewer doesn't play it. The smallest such container wins, should two
+     * overlap.
      */
     @Nullable
     static Object videoAt(View root, int x, int y) {
@@ -412,6 +505,10 @@ public final class FeedVideoHold {
             if (!contains(view, x, y)) continue;
             View list = feedListOf(view);
             if (list == null || !contains(list, x, y)) continue;
+            // On the Reels tab a hold on the video is Hold a reel for 2x's, and one on a button
+            // beside it, such as Download, is that button's own.
+            Object origin = read.origin(player);
+            if (origin != null && String.valueOf(origin).contains(REELS_VIEWER)) continue;
             long area = (long) view.getWidth() * view.getHeight();
             if (area < smallest) {
                 smallest = area;
@@ -480,7 +577,10 @@ public final class FeedVideoHold {
     /** For tests: forgets the players, the press being timed and the hold, and goes back to the patch's stubs. */
     static void reset() {
         stop();
+        if (main != null) main.removeCallbacks(REASSERT);
         unwatch();
+        downPlayer = new WeakReference<>(null);
+        downSpeed = Float.NaN;
         holding = false;
         pulled = false;
         kept = false;

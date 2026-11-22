@@ -68,6 +68,7 @@ import app.morphe.extension.facebook.chats.ReadReceipts;
 import app.morphe.extension.facebook.chats.TypingIndicator;
 import app.morphe.extension.facebook.download.ClipboardLinkForTests;
 import app.morphe.extension.facebook.download.CommentGifForTests;
+import app.morphe.extension.facebook.download.CommentPhotoForTests;
 import app.morphe.extension.facebook.download.CommentVideoForTests;
 import app.morphe.extension.facebook.download.MediaDownload;
 import app.morphe.extension.facebook.download.PhotoMenuItemForTests;
@@ -83,6 +84,7 @@ import app.morphe.extension.facebook.emoji.SystemEmoji;
 import app.morphe.extension.facebook.feed.AutoTranslationForTests;
 import app.morphe.extension.facebook.feed.FeedFilter;
 import app.morphe.extension.facebook.feed.FindFriendsCard;
+import app.morphe.extension.facebook.feed.ReturnRefreshForTests;
 import app.morphe.extension.facebook.feed.SeenPostsForTests;
 import app.morphe.extension.facebook.feed.SuggestedGroupsCard;
 import app.morphe.extension.facebook.feed.FeedsHeader;
@@ -99,6 +101,8 @@ import app.morphe.extension.facebook.feed.MetaAiQuestions;
 import app.morphe.extension.facebook.feed.NotificationFooter;
 import app.morphe.extension.facebook.feed.PostDates;
 import app.morphe.extension.facebook.feed.PostPrompts;
+import app.morphe.extension.facebook.feed.AskBeforeLike;
+import app.morphe.extension.facebook.feed.ProfilePictures;
 import app.morphe.extension.facebook.feed.ProfileSuggestionsForTests;
 import app.morphe.extension.facebook.feed.RelatedPosts;
 import app.morphe.extension.facebook.misc.AppLockForTests;
@@ -113,12 +117,14 @@ import app.morphe.extension.facebook.comments.MetaAiSummaries;
 import app.morphe.extension.facebook.comments.ReactorBlock;
 import app.morphe.extension.facebook.composer.TagSuggestionsForTests;
 import app.morphe.extension.facebook.media.HdrBrightnessForTests;
+import app.morphe.extension.facebook.media.BackgroundPlayForTests;
 import app.morphe.extension.facebook.media.PictureInPictureForTests;
 import app.morphe.extension.facebook.media.CenteredFullscreenForTests;
 import app.morphe.extension.facebook.media.FeedSound;
 import app.morphe.extension.facebook.media.FrameStepForTests;
 import app.morphe.extension.facebook.media.PinchZoomForTests;
 import app.morphe.extension.facebook.media.ProgressBar;
+import app.morphe.extension.facebook.media.ProgressBarForTests;
 import app.morphe.extension.facebook.media.QualityChoiceForTests;
 import app.morphe.extension.facebook.media.SkipSilence;
 import app.morphe.extension.facebook.media.ReelSpeedForTests;
@@ -135,6 +141,7 @@ import app.morphe.extension.facebook.misc.AnalyticsUploads;
 import app.morphe.extension.facebook.misc.AppIcons;
 import app.morphe.extension.facebook.misc.CarrierBanners;
 import app.morphe.extension.facebook.misc.Haptics;
+import app.morphe.extension.facebook.misc.LocationPrompts;
 import app.morphe.extension.facebook.misc.ScreenshotDetection;
 import app.morphe.extension.facebook.misc.ScreenTransitionsForTests;
 import app.morphe.extension.facebook.misc.Screenshots;
@@ -169,12 +176,16 @@ import app.morphe.extension.facebook.reels.FeedVideoAloneForTests;
 import app.morphe.extension.facebook.reels.FollowedReelsForTests;
 import app.morphe.extension.facebook.reels.ReelCleanMode;
 import app.morphe.extension.facebook.reels.ReelDeclutter;
+import app.morphe.extension.facebook.reels.ReelFillForTests;
 import app.morphe.extension.facebook.reels.ReelLoopForTests;
 import app.morphe.extension.facebook.reels.NewestReelsForTests;
 import app.morphe.extension.facebook.reels.ReelMidCardsForTests;
 import app.morphe.extension.facebook.reels.ReelPrompts;
+import app.morphe.extension.facebook.reels.SavedVideos;
 import app.morphe.extension.facebook.reels.SeenStateSendForTests;
+import app.morphe.extension.facebook.reels.StillWatching;
 import app.morphe.extension.facebook.reels.TapShowsControls;
+import app.morphe.extension.facebook.reels.WatchAgain;
 import app.morphe.extension.facebook.search.MetaAiSearchForTests;
 import app.morphe.extension.facebook.search.PreSearchSectionsForTests;
 import app.morphe.extension.facebook.search.SearchDateRange;
@@ -182,6 +193,7 @@ import app.morphe.extension.facebook.search.SearchDateRangeForTests;
 import app.morphe.extension.facebook.search.SearchDateRangeTest;
 import app.morphe.extension.facebook.search.SearchHistory;
 import app.morphe.extension.facebook.search.SearchPostsTabForTests;
+import app.morphe.extension.facebook.search.SearchSavedButtonTest;
 import app.morphe.extension.facebook.stories.StoryAdvance;
 import app.morphe.extension.facebook.stories.StorySeenForTests;
 import app.morphe.extension.facebook.stories.StoryMusic;
@@ -305,12 +317,16 @@ public class PausedHooksTest {
     /** Stands in for FDS's colour token enum: the theme goes by the constant's name. */
     private enum Surface { CARD_BACKGROUND }
 
+    /** Stands in for Facebook's story navigation reasons, which the last-card tap goes by. */
+    private enum NavigationReason { TAP_FORWARD }
+
     @After
     public void restore() {
         PauseForTests.resume();
         for (BooleanSetting setting : settingsSwitches()) setting.resetToDefault();
         Settings.HIDDEN_WORDS.resetToDefault();
         Settings.HIDE_POSTS_OVER_REACTIONS.resetToDefault();
+        Settings.COMMENTS_HEIGHT.resetToDefault();
         FeedFilterCounters.clear();
         ReleaseCheckForTests.forget();
     }
@@ -362,6 +378,8 @@ public class PausedHooksTest {
         probes.put(Settings.DOWNLOAD_CONVERT, SaveRulesForTests::convertsTheFullSize);
         // A finished save goes without its Saved to toast.
         probes.put(Settings.DOWNLOAD_QUIET, SaveRulesForTests::finishesQuietly);
+        // A reel's or a video's save asks for the quality before it starts.
+        probes.put(Settings.DOWNLOAD_QUALITY_ASK, SaveRulesForTests::asksForTheQuality);
         return probes;
     }
 
@@ -426,8 +444,12 @@ public class PausedHooksTest {
                 () -> !NotificationFooter.show(true),
                 // The end of the feed is built without its Find friends card.
                 () -> FindFriendsCard.unit("card") == null,
+                // The bottom of Home says Hush hid the suggestions after it.
+                FeedGuardForTests::endOfHomeSaysWhy,
                 // The Groups tab's suggested groups card lays out as nothing.
                 SuggestedGroupsCard::hide,
+                // So does the row of groups the Groups tab closes its feed with.
+                SuggestedGroupsCard::hideDiscoverRow,
                 // The search screen draws its For you section as an empty row.
                 PreSearchSectionsForTests::drawsForYouEmpty,
                 // The socket under a post's buttons gets a no for the Related posts list.
@@ -454,6 +476,8 @@ public class PausedHooksTest {
         // tab switch back to Home reaches.
         probes.put(PatchFamily.RETURN_REFRESH, Arrays.asList(
                 () -> {
+                    // Past the launch, whose checks go to Facebook whatever the switch says (#493).
+                    ReturnRefreshForTests.launched();
                     ReturnRefresh.uiHidden();
                     return ReturnRefresh.skip();
                 },
@@ -512,12 +536,27 @@ public class PausedHooksTest {
         probes.put(PatchFamily.POST_PROMPTS, Arrays.asList(
                 () -> !PostPrompts.keep(true),
                 () -> !PostPrompts.showFollowLink(true),
+                // A header the subscribe check said no to isn't given a Follow text by the plugin picker.
+                () -> {
+                    PostPrompts.showFollowLink(false);
+                    return PostPrompts.hideFollowRoute();
+                },
+                // A collab or partnership header's own " · Follow" comes back empty.
+                () -> PostPrompts.followText(" · Follow").length() == 0,
+                // A header the X check says yes to is drawn as one without the X.
+                () -> !PostPrompts.showPostX(true),
+                // So is the Reels row's header in the feed.
+                () -> !PostPrompts.showReelsRowX(true),
                 PostPrompts::hidePostCounts,
                 // The reaction preview is left undrawn only while the patch runs.
                 PostPrompts::hideReactionPreview,
                 () -> PostPrompts.hideReactionPreview(true),
                 // So is the count beside a post's faces.
                 () -> PostPrompts.reactionCount("56") == null));
+        // A post header gets no person to draw a picture from, and a comment row no picture to add.
+        probes.put(PatchFamily.PROFILE_PICTURES, Arrays.asList(
+                () -> ProfilePictures.feedPicture("person") == null,
+                () -> ProfilePictures.commentPicture("picture") == null));
         // A post the store remembers is dropped by the feed guard while the switch is on.
         probes.put(PatchFamily.SEEN_POSTS, Collections.singletonList(SeenPostsForTests::hidesARememberedPost));
         // The pill socket's yes for Meta AI's questions is answered as a no, so it draws no row for
@@ -531,11 +570,13 @@ public class PausedHooksTest {
         // A post header's yes to rotating its subtitle is answered as a no, so it keeps the one line.
         probes.put(PatchFamily.POST_DATES, Collections.singletonList(() -> !PostDates.cycling(true)));
         // A post's cut text is answered with null, so Facebook keeps the whole text with no See more,
-        // and a post starts whole, so the first tap folds it. A reel caption starts whole too (#268).
+        // and a post starts whole, so the first tap folds it. A reel caption starts whole too (#268),
+        // and an open one gets its dark box (#419).
         probes.put(PatchFamily.FULL_POST_TEXT, Arrays.asList(
                 () -> FullPostText.cut(new SpannableString("x"), "a story") == null,
                 () -> !FullPostText.allowTruncation(true),
-                () -> FullPostText.reelCaptionExpanded(false)));
+                () -> FullPostText.reelCaptionExpanded(false),
+                () -> app.morphe.extension.facebook.feed.CaptionBackdrop.forCaption(Integer.MAX_VALUE) != null));
         probes.put(PatchFamily.TRANSLATE_POSTS, Collections.singletonList(() -> {
             PostTranslationForTests.noNetwork();
             Spannable post = new SpannableString("Una frase en otro idioma");
@@ -566,10 +607,13 @@ public class PausedHooksTest {
         // A tray of a friend's bucket, a suggested one and one labelled SUGGESTED keeps only the friend's,
         // a Page's bucket leaves it, and so does a bucket you've watched.
         // With Show only watched stories on, the tray keeps only what you've watched (#340).
+        // The Create story tile leaves the tray's tile list (#445).
         probes.put(PatchFamily.SUGGESTED_STORIES, Arrays.asList(allStories(SuggestedStoriesForTests::hidesSuggestions),
                 allStories(SuggestedStoriesForTests::hidesPageStories), allStories(SuggestedStoriesForTests::hidesSeenStories),
-                SuggestedStoriesForTests::keepsOnlyWatchedStories));
-        probes.put(PatchFamily.STORY_AUTO_ADVANCE, Arrays.asList(StoryAdvance::waitForTap, StoryAdvance::loop));
+                SuggestedStoriesForTests::keepsOnlyWatchedStories, SuggestedStoriesForTests::hidesCreateStory));
+        // A forward tap on a bucket's last card gets the completion's reason (#380).
+        probes.put(PatchFamily.STORY_AUTO_ADVANCE, Arrays.asList(StoryAdvance::waitForTap, StoryAdvance::loop,
+                () -> StoryAdvance.lastCardTap(NavigationReason.TAP_FORWARD)));
         // The story viewer's report of the stories you viewed goes out whole, and with Mark as seen
         // on a marked card goes alone and the button follows the card on screen.
         probes.put(PatchFamily.STORY_SEEN, Arrays.asList(
@@ -585,12 +629,18 @@ public class PausedHooksTest {
         // A single tap in a story waits to see whether a second one comes.
         probes.put(PatchFamily.STORY_TAPS,
                 Collections.singletonList(app.morphe.extension.facebook.stories.StoryTapsForTests::holdsATap));
-        // A story's credit line leaves its credits out, its suggested replies draw nothing and its card
-        // gets a progress bar.
+        // A story's credit line leaves its credits out, its suggested replies draw nothing, the "Add to
+        // story" card stays out of the list and its card gets a progress bar.
         probes.put(PatchFamily.STORY_VIEWER_CLEANUP, Arrays.asList(
                 app.morphe.extension.facebook.stories.StoryViewerCleanup::hideCredits,
                 app.morphe.extension.facebook.stories.StoryViewerCleanup::hideReplySuggestions,
+                app.morphe.extension.facebook.stories.StoryViewerCleanup::hideCreateStoryCard,
                 app.morphe.extension.facebook.stories.StoryProgressBarForTests::drawsABar));
+        // A profile picture in the feed, beside a comment and on a profile draws without its ring.
+        probes.put(PatchFamily.STORY_RINGS, Arrays.asList(
+                () -> !app.morphe.extension.facebook.stories.StoryRings.feedRing(1),
+                app.morphe.extension.facebook.stories.StoryRings::hideCommentRing,
+                () -> app.morphe.extension.facebook.stories.StoryRings.profileRing("ring") == null));
         // A photo's song gets the longer clip.
         probes.put(PatchFamily.STORY_MUSIC_LENGTH, Collections.singletonList(() -> StoryMusic.clipLength(15000) == 30000));
         probes.put(PatchFamily.SPONSORED_REELS, Arrays.asList(
@@ -654,6 +704,11 @@ public class PausedHooksTest {
                 ReelDeclutter::hideEditsLabel,
                 // A stalled video's slow connection message.
                 ReelDeclutter::hideSlowConnectionMessage,
+                // A feed or search video's full-screen and picture-in-picture buttons (#478).
+                ReelDeclutter::hideFeedVideoFullscreen,
+                ReelDeclutter::hideFeedVideoPip,
+                // The Add friend sheet over a reel a non-friend shared (#486).
+                ReelDeclutter::hideSharedReelFriendSheet,
                 // The UP NEXT bar's lookup and the videos it hands out (#367), and its room (#375).
                 ReelDeclutter::skipUpNextFetch,
                 ReelDeclutter::hideUpNextVideos,
@@ -662,12 +717,16 @@ public class PausedHooksTest {
                 ReelDeclutter::hideFollowingButton,
                 ReelDeclutter::skipHotComment,
                 ReelDeclutter::skipSocialBubbles,
+                ReelDeclutter::skipCaptionComment,
                 ReelMidCardsForTests::dropsAThreadsCard,
                 FollowedReelsForTests::dropsANotFollowedReel,
                 () -> ReelCleanMode.startClean(false),
                 // Its button takes the sticky way, and a reel taken out keeps it (#304).
                 () -> ReelCleanMode.stickyClean(false),
                 () -> ReelCleanMode.cleanButtonState(ReelCleanMode.markLeftClean(new Object[] {Boolean.FALSE})[0]) == Boolean.TRUE,
+                // And that kept button is laid over the details, not under them (#329).
+                () -> ReelCleanMode.cleanButtonState(ReelCleanMode.markLeftClean(new Object[] {Boolean.FALSE})[0]) == Boolean.TRUE
+                        && ReelCleanMode.floatCleanButton(),
                 ReelLoopForTests::stopsAReel,
                 // A video whose audio Facebook would pick in Spanish is asked for no language.
                 () -> !"es".equals(OriginalAudio.language("es")),
@@ -694,6 +753,8 @@ public class PausedHooksTest {
                     ReelDeclutter.noteAuthorPill(true);
                     return ReelDeclutter.authorPillSlot(new Object()) == null;
                 },
+                // And the fan-subscription pill some Pages get in that row's slots.
+                () -> ReelDeclutter.fanPillSlot(new Object()) == null,
                 // So is the speaker button under it.
                 () -> !ReelDeclutter.showsSoundButton(true),
                 // And the footer's speaker, when the footer builds it.
@@ -722,7 +783,15 @@ public class PausedHooksTest {
                     return FeedVideoAlone.seedOnly(new Object());
                 },
                 // And that viewer's list shows no loading page after the video.
-                FeedVideoAloneForTests::dropsTheLoadingPage));
+                FeedVideoAloneForTests::dropsTheLoadingPage,
+                // Watch again at the end of a feed video replays it in place instead of opening Reels (#403).
+                () -> !WatchAgain.opensElsewhere(true),
+                // A video tapped in Saved plays in the video player instead of the Reels viewer (#404).
+                () -> SavedVideos.staysInPlayer("vod_watchfeed_saved"),
+                // The next video isn't held back to ask "Are you still watching?" (#427).
+                () -> !StillWatching.idle(1),
+                // A reel Facebook would fit between black bars fills the screen (#453).
+                ReelFillForTests::fillsAFullScreenReel));
         // A reel that would get the interest prompt is answered as one that doesn't.
         probes.put(PatchFamily.REEL_PROMPTS, Collections.singletonList(() -> !ReelPrompts.keep(true)));
         // The Reels batcher's send of the reels you watched never reaches its executor.
@@ -740,8 +809,23 @@ public class PausedHooksTest {
                 DoubleTapLike::holdBackTap,
                 () -> DoubleTapLike.holdBackFeedTap(null),
                 DoubleTapLike::holdBackFeedLike));
-        // Facebook's double-tap skip test, read as off, is answered on.
-        probes.put(PatchFamily.DOUBLE_TAP_SKIP, Collections.singletonList(() -> DoubleTapSkip.flag(false)));
+        // A tap on Like under a post, beside a reel or under a comment, or on Follow in a post or
+        // beside a reel, is held while a question goes up.
+        probes.put(PatchFamily.ASK_BEFORE_LIKE, Arrays.asList(
+                () -> asksBeforeALike(AskBeforeLike.POST_FOOTER),
+                () -> asksBeforeALike(AskBeforeLike.REEL),
+                () -> asksBeforeALike(AskBeforeLike.COMMENT),
+                () -> asksBeforeALike(AskBeforeLike.POST_TOUCH),
+                () -> asksBeforeALike(AskBeforeLike.POST_FOLLOW),
+                () -> asksBeforeALike(AskBeforeLike.REEL_COLLAB_FOLLOW)));
+        // Facebook's double-tap skip test, read as off, is answered on, and the seconds it shows stay hidden.
+        probes.put(PatchFamily.DOUBLE_TAP_SKIP, Arrays.asList(
+                () -> DoubleTapSkip.flag(false),
+                () -> {
+                    View label = new View(RuntimeEnvironment.getApplication());
+                    DoubleTapSkip.label(label, View.VISIBLE);
+                    return label.getVisibility() != View.VISIBLE;
+                }));
         // A reel tap gets the controls in place of the pause, they stay up longer, and the unified player hides them.
         probes.put(PatchFamily.TAP_SHOWS_CONTROLS, Arrays.asList(
                 () -> TapShowsControls.showControls(false),
@@ -863,12 +947,13 @@ public class PausedHooksTest {
                 CommentVideoForTests::addsARow,
                 PlayerSourcesForTests::recordsAVideoPlayer,
                 ClipboardLinkForTests::readsTheClipboard));
-        // Every photo the viewer opens offers Save photo, a photo post's menu gets Save photo, and a
-        // GIF comment's sheet gets Save GIF.
+        // Every photo the viewer opens offers Save photo, a photo post's menu gets Save photo, a GIF
+        // comment's sheet gets Save GIF, and a photo comment's sheet gets Save photo.
         probes.put(PatchFamily.PHOTO_DOWNLOAD, Arrays.asList(
                 () -> PhotoSave.offersSave(false),
                 PhotoMenuItemForTests::addsAnItem,
-                CommentGifForTests::addsARow));
+                CommentGifForTests::addsARow,
+                CommentPhotoForTests::addsARow));
         // A start from the launcher icon asks Facebook for the chosen tab.
         probes.put(PatchFamily.START_TAB, Collections.singletonList(StartTabRouteForTests::routes));
         // Home's request for its feed goes out for the most recent feed.
@@ -917,6 +1002,11 @@ public class PausedHooksTest {
                 },
                 () -> TopBarButtons.messengerCount(3) == 0,
                 () -> {
+                    Object key = new Object();
+                    TopBarButtons.barSpecKey("messenger", key);
+                    return TopBarButtons.barBadgeCount(key, 3) == 0;
+                },
+                () -> {
                     View logo = new View(RuntimeEnvironment.getApplication());
                     TopBarButtons.facebookLogo(logo);
                     return logo.getAlpha() == 0f;
@@ -959,6 +1049,8 @@ public class PausedHooksTest {
                 () -> !CommentSheetOptions.viewMoreRepliesTextOnly(true),
                 () -> CommentSheetOptions.holdsBottomContent(CommentSheetOptions.RELATED_GROUPS),
                 () -> CommentSheetOptions.holdsPostComments(CommentSheetOptions.INLINE_COMMENTS),
+                () -> CommentSheetOptions.holdsCommentReply(CommentSheetOptions.REPLY_PLUGIN),
+                CommentSheetOptions::hidesCommenterBadge,
                 () -> {
                     // Block button on comments keeps the dislike it redraws (#271).
                     Settings.COMMENT_BLOCK_BUTTON.save(false);
@@ -997,13 +1089,16 @@ public class PausedHooksTest {
         // A reel's comment sheet asking for two thirds of the screen gets all of it, a split-screen
         // launcher answers that it didn't open, a full-height sheet fills the screen, the reel
         // drawn above the comments is hidden, and a part-height sheet over the Reels tab lets a tap
-        // above it through to the reel.
+        // above it through to the reel. Full height is a list choice, so it's saved here, as the
+        // word list is above.
+        Settings.COMMENTS_HEIGHT.save(app.morphe.extension.facebook.comments.CommentsHeight.FULL);
         probes.put(PatchFamily.FULL_HEIGHT_COMMENTS, Arrays.asList(
                 () -> FullHeightComments.sheetHeight(0.66f) == 1f,
                 FullHeightComments::skipSplitScreen,
                 () -> FullHeightComments.fillsScreen(1f),
                 PausedHooksTest::hidesTheVideoAboveTheComments,
-                PausedHooksTest::letsATapThroughToTheReel));
+                PausedHooksTest::letsATapThroughToTheReel,
+                PausedHooksTest::searchesTheComments));
         // A word without @ in a post or comment box looks nobody up, and a list of people left open
         // by an earlier @ is closed.
         probes.put(PatchFamily.TAG_SUGGESTIONS, Arrays.asList(
@@ -1097,6 +1192,8 @@ public class PausedHooksTest {
                 SearchDateRangeForTests::keepsTheRange));
         // Search results get a Posts chip after Reels.
         probes.put(PatchFamily.SEARCH_POSTS_TAB, Collections.singletonList(SearchPostsTabForTests::addsPosts));
+        // The search bar ends in a Saved button.
+        probes.put(PatchFamily.SEARCH_SAVED_BUTTON, Collections.singletonList(SearchSavedButtonTest::aBarGetsTheButton));
         // XAnalytics' upload and uploader resume are skipped, and the Papaya job finishes unrun.
         probes.put(PatchFamily.ANALYTICS_UPLOADS, Arrays.asList(
                 AnalyticsUploads::holdXAnalyticsUpload,
@@ -1120,6 +1217,8 @@ public class PausedHooksTest {
                 PictureInPictureForTests::immersiveAllows, PictureInPictureForTests::homeGateAllows,
                 PictureInPictureForTests::homeFlagAllows, PictureInPictureForTests::offersTheMenuRow,
                 PictureInPictureForTests::offersTheButton));
+        // A video you started keeps going when its manager asks about the pause as you leave.
+        probes.put(PatchFamily.BACKGROUND_PLAY, Collections.singletonList(BackgroundPlayForTests::continuesAVideoYouStarted));
         // An HDR window comes out in the default colour mode, a headroom as none, the screen
         // answers as one that shows no HDR, a manifest loses the HDR twin of an SDR rendition, and
         // a player goes from its SurfaceView to its TextureView.
@@ -1134,11 +1233,12 @@ public class PausedHooksTest {
         probes.put(PatchFamily.KEEP_FEED_VIDEOS_MUTED, Arrays.asList(() -> !FeedSound.sessionSound(true),
                 () -> !FeedSound.soundChange(null, true, false), () -> FeedSound.viewerSoundTime(60_000L) != 60_000L));
         // A reel's bar is kept full size, a full-screen video sets no fade timer, a press off the
-        // bar's thumb is held as a tap to seek, the next reel's bar starts over, and a bar still in
-        // Facebook's thin look takes the kept look.
+        // bar's thumb is held as a tap to seek, the next reel's bar starts over, a bar still in
+        // Facebook's thin look takes the kept look, and the bar's seek on a live video goes through.
         probes.put(PatchFamily.PROGRESS_BAR, Arrays.asList(ProgressBar::keepsReelBar, ProgressBar::keepsControls,
                 ProgressBar::liftsFooter, ProgressBar::noFadedBar, PausedHooksTest::holdsATapOnTheBar,
-                PausedHooksTest::startsTheNextReelOver, PausedHooksTest::givesAThinBarTheKeptLook));
+                PausedHooksTest::startsTheNextReelOver, PausedHooksTest::givesAThinBarTheKeptLook,
+                PausedHooksTest::letsALiveSeekThrough, ProgressBarForTests::rewindsForTheBarsSeek));
         // A tab asked for shows without its slide.
         probes.put(PatchFamily.SCREEN_TRANSITIONS, Collections.singletonList(() -> !ScreenTransitionsForTests.slides()));
         // The app icon benefit is answered yes, at the provider's check and at the picker's own look,
@@ -1152,6 +1252,9 @@ public class PausedHooksTest {
         // A new picture in the photo library isn't looked at.
         probes.put(PatchFamily.SCREENSHOT_DETECTION, Collections.singletonList(
                 ScreenshotDetection::ignoresChange));
+        // Facebook's location page fails its check and doesn't show.
+        probes.put(PatchFamily.LOCATION_PROMPTS, Collections.singletonList(
+                () -> LocationPrompts.skips(null)));
         // "Typing" goes out as "not typing", and the chat and comment runnables skip their send.
         probes.put(PatchFamily.TYPING_INDICATOR, Arrays.asList(
                 () -> !TypingIndicator.chatTyping(true), TypingIndicator::holdsChatTyping,
@@ -1228,6 +1331,13 @@ public class PausedHooksTest {
         return ProgressBar.looksAgain(new android.widget.LinearLayout(RuntimeEnvironment.getApplication()));
     }
 
+    /** A live video's seek request from the reel bar's release, which Facebook skips. */
+    private static boolean letsALiveSeekThrough() {
+        Object request = new Object();
+        ProgressBar.scrubberSeek(request);
+        return !ProgressBar.liveSeekRefused(1, request, new Object());
+    }
+
     /** A comment sheet whose header holds a video, the reel above its comments, set up by Facebook. */
     private static boolean hidesTheVideoAboveTheComments() {
         android.content.Context app = RuntimeEnvironment.getApplication();
@@ -1240,10 +1350,27 @@ public class PausedHooksTest {
         return header.getVisibility() == View.GONE;
     }
 
+    /** A tap on Like of [kind] from a view on its own screen, with the question it put up taken down again. */
+    private static boolean asksBeforeALike(int kind) {
+        Activity screen = Robolectric.buildActivity(Activity.class).setup().get();
+        boolean held = AskBeforeLike.hold(kind, "Lnone;->like(Landroid/view/View;)V", new Object[] {null, new View(screen)});
+        android.app.Dialog question = org.robolectric.shadows.ShadowDialog.getLatestDialog();
+        if (held && question != null) question.dismiss();
+        shadowOf(android.os.Looper.getMainLooper()).idle();
+        return held;
+    }
+
     /** A part-height comment sheet opened from the Reels tab, surface 20, handed over by Facebook. */
     private static boolean letsATapThroughToTheReel() {
         return FullHeightComments.tapThrough(
                 new android.app.Dialog(Robolectric.buildActivity(Activity.class).setup().get()), 20);
+    }
+
+    /** A comment sheet's views, set up by Facebook, which Search comments gives a magnifier. */
+    private static boolean searchesTheComments() {
+        FrameLayout sheet = new FrameLayout(RuntimeEnvironment.getApplication());
+        app.morphe.extension.facebook.comments.CommentSearchForTests.open(sheet);
+        return app.morphe.extension.facebook.comments.CommentSearchForTests.watching(sheet);
     }
 
     /** A press at the far end of a bar whose thumb sits at its start, then a cancel to end it. */

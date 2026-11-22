@@ -127,6 +127,52 @@ class SettingsRowShapesTest {
         assertEquals("a static call isn't the build", emptyList<String>(), rowListBuilds(staticCall).map { it.name })
     }
 
+    @Test
+    fun `586's section asks a static method of its own class for the list, and the builds are made there`() {
+        val build = ImmutableMethodReference(helper, "A08", listOf(USER_SESSION, "Ljava/util/List;", "Z", "Z"), IMMUTABLE_LIST)
+        val section = "Lfixture/Section;"
+        val pickParameters = listOf(USER_SESSION, "Lfixture/Group;", helper, "Z", "Z")
+        val pick = method(section, "A01", pickParameters, IMMUTABLE_LIST, 8, listOf(
+            ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 5, 5, 3, 0, 6, 7, build),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+        ), flags = publicStatic)
+        val pickCall = ImmutableMethodReference(section, "A01", pickParameters, IMMUTABLE_LIST)
+        val native = method(section, "A0s", listOf("Lfixture/Context;"), "Lfixture/Children;", 8, listOf(
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 5, 0, 1, 2, 3, 4, pickCall),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+        ))
+        fun owner(vararg methods: Method): (String) -> ClassDef? = { type ->
+            ImmutableClassDef(section, publicFinal, "Ljava/lang/Object;", null, null, null, emptyList<ImmutableField>(),
+                methods.toList()).takeIf { type == section }
+        }
+        assertEquals("the section calls no build itself", emptyList<String>(), rowListBuilds(native).map { it.name })
+        val site = rowListSite(native, owner(native, pick))
+        assertEquals("the static method is where the builds are", "A01", site.name)
+        assertEquals("its build", listOf("A08"), rowListBuilds(site).map { it.name })
+        assertEquals("a section with its own build is its own site", "A1S", rowListSite(
+            method(section, "A1S", listOf("Lfixture/Context;"), "Lfixture/Children;", 8, listOf(
+                ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 5, 0, 1, 2, 3, 4, build),
+            )), owner(pick)).name)
+        val otherCall = ImmutableMethodReference("Lfixture/Other;", "A01", pickParameters, IMMUTABLE_LIST)
+        val callsOther = method(section, "A0s", listOf("Lfixture/Context;"), "Lfixture/Children;", 8, listOf(
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 5, 0, 1, 2, 3, 4, otherCall),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+        ))
+        assertEquals("a static method on another class isn't looked into", "A0s",
+            rowListSite(callsOther, owner(callsOther, pick)).name)
+        val virtual = method(section, "A01", pickParameters, IMMUTABLE_LIST, 9, pick.implementation!!.instructions.toList())
+        assertEquals("nor one that isn't static", "A0s", rowListSite(native, owner(native, virtual)).name)
+        assertEquals("nor a class that isn't in the build", "A0s", rowListSite(native) { null }.name)
+        // 586's Android 9 build inlined the builds into that method, which keeps the lists like 584's section.
+        val keeping = method(section, "A01", pickParameters, IMMUTABLE_LIST, 8,
+            keepingSection().implementation!!.instructions.toList(), flags = publicStatic)
+        assertEquals("a static method that keeps the lists is the site too", "A01",
+            rowListSite(native, owner(native, keeping)).name)
+    }
+
     private fun tap(
         parameters: List<String> = listOf(VIEW, USER_SESSION, helper, item, "Lfixture/Events;", "Lfixture/Host;"),
         flags: Int = publicStatic,
@@ -144,6 +190,27 @@ class SettingsRowShapesTest {
         assertFalse(isRowTap(tap(trace = "bookmarks_panel")))
         assertFalse(isRowTap(tap(parameters = listOf(USER_SESSION, VIEW, helper, item, helper, helper))))
         assertFalse(isRowTap(tap(parameters = listOf(VIEW, USER_SESSION, helper, "J", helper))))
+    }
+
+    @Test
+    fun `587's tap handler hands the view and the session to a class it takes`() {
+        val events = "Lfixture/Events;"
+        val handOver = ImmutableMethodReference(events, "A06", listOf(VIEW, USER_SESSION), "V")
+        val elsewhere = ImmutableMethodReference("Lfixture/Other;", "A06", listOf(VIEW, USER_SESSION), "V")
+        val sessionOnly = ImmutableMethodReference(events, "A09", listOf(USER_SESSION), "V")
+        fun handler(flags: Int = publicStatic) = method(owner, "A08",
+            listOf(VIEW, USER_SESSION, helper, item, events, "Lfixture/Host;"), "V", 9, listOf(
+                ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 7, 0, 0, 0, 0, sessionOnly),
+                ImmutableInstruction35c(Opcode.INVOKE_STATIC, 2, 3, 4, 0, 0, 0, elsewhere),
+                ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 3, 7, 3, 4, 0, 0, handOver),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+            ), flags)
+        assertFalse("it names no trace itself", isRowTap(handler()))
+        assertEquals(listOf("$events->A06"), rowHandOvers(handler()).map { "${it.definingClass}->${it.name}" })
+        assertTrue("only a handler's shape hands over", rowHandOvers(handler(flags = publicFinal)).isEmpty())
+        assertTrue(isRowHandOverShape(handOver))
+        assertFalse(isRowHandOverShape(sessionOnly))
+        assertFalse(isRowHandOverShape(ImmutableMethodReference(events, "A06", listOf(VIEW, USER_SESSION), "Z")))
     }
 
     @Test

@@ -77,6 +77,7 @@ public class ReelDeclutterTest {
         Settings.HIDE_REEL_WHATSAPP_BUTTON.resetToDefault();
         Settings.HIDE_REEL_LIKE_BUTTON.resetToDefault();
         Settings.HIDE_REEL_COMMENT_BUTTON.resetToDefault();
+        Settings.HIDE_REEL_REPOST_BUTTON.resetToDefault();
         Settings.HIDE_REEL_SHARE_BUTTON.resetToDefault();
         Settings.SHOW_REEL_COMMENT_BUTTON.resetToDefault();
         Settings.SHOW_REEL_POST_DATE.resetToDefault();
@@ -88,6 +89,10 @@ public class ReelDeclutterTest {
         Settings.HIDE_REEL_AUDIO_LINE.resetToDefault();
         Settings.HIDE_SLOW_CONNECTION_MESSAGE.resetToDefault();
         Settings.HIDE_UP_NEXT.resetToDefault();
+        Settings.HIDE_REEL_FULLSCREEN_PILL.resetToDefault();
+        Settings.HIDE_FEED_VIDEO_BUTTONS.resetToDefault();
+        Settings.HIDE_SHARED_REEL_FRIEND_SHEET.resetToDefault();
+        Settings.SHARED_REELS_ALONE.resetToDefault();
         Settings.PLAY_FEED_REELS_WHOLE.resetToDefault();
         BaseSettings.DEBUG.resetToDefault();
         FeedFilterCounters.clear();
@@ -293,6 +298,119 @@ public class ReelDeclutterTest {
     }
 
     /**
+     * A wide video's Fullscreen pill (#394) draws until its switch is on, then not, and it comes back
+     * paused, before the settings are ready and once the switch is off again.
+     */
+    @Test
+    public void theFullscreenPillDrawsUntilItsSwitchIsOn() {
+        assertFalse(Settings.HIDE_REEL_FULLSCREEN_PILL.defaultValue);
+        assertFalse("the other Reels switches took the pill", ReelDeclutter.hideFullscreenPill());
+        Settings.HIDE_REEL_FULLSCREEN_PILL.save(true);
+        assertTrue(ReelDeclutter.hideFullscreenPill());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("the pill went while paused", ReelDeclutter.hideFullscreenPill());
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("the pill went before the settings were ready",
+                ReelDeclutter.hideFullscreenPill()));
+        Settings.HIDE_REEL_FULLSCREEN_PILL.save(false);
+        assertFalse("turning the switch off didn't bring the pill back", ReelDeclutter.hideFullscreenPill());
+        assertEquals(ReelDeclutter.FULLSCREEN_ROUTE + ": 5 lists, 5 items, 1 removed. Last reason: " + ReelDeclutter.FULLSCREEN_PILL
+                + ". Removed: " + ReelDeclutter.FULLSCREEN_PILL + " 1. Kinds: " + ReelDeclutter.FULLSCREEN_PILL + " 5",
+                line(ReelDeclutter.FULLSCREEN_ROUTE));
+    }
+
+    /**
+     * A feed or search video's full-screen and picture-in-picture buttons (#478) stay until their
+     * switch is on, then not, and they come back paused, before the settings are ready and once the
+     * switch is off again. The Reels pill's switch doesn't take them.
+     */
+    @Test
+    public void theFeedVideoButtonsStayUntilTheirSwitchIsOn() {
+        assertFalse(Settings.HIDE_FEED_VIDEO_BUTTONS.defaultValue);
+        Settings.HIDE_REEL_FULLSCREEN_PILL.save(true);
+        assertFalse("the pill's switch took the full-screen button", ReelDeclutter.hideFeedVideoFullscreen());
+        assertFalse("the pill's switch took the PiP button", ReelDeclutter.hideFeedVideoPip());
+        Settings.HIDE_FEED_VIDEO_BUTTONS.save(true);
+        assertTrue(ReelDeclutter.hideFeedVideoFullscreen());
+        assertTrue(ReelDeclutter.hideFeedVideoPip());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("the full-screen button went while paused", ReelDeclutter.hideFeedVideoFullscreen());
+        assertFalse("the PiP button went while paused", ReelDeclutter.hideFeedVideoPip());
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("a button went before the settings were ready",
+                ReelDeclutter.hideFeedVideoPip()));
+        Settings.HIDE_FEED_VIDEO_BUTTONS.save(false);
+        assertFalse("turning the switch off didn't bring the buttons back", ReelDeclutter.hideFeedVideoFullscreen());
+        assertEquals(ReelDeclutter.FEED_VIDEO_ROUTE + ": 8 lists, 8 items, 2 removed. Last reason: " + ReelDeclutter.FEED_VIDEO_PIP
+                + ". Removed: " + ReelDeclutter.FEED_VIDEO_FULLSCREEN + " 1, " + ReelDeclutter.FEED_VIDEO_PIP + " 1. Kinds: "
+                + ReelDeclutter.FEED_VIDEO_FULLSCREEN + " 4, " + ReelDeclutter.FEED_VIDEO_PIP + " 4",
+                line(ReelDeclutter.FEED_VIDEO_ROUTE));
+    }
+
+    /** A feed video buttons switch that can't be read leaves the buttons, and the report names the hook. */
+    @Test
+    public void aFeedVideoButtonsSwitchThatCantBeReadLeavesTheButtons() {
+        SettingReadsForTests.breakReads(Settings.HIDE_FEED_VIDEO_BUTTONS);
+        try {
+            assertFalse(ReelDeclutter.hideFeedVideoPip());
+        } finally {
+            SettingReadsForTests.mend(Settings.HIDE_FEED_VIDEO_BUTTONS);
+        }
+        assertTrue(HookStatus.missing(FamilyNames.REEL_DECLUTTER).toString(), HookStatus.missing(FamilyNames.REEL_DECLUTTER)
+                .contains("a working '" + ReelDeclutter.FEED_VIDEO_PIP + "' hook (it threw " + NullPointerException.class.getName() + ")"));
+    }
+
+    /**
+     * The Add friend sheet over a reel a non-friend shared (#486) opens until its switch is on, then
+     * not, and it opens again paused, before the settings are ready and once the switch is off again.
+     * Open shared reels on their own doesn't keep it closed.
+     */
+    @Test
+    public void theSharedReelFriendSheetOpensUntilItsSwitchIsOn() {
+        assertFalse(Settings.HIDE_SHARED_REEL_FRIEND_SHEET.defaultValue);
+        Settings.SHARED_REELS_ALONE.save(true);
+        assertFalse("Open shared reels on their own kept the sheet closed", ReelDeclutter.hideSharedReelFriendSheet());
+        Settings.HIDE_SHARED_REEL_FRIEND_SHEET.save(true);
+        assertTrue(ReelDeclutter.hideSharedReelFriendSheet());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("the sheet was kept closed while paused", ReelDeclutter.hideSharedReelFriendSheet());
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("the sheet was kept closed before the settings were ready",
+                ReelDeclutter.hideSharedReelFriendSheet()));
+        Settings.HIDE_SHARED_REEL_FRIEND_SHEET.save(false);
+        assertFalse("turning the switch off didn't let the sheet open", ReelDeclutter.hideSharedReelFriendSheet());
+        assertEquals(ReelDeclutter.FRIEND_SHEET_ROUTE + ": 5 lists, 5 items, 1 removed. Last reason: " + ReelDeclutter.FRIEND_SHEET
+                + ". Removed: " + ReelDeclutter.FRIEND_SHEET + " 1. Kinds: " + ReelDeclutter.FRIEND_SHEET + " 5",
+                line(ReelDeclutter.FRIEND_SHEET_ROUTE));
+    }
+
+    /** A shared reel friend sheet switch that can't be read lets the sheet open, and the report names the hook. */
+    @Test
+    public void aSharedReelFriendSheetSwitchThatCantBeReadLetsTheSheetOpen() {
+        SettingReadsForTests.breakReads(Settings.HIDE_SHARED_REEL_FRIEND_SHEET);
+        try {
+            assertFalse(ReelDeclutter.hideSharedReelFriendSheet());
+        } finally {
+            SettingReadsForTests.mend(Settings.HIDE_SHARED_REEL_FRIEND_SHEET);
+        }
+        assertTrue(HookStatus.missing(FamilyNames.REEL_DECLUTTER).toString(), HookStatus.missing(FamilyNames.REEL_DECLUTTER)
+                .contains("a working '" + ReelDeclutter.FRIEND_SHEET + "' hook (it threw " + NullPointerException.class.getName() + ")"));
+    }
+
+    /** A Fullscreen pill switch that can't be read draws the pill, and the report names the hook. */
+    @Test
+    public void aFullscreenPillSwitchThatCantBeReadDrawsThePill() {
+        SettingReadsForTests.breakReads(Settings.HIDE_REEL_FULLSCREEN_PILL);
+        try {
+            assertFalse(ReelDeclutter.hideFullscreenPill());
+        } finally {
+            SettingReadsForTests.mend(Settings.HIDE_REEL_FULLSCREEN_PILL);
+        }
+        assertTrue(HookStatus.missing(FamilyNames.REEL_DECLUTTER).toString(), HookStatus.missing(FamilyNames.REEL_DECLUTTER)
+                .contains("a working '" + ReelDeclutter.FULLSCREEN_PILL + "' hook (it threw " + NullPointerException.class.getName() + ")"));
+    }
+
+    /**
      * The UP NEXT bar under a video opened from the feed (#367) gets its video until the switch is on:
      * then the lookup is skipped and the videos are handed out empty. Both come back paused, before
      * the settings are ready and once the switch is off again.
@@ -446,6 +564,35 @@ public class ReelDeclutterTest {
         assertTrue(ReelDeclutter.showsPostDate(true));
     }
 
+    /**
+     * A reel's recommendation reason took the whole line under the author when Facebook's flag said so,
+     * date included, so one reel showed its date and the next didn't (#496). With the switch on the
+     * flag reads no and the date stays; off, paused, before the settings are ready and when the switch
+     * can't be read, Facebook's flag stands. A no stays no throughout.
+     */
+    @Test
+    public void aRecommendationReasonKeepsTheDateOnlyWithTheSwitchOn() {
+        assertTrue("the reason took the line with the switch off", ReelDeclutter.reasonAlone(true));
+        assertFalse(ReelDeclutter.reasonAlone(false));
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertFalse("the reason still took the date's line", ReelDeclutter.reasonAlone(true));
+        assertFalse(ReelDeclutter.reasonAlone(false));
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertTrue("the reason lost its line while paused", ReelDeclutter.reasonAlone(true));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertTrue("the reason lost its line before the settings were ready", ReelDeclutter.reasonAlone(true)));
+        SettingReadsForTests.breakReads(Settings.SHOW_REEL_POST_DATE);
+        try {
+            assertTrue("a switch that can't be read kept the date", ReelDeclutter.reasonAlone(true));
+            assertFalse(ReelDeclutter.reasonAlone(false));
+        } finally {
+            SettingReadsForTests.mend(Settings.SHOW_REEL_POST_DATE);
+        }
+        Settings.SHOW_REEL_POST_DATE.save(false);
+        assertTrue("turning the switch off didn't give the reason its line back", ReelDeclutter.reasonAlone(true));
+    }
+
     private static final long NOW = 1793620800_000L; // 2026-11-02 12:00 UTC
     private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
 
@@ -460,7 +607,11 @@ public class ReelDeclutterTest {
         long threeWeeks = NOW / 1000 - 21L * 24 * 60 * 60;
         assertEquals("3 weeks ago", ReelDeclutter.postDate(null, threeWeeks, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
         assertNull("the switch off kept Facebook's blank", ReelDeclutter.postDate(null, threeWeeks, NOW, ReelDateStyle.AGO, false, Locale.US, UTC));
-        assertEquals("2d", ReelDeclutter.postDate("2d", threeWeeks, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
+        // #424: Facebook words an older reel as the day itself, so with the switch on How long ago
+        // words every date. Off, the line is Facebook's own.
+        assertEquals("3 weeks ago", ReelDeclutter.postDate("Oct 12", threeWeeks, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
+        assertEquals("Oct 12", ReelDeclutter.postDate("Oct 12", threeWeeks, NOW, ReelDateStyle.AGO, false, Locale.US, UTC));
+        assertEquals("2 days ago", ReelDeclutter.postDate("2d", NOW / 1000 - 2L * 24 * 60 * 60, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
         assertEquals("1 year ago", ReelDeclutter.postDate(null, 1760281200L, NOW, ReelDateStyle.AGO, true, Locale.US, UTC));
 
         assertEquals("Oct 12", ReelDeclutter.postDate("2d", 1791817200L, NOW, ReelDateStyle.DATE, true, Locale.US, UTC));
@@ -490,6 +641,7 @@ public class ReelDeclutterTest {
 
         Settings.SHOW_REEL_POST_DATE.save(true);
         assertEquals("3 weeks ago", ReelDeclutter.postDateText(null, threeWeeks));
+        assertEquals("kept Facebook's day itself next to its 2d (#424)", "3 weeks ago", ReelDeclutter.postDateText("Oct 12", threeWeeks));
         Settings.REEL_POST_DATE_STYLE.save(ReelDateStyle.DATE);
         String day = ReelDeclutter.postDateText("2d", threeWeeks);
         assertNotNull(day);
@@ -551,6 +703,52 @@ public class ReelDeclutterTest {
     }
 
     /**
+     * A reel without sound has no song line, and its soundtrack's "Reel has no sound" label takes that
+     * spot (#496), so the date goes in front of that label, and of no other attribution's. The story
+     * the soundtrack's own helper was handed on the way in dates its label once, and a story that
+     * holds no time, no attribution, the switch off and a pause all keep the label as it was.
+     */
+    @Test
+    public void theDateGoesInFrontOfASilentReelsSoundLabel() {
+        String silent = "Reel has no sound";
+        long threeWeeks = NOW / 1000 - 21L * 24 * 60 * 60;
+        assertEquals("3 weeks ago" + ReelDeclutter.DOT + silent,
+                ReelDeclutter.soundLabel(silent, SONG, threeWeeks, NOW, ReelDateStyle.AGO, Locale.US, UTC));
+        assertEquals("Oct 12" + ReelDeclutter.DOT + silent,
+                ReelDeclutter.soundLabel(silent, SONG, 1791817200L, NOW, ReelDateStyle.DATE, Locale.US, UTC));
+        assertSame("another attribution's label", "Spokane, Washington",
+                ReelDeclutter.soundLabel("Spokane, Washington", LOCATION, threeWeeks, NOW, ReelDateStyle.AGO, Locale.US, UTC));
+        assertSame("an attribution whose type can't be read", silent,
+                ReelDeclutter.soundLabel(silent, null, threeWeeks, NOW, ReelDateStyle.AGO, Locale.US, UTC));
+
+        long posted = System.currentTimeMillis() / 1000 - 21L * 24 * 60 * 60;
+        TreeJNI story = new TreeJNI().with("creation_time", posted);
+        TypedFeedUnit sound = chip(SONG);
+        assertSame("off by default, the label stays", silent, ReelDeclutter.soundLabelText(silent, sound, story));
+        assertNull(line(ReelDeclutter.DATE_ROUTE));
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertEquals("3 weeks ago" + ReelDeclutter.DOT + silent, ReelDeclutter.soundLabelText(silent, sound, story));
+        assertTrue(line(ReelDeclutter.DATE_ROUTE), line(ReelDeclutter.DATE_ROUTE).contains(ReelDeclutter.DATE_ON_SOUND));
+        assertSame("a location's label", "Spokane", ReelDeclutter.soundLabelText("Spokane", chip(LOCATION), story));
+        assertSame("no attribution", silent, ReelDeclutter.soundLabelText(silent, null, story));
+        assertSame("a story with no time", silent, ReelDeclutter.soundLabelText(silent, sound, new TreeJNI()));
+        assertSame("no story", silent, ReelDeclutter.soundLabelText(silent, sound, null));
+        assertNull("no label stays no label", ReelDeclutter.soundLabelText(null, sound, story));
+
+        ReelDeclutter.soundStory(story);
+        assertEquals("the kept story", "3 weeks ago" + ReelDeclutter.DOT + silent, ReelDeclutter.soundTickerText(silent, sound));
+        assertSame("kept for one label only", silent, ReelDeclutter.soundTickerText(silent, sound));
+        ReelDeclutter.soundStory(null);
+        assertSame("nothing kept", silent, ReelDeclutter.soundTickerText(silent, sound));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame("dated while paused", silent, ReelDeclutter.soundLabelText(silent, sound, story));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertSame("dated before the settings were ready", silent, ReelDeclutter.soundLabelText(silent, sound, story)));
+    }
+
+    /**
      * A video author's Subscribe pill (#291) goes only with the switch on, from the viewer's row and
      * from a shared row's slot. A Follow pill stays, a slot takes the builder's note once, and the
      * pill comes back paused, before the settings are ready and when the switch can't be read.
@@ -597,6 +795,35 @@ public class ReelDeclutterTest {
         }
         Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON.save(false);
         assertTrue("turning the switch off didn't bring the pill back", ReelDeclutter.showAuthorPill(true, true));
+    }
+
+    /**
+     * The fan-subscription pill some Pages get always says Subscribe, so its slot empties with the
+     * switch on, and with no note from a builder. It comes back with the switch off, paused, and
+     * when the switch can't be read.
+     */
+    @Test
+    public void theFanSubscribePillGoesWithTheSwitchOn() {
+        Object slot = new Object();
+        assertSame("the fan pill went with the switch off", slot, ReelDeclutter.fanPillSlot(slot));
+        Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON.save(true);
+        assertNull("the slot kept the fan pill", ReelDeclutter.fanPillSlot(slot));
+        ReelDeclutter.noteAuthorPill(false);
+        assertNull("a Follow note from the shared builder kept the fan pill", ReelDeclutter.fanPillSlot(slot));
+        assertSame("the fan slot took the shared builder's note", slot, ReelDeclutter.authorPillSlot(slot));
+        assertEquals(ReelDeclutter.SUBSCRIBE_ROUTE + ": 4 lists, 4 items, 2 removed. Last reason: " + ReelDeclutter.SUBSCRIBE
+                + ". Removed: " + ReelDeclutter.SUBSCRIBE + " 2. Kinds: " + ReelDeclutter.SUBSCRIBE + " 3, "
+                + ReelDeclutter.FOLLOW + " 1", line(ReelDeclutter.SUBSCRIBE_ROUTE));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame("the fan pill went while paused", slot, ReelDeclutter.fanPillSlot(slot));
+        PauseForTests.resume();
+        SettingReadsForTests.breakReads(Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON);
+        try {
+            assertSame("a switch that can't be read emptied the fan slot", slot, ReelDeclutter.fanPillSlot(slot));
+        } finally {
+            SettingReadsForTests.mend(Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON);
+        }
     }
 
     /** The report counts each pill under its kind and the Subscribe pills it took away. */
@@ -883,7 +1110,7 @@ public class ReelDeclutterTest {
     }
 
     /** Stands in for Facebook's icon enum: the sidebar walks one constant per button. */
-    private enum SidebarIcon { LIKE, COMMENT, SHARE, BOOKMARK, APP_WHATSAPP, APP_WHATSAPP_BUSINESS,
+    private enum SidebarIcon { LIKE, COMMENT, RESHARE, SHARE, BOOKMARK, APP_WHATSAPP, APP_WHATSAPP_BUSINESS,
         APP_WHATSAPP_STATUS, DOWNLOAD, MORE }
 
     /** Not an enum, though its text is Save's name. */
@@ -962,11 +1189,13 @@ public class ReelDeclutterTest {
     }
 
     @Test
-    public void likeCommentAndShareEachHaveTheirOwnSwitch() {
+    public void likeCommentRepostAndShareEachHaveTheirOwnSwitch() {
+        // Repost is the icon enum's RESHARE, the constant 587's list builder puts in ahead of Share (#450).
         BooleanSetting[] switches = {Settings.HIDE_REEL_LIKE_BUTTON, Settings.HIDE_REEL_COMMENT_BUTTON,
-                Settings.HIDE_REEL_SHARE_BUTTON};
-        SidebarIcon[] icons = {SidebarIcon.LIKE, SidebarIcon.COMMENT, SidebarIcon.SHARE};
-        String[] buttons = {ReelDeclutter.LIKE_BUTTON, ReelDeclutter.COMMENT_BUTTON, ReelDeclutter.SHARE_BUTTON};
+                Settings.HIDE_REEL_REPOST_BUTTON, Settings.HIDE_REEL_SHARE_BUTTON};
+        SidebarIcon[] icons = {SidebarIcon.LIKE, SidebarIcon.COMMENT, SidebarIcon.RESHARE, SidebarIcon.SHARE};
+        String[] buttons = {ReelDeclutter.LIKE_BUTTON, ReelDeclutter.COMMENT_BUTTON, ReelDeclutter.REPOST_BUTTON,
+                ReelDeclutter.SHARE_BUTTON};
         for (int i = 0; i < switches.length; i++) {
             assertFalse(switches[i].key, switches[i].defaultValue);
             assertFalse(switches[i].key, ReelDeclutter.hideSidebarButton(icons[i]));
@@ -1303,15 +1532,19 @@ public class ReelDeclutterTest {
     }
 
     @Test
-    public void bothFooterQueriesAreSkippedWhileTheirSwitchIsOn() {
+    public void everyFooterQueryIsSkippedWhileTheirSwitchIsOn() {
         assertTrue(ReelDeclutter.skipHotComment());
         assertTrue(ReelDeclutter.skipSocialBubbles());
+        // #464: and the comment the caption row swaps in for the caption.
+        assertTrue(ReelDeclutter.skipCaptionComment());
         Settings.HIDE_REEL_SOCIAL_FOOTER.save(false);
         assertFalse(ReelDeclutter.skipHotComment());
         assertFalse(ReelDeclutter.skipSocialBubbles());
-        assertEquals(ReelDeclutter.FOOTER_ROUTE + ": 4 lists, 4 items, 2 removed. Last reason: "
-                + ReelDeclutter.SOCIAL_BUBBLES + ". Removed: " + ReelDeclutter.SOCIAL_BUBBLES + " 1, "
-                + ReelDeclutter.HOT_COMMENT + " 1. Kinds: " + ReelDeclutter.SOCIAL_BUBBLES + " 2, "
+        assertFalse(ReelDeclutter.skipCaptionComment());
+        assertEquals(ReelDeclutter.FOOTER_ROUTE + ": 6 lists, 6 items, 3 removed. Last reason: "
+                + ReelDeclutter.CAPTION_COMMENT + ". Removed: " + ReelDeclutter.CAPTION_COMMENT + " 1, "
+                + ReelDeclutter.SOCIAL_BUBBLES + " 1, " + ReelDeclutter.HOT_COMMENT + " 1. Kinds: "
+                + ReelDeclutter.CAPTION_COMMENT + " 2, " + ReelDeclutter.SOCIAL_BUBBLES + " 2, "
                 + ReelDeclutter.HOT_COMMENT + " 2", line(ReelDeclutter.FOOTER_ROUTE));
     }
 
@@ -1344,6 +1577,7 @@ public class ReelDeclutterTest {
             assertFalse(why + " hid the Following button", ReelDeclutter.hideFollowingButton());
             assertFalse(why + " skipped the hot comment", ReelDeclutter.skipHotComment());
             assertFalse(why + " skipped the bubbles", ReelDeclutter.skipSocialBubbles());
+            assertFalse(why + " skipped the caption comment", ReelDeclutter.skipCaptionComment());
         }
         PauseForTests.resume();
         assertTrue("the Follow hook didn't come back after the pause", ReelDeclutter.hideFollowButton());
@@ -1358,6 +1592,7 @@ public class ReelDeclutterTest {
             assertFalse(ReelDeclutter.hideFollowingButton());
             assertFalse(ReelDeclutter.skipHotComment());
             assertFalse(ReelDeclutter.skipSocialBubbles());
+            assertFalse(ReelDeclutter.skipCaptionComment());
         });
         assertEquals(1, ReelDeclutter.filterChips(Arrays.asList(chip(REMIX), chip(SONG))).length);
     }
@@ -1385,6 +1620,7 @@ public class ReelDeclutterTest {
                 ReelDeclutter.hideFollowingButton();
                 ReelDeclutter.skipHotComment();
                 ReelDeclutter.skipSocialBubbles();
+                ReelDeclutter.skipCaptionComment();
             }
             String log = LogBufferManager.buildExportText();
             assertEquals(log, 1, occurrences(log, "Reel chips: hid " + REMIX));
@@ -1393,6 +1629,7 @@ public class ReelDeclutterTest {
             assertEquals(log, 1, occurrences(log, "Reel Follow button: hid the Following button"));
             assertEquals(log, 1, occurrences(log, "Reel footer: skipped the " + ReelDeclutter.HOT_COMMENT + " query"));
             assertEquals(log, 1, occurrences(log, "Reel footer: skipped the " + ReelDeclutter.SOCIAL_BUBBLES + " query"));
+            assertEquals(log, 1, occurrences(log, "Reel footer: skipped the " + ReelDeclutter.CAPTION_COMMENT + " query"));
         } finally {
             LogBufferManager.clearLogBuffer();
         }

@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Under the title of the contributors, how many are listed for the period picked -->
+    <plurals name="contributor_count">
+        <item quantity="one">%s користувач</item>
+        <item quantity="few">%s користувачі</item>
+        <item quantity="many">%s користувачів</item>
+        <item quantity="other">%s користувача</item>
+    </plurals>
     <plurals name="patch_count">
         <item quantity="one">%s патч</item>
         <item quantity="few">%s патчі</item>
@@ -57,12 +64,6 @@
         <item quantity="few">%s джерела приховано. Натисніть, щоб показати</item>
         <item quantity="many">%s джерел приховано. Натисніть, щоб показати</item>
         <item quantity="other">%s джерел приховано. Натисніть, щоб показати</item>
-    </plurals>
-    <plurals name="sources_search_patch_matches">
-        <item quantity="one">%s відповідний патч</item>
-        <item quantity="few">%s відповідні патчі</item>
-        <item quantity="many">%s відповідних патчів</item>
-        <item quantity="other">%s відповідних патчів</item>
     </plurals>
     <plurals name="source_count">
         <item quantity="one">%s джерело</item>

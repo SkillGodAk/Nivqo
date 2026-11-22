@@ -30,7 +30,8 @@ public final class SuggestedStoriesForTests {
         UNSET_OR_UNRECOGNIZED_ENUM_VALUE, ADD_TO_STORY, ADD_TO_STORY_SELF_VIEW, ADMINED_ADDITIONAL_PROFILE_STORY,
         CONTACT_IMPORTER_STORY, FRIEND_REQUEST_STORY, NEW_FRIENDSHIP_STORY, PAGE_STORY, PROFESSIONAL_STORY,
         PROFILE_PLUS_STORY, PYMK_GENERATED_STORY, PYMK_PROFILE_FORWARD_STORY,
-        PYMK_STORY, SC_INDIA_FRIENDING_CTA_STORY, SHARED_PAGE_STORY, STORY
+        PYMK_STORY, SC_INDIA_FRIENDING_CTA_STORY, SHARED_PAGE_STORY, STORY, AGGREGATED_STORY,
+        FEATURED_HIGHLIGHTS_STORY, HIGHLIGHTED_STORY
     }
 
     /**
@@ -205,5 +206,45 @@ public final class SuggestedStoriesForTests {
         List<Bucket> tray = Arrays.asList(new Bucket(false, null).ownedBy("User"), watched);
         Object kept = keptBuckets(tray);
         return kept != tray && Collections.singletonList(watched).equals(kept);
+    }
+
+    /** Stands in for a tile of the tray's tile list: the Create story tile, or any other (#445). */
+    public static final class Tile {
+        public final boolean createStory;
+
+        public Tile(boolean createStory) {
+            this.createStory = createStory;
+        }
+
+        @Override
+        public String toString() {
+            return "Tile(" + createStory + ")";
+        }
+    }
+
+    /** The tile stub as the patch fills it, a read of the tile's kind, and ImmutableList.copyOf. */
+    static final CreateStoryTile.Tiles TILES = new CreateStoryTile.Tiles() {
+        @Override
+        public int createStory(Object tile) {
+            return tile instanceof Tile && ((Tile) tile).createStory ? CreateStoryTile.CREATE_STORY_TILE : CreateStoryTile.OTHER_TILE;
+        }
+
+        @Override
+        public Object copy(List<Object> kept) {
+            return new Copy(kept);
+        }
+    };
+
+    /** A tile list through the Create story filter, with the stand-in stub. */
+    public static Object keptTiles(List<?> tiles) {
+        return CreateStoryTile.keptTiles(tiles, TILES);
+    }
+
+    /** A tray of the Create story tile and a friend's story tile. True when the Create story tile came out (#445). */
+    public static boolean hidesCreateStory() {
+        Tile story = new Tile(false);
+        List<Tile> tray = Arrays.asList(new Tile(true), story);
+        Object kept = keptTiles(tray);
+        return kept != tray && Collections.singletonList(story).equals(kept);
     }
 }

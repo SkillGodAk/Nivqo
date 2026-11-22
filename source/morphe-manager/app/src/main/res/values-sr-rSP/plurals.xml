@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Under the title of the contributors, how many are listed for the period picked -->
+    <plurals name="contributor_count">
+        <item quantity="one">%s корисник</item>
+        <item quantity="few">%s корисника</item>
+        <item quantity="other">%s корисника</item>
+    </plurals>
     <plurals name="patch_count">
         <item quantity="one">%s патч</item>
         <item quantity="few">%s исправка</item>
@@ -48,11 +54,6 @@
         <item quantity="one">%s извор сакривен. Додирните да бисте приказали</item>
         <item quantity="few">%s извора сакривена. Додирните да бисте приказали</item>
         <item quantity="other">%s извора сакривено. Додирните да бисте приказали</item>
-    </plurals>
-    <plurals name="sources_search_patch_matches">
-        <item quantity="one">%s одговарајућа закрпа</item>
-        <item quantity="few">%s одговарајуће закрпе</item>
-        <item quantity="other">%s одговарајућих закрпа</item>
     </plurals>
     <plurals name="source_count">
         <item quantity="one">%s извор</item>

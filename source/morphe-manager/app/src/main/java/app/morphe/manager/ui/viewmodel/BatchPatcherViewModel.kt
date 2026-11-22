@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.morphe.manager.R
@@ -29,6 +30,7 @@ import app.morphe.manager.domain.bundles.patchableBy
 import app.morphe.manager.domain.bundles.recommendedEntry
 import app.morphe.manager.domain.installer.RootInstaller
 import app.morphe.manager.domain.manager.DownloadUrlResolver
+import app.morphe.manager.domain.manager.HomeAppButtonPreferences
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.domain.repository.InstalledAppRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository
@@ -44,21 +46,16 @@ import app.morphe.manager.ui.screen.shared.CopySelectionCandidate
 import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.util.*
 import app.morphe.manager.util.PatchSelectionUtils.applyAvailability
-import app.morphe.manager.util.PatchSelectionUtils.bulkEnableHoldsUniversal
-import app.morphe.manager.util.PatchSelectionUtils.bulkEnablePatches
 import app.morphe.manager.util.PatchSelectionUtils.listedWith
 import app.morphe.manager.util.PatchSelectionUtils.mergeBundleOptions
-import app.morphe.manager.util.PatchSelectionUtils.resetOptionsForPatch
 import app.morphe.manager.util.PatchSelectionUtils.spansMultipleBundles
-import app.morphe.manager.util.PatchSelectionUtils.togglePatch
-import app.morphe.manager.util.PatchSelectionUtils.updateOption
-import app.morphe.manager.util.PatchSelectionUtils.withBundle
 import app.morphe.patcher.patch.ApkArchitecture
 import app.morphe.patcher.patch.AppTarget
 import app.morphe.patcher.patch.InstallerType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -72,7 +69,7 @@ import java.io.File
  * applied, which keeps a canceled edit from touching the plan.
  */
 class BatchPatchEdit(
-    private val scope: CoroutineScope,
+    scope: CoroutineScope,
     override val panel: SelectionPanelController,
     val itemId: String,
     /** Key this item saves its patches and options under, and the one a copy excludes itself by. */
@@ -90,19 +87,13 @@ class BatchPatchEdit(
     // Whether the queue reaches patches that declare other app versions, so bulk actions offer
     // the same set the plan was resolved from
     private val allowIncompatible: Boolean
-) : SelectionPanelHost {
-    var selection by mutableStateOf(savedSelection)
-        private set
-
-    var options by mutableStateOf(initialOptions)
-        private set
-
-    // Bundle and selection left behind by the last "Enable all". Universal patches are applied
-    // only while this still matches the live selection, so any other edit disarms them again
-    private var universalArmedFor by mutableStateOf<Pair<Int, Set<String>>?>(null)
+) : PatchSelectionEditor(scope) {
+    init {
+        start(savedSelection, initialOptions)
+    }
 
     val allPatchesInfo: List<Pair<PatchBundleInfo.Scoped, List<Pair<PatchInfo, Boolean>>>>
-        get() = bundles.listedWith(selection)
+        get() = bundles.listedWith(selection, openedWith = savedSelection)
 
     val totalSelectedCount get() = selection.values.sumOf { it.size }
 
@@ -110,90 +101,29 @@ class BatchPatchEdit(
 
     private val patchesByName = bundles.associate { it.uid to it.patches.associateBy { patch -> patch.name } }
 
-    /**
-     * Lock state of [patch] for the install target this app is patched for.
-     *
-     * A REQUIRED patch only locks while the item draws its patches from one bundle, see
-     * [PatchSelectionUtils.applyAvailability].
-     */
-    fun lockStateOf(patch: PatchInfo) =
+    override fun lockState(patch: PatchInfo) =
         patch.lockState(installerType, apkArchitecture, !hasMultipleBundles)
 
-    fun togglePatch(bundleUid: Int, patchName: String) {
-        // Locked patches are toggled only through availability rules; no-op here
-        val patch = bundles.firstOrNull { it.uid == bundleUid }
-            ?.patches
-            ?.firstOrNull { it.name == patchName }
-        val selected = patchName in selection[bundleUid].orEmpty()
-        if (patch != null && lockStateOf(patch).blocksToggle(selected)) return
+    /** Availability rules of the install target, so an edit lands on the plan already settled. */
+    override fun settle(selection: PatchSelection) =
+        selection.applyAvailability(installerType, apkArchitecture, patchesByName)
 
-        selection = selection.togglePatch(bundleUid, patchName).applyItemAvailability()
-    }
+    override fun patchOf(bundleUid: Int, patchName: String) = patchesOf(bundleUid)[patchName]
 
-    /**
-     * Select all patches shown for a bundle, staging universal patches behind the regular ones
-     * exactly like the single-app flow does, see [PatchSelectionUtils.bulkEnablePatches].
-     */
-    fun selectAll(bundleUid: Int, patches: List<Pair<PatchInfo, Boolean>>) {
-        val selected = selection[bundleUid].orEmpty()
-        val updated = bulkEnablePatches(patches, selected, universalArmed(bundleUid, selected), ::lockStateOf)
-
-        replaceBundle(bundleUid, updated)
-        // Armed against what the availability rules left behind, so the next tap sees the
-        // selection it is compared to
-        universalArmedFor = bundleUid to selection[bundleUid].orEmpty()
-    }
-
-    /** True when the next [selectAll] holds universal patches back for another tap. */
-    fun selectAllHoldsUniversal(bundleUid: Int, patches: List<Pair<PatchInfo, Boolean>>): Boolean {
-        val selected = selection[bundleUid].orEmpty()
-        return bulkEnableHoldsUniversal(patches, universalArmed(bundleUid, selected), ::lockStateOf)
-    }
-
-    private fun universalArmed(bundleUid: Int, selected: Set<String>) =
-        universalArmedFor == (bundleUid to selected)
-
-    fun deselectAll(bundleUid: Int, patches: List<Pair<PatchInfo, Boolean>>) {
-        val removed = patches
-            .filterNot { (patch, _) -> lockStateOf(patch) == PatchLockState.LOCKED_ON }
-            .mapTo(mutableSetOf()) { (patch, _) -> patch.name }
-        replaceBundle(bundleUid, selection[bundleUid].orEmpty() - removed)
-    }
-
-    /**
-     * Reset a bundle's selection to what the plan would have resolved on its own.
-     *
-     * Defaults are read from the bundle instead of the dialog's list: the list also carries the
-     * patches declaring other app versions so they can be enabled by hand, and those belong to
-     * the defaults only where the run itself reaches them.
-     */
-    override fun resetToDefault(bundleUid: Int) {
-        val bundle = bundles.firstOrNull { it.uid == bundleUid } ?: return
-        replaceBundle(
-            bundleUid,
-            bundle.patchSequence(allowIncompatible)
-                .filter { it.defaultSelected(installerType, apkArchitecture) }
-                .mapTo(mutableSetOf()) { it.name }
-        )
-        panel.defaultsApplied()
-    }
+    /** What the plan would have resolved on its own. */
+    override fun defaultsOf(bundleUid: Int) = bundles.firstOrNull { it.uid == bundleUid }
+        ?.patchSequence(allowIncompatible)
+        ?.filter { it.defaultSelected(installerType, apkArchitecture) }
+        ?.mapTo(mutableSetOf()) { it.name }
 
     override val setsPackageName get() = packageName
 
     override val hasSavedSelection get() = savedSelection.values.any { it.isNotEmpty() }
 
     override fun restoreSaved() {
-        selection = savedSelection.applyItemAvailability()
+        update(savedSelection)
         options = initialOptions
         panel.restored()
-    }
-
-    fun updateOption(bundleUid: Int, patchName: String, optionKey: String, value: Any?) {
-        options = options.updateOption(bundleUid, patchName, optionKey, value)
-    }
-
-    fun resetOptions(bundleUid: Int, patchName: String) {
-        options = options.resetOptionsForPatch(bundleUid, patchName)
     }
 
     /** Patch schema of [bundleUid], which a copied selection is filtered against. */
@@ -231,7 +161,7 @@ class BatchPatchEdit(
     override fun applySet(set: SelectionSetSummary) {
         scope.launch {
             val snapshot = panel.resolveSet(set, bundles)
-            selection = snapshot.patches.applyItemAvailability()
+            update(snapshot.patches)
             options = snapshot.options
             panel.applied(set)
         }
@@ -240,22 +170,6 @@ class BatchPatchEdit(
     override fun saveSet(name: String) {
         panel.saveSet(scope, packageName, name, selection, options)
     }
-
-    override fun deleteSet(set: SelectionSetSummary) {
-        panel.deleteSet(scope, set)
-    }
-
-    override fun renameSet(set: SelectionSetSummary, name: String) {
-        panel.renameSet(scope, set, name)
-    }
-
-    private fun replaceBundle(bundleUid: Int, patches: Set<String>) {
-        selection = selection.withBundle(bundleUid, patches).applyItemAvailability()
-    }
-
-    /** Availability rules of the install target, so an edit lands on the plan already settled. */
-    private fun PatchSelection.applyItemAvailability() =
-        applyAvailability(installerType, apkArchitecture, patchesByName)
 }
 
 /**
@@ -279,6 +193,7 @@ class BatchPatcherViewModel(
     private val versionCatalog: AppVersionCatalog,
     private val localApkSources: LocalApkSources,
     private val prefs: PreferencesManager,
+    private val homeAppButtonPrefs: HomeAppButtonPreferences,
     rootInstaller: RootInstaller,
     /** Panel the editor docks under its list, with the sets kept for the app and the copies. */
     val editPanel: SelectionPanelController
@@ -304,6 +219,10 @@ class BatchPatcherViewModel(
         if (current?.phase == BatchPhase.FINISHED) {
             if (current.targets == queued) return
             coordinator.clear()
+        }
+        // A queue the screen re-enters with the same apps keeps what its pass already tried
+        if (current == null || current.phase != BatchPhase.PREFLIGHT || !current.targets.containsAll(queued)) {
+            resetAutoDownload()
         }
         coordinator.enqueue(queued)
     }
@@ -339,6 +258,9 @@ class BatchPatcherViewModel(
      * way the single-app flow does: the source settles which versions are worth looking for.
      */
     fun beginApkChoice(item: BatchPatchItem) {
+        // The user took over this app, so the pass does not ask for it again
+        autoDownloadTried += item.id
+        cancelAutoDownload()
         viewModelScope.launch {
             if (!prefs.useExpertMode.get()) {
                 val choices = withContext(Dispatchers.IO) {
@@ -421,7 +343,14 @@ class BatchPatcherViewModel(
          * Versions the sources cover, carried so a download helper can be told what else is
          * acceptable when the requested version is no longer offered anywhere.
          */
-        val compatible: List<BundledAppTarget> = emptyList()
+        val compatible: List<BundledAppTarget> = emptyList(),
+        /**
+         * True when the queue asked a helper for this APK on its own. Such a search has no
+         * instructions dialog and is dropped by [stopAutoDownload] rather than left waiting.
+         */
+        val auto: Boolean = false,
+        /** True once an automatic search was handed to a helper. */
+        val launched: Boolean = false
     )
 
     var apkSearch: ApkSearch? by mutableStateOf(null)
@@ -432,17 +361,21 @@ class BatchPatcherViewModel(
         // Read before the choice is dropped, which is where the covered versions were resolved
         val compatible = apkChoice?.takeIf { it.item.id == item.id }?.compatible.orEmpty()
         apkChoice = null
+        // Names the build and form factor the patches need
+        val target = compatible.firstOrNull {
+            it.target.version == version && (item.chosenBundleUid == null || it.bundleUid == item.chosenBundleUid)
+        }
         apkSearch = ApkSearch(
             item = item,
             version = version,
-            url = downloadUrlResolver.apiSearchUrl(item.packageName, version),
+            url = downloadUrlResolver.apiSearchUrl(item.packageName, version, target),
             compatible = compatible
         )
         viewModelScope.launch {
             val resolved = withContext(Dispatchers.IO) {
                 val uids = item.chosenBundleUid?.let(::listOf) ?: item.bundles.map { it.uid }
                 val patchSources = patchBundleRepository.patchSourceHeaders(item.packageName, uids)
-                downloadUrlResolver.resolve(item.packageName, version, patchSources)
+                downloadUrlResolver.resolve(item.packageName, version, patchSources, target)
             }
             // A search reopened meanwhile, for another version or a clone, waits on its own answer
             apkSearch = apkSearch?.takeIf { it.item.id == item.id && it.version == version }?.copy(url = resolved)
@@ -451,6 +384,115 @@ class BatchPatcherViewModel(
 
     fun cancelApkSearch() {
         apkSearch = null
+    }
+
+    /** A queued app the automatic pass would fetch an APK for, with the versions it may ask for. */
+    private data class AutoDownloadCandidate(
+        val item: BatchPatchItem,
+        val newest: BundledAppTarget?,
+        val compatible: List<BundledAppTarget>
+    )
+
+    /** What the automatic pass does next, worked out from the state of the screen. */
+    private sealed interface AutoDownloadStep {
+        data object Wait : AutoDownloadStep
+        data object StartQueue : AutoDownloadStep
+        data class Request(val candidate: AutoDownloadCandidate) : AutoDownloadStep
+    }
+
+    /** Queued apps the pass would fetch an APK for, in queue order, null until the catalog is read. */
+    private var autoDownloadCandidates: List<AutoDownloadCandidate>? by mutableStateOf(null)
+
+    private var autoDownloadEnabled by mutableStateOf(false)
+
+    /** Apps the pass already asked for or the user took over, so one download cannot repeat. */
+    private var autoDownloadTried by mutableStateOf(emptySet<String>())
+
+    /** True once the pass was stopped, until another queue is planned. */
+    private var autoDownloadStopped by mutableStateOf(false)
+
+    /** Whether a trusted helper can take an automatic request, null while helpers are looked up. */
+    private var autoHelperAvailable: Boolean? by mutableStateOf(null)
+
+    /** True while a Start press waits on the automatic downloads before the queue begins. */
+    var autoStartPending by mutableStateOf(false)
+        private set
+
+    private val hasAutoDownloadWork: Boolean
+        get() = autoDownloadEnabled && autoHelperAvailable == true && !autoDownloadStopped &&
+                autoDownloadCandidates.orEmpty().any { it.item.id !in autoDownloadTried }
+
+    /** Whether Start has anything to do: apps ready to patch, or apps the pass can fetch an APK for. */
+    fun canStart(current: BatchRunState): Boolean =
+        current.phase == BatchPhase.PREFLIGHT && !autoStartPending &&
+                (current.runnable.isNotEmpty() || hasAutoDownloadWork)
+
+    /** Takes what the screen found out about the trusted helpers, null while it is still looking. */
+    fun updateAutoHelperAvailability(available: Boolean?) {
+        autoHelperAvailable = available
+    }
+
+    private fun nextAutoDownloadStep(): AutoDownloadStep {
+        if (!autoStartPending) return AutoDownloadStep.Wait
+        // A helper is an activity of its own, so the next app is asked for only once nothing
+        // else holds the screen
+        if (apkSearch != null || processingApk || attachTarget != null || apkChoice != null ||
+            sourcePick != null || attachPrompt != null || edit != null
+        ) {
+            return AutoDownloadStep.Wait
+        }
+        if (!autoDownloadEnabled || autoDownloadStopped || autoHelperAvailable == false) {
+            return AutoDownloadStep.StartQueue
+        }
+        val candidates = autoDownloadCandidates
+        if (autoHelperAvailable == null || candidates == null) return AutoDownloadStep.Wait
+        val next = candidates.firstOrNull { it.item.id !in autoDownloadTried }
+            ?: return AutoDownloadStep.StartQueue
+        return AutoDownloadStep.Request(next)
+    }
+
+    private fun requestAutoDownload(candidate: AutoDownloadCandidate) {
+        val item = candidate.item
+        val version = candidate.newest?.target?.version
+        autoDownloadTried += item.id
+        apkSearch = ApkSearch(
+            item = item,
+            version = version,
+            url = downloadUrlResolver.apiSearchUrl(item.packageName, version, candidate.newest),
+            compatible = candidate.compatible,
+            auto = true
+        )
+    }
+
+    /** Marks the automatic request as handed to a helper, so coming back cannot start it twice. */
+    fun onAutoDownloadLaunched() {
+        val search = apkSearch?.takeIf { it.auto } ?: return
+        apkSearch = search.copy(launched = true)
+    }
+
+    /** Drops an automatic request the screen could not hand to a helper, leaving the app for the user. */
+    fun cancelAutoDownload() {
+        if (apkSearch?.auto == true) apkSearch = null
+    }
+
+    /** Ends the pass, leaving every app still waiting for a download to the user. */
+    fun stopAutoDownload() {
+        if (!autoStartPending && apkSearch?.auto != true) return
+        cancelAutoDownload()
+        autoStartPending = false
+        autoDownloadStopped = true
+        messages.show(R.string.batch_patch_auto_download_stopped)
+    }
+
+    private fun resetAutoDownload() {
+        // A request already with a helper is left to finish
+        if (apkSearch?.auto == true) return
+        autoDownloadTried = emptySet()
+        autoDownloadStopped = false
+    }
+
+    override fun onHelperDismissed() {
+        if (apkSearch?.auto == true) stopAutoDownload()
     }
 
     /** App waiting for its downloaded file, null when nothing was sent to the browser. */
@@ -510,11 +552,10 @@ class BatchPatcherViewModel(
      * package, version and signature checks an attached file does.
      */
     override fun onHelperApkReceived(uri: Uri) {
-        val item = apkSearch?.item ?: return
+        val search = apkSearch ?: return
         apkSearch = null
         attachPrompt = null
-        requestAttach(item.id)
-        onApkPicked(uri)
+        attachApk(search.item.id, uri, fetched = search.auto)
     }
 
     override fun onHelperInstalledAppChosen(packageName: String) {
@@ -522,6 +563,7 @@ class BatchPatcherViewModel(
         if (packageName != item.packageName) {
             // The helper answered about an app the queue never asked to patch
             messages.show(R.string.home_apk_helper_wrong_package)
+            onHelperDismissed()
             return
         }
 
@@ -552,10 +594,10 @@ class BatchPatcherViewModel(
     }
 
     /**
-     * Waits for [itemId] to be resolved against the APK just given to it, and then opens the
-     * editor when none of its patches is selected, as the single-app flow opens the selection
-     * after the APK, so the app is not left for the user to find the editor for. The APK question
-     * is closed otherwise, having waited for the answer.
+     * Waits for [itemId] to be resolved against the APK just given to it. When none of its
+     * patches is selected, the editor opens next, as the single-app flow opens the selection after
+     * the APK, so the app is not left for the user to find the editor for. Otherwise, the APK
+     * question is closed, having waited for the answer.
      */
     private suspend fun settleGivenApk(itemId: String, resolution: Job?) = whileProcessingApk {
         resolution?.join()
@@ -580,6 +622,8 @@ class BatchPatcherViewModel(
      * resolved so the user never sees patches that could not run against it anyway.
      */
     fun beginEdit(item: BatchPatchItem) {
+        autoDownloadTried += item.id
+        cancelAutoDownload()
         viewModelScope.launch { openEdit(item) }
     }
 
@@ -677,7 +721,14 @@ class BatchPatcherViewModel(
         val itemId = attachTarget
         attachTarget = null
         if (uri == null || itemId == null) return
+        attachApk(itemId, uri, fetched = false)
+    }
 
+    /**
+     * Gives [itemId] the APK at [uri]. One [fetched] by the automatic pass is dropped where it leaves
+     * nothing to patch, see [BatchPatchCoordinator.attachFetchedApk].
+     */
+    private fun attachApk(itemId: String, uri: Uri, fetched: Boolean) {
         viewModelScope.launch {
             whileProcessingApk {
                 val file = withContext(Dispatchers.IO) { copyToWorkspace(uri) }
@@ -685,7 +736,18 @@ class BatchPatcherViewModel(
                     messages.show(R.string.home_invalid_apk_io_error)
                     return@whileProcessingApk
                 }
-                settleGivenApk(itemId, coordinator.attachApk(itemId, file))
+                if (!fetched) {
+                    settleGivenApk(itemId, coordinator.attachApk(itemId, file))
+                    return@whileProcessingApk
+                }
+                val resolution = coordinator.attachFetchedApk(itemId, file)
+                resolution?.join()
+                val source = state.value?.items?.firstOrNull { it.id == itemId }?.source
+                if (resolution?.isCancelled == false && (source as? BatchApkSource.UserFile)?.file != file) {
+                    messages.show(R.string.batch_patch_auto_download_kept)
+                } else {
+                    settleGivenApk(itemId, resolution)
+                }
             }
         }
     }
@@ -734,13 +796,25 @@ class BatchPatcherViewModel(
         pm.launch(packageName)
     }
 
-    fun start() = coordinator.start()
+    /** Starts the queue, first fetching the APKs the automatic pass finds missing or behind. */
+    fun start() {
+        if (autoStartPending) return
+        if (hasAutoDownloadWork) autoStartPending = true else coordinator.start()
+    }
 
-    fun cancel() = coordinator.cancel()
+    fun cancel() {
+        cancelAutoDownload()
+        autoStartPending = false
+        coordinator.cancel()
+    }
 
     fun keep() = coordinator.keep()
 
-    fun clear() = coordinator.clear()
+    fun clear() {
+        cancelAutoDownload()
+        autoStartPending = false
+        coordinator.clear()
+    }
 
     fun retryUnfinished() = coordinator.retryUnfinished()
 
@@ -754,8 +828,8 @@ class BatchPatcherViewModel(
         installType: InstallType
     ): Boolean = withContext(Dispatchers.IO) {
         val selectionPayload = patchBundleRepository.snapshotSelection(item.selection)
-        val version = item.patchedFile
-            ?.let { pm.getPackageInfo(it)?.versionName?.takeUnless { name -> name.isBlank() } }
+        val version = item.patchedBuild
+            ?.let { pm.getPackageInfo(it.file)?.versionName?.takeUnless { name -> name.isBlank() } }
             ?: item.version
             ?: return@withContext false
 
@@ -771,10 +845,49 @@ class BatchPatcherViewModel(
         true
     }
 
+    // Last in the class, as the pass reads state declared all over it
+    init {
+        viewModelScope.launch {
+            prefs.autoDownloadApkHelpersInBatch.flow.collect { autoDownloadEnabled = it }
+        }
+        viewModelScope.launch {
+            combine(
+                state,
+                versionCatalog.compatibleVersions,
+                patchBundleRepository.appMetadata,
+                homeAppButtonPrefs.ignoredVersions
+            ) { current, catalog, metadata, ignored ->
+                current?.takeIf { it.phase == BatchPhase.PREFLIGHT }?.items.orEmpty().mapNotNull { item ->
+                    val compatible = batchAutoDownloadTargets(item, catalog[item.packageName].orEmpty())
+                    val newest = compatible.recommendedEntry()
+                    AutoDownloadCandidate(item, newest, compatible).takeIf {
+                        item.autoDownloadWanted(
+                            newest = newest,
+                            canVerifySignature = helperSignatureCheckAvailable(metadata[item.packageName]),
+                            ignoredVersion = ignored[item.packageName]
+                        )
+                    }
+                }
+            }.collect { autoDownloadCandidates = it }
+        }
+        viewModelScope.launch {
+            snapshotFlow { nextAutoDownloadStep() }.collect { step ->
+                when (step) {
+                    AutoDownloadStep.Wait -> Unit
+                    AutoDownloadStep.StartQueue -> {
+                        autoStartPending = false
+                        coordinator.start()
+                    }
+                    is AutoDownloadStep.Request -> requestAutoDownload(step.candidate)
+                }
+            }
+        }
+    }
+
     private fun copyToWorkspace(uri: Uri): File? = try {
         uri.copyApkInto(fs.uiTempDir, "batch_input", app.contentResolver)
     } catch (e: Exception) {
-        Log.e(tag, "Failed to copy attached APK", e)
+        Log.e(LOG_TAG, "Failed to copy attached APK", e)
         null
     }
 }

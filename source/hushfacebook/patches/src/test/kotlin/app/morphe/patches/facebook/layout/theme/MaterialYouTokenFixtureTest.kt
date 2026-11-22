@@ -5,9 +5,11 @@
 package app.morphe.patches.facebook.layout.theme
 
 import app.morphe.Fixtures
+import app.morphe.PatchContexts
 import app.morphe.RepoFiles
 import app.morphe.patches.facebook.layout.theme.tokenAttributes as patchTokenAttributes
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.classDefForEachReferencing
 import com.android.tools.smali.dexlib2.DexFileFactory
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.Opcodes
@@ -25,11 +27,11 @@ import com.reandroid.arsc.chunk.TableBlock
 import com.reandroid.arsc.chunk.xml.ResXmlDocument
 import com.reandroid.arsc.chunk.xml.ResXmlElement
 import com.reandroid.arsc.model.ResourceEntry
+import com.reandroid.arsc.value.DataType
 import com.reandroid.arsc.value.Entry
 import com.reandroid.arsc.value.ResConfig
 import com.reandroid.arsc.value.ResTableMapEntry
 import com.reandroid.arsc.value.ValueItem
-import com.reandroid.arsc.value.ValueType
 import java.io.File
 import java.io.StringWriter
 import java.util.zip.ZipFile
@@ -112,8 +114,12 @@ class MaterialYouTokenFixtureTest {
          * getInteger (issue #154). The scan has to find it, or the crash is back. The reactions
          * pill bar below reads the same array in its constructor, under a name Redex leaves alone
          * on both ABIs, where the Litho component and the array's holder are renamed per build.
+         * 587's pill bar reads it from `LX/03tD;->A2y` on arm64 and `LX/03tB;->A2y` on v7, both
+         * holding 0x1010097, 0x101015d and 0x7f040f99 (586's `LX/01ic;->A30` held 0x7f040fc6 third).
          */
-        val LIKES_LINE_ATTRIBUTE = mapOf("585.0.0.47.54" to 0x7f040fcf)
+        val LIKES_LINE_ATTRIBUTE = mapOf(
+            "585.0.0.47.54" to 0x7f040fcf, "586.0.0.52.53" to 0x7f040fc6, "587.0.0.39.55" to 0x7f040f99,
+        )
         /**
          * The seven tokens 584 dropped from 583's 324 (all of them named in MaterialYouTheme's
          * tables or the AMOLED roles at some point), so a listed name missing from a build's enum is
@@ -194,8 +200,85 @@ class MaterialYouTokenFixtureTest {
             "L?;-><init>(Landroid/content/Context;)V@116",
             "L?;->?()V@35",
         )
+        /**
+         * 586's 18 are 585's, shape for shape, each within seven instructions of where 585 had it
+         * (2026-11-09): the session null checks 586 puts first move them.
+         */
+        private val SHAPES_586 = MAPBOX.toList() + listOf(
+            "L?;->?(Ljava/lang/Integer;)V@16",
+            "L?;->?(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Integer;@88",
+            "L?;->?(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
+            "L?;->?(L?;)V@151",
+            "L?;->?(L?;)V@165",
+            "L?;->?(L?;)V@50",
+            "L?;->?(L?;)V@63",
+            "L?;->?(L?;)V@75",
+            "L?;->?(L?;)V@78",
+            "L?;->?(L?;I)V@171",
+            "L?;->?(L?;I)V@228",
+            "L?;->?(L?;I)V@33",
+            "L?;->?(L?;L?;)V@11",
+            "L?;-><init>(Landroid/content/Context;)V@109",
+            "L?;->?()V@36",
+        )
+        /** 586's Android 9 build has the same 18, the six taking one object and the constructor three or four instructions on (2026-11-10). */
+        private val SHAPES_586_ANDROID_9 = MAPBOX.toList() + listOf(
+            "L?;->?(Ljava/lang/Integer;)V@16",
+            "L?;->?(Landroid/content/Context;Ljava/lang/String;)Ljava/lang/Integer;@88",
+            "L?;->?(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
+            "L?;->?(L?;)V@154",
+            "L?;->?(L?;)V@168",
+            "L?;->?(L?;)V@54",
+            "L?;->?(L?;)V@67",
+            "L?;->?(L?;)V@79",
+            "L?;->?(L?;)V@82",
+            "L?;->?(L?;I)V@171",
+            "L?;->?(L?;I)V@228",
+            "L?;->?(L?;I)V@33",
+            "L?;->?(L?;L?;)V@11",
+            "L?;-><init>(Landroid/content/Context;)V@112",
+            "L?;->?()V@36",
+        )
+        /**
+         * 587 has 17 (2026-11-12, from this test's output on arm64): 586's (Context, String)Integer
+         * read is gone, its three (L?;I)V reads are gone, and three (L?;)V reads are new (at 10, at
+         * 111 and a second at 54). The tokens read as data and the unchecked ones are 586's, so no FDS
+         * token's read left the scan's sight; the new calls are pinned by shape only.
+         */
+        private val SHAPES_587 = MAPBOX.toList() + listOf(
+            "L?;->?(Ljava/lang/Integer;)V@16",
+            "L?;->?(Landroid/content/Context;Lcom/facebook/react/bridge/ReadableMap;)Landroid/graphics/drawable/Drawable;@20",
+            "L?;->?(L?;)V@10",
+            "L?;->?(L?;)V@111",
+            "L?;->?(L?;)V@156",
+            "L?;->?(L?;)V@170",
+            "L?;->?(L?;)V@54",
+            "L?;->?(L?;)V@54",
+            "L?;->?(L?;)V@67",
+            "L?;->?(L?;)V@79",
+            "L?;->?(L?;)V@82",
+            "L?;->?(L?;L?;)V@9",
+            "L?;-><init>(Landroid/content/Context;)V@114",
+            "L?;->?()V@34",
+        )
+        /**
+         * 587's armeabi-v7a reads the same 17 calls, three of them at other offsets in their methods
+         * (2026-11-12, from this test's output): the two late (L?;)V reads at 154 and 168, the
+         * constructor's at 113, the places 586's Android 9 build had them.
+         */
+        private val SHAPES_587_V7 = SHAPES_587.map {
+            when (it) {
+                "L?;->?(L?;)V@156" -> "L?;->?(L?;)V@154"
+                "L?;->?(L?;)V@170" -> "L?;->?(L?;)V@168"
+                "L?;-><init>(Landroid/content/Context;)V@114" -> "L?;-><init>(Landroid/content/Context;)V@113"
+                else -> it
+            }
+        }
         val UNRESOLVED = mapOf(
             "585.0.0.47.54" to mapOf("arm64-v8a" to SHAPES_585, "armeabi-v7a" to SHAPES_585),
+            "586.0.0.52.53" to mapOf("arm64-v8a" to SHAPES_586, "armeabi-v7a" to SHAPES_586,
+                "arm64-v8a-minapi28-storeless" to SHAPES_586_ANDROID_9),
+            "587.0.0.39.55" to mapOf("arm64-v8a" to SHAPES_587, "armeabi-v7a" to SHAPES_587_V7),
         )
 
         /** A class name Redex made up for one build, or a merged lambda group's. */
@@ -245,15 +328,15 @@ class MaterialYouTokenFixtureTest {
         val listed = listedTokens()
         assertTrue("the table lists almost nothing", listed.size > 50)
         val surfaces = listedSurfaces()
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
                 withBaseApk(fixture) { apk -> checkBuild(fixture.name, apk, listed, surfaces) }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     private fun checkBuild(build: String, apk: File, listed: Map<String, Set<Int>>, surfaces: Set<Int>) {
@@ -296,15 +379,15 @@ class MaterialYouTokenFixtureTest {
     @Test
     fun `the main activity's window background is WASH, dark's #101011, in each declared build`() {
         assertTrue("SURFACES lists #101011", WASH_DARK in listedSurfaces())
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
                 withBaseApk(fixture) { apk -> checkWindowBackground(fixture.name, apk) }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     private fun checkWindowBackground(build: String, apk: File) {
@@ -326,7 +409,7 @@ class MaterialYouTokenFixtureTest {
                 for (item in entry.tableEntry as ResTableMapEntry) {
                     if (item.nameId != WINDOW_BACKGROUND) continue
                     val where = "$build: style %08x %s windowBackground".format(style, entry.resConfig)
-                    assertEquals(where, ValueType.ATTRIBUTE, item.valueType)
+                    assertEquals(where, DataType.ATTRIBUTE, item.dataType)
                     assertEquals(where, wash, item.data)
                     found = true
                 }
@@ -373,7 +456,7 @@ class MaterialYouTokenFixtureTest {
             val twice = colours intersect dark[name].orEmpty()
             assertTrue("$name lists ${hex(twice)} in both tables", twice.isEmpty())
         }
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -390,10 +473,10 @@ class MaterialYouTokenFixtureTest {
                         }
                     }
                 }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     /**
@@ -413,7 +496,7 @@ class MaterialYouTokenFixtureTest {
             val twice = colours intersect shared[name].orEmpty()
             assertTrue("$name lists ${hex(twice)} in FDS_LIGHT and FDS_SHARED", twice.isEmpty())
         }
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -435,10 +518,10 @@ class MaterialYouTokenFixtureTest {
                     }
                     assertEquals("${fixture.name}: FDS_LIGHT should be \"$table\"", built.mapValues { setOf(it.value) }, listed.filterKeys { it !in REMOVED_TOKENS }.toSortedMap())
                 }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
         assertTrue("the light table lists almost nothing", listed.size > 20)
     }
 
@@ -468,7 +551,7 @@ class MaterialYouTokenFixtureTest {
         val blues = Regex("""static final String SERVER_BLUES = "([0-9A-F ]+)";""").find(theme)!!.groupValues[1]
             .split(" ").map { it.toInt(16) }
         assertTrue("SERVER_BLUES lists almost nothing", blues.size >= 5)
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -480,10 +563,10 @@ class MaterialYouTokenFixtureTest {
                         assertTrue("${fixture.name}: ${"%06X".format(blue)} is no FDS style's colour", blue in rgb)
                     }
                 }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     /** AmoledTheme's BACKGROUND_TOKENS, the Mig names in it included. */
@@ -510,7 +593,7 @@ class MaterialYouTokenFixtureTest {
         assertTrue("BACKGROUND_TOKENS lists almost nothing", backgrounds.size > 20)
         val black = amoledChannel("MAX_CHANNEL")
         val raised = amoledChannel("MAX_RAISED_CHANNEL")
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -536,10 +619,10 @@ class MaterialYouTokenFixtureTest {
                     assertTrue("${fixture.name}: CARD_BACKGROUND is no longer above the black band, found $raisedTokens",
                         "CARD_BACKGROUND" in raisedTokens)
                 }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     /** AmoledTheme's LIGHT_BACKGROUND_TOKENS, the fills only light mode's Light background color moves. */
@@ -572,7 +655,7 @@ class MaterialYouTokenFixtureTest {
             val channels = listOf(colour shr 16 and 0xFF, colour shr 8 and 0xFF, colour and 0xFF)
             return colour ushr 24 == 0xFF && channels.min() >= floor && channels.max() - channels.min() <= 8
         }
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -608,10 +691,10 @@ class MaterialYouTokenFixtureTest {
                             (0..16 step 8).all { (colour shr it and 0xFF) >= (textSurface shr it and 0xFF) })
                     }
                 }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     /** AmoledTheme's Java set [constant], from its declaration to the end of it. */
@@ -635,7 +718,7 @@ class MaterialYouTokenFixtureTest {
         assertTrue("LIGHT_TEXT_TOKENS, found $text", "TEXT_INPUT_ACTIVE_TEXT" in text && "ACCENT" !in text)
         assertTrue("MIG_LIGHT_FILLS, found $fills", "FILL" in fills)
         val lightTable = listedTokens("FDS_LIGHT")
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -665,10 +748,10 @@ class MaterialYouTokenFixtureTest {
                     assertTrue("${fixture.name}: Mig's enums have no ${fills - names}", names.containsAll(fills))
                     assertTrue("${fixture.name}: FDS tokens named ${fills intersect attributes.keys}", (fills intersect attributes.keys).isEmpty())
                 }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     /**
@@ -681,7 +764,7 @@ class MaterialYouTokenFixtureTest {
      */
     @Test
     fun `the light surfaces the patch repoints are light mode's alone in each declared build`() {
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -733,10 +816,10 @@ class MaterialYouTokenFixtureTest {
                     assertTrue("$build: no text or icon reads the surfaces' colours, so they need no resources of their own",
                         shared.isNotEmpty())
                 }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     /** AmoledTheme's TEXT_TOKENS: FDS's names, then Mig's, as its comments mark them. */
@@ -796,7 +879,7 @@ class MaterialYouTokenFixtureTest {
         assertTrue("Mig's text roles", "SECONDARY" in mig && "PLACEHOLDER" in mig)
         val matrix = roleColours()
         assertEquals("the matrix covers every FDS role", fds, matrix.keys)
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
@@ -822,10 +905,10 @@ class MaterialYouTokenFixtureTest {
                     assertTrue("${fixture.name}: Mig's enums have no ${mig - names}", names.containsAll(mig))
                     assertTrue("${fixture.name}: FDS tokens named ${mig intersect attributes.keys}", (mig intersect attributes.keys).isEmpty())
                 }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     /**
@@ -847,15 +930,15 @@ class MaterialYouTokenFixtureTest {
         val dark = listedTokens()
         val shared = listedTokens("FDS_SHARED")
         val listed = (dark.keys + shared.keys).associateWith { dark[it].orEmpty() + shared[it].orEmpty() }
-        var builds = 0
+        val builds = mutableListOf<String>()
         for (target in AppCompatibilities.facebook().single().targets) {
             val version = checkNotNull(target.version)
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
                 withBaseApk(fixture) { apk -> checkNightStyles(fixture.name, version, apk, listed) }
-                builds++
+                builds += fixture.name.substringAfter("-$version-").substringBefore(".apkm")
             }
         }
-        assertEquals("one fixture for each declared build", declaredBuilds(), builds)
+        assertEquals("one fixture for each declared build", declaredBuilds(), Fixtures.abisOf(builds).size)
     }
 
     private fun checkNightStyles(build: String, version: String, apk: File, listed: Map<String, Set<Int>>) {
@@ -923,13 +1006,23 @@ class MaterialYouTokenFixtureTest {
     /**
      * The tokens the patch's styleable scan reaches over every class in [apk]: the attributes some
      * styleable array reads as an integer, followed through [styles]' `?attr/` aliases to [tokens].
+     * The patch walks only the classes the reference index hands it, which has to find the same.
      */
     private fun styleableTokens(apk: File, version: String, styles: List<Document>, tokens: Map<String, String>): Set<String> {
         val container = DexFileFactory.loadDexContainer(apk, Opcodes.getDefault())
-        val scan = integerReadAttributes { visit ->
-            for (name in container.dexEntryNames) container.getEntry(name)!!.dexFile.classes.forEach(visit)
-        }
+        val classes = container.dexEntryNames.flatMap { container.getEntry(it)!!.dexFile.classes }
+        val scan = integerReadAttributes({ visit -> classes.forEach(visit) })
         assertTrue("${apk.name}: no styleable array is read as an integer", scan.attributes.isNotEmpty())
+        val context = PatchContexts.of(classes)
+        var visited = 0
+        val indexed = integerReadAttributes({ visit -> classes.forEach(visit) }) { types, visit ->
+            context.classDefForEachReferencing(types = types) { visited++; visit(it) }
+        }
+        assertTrue("${apk.name}: the indexed walk reached $visited of ${classes.size} classes", visited < classes.size / 5)
+        assertEquals("${apk.name}: the indexed walk's attributes", scan.attributes, indexed.attributes)
+        assertEquals("${apk.name}: the indexed walk's readers", scan.readers, indexed.readers)
+        assertEquals("${apk.name}: the indexed walk's arrays",
+            scan.arrays.mapValues { it.value.toList() }, indexed.arrays.mapValues { it.value.toList() })
         val likesLine = LIKES_LINE_ATTRIBUTE.getValue(version)
         assertTrue("${apk.name}: the likes line's text colour attribute isn't read as an integer", likesLine in scan.attributes)
         val readers = scan.readers.filterValues { fields -> fields.any { likesLine in scan.arrays.getValue(it) } }
@@ -975,11 +1068,11 @@ class MaterialYouTokenFixtureTest {
             }
         }
         fun name(resource: ResourceEntry) = "${resource.type}_0x%08x".format(resource.resourceId)
-        fun text(item: ValueItem): String = when (item.valueType) {
-            ValueType.COLOR_ARGB8, ValueType.COLOR_RGB8, ValueType.COLOR_ARGB4, ValueType.COLOR_RGB4 -> "#%08x".format(item.data)
-            ValueType.REFERENCE, ValueType.DYNAMIC_REFERENCE ->
+        fun text(item: ValueItem): String = when (item.dataType) {
+            DataType.COLOR_ARGB8, DataType.COLOR_RGB8, DataType.COLOR_ARGB4, DataType.COLOR_RGB4 -> "#%08x".format(item.data)
+            DataType.REFERENCE, DataType.DYNAMIC_REFERENCE ->
                 byId[item.data]?.takeIf { it.type == "color" }?.let { "@color/${name(it)}" } ?: "@null"
-            ValueType.ATTRIBUTE, ValueType.DYNAMIC_ATTRIBUTE -> "?attr/attr_0x%08x".format(item.data)
+            DataType.ATTRIBUTE, DataType.DYNAMIC_ATTRIBUTE -> "?attr/attr_0x%08x".format(item.data)
             else -> "@null"
         }
 
@@ -1052,9 +1145,9 @@ class MaterialYouTokenFixtureTest {
     }
 
     /** A colour value, following references to colour resources in their default configuration. */
-    private fun colour(item: ValueItem, byId: Map<Int, ResourceEntry>, depth: Int): Int? = when (item.valueType) {
-        ValueType.COLOR_ARGB8, ValueType.COLOR_RGB8, ValueType.COLOR_ARGB4, ValueType.COLOR_RGB4 -> item.data
-        ValueType.REFERENCE, ValueType.DYNAMIC_REFERENCE -> {
+    private fun colour(item: ValueItem, byId: Map<Int, ResourceEntry>, depth: Int): Int? = when (item.dataType) {
+        DataType.COLOR_ARGB8, DataType.COLOR_RGB8, DataType.COLOR_ARGB4, DataType.COLOR_RGB4 -> item.data
+        DataType.REFERENCE, DataType.DYNAMIC_REFERENCE -> {
             val target = byId[item.data]
             val entry: Entry? = target?.let { resource ->
                 resource.iterator().asSequence().firstOrNull { it != null && !it.isNull && it.resConfig.isDefault }

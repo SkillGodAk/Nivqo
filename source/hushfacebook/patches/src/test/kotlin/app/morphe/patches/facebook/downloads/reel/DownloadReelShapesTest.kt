@@ -399,6 +399,28 @@ class DownloadReelShapesTest {
         assertTrue("no call to the builder", !rendersThrough(noCall, builder))
     }
 
+    /** 585's Android 9 build hands its builder the tree props first and the scoped context later on. */
+    @Test
+    fun `the scoped context may come later in the builder's parameters, once`() {
+        val builder = method(
+            "Lfixture/Spec;", "build", listOf("Lfixture/Props;", session, "Lfixture/Scope;"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nreturn-object v0",
+        )
+        val call = "invoke-virtual/range { v0 .. v3 }, Lfixture/Spec;->build(Lfixture/Props;${session}Lfixture/Scope;)Lfixture/Component;"
+        val render = method("Lfixture/Sidebar;", "render", listOf("Lfixture/Scope;"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nconst/4 v1, 0x0\nconst/4 v2, 0x0\n$call\nmove-result-object v0\nreturn-object v0")
+        assertTrue(rendersThrough(render, builder))
+
+        val twice = method(
+            "Lfixture/Spec;", "build", listOf("Lfixture/Scope;", session, "Lfixture/Scope;"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nreturn-object v0",
+        )
+        val twiceCall = "invoke-virtual/range { v0 .. v3 }, Lfixture/Spec;->build(Lfixture/Scope;${session}Lfixture/Scope;)Lfixture/Component;"
+        val rendersTwice = method("Lfixture/Sidebar;", "render", listOf("Lfixture/Scope;"), "Lfixture/Component;",
+            "const/4 v0, 0x0\nconst/4 v1, 0x0\nconst/4 v2, 0x0\n$twiceCall\nmove-result-object v0\nreturn-object v0")
+        assertTrue("a builder taking the scoped type twice", !rendersThrough(rendersTwice, twice))
+    }
+
     private val handler = "Lkotlin/jvm/functions/Function1;"
     private val factory = "Lfixture/Factory;->make($session$handler$handler$handler$handler)Lfixture/Button;"
 
@@ -587,5 +609,34 @@ class DownloadReelShapesTest {
             fieldOfType(others + sessionField + field("session2", session), session, "the session field")
         }
         assertTrue(two.message, two.message.orEmpty().contains("found 2"))
+    }
+
+    /**
+     * The button factory's parameters: up to 585 one accessibility action (LX/02xx; on 585), two
+     * labels and the icon; 586 (LX/02mx;->A00) takes a second action of the same type right after
+     * the first, so the labels, the icon and the int each move up one.
+     */
+    @Test
+    fun `the button factory takes one action up to 585 and two on 586`() {
+        val tail = listOf("Ljava/lang/Boolean;", "Ljava/lang/Boolean;", "Ljava/lang/Object;", "Ljava/lang/String;", "Ljava/lang/String;") +
+            List(4) { handler } + "I"
+        fun factory(actions: Int, booleans: Int) = listOf(session, "Lfixture/Mode;") + List(actions) { "Lfixture/Action;" } +
+            listOf("Lfixture/Label;", "Lfixture/Label;", "Lfixture/Icon;") + tail + List(booleans) { "Z" }
+
+        val old = buttonFactoryLayout(factory(1, 4))!!
+        assertEquals("585: the labels, the icon and the int", listOf(1, 3, 5, 15, 4), listOf(old.actions, old.label, old.icon, old.int, old.trailingBooleans))
+        assertEquals("577: three booleans", 3, buttonFactoryLayout(factory(1, 3))!!.trailingBooleans)
+
+        val new = buttonFactoryLayout(factory(2, 4))!!
+        assertEquals("586: everything after the actions moves up one", listOf(2, 4, 6, 16, 4), listOf(new.actions, new.label, new.icon, new.int, new.trailingBooleans))
+
+        assertEquals("no action", null, buttonFactoryLayout(factory(0, 4)))
+        assertEquals("three actions", null, buttonFactoryLayout(factory(3, 4)))
+        assertEquals("five booleans", null, buttonFactoryLayout(factory(2, 5)))
+        assertEquals("two booleans", null, buttonFactoryLayout(factory(1, 2)))
+        val oneLabel = factory(2, 4).toMutableList().apply { set(5, "Lfixture/Other;") }
+        assertEquals("labels of two types", null, buttonFactoryLayout(oneLabel))
+        val noInt = factory(2, 4).toMutableList().apply { set(16, "Z") }
+        assertEquals("no int after the handlers", null, buttonFactoryLayout(noInt))
     }
 }

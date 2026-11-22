@@ -14,11 +14,12 @@ import java.util.List;
 
 /**
  * Ask before a call (#130): a tap on a chat's audio or video call button asks first, so a stray tap doesn't ring
- * anyone. Both top bars hand their buttons over through {@link MarkReadButton}. Each call button keeps its tap
- * listener in a field typed as an interface with one onClick(View) method, and that listener is wrapped in place, so
- * the button looks and sits as it did. Call runs Messenger's own tap, Cancel drops it.
+ * anyone. Both top bars hand their buttons over through {@link MarkReadButton}, and the two call button builders hand
+ * over each button they build (#172), which also covers the bars neither top bar seam walks. Each call button keeps its
+ * tap listener in a field typed as an interface with one onClick(View) method, and that listener is wrapped in place,
+ * so the button looks and sits as it did. Call runs Messenger's own tap, Cancel drops it.
  */
-final class CallConfirm {
+public final class CallConfirm {
     static final String KEY = "call_confirm";
     static final String VIDEO_TAG = "video_call_button";
 
@@ -43,18 +44,37 @@ final class CallConfirm {
         }
     }
 
-    /** Wraps each tap listener [button] holds, and returns how many were wrapped. One already wrapped stays as it is. */
+    /**
+     * A call button as Messenger's audio or video builder hands it back, before anything puts it on screen: a chat's top
+     * bar, a business chat's catalog bar or the New message screen. Wrapped while the switch is on. Never throws.
+     */
+    public static void built(Object button) {
+        try {
+            if (button != null && Settings.enabled(KEY) && MarkReadButton.isCall(button)) {
+                guard(button, MarkReadButton.hasTag(button, VIDEO_TAG));
+            }
+        } catch (Throwable error) {
+            Settings.hookFailed(KEY, "Can't ask before a call", error);
+        }
+    }
+
+    /**
+     * Wraps each tap listener [button] holds, or a button it wraps holds (586 keeps them on the inner one), and returns
+     * how many were wrapped. One already wrapped stays as it is.
+     */
     static int guard(Object button, boolean video) throws IllegalAccessException {
         int wrapped = 0;
-        for (Class<?> type = button.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
-            for (Field field : type.getDeclaredFields()) {
-                if (Modifier.isStatic(field.getModifiers()) || !isTapListener(field.getType())) continue;
-                field.setAccessible(true);
-                Object listener = field.get(button);
-                if (listener == null || asking(listener) != null) continue;
-                field.set(button, Proxy.newProxyInstance(field.getType().getClassLoader(), new Class<?>[]{field.getType()},
-                    new Asking(listener, video)));
-                wrapped++;
+        for (Object layer : MarkReadButton.layers(button)) {
+            for (Class<?> type = layer.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
+                for (Field field : type.getDeclaredFields()) {
+                    if (Modifier.isStatic(field.getModifiers()) || !isTapListener(field.getType())) continue;
+                    field.setAccessible(true);
+                    Object listener = field.get(layer);
+                    if (listener == null || asking(listener) != null) continue;
+                    field.set(layer, Proxy.newProxyInstance(field.getType().getClassLoader(), new Class<?>[]{field.getType()},
+                        new Asking(listener, video)));
+                    wrapped++;
+                }
             }
         }
         return wrapped;

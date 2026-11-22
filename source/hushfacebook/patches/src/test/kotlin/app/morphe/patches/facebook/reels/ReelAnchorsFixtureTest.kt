@@ -42,11 +42,19 @@ class ReelAnchorsFixtureTest {
         var immutableList: ClassDef? = null
         val dumpers = mutableListOf<Method>()
         val hotComments = mutableListOf<Method>()
+        val captionComments = mutableListOf<Method>()
         val bubbles = mutableListOf<Method>()
         var footerHelperClasses = 0
     }
 
-    private val wanted = setOf(CHIP_ANCHOR, WATCH_FEED_DUMP, INLINE_COMMENTS_QUERY, VIDEO_ID)
+    private val wanted = setOf(CHIP_ANCHOR, WATCH_FEED_DUMP, VIDEO_ID)
+
+    /**
+     * How many hot comment runnables each version has, one by default: 586 added the MFC one a flag
+     * picks over the plain query's, and 587's `$2` (arm64 LX/0CT7;) hands a lambda the plain or XAR
+     * query beside the MFC `$1` (LX/0WKq;), with no query name of its own (#464).
+     */
+    private val hotCommentRunnables = mapOf("586.0.0.52.53" to 2, "587.0.0.39.55" to 2)
 
     /** One pass over the bundle for everything but the Follow getter's readers. */
     private fun scan(bundle: File): Found {
@@ -67,9 +75,8 @@ class ReelAnchorsFixtureTest {
                 if (WATCH_FEED_DUMP in present) {
                     classDef.methods.filter { holdsString(it, WATCH_FEED_DUMP) }.mapTo(found.dumpers) { ImmutableMethod.of(it) }
                 }
-                if (INLINE_COMMENTS_QUERY in present) {
-                    footerRunnable(classDef, HOT_COMMENT_RUNNABLE, INLINE_COMMENTS_QUERY)?.let { found.hotComments += ImmutableMethod.of(it) }
-                }
+                namedRunnable(classDef, HOT_COMMENT_RUNNABLE)?.let { found.hotComments += ImmutableMethod.of(it) }
+                captionCommentRunnable(classDef)?.let { found.captionComments += ImmutableMethod.of(it) }
                 if (VIDEO_ID in present) {
                     footerRunnable(classDef, SOCIAL_BUBBLES_RUNNABLE, VIDEO_ID)?.let { found.bubbles += ImmutableMethod.of(it) }
                 }
@@ -141,7 +148,7 @@ class ReelAnchorsFixtureTest {
                 assertNull("$name: ${follow.problem}", follow.problem)
                 val getter = follow.getter
                 if (getter == null) {
-                    // 583 to 585: two flag reads in merged lambdas (one class each on 585), hooked in each lambda's
+                    // 583 to 586: two flag reads in merged lambdas (one class each on 585), hooked in each lambda's
                     // invoke() by key, which needs two locals there and the field the switch reads the key from.
                     assertEquals("$name: ${follow.flags}", 2, follow.flags.size)
                     val lambdas = FixtureDex.classes(bundle, follow.flags.map { it.lambda }.toSet())
@@ -158,6 +165,13 @@ class ReelAnchorsFixtureTest {
                     val pinned = mapOf(
                         "585.0.0.47.54 arm64-v8a" to "LX/0ACw;:155:A1Z LX/0ACj;:107:A0F",
                         "585.0.0.47.54 armeabi-v7a" to "LX/0AD1;:155:A1Z LX/0ACo;:105:A0F",
+                        // Android 9: the dump makes the first lambda and the helper the second, each flag read in its first switch.
+                        "585.0.0.47.54 arm64-v8a-minapi28-storeless" to "LX/0cLU;:10:invoke LX/0ADL;:157:invoke",
+                        "586.0.0.52.53 arm64-v8a" to "LX/0A3w;:134:A18 LX/0A3h;:198:A0Q",
+                        "586.0.0.52.53 armeabi-v7a" to "LX/0A3w;:134:A18 LX/0A3h;:198:A0Q",
+                        "586.0.0.52.53 arm64-v8a-minapi28-storeless" to "LX/0A5H;:52:A0A LX/0A4q;:118:invoke",
+                        "587.0.0.39.55 arm64-v8a" to "LX/0CxW;:19:A0N LX/0A59;:120:A0V",
+                        "587.0.0.39.55 armeabi-v7a" to "LX/0A4x;:67:A0G LX/0A4w;:96:A0W",
                     )["$version $abi"]
                     assertEquals(name, pinned, follow.flags.joinToString(" ") { "${it.lambda}:${it.key}:${it.reader.name}" })
                 } else {
@@ -168,11 +182,13 @@ class ReelAnchorsFixtureTest {
                     assertTrue("$name: ${getter.name} has no local for the hook", locals(method) >= 1)
                 }
 
-                // Both footer runnables, among the footer helpers' other kept-name classes.
-                assertEquals("$name: ${found.hotComments}", 1, found.hotComments.size)
+                // The footer runnables, among the footer helpers' other kept-name classes, and the
+                // caption row's comment runnable among that row's others (#464).
+                assertEquals("$name: ${found.hotComments}", hotCommentRunnables[version] ?: 1, found.hotComments.size)
                 assertEquals("$name: ${found.bubbles}", 1, found.bubbles.size)
+                assertEquals("$name: ${found.captionComments}", 1, found.captionComments.size)
                 assertTrue("$name: ${found.footerHelperClasses} footer helper classes", found.footerHelperClasses >= 3)
-                for (run in found.hotComments + found.bubbles) {
+                for (run in found.hotComments + found.bubbles + found.captionComments) {
                     assertTrue("$name: $run has no local for the hook", locals(run) >= 1)
                 }
                 checked[version] = "${follow.literals} Follow literal(s), " +
@@ -248,8 +264,8 @@ class ReelAnchorsFixtureTest {
 
     /**
      * "Made with Edits" under a caption (#314), found the way the patch finds it: the one `render`
-     * reading the video's Edits flag and nothing else from the tree. The flag's other readers are
-     * static helpers.
+     * reading the video's Edits flag and nothing else from the tree, or (587) asking the tree model's
+     * Edits getter for it. The flag's other readers are static helpers.
      */
     @Test
     fun `every declared build has one Made with Edits line, with a local for its hook`() {
@@ -259,10 +275,12 @@ class ReelAnchorsFixtureTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
                 val name = bundle.name
+                val getters = mutableSetOf<String>()
+                FixtureDex.forEach(bundle) { dex -> dex.classes.forEach { getters += editsGetterCalls(it) } }
                 val lines = mutableListOf<Method>()
                 FixtureDex.forEach(bundle) { dex ->
                     for (classDef in dex.classes) {
-                        classDef.methods.filter(::isEditsLabelRender).mapTo(lines) { ImmutableMethod.of(it) }
+                        classDef.methods.filter { isEditsLabelRender(it, getters) }.mapTo(lines) { ImmutableMethod.of(it) }
                     }
                 }
                 assertEquals("$name: $lines", 1, lines.size)

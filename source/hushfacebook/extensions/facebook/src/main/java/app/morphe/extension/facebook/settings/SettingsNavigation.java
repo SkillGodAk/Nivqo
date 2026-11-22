@@ -7,6 +7,7 @@ package app.morphe.extension.facebook.settings;
 import android.content.Context;
 import android.database.DataSetObserver;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -137,7 +138,10 @@ final class SettingsNavigation extends BaseAdapter {
         list = page.getView().findViewById(android.R.id.list);
         source = screen.getRootAdapter();
         Context context = screen.getContext();
-        listMode = context.getSharedPreferences(VIEW_STORE, Context.MODE_PRIVATE).getBoolean(LIST_VIEW, false);
+        // A device walk checks every category page on its own, so while its audit folder exists the
+        // screen opens by category without touching the saved list-view choice.
+        listMode = AuditMode.folder(context) == null
+                && context.getSharedPreferences(VIEW_STORE, Context.MODE_PRIVATE).getBoolean(LIST_VIEW, false);
         // Stable English route IDs survive a locale change; the displayed names are localized.
         section("Opening Facebook", L10n.t("Opening Facebook"), L10n.t("Your start tab and launch settings"), SettingsIcons.OPENING);
         section("News feed", L10n.t("News feed"), L10n.t("Ads, suggestions and word filters"), SettingsIcons.FEED);
@@ -489,9 +493,26 @@ final class SettingsNavigation extends BaseAdapter {
         showPage();
         if (bound != null) {
             // Keep the tapped header in place, revealing at least one child near the bottom edge.
+            // Until the top has scrolled away the list runs past the bottom of the screen by what's
+            // left of it, so a header down there takes the top up first, as far as the child needs.
+            HeaderColumn column = column();
+            if (open && column != null) {
+                int hidden = column.hiddenBelow();
+                int lift = Math.min(hidden, Math.max(0, top + bound.getHeight() + dp(72) - (list.getHeight() - hidden)));
+                column.setOffset(column.getScrollY() + lift);
+            }
             int reveal = Math.max(0, list.getHeight() - bound.getHeight() - dp(72));
             showAt(visible.indexOf(header), open ? Math.min(top, reveal) : top);
         } else restoreAnchor(anchor, visible.indexOf(header), offset);
+    }
+
+    /** The column the list sits in, whose top scrolls away over it, or null outside the settings screen. */
+    @Nullable
+    private HeaderColumn column() {
+        for (android.view.ViewParent parent = list.getParent(); parent != null; parent = parent.getParent()) {
+            if (parent instanceof HeaderColumn) return (HeaderColumn) parent;
+        }
+        return null;
     }
 
     boolean open(Preference preference) {
@@ -892,7 +913,8 @@ final class SettingsNavigation extends BaseAdapter {
     private void bindHeader(View row, Preference item, String id) {
         boolean open = expanded.contains(id);
         row.setAccessibilityHeading(true);
-        row.setStateDescription(L10n.t(open ? "Expanded" : "Collapsed"));
+        // Below Android 11 TalkBack offers Expand or Collapse instead.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) row.setStateDescription(L10n.t(open ? "Expanded" : "Collapsed"));
         View arrow = row.findViewWithTag(ScreenColors.CHEVRON);
         if (arrow != null) {
             boolean rtl = row.getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
@@ -905,7 +927,7 @@ final class SettingsNavigation extends BaseAdapter {
                 super.onInitializeAccessibilityNodeInfo(host, info);
                 boolean shown = expanded.contains(id);
                 info.setHeading(true);
-                info.setStateDescription(L10n.t(shown ? "Expanded" : "Collapsed"));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) info.setStateDescription(L10n.t(shown ? "Expanded" : "Collapsed"));
                 info.addAction(shown ? AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE
                         : AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND);
             }
@@ -934,10 +956,7 @@ final class SettingsNavigation extends BaseAdapter {
     private void bindStatus(View row) {
         boolean nextPaused = HushfacebookPause.pausesNextStart(screen.getContext());
         boolean paused = HushfacebookPause.isPaused();
-        if (!paused && nextPaused) {
-            TextView title = row.findViewById(android.R.id.title);
-            if (title != null) title.setText(L10n.t("Hushfacebook pauses when Facebook restarts."));
-        }
+        // A pause waiting on a restart keeps the title "Hushfacebook is on"; its line says the rest.
         TextView summary = row.findViewById(android.R.id.summary);
         String build = "\n" + HushfacebookPreferenceFragment.overviewBuildDetails();
         if (!paused && !nextPaused && ReleaseCheck.statusLine() == null) {

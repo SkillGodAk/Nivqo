@@ -41,7 +41,7 @@ import java.io.File
 class SuggestedStoriesFixtureTest {
     /**
      * The tray data constructor's registers and the register of its bucket list, per build. Both
-     * of 585's builds lay it out the same way.
+     * of 586's builds lay it out the same way, as 585's did.
      */
     private val expected = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to (7 to 4),
@@ -49,12 +49,14 @@ class SuggestedStoriesFixtureTest {
 
     /**
      * The bucket interface's type accessor and the enum it answers, per build and then by the
-     * bundle's ABI. On 583 and 585 the two builds share the enum but not the accessor's name.
+     * bundle's ABI. On 583 and 585 the two builds share the enum but not the accessor's name; on
+     * 586 they share both. On 587 they share neither.
      */
     private val expectedType = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to ("Flp" to "LX/026l;"),
-            "armeabi-v7a" to ("Fln" to "LX/026l;"),
+            "arm64-v8a" to ("GEF" to "LX/02d0;"),
+            "armeabi-v7a" to ("GED" to "LX/02d6;"),
+            "arm64-v8a-minapi28-storeless" to ("Fuy" to "LX/02bk;"),
         ),
     )
 
@@ -64,8 +66,9 @@ class SuggestedStoriesFixtureTest {
      */
     private val expectedOwner = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to Triple("DtG", "Fli", "LX/0eTt;"),
-            "armeabi-v7a" to Triple("DtE", "Flg", "LX/0eTa;"),
+            "arm64-v8a" to Triple("EAr", "GE7", "LX/03Yv;"),
+            "armeabi-v7a" to Triple("EAp", "GE5", "LX/03Z5;"),
+            "arm64-v8a-minapi28-storeless" to Triple("Dyt", "Fur", "LX/03Yu;"),
         ),
     )
 
@@ -75,21 +78,30 @@ class SuggestedStoriesFixtureTest {
      */
     private val expectedExpires = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to "D3I",
-            "armeabi-v7a" to "D3G",
+            "arm64-v8a" to "DGa",
+            "armeabi-v7a" to "DGa",
+            "arm64-v8a-minapi28-storeless" to "D7p",
         ),
     )
 
-    /** The tray parser's registers and the register of its bucket list, per build (issues #313 and #317). */
+    /**
+     * The tray parser's registers and the register of its bucket list, per build and then by ABI
+     * (issues #313 and #317). 586's Android 9 build gives it one register more.
+     */
     private val expectedParser = mapOf(
-        AppCompatibilities.FACEBOOK_TARGET_VERSION to (7 to 5),
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
+            "arm64-v8a" to (7 to 5),
+            "armeabi-v7a" to (7 to 5),
+            "arm64-v8a-minapi28-storeless" to (8 to 6),
+        ),
     )
 
     /** The query builders that set skip_srtt_item_list, per build and then by ABI (issue #21). */
     private val expectedSkips = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to setOf("LX/01oE;->A03", "LX/01oE;->A07"),
-            "armeabi-v7a" to setOf("LX/01oE;->A03", "LX/01oE;->A07"),
+            "arm64-v8a" to setOf("LX/01w4;->A03", "LX/01w4;->A07"),
+            "armeabi-v7a" to setOf("LX/01w9;->A03", "LX/01w9;->A07"),
+            "arm64-v8a-minapi28-storeless" to setOf("LX/01s9;->A02", "LX/01s9;->A06"),
         ),
     )
 
@@ -243,7 +255,7 @@ class SuggestedStoriesFixtureTest {
                 assertEquals("${bundle.name}: the bucket list is the parser's second parameter", 1, list)
 
                 val method = with(context) { mutableClassDefBy(parser.definingClass) }.methods.single { it.name == parser.name && isTrayParse(it) }
-                val (registers, register) = expectedParser.getValue(version)
+                val (registers, register) = expectedParser.pin(version, bundle)
                 assertEquals("${bundle.name}: parser registers", registers, method.implementation!!.registerCount)
                 val own = body(method)
                 method.keepOnlyUnsuggestedBuckets(list)

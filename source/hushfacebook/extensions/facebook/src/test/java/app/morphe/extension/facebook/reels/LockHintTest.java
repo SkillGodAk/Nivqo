@@ -195,6 +195,59 @@ public class LockHintTest {
     }
 
     @Test
+    public void theFeedVideo2xTipGoesWithThePopupsSwitch() {
+        assertFalse("off, the tip went away", LockHint.hidesHoldNux());
+        Settings.HIDE_2X_LOCK_HINT.save(true);
+        assertFalse("the lock hint's switch took the tip", LockHint.hidesHoldNux());
+        String off = statusLine();
+        assertFalse("an answer left to Facebook was counted: " + off, off != null && off.contains("Counted"));
+
+        Settings.HIDE_2X_LOCK_HINT.save(false);
+        Settings.HIDE_2X_POPUPS.save(true);
+        assertTrue("on, the tip showed", LockHint.hidesHoldNux());
+        assertTrue(statusLine(), statusLine().contains("Counted: " + LockHint.NUX_HIDDEN + " 1"));
+
+        ReelHold.holdInBuildForTests = false;
+        assertFalse("a build without Hold a reel for 2x hid the tip", LockHint.hidesHoldNux());
+        ReelHold.holdInBuildForTests = true;
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("paused, the tip went away", LockHint.hidesHoldNux());
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertFalse("the tip went before the settings were ready", LockHint.hidesHoldNux()));
+    }
+
+    /** #343: the "2x speed" chip Facebook's own feed video hold draws goes with the popups switch. */
+    @Test
+    public void facebooksOwnFeedHoldChipGoesWithThePopupsSwitch() {
+        assertTrue("off, the chip went away", LockHint.holdChipShows(true));
+        assertFalse("off, a chip Facebook skips appeared", LockHint.holdChipShows(false));
+        Settings.HIDE_2X_LOCK_HINT.save(true);
+        assertTrue("the lock hint's switch took the chip", LockHint.holdChipShows(true));
+        String off = statusLine();
+        assertFalse("an answer left to Facebook was counted: " + off, off != null && off.contains("Counted"));
+
+        Settings.HIDE_2X_LOCK_HINT.save(false);
+        Settings.HIDE_2X_POPUPS.save(true);
+        assertFalse("on, the chip showed", LockHint.holdChipShows(true));
+        assertTrue(statusLine(), statusLine().contains("Counted: " + LockHint.CHIP_HIDDEN + " 1"));
+        assertFalse("on, a chip Facebook skips appeared", LockHint.holdChipShows(false));
+        assertTrue("a chip Facebook skipped was counted: " + statusLine(),
+                statusLine().contains("Counted: " + LockHint.CHIP_HIDDEN + " 1"));
+
+        ReelHold.holdInBuildForTests = false;
+        assertTrue("a build without Hold a reel for 2x hid the chip", LockHint.holdChipShows(true));
+        ReelHold.holdInBuildForTests = true;
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertTrue("paused, the chip went away", LockHint.holdChipShows(true));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertTrue("the chip went before the settings were ready", LockHint.holdChipShows(true)));
+    }
+
+    @Test
     public void thePopupsSwitchNeedsNoRestartAndTravelsWithTheHold() {
         assertFalse("a new pill reads the switch as it's drawn", Settings.HIDE_2X_POPUPS.rebootApp);
         assertTrue("Pause and the report don't know the switch",

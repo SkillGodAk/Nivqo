@@ -104,6 +104,10 @@ final class HushfacebookPages {
                             + "above work on the big screen too. Facebook's wider big screen layout goes away. Off by "
                             + "default, since it hasn't been tried on a big screen yet. Restart Facebook to see the "
                             + "change.")));
+            // Facebook pads the Reels page for the bar as the page is set up, so a change waits for a restart.
+            tabs.addPreference(toggle(context, Settings.HIDE_REELS_TAB_BAR,
+                    L10n.t("The tab bar goes away while the Reels tab is open, and the reel gets the whole screen. "
+                            + "The other tabs keep the bar. Restart Facebook to see the change.")));
             subheading(tabs, L10n.t("Top bar"));
             // Asked each time Facebook moves the top bar, so it takes effect on the next scroll.
             tabs.addPreference(toggle(context, Settings.KEEP_TOP_BAR,
@@ -154,7 +158,10 @@ final class HushfacebookPages {
         }
     }
 
-    /** Appearance, in every build for Text size: the font, the emoji, the colors, the bars, motion and the app icons. */
+    /**
+     * Appearance, in every build for Text size and Refresh rate: the font, the emoji, the colors,
+     * the bars, motion and the app icons.
+     */
     static void appearance(HushfacebookPreferenceFragment page, PreferenceScreen screen, Context context,
             Set<PatchFamily> build) {
         PreferenceCategory appearance = category(screen, L10n.t("Appearance"));
@@ -222,20 +229,30 @@ final class HushfacebookPages {
                             L10n.isolate(FamilyNames.AMOLED_THEME))));
         }
         subheading(appearance, L10n.t("Screen and motion"));
+        // The settings entry's own, so every build has it. Asked as each Facebook screen comes back (#480).
+        appearance.addPreference(HushfacebookPreferenceFragment.refreshRateRow(context));
         if (build.contains(PatchFamily.BOTTOM_TAB_BAR)) {
             // Asked as each frame of the main screen draws, so a change shows right away, except on
             // a kept tab bar, where the page's restart row says the change waits (#250).
             appearance.addPreference(toggle(context, Settings.TRANSLUCENT_BARS,
                     L10n.t("The top bar and the tab bar turn see-through, so the feed shows through them as you scroll. "
                             + "On Android 12 and newer the feed behind them is blurred.")));
+            // Asked as each frame draws too, so a new number shows when these settings close (#425).
+            appearance.addPreference(HushfacebookPreferenceFragment.opacityRow(context));
             // Asked as each frame of the main screen draws, so a change shows right away (#344).
             appearance.addPreference(toggle(context, Settings.ROUNDED_TAB_BAR,
                     L10n.t("With the tab bar at the bottom, it gets round ends and sits a little smaller, just above "
                             + "the bottom of the screen, with a soft highlight behind the tab you're on.")));
+            appearance.addPreference(HushfacebookPreferenceFragment.tabBarWidthRow(context));
+            appearance.addPreference(HushfacebookPreferenceFragment.tabBarHeightRow(context));
             // Asked as the main screen gets its focus back, so a change shows when these settings close.
             appearance.addPreference(toggle(context, Settings.HIDE_STATUS_BAR,
                     L10n.t("Takes the phone's status bar, with the time and battery, off Facebook's main screen, so "
                             + "the app gets the whole screen. Swipe down from the top edge to see it for a moment.")));
+            // Asked each time the Reels tab shows, so a change shows on the next visit to the tab.
+            appearance.addPreference(toggle(context, Settings.LIGHT_REELS_TAB_BARS,
+                    L10n.t("In light mode, the Reels tab keeps the same light status bar, top bar and tab bar as the "
+                            + "other tabs, instead of turning them dark.")));
         }
         if (build.contains(PatchFamily.CARRIER_BANNERS)) {
             // Asked each time Facebook shows its carrier banner, which it does as screens open and the mode changes.
@@ -279,6 +296,10 @@ final class HushfacebookPages {
             picture.wayBack = new PictureRow(page, context, HeaderPicturePreference.REMOVE);
             // The Remove row goes in once, as Font file's way back does, so it keeps its place after a pick.
             appearance.addPreference(picture);
+            // Hushfacebook's logo as the picture, when the settings patch put it in the app (#467).
+            if (HeaderPicturePreference.logoId(context) != 0) {
+                appearance.addPreference(new PictureRow(page, context, HeaderPicturePreference.LOGO));
+            }
             appearance.addPreference(picture.wayBack);
             picture.show();
         }
@@ -353,6 +374,14 @@ final class HushfacebookPages {
                 L10n.t("Import settings"),
                 L10n.t("Choose a settings file you saved earlier. You'll see how many switches it changes before anything "
                         + "is applied.")), SettingsIcons.DOWNLOADS));
+        // At once and with no dialog, since Undo the reset right below takes it back.
+        hushfacebook.addPreference(mark(new BackupRow(page, context, SettingsBackupPreference.RESET,
+                L10n.t("Reset settings"),
+                L10n.t("Turns every switch and choice that Export settings saves back to how a new install has them. "
+                        + "Pause, Debug logging and the update check stay as they are.")), SettingsIcons.DELETE));
+        hushfacebook.addPreference(mark(new BackupRow(page, context, SettingsBackupPreference.UNDO_RESET,
+                L10n.t("Undo the reset"),
+                L10n.t("Brings back the switches and choices you had before the last reset.")), SettingsIcons.BACK));
         subheading(hushfacebook, L10n.t("Troubleshooting"));
         // The settings entry's own: it's what a Facebook that won't open can still send.
         hushfacebook.addPreference(mark(toggle(context, Settings.SAVE_CRASH_FILE,
@@ -413,6 +442,8 @@ final class HushfacebookPages {
         about.addPreference(mark(info(context, L10n.t("Version"), L10n.f("Hushfacebook %1$s on Facebook %2$s",
                 L10n.isolate(Utils.getPatchesReleaseVersion()), L10n.isolate(Utils.getAppVersionName()))
                 + "\n" + L10n.f("Build %1$s", L10n.isolate(Utils.getPatchesBuildIdentity()))), SettingsIcons.ABOUT));
+        // The settings entry's own, beside the version that brings the new settings it marks (#16).
+        about.addPreference(mark(HushfacebookPreferenceFragment.newRowMarkRow(context), SettingsIcons.UPDATES));
 
         Preference source = new Row(context);
         source.setTitle(L10n.t("Source code and issues"));

@@ -44,6 +44,30 @@ class LinkBoxFallbackFixtureTest {
 
     private fun Method.descriptor() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
+    /**
+     * What each declared build's fallbacks unbox, sorted. Up to 585 FDSPostLinkAttachment's render
+     * also unboxed a colour its parent handed it, with a static (Object) int call. 586's starts from a
+     * token route one themes instead, which leaves the second config's grey in a render and in the
+     * attachment footer, which jumps to it now rather than falling through. 586's Android 9 build
+     * unboxes one of them with a static null-safe (Number, int) call that answers the int for null.
+     */
+    private val unboxingsByVersion = mapOf(
+        // 587's footer (arm64 `LX/094a;->A00`) and renders read the grey the way 586's did.
+        "587.0.0.39.55" to listOf("intValue", "intValue"),
+        "586.0.0.52.53" to listOf("intValue", "intValue"),
+    )
+    private val unboxingsAndroid9 = mapOf(
+        "586.0.0.52.53" to listOf("intValue", "static (Number, int)"),
+    )
+
+    /**
+     * A build whose ABIs unbox differently, by ABI. 587's armeabi-v7a unboxes one of them with the
+     * static null-safe (Number, int) call too, as 586's Android 9 build did.
+     */
+    private val unboxingsByAbi = mapOf(
+        "587.0.0.39.55" to mapOf("armeabi-v7a" to listOf("intValue", "static (Number, int)")),
+    )
+
     @Test
     fun `a link box's fallback colours and the chooser's dark answer go to the dark-branch stand-in`() {
         val checked = mutableSetOf<String>()
@@ -95,14 +119,22 @@ class LinkBoxFallbackFixtureTest {
                             assertEquals("$themes: its answer kept", Opcode.MOVE_RESULT, patched[at + 2].opcode)
                             assertEquals("$themes: in that register", colour, patched[at + 2].register())
                             val static = original[index - 1].opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
-                            val takesObject = answer.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Object;")
-                            unboxings += if (static && takesObject) "static (Object)" else "${answer.definingClass}->${answer.name}"
+                            val parameters = answer.parameterTypes.map(CharSequence::toString)
+                            unboxings += when {
+                                static && parameters == listOf("Ljava/lang/Object;") -> "static (Object)"
+                                static && parameters == listOf("Ljava/lang/Number;", "I") -> "static (Number, int)"
+                                else -> "${answer.definingClass}->${answer.name}"
+                            }
                         }
                     }
                     assertTrue("$themes: the second config's grey is unboxed by intValue ($unboxings)",
                         unboxings.any { it == "Ljava/lang/Number;->intValue" || it == "Ljava/lang/Integer;->intValue" })
-                    assertTrue("$themes: the parent's colour is unboxed by a static Object to int call ($unboxings)",
-                        "static (Object)" in unboxings)
+                    val android9 = name.substringAfter("-$version-").contains("-minapi")
+                    val abi = name.substringAfter("-$version-").substringBefore(".apkm")
+                    val expected = unboxingsByAbi[version]?.get(abi) ?: (if (android9) unboxingsAndroid9 else unboxingsByVersion)[version]
+                    assertTrue("$themes: no unboxings pinned for $version", expected != null)
+                    assertEquals("$themes: what the fallbacks unbox",
+                        expected, unboxings.map { if (it.endsWith("->intValue")) "intValue" else it }.sorted())
                 }
 
                 // FDS's chooser, on the dark check's class.

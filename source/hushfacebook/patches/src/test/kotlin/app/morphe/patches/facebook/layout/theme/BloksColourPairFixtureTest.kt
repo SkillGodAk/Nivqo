@@ -70,11 +70,18 @@ class BloksColourPairFixtureTest {
                 val accessor = owners.single { it.type == anchor.definingClass }.interfaces.single { type ->
                     owners.any { it.type == type && AccessFlags.INTERFACE.isSet(it.accessFlags) && it.methods.any { m -> m.sameAs(anchor) } }
                 }
-                // 585's models without colours of their own only answer the fallback; those are left alone.
-                val readers = owners.filter { accessor in it.interfaces }
+                // 585's models without colours of their own only answer the fallback, and 586's LX/0va1
+                // hands its pair to the logging model; those are left alone.
+                val models = owners.filter { accessor in it.interfaces }
                     .mapNotNull { model -> model.methods.singleOrNull { it.sameAs(anchor) && it.implementation != null } }
                     .filterNot(::answersFallbackOnly)
+                val (relays, readers) = models.partition { handsColourPairOn(it, anchor) }
                 assertTrue("$name: the logging model and the sparse one, at least (${readers.map { it.descriptor() }})", readers.size >= 2)
+                for (relay in relays) {
+                    val to = relay.body().mapNotNull { it.call() }.filter { it.name == anchor.name }.map { it.definingClass }
+                    assertTrue("$name: ${relay.descriptor()} hands its pair to a model that parses ($to)",
+                        to.isNotEmpty() && to.all { type -> readers.any { it.definingClass == type } })
+                }
                 val parses = readers.associate { reader ->
                     val calls = reader.body().withIndex().filter { it.value.call()?.toString() == PARSE_COLOR }
                     assertEquals("$name: ${reader.descriptor()} parses one colour", 1, calls.size)
@@ -97,6 +104,51 @@ class BloksColourPairFixtureTest {
                         assertEquals("$themes: on the text's register", parse.value.textRegister(), call.textRegister())
                     }
                 }
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /**
+     * Issue #34 on each declared build: AMOLED sends the same parse, after its route four, to its own
+     * Bloks stand-in, which lifts a secondary text grey on a lighter Background colour. Material You
+     * after it takes each of those calls over, on the same register, so the two never stack.
+     */
+    @Test
+    fun `AMOLED's Bloks parse goes to its own stand-in, and Material You takes it over`() {
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in bundles(version)) {
+                val name = bundle.name
+                val owners = mutableListOf<ClassDef>()
+                FixtureDex.forEach(bundle) { dex ->
+                    for (classDef in dex.classes) {
+                        if (classDef.methods.any { it.pairShaped() }) owners += ImmutableClassDef.of(classDef)
+                    }
+                }
+                fun Method.callsTo(target: String) = body().withIndex().filter { it.value.call()?.toString() == target }
+                    .map { Triple(descriptor(), it.index, it.value.textRegister()) }
+                val parsing = owners.filter { owner -> owner.methods.any { it.pairShaped() && it.callsTo(PARSE_COLOR).isNotEmpty() } }
+                val parses = parsing.flatMap { owner -> owner.methods.flatMap { it.callsTo(PARSE_COLOR) } }.toSet()
+
+                val context = PatchContexts.of(owners)
+                fun patchedCalls(target: String) = parsing.flatMap { owner -> context.mutableClassDefBy(owner.type).methods.flatMap { it.callsTo(target) } }
+                val hooked = with(context) {
+                    rerouteColourCalls(AMOLED_COLOUR_CALLS)
+                    hookBloksColourPairs(setOf(PARSE_COLOR_DARK), AMOLED_PARSE_BLOKS)
+                }
+                assertTrue("$name: the logging model and the sparse one, at least ($hooked)", hooked >= 2)
+                val amoled = patchedCalls(AMOLED_PARSE_BLOKS)
+                assertEquals("$name: one AMOLED Bloks parse per model", hooked, amoled.size)
+                for (call in amoled) assertTrue("$name: $call was a parse, on the text's register", call in parses)
+
+                with(context) {
+                    rerouteColourCalls(YOU_COLOUR_CALLS)
+                    assertEquals("$name: Material You takes each one over", hooked, hookBloksColourPairs())
+                }
+                assertEquals("$name: no AMOLED Bloks parse left", emptyList<Triple<String, Int, Int>>(), patchedCalls(AMOLED_PARSE_BLOKS))
+                assertEquals("$name: Material You's, where AMOLED's were", amoled.toSet(), patchedCalls(PARSE_BLOKS).toSet())
                 checked += version
             }
         }

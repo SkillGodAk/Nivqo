@@ -55,12 +55,12 @@ object ApkUtils {
 
     // The fastest level. The dex files it compresses are about 3% larger than at level 3, which takes
     // about 40% longer, and well within 10% of the default level, which takes about three times as long.
-    private const val COMPRESSION_LEVEL = 1
+    internal const val COMPRESSION_LEVEL = 1
 
-    private val dexEntryName = Regex("""classes(?:\d+)?\.dex""")
+    internal val dexEntryName = Regex("""classes(?:\d+)?\.dex""")
 
     // v1 signature files, which the signer would otherwise leave stale beside its own signature.
-    private val v1SignatureEntryName = Regex("""META-INF/(?:MANIFEST\.MF|[^/]+\.(?:SF|RSA|DSA|EC)|SIG-[^/]*)""", RegexOption.IGNORE_CASE)
+    internal val v1SignatureEntryName = Regex("""META-INF/(?:MANIFEST\.MF|[^/]+\.(?:SF|RSA|DSA|EC)|SIG-[^/]*)""", RegexOption.IGNORE_CASE)
 
     /**
      * The options every archive is written with: aligned as [writeAlignedApk] aligns, and compressed in
@@ -91,9 +91,14 @@ object ApkUtils {
      * gap larger than it can cover with an extra field. The DEX files are near the start of an APK, so
      * replacing them moved most of the archive.
      */
-    internal fun isReplacedOnApply(name: String, dexFileNames: Set<String>, dexFilesComplete: Boolean) =
+    internal fun isReplacedOnApply(
+        name: String,
+        dexFileNames: Set<String>,
+        dexFilesComplete: Boolean,
+        retainsV1Signature: Boolean,
+    ) =
         name in dexFileNames ||
-            name.matches(v1SignatureEntryName) ||
+            (!retainsV1Signature && name.matches(v1SignatureEntryName)) ||
             (dexFilesComplete && dexFileNames.isNotEmpty() && name.matches(dexEntryName))
 
     /**
@@ -123,14 +128,17 @@ object ApkUtils {
      * 2. Delete resources staged for deletion.
      * 3. Write raw resources. This comes after the deletion so that an entry a patch deleted and
      *    then recreated ends up with the recreated content rather than removed.
-     * 4. Write patched dex files. A dex file the input APK stores uncompressed, as an app that loads its
-     *    code from the APK must, is stored uncompressed.
+     * 4. Write patched dex files, stored uncompressed only for an app that runs them from the APK, see
+     *    [storesDexUncompressed].
      * 5. Realign the APK.
      *
      * Without a compiled resource APK, [apkFile] must be a copy of the input APK so that
      * unchanged entries remain available. Otherwise, the compiled resource APK replaces it.
      * Either way it holds the input's DEX files, which a complete patched DEX set replaces and
-     * a partial one overwrites by name. v1 signature files are dropped, as signing replaces them.
+     * a partial one overwrites by name. v1 signature files are dropped, as signing replaces them,
+     * unless a patch called [app.morphe.patcher.patch.retainOriginalV1Signature]. If a patch called
+     * [app.morphe.patcher.patch.retainOriginalV2Signature], the v2 signature of the input is handed to the
+     * signer in the APK Signing Block, see [ApkSigningBlock.RETAINED_V2_SIGNATURE_ID].
      *
      * @param apkFile A copy of the patched APK, to apply the patched files to.
      */
@@ -158,7 +166,8 @@ object ApkUtils {
             timings.measure("deleteSigDex") {
                 targetApkZFile.entries().filter { entry ->
                     val name = entry.centralDirectoryHeader.name
-                    name.matches(v1SignatureEntryName) || replacesAllDexFiles && name.matches(dexEntryName)
+                    !retainsV1Signature && name.matches(v1SignatureEntryName) ||
+                        replacesAllDexFiles && name.matches(dexEntryName)
                 }.forEach(StoredEntry::delete)
             }
 
@@ -187,7 +196,7 @@ object ApkUtils {
             timings.measure("addDex") {
                 try {
                     dexFiles.forEach { dexFile ->
-                        targetApkZFile.add(dexFile.name, dexFile.stream, dexFile.name !in storedDexFileNames)
+                        targetApkZFile.add(dexFile.name, dexFile.stream, !storeDexUncompressed)
                     }
                 } finally {
                     dexFiles.forEach { dexFile ->
@@ -203,6 +212,10 @@ object ApkUtils {
             timings.measure("realign") { targetApkZFile.realign() }
 
             logger.fine("Writing changes")
+        }
+
+        retainedV2Signature?.let { signature ->
+            timings.measure("retainV2Signature") { ApkSigningBlock.writeRetainedV2Signature(apkFile, signature) }
         }
 
         timings.log()

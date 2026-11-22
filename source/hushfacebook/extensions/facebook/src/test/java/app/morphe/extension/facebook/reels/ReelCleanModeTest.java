@@ -41,12 +41,15 @@ public class ReelCleanModeTest {
     @Before
     public void start() {
         HookStatus.clear();
+        ReelCleanMode.store = null;
     }
 
     @After
     public void restore() {
         PauseForTests.resume();
         Settings.REEL_CLEAN_MODE.resetToDefault();
+        Settings.REEL_CLEAN_BUTTON.resetToDefault();
+        ReelCleanMode.store = null;
         HookStatus.clear();
     }
 
@@ -143,6 +146,55 @@ public class ReelCleanModeTest {
     }
 
     @Test
+    public void aKeptButtonIsLaidOverTheDetailsAndAClearOneLiftedOffTheSeekBar() throws InterruptedException {
+        Settings.REEL_CLEAN_MODE.save(true);
+        Object[] left = {Boolean.FALSE};
+        ReelCleanMode.markLeftClean(left);
+        ReelCleanMode.cleanButtonState(left[0]);
+        assertTrue("a kept button stayed in the column under the details (#329)", ReelCleanMode.floatCleanButton());
+
+        // The button over a clean reel sat right on the seek bar, so taps moved the video (#391).
+        ReelCleanMode.cleanButtonState(Boolean.TRUE);
+        assertTrue("a clean reel's button stayed on the seek bar", ReelCleanMode.floatCleanButton());
+        String line = statusLine();
+        assertTrue("the kept and the lifted button weren't told apart: " + line, line != null
+                && line.contains(ReelCleanMode.FLOATED_BUTTON + " 1") && line.contains(ReelCleanMode.LIFTED_BUTTON + " 1"));
+
+        // A kept button's read doesn't carry over to the next button, on this thread or another.
+        ReelCleanMode.cleanButtonState(left[0]);
+        boolean[] elsewhere = {false};
+        Thread other = new Thread(() -> elsewhere[0] = ReelCleanMode.floatCleanButton());
+        other.start();
+        other.join();
+        assertTrue("a clean reel's button on another thread stayed on the seek bar", elsewhere[0]);
+        assertTrue("this thread's kept button was lost", ReelCleanMode.floatCleanButton());
+        assertTrue("the next button wasn't lifted", ReelCleanMode.floatCleanButton());
+        line = statusLine();
+        assertTrue("each button wasn't counted once, as what it is: " + line, line != null
+                && line.contains(ReelCleanMode.FLOATED_BUTTON + " 2") && line.contains(ReelCleanMode.LIFTED_BUTTON + " 3"));
+
+        // The sidebar's Clean mode button alone lifts it too, since that's its way in.
+        Settings.REEL_CLEAN_MODE.save(false);
+        Settings.REEL_CLEAN_BUTTON.save(true);
+        ReelCleanMode.cleanButtonState(Boolean.TRUE);
+        assertTrue("with the sidebar button on, the button stayed on the seek bar", ReelCleanMode.floatCleanButton());
+
+        // Both off, or paused, the button is Facebook's again and nothing moves.
+        Settings.REEL_CLEAN_BUTTON.save(false);
+        ReelCleanMode.cleanButtonState(left[0]);
+        assertFalse("off, a kept button moved", ReelCleanMode.floatCleanButton());
+        ReelCleanMode.cleanButtonState(Boolean.TRUE);
+        assertFalse("off, a clean reel's button moved", ReelCleanMode.floatCleanButton());
+        Settings.REEL_CLEAN_MODE.save(true);
+        Settings.REEL_CLEAN_BUTTON.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        ReelCleanMode.cleanButtonState(left[0]);
+        assertFalse("paused, a kept button moved", ReelCleanMode.floatCleanButton());
+        ReelCleanMode.cleanButtonState(Boolean.TRUE);
+        assertFalse("paused, a clean reel's button moved", ReelCleanMode.floatCleanButton());
+    }
+
+    @Test
     public void offOrPausedTheButtonIsFacebooks() {
         assertFalse("off, the button took the sticky way", ReelCleanMode.stickyClean(false));
         Object[] left = {Boolean.FALSE};
@@ -180,5 +232,71 @@ public class ReelCleanModeTest {
         assertFalse("a new reel reads the switch as it's made", Settings.REEL_CLEAN_MODE.rebootApp);
         assertTrue("Pause and the report don't know the switch",
                 PatchFamily.REEL_DECLUTTER.switches.contains(Settings.REEL_CLEAN_MODE));
+        assertFalse("a new sidebar reads the button's switch as it's made", Settings.REEL_CLEAN_BUTTON.rebootApp);
+        assertTrue("Pause and the report don't know the button's switch",
+                PatchFamily.REEL_DECLUTTER.switches.contains(Settings.REEL_CLEAN_BUTTON));
+    }
+
+    /**
+     * Issue #391: the sidebar's Clean mode button turns Clean mode on through the store, and only
+     * once the store was kept, which a build without Clean up Reels never does.
+     */
+    @Test
+    public void theSidebarButtonNeedsItsSwitchAndTheStore() {
+        assertFalse("the button's switch doesn't start off", Settings.REEL_CLEAN_BUTTON.get());
+        Object facebooks = new Object();
+        ReelCleanMode.keepStore(facebooks);
+        assertFalse("off, the sidebar got the button", ReelCleanMode.cleanButton());
+
+        Settings.REEL_CLEAN_BUTTON.save(true);
+        assertTrue("on with a store, the sidebar got no button", ReelCleanMode.cleanButton());
+        ReelCleanMode.store = null;
+        assertFalse("without a store, the sidebar got a button that does nothing", ReelCleanMode.cleanButton());
+        ReelCleanMode.keepStore(null);
+        assertFalse("a missing store was kept", ReelCleanMode.cleanButton());
+
+        ReelCleanMode.keepStore(facebooks);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("a paused Hushfacebook showed the button", ReelCleanMode.cleanButton());
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertFalse("the button showed before the settings were ready", ReelCleanMode.cleanButton()));
+        assertEquals("Clean mode", ReelCleanMode.cleanLabel());
+    }
+
+    @Test
+    public void aTapOnTheSidebarButtonIsCountedOnlyWithAStore() {
+        Settings.REEL_CLEAN_BUTTON.save(true);
+        ReelCleanMode.enterClean();
+        String line = statusLine();
+        assertFalse("a tap with no store was counted: " + line, line != null && line.contains("Counted"));
+
+        Object facebooks = new Object();
+        ReelCleanMode.keepStore(facebooks);
+        ReelCleanMode.enterClean();
+        assertEquals(FamilyNames.REEL_DECLUTTER + ": invoked 2, 1 found, 0 missing. Counted: "
+                + ReelCleanMode.ENTERED_FROM_SIDEBAR + " 1", statusLine());
+
+        Settings.REEL_CLEAN_BUTTON.save(false);
+        ReelCleanMode.enterClean();
+        assertTrue("a tap with the switch off was counted: " + statusLine(),
+                statusLine().endsWith(ReelCleanMode.ENTERED_FROM_SIDEBAR + " 1"));
+    }
+
+    /**
+     * With only the sidebar button on, Facebook's own button over a clean reel still takes the
+     * sticky way, so it turns the choice the sidebar button set back off. A reel it takes out isn't
+     * marked, since that's Always use Clean mode's, so it's Facebook's plain no and the sidebar
+     * comes back.
+     */
+    @Test
+    public void onlyTheSidebarButtonOnFacebooksButtonStillTurnsItOff() {
+        Settings.REEL_CLEAN_BUTTON.save(true);
+        assertTrue("Facebook's button didn't take the sticky way", ReelCleanMode.stickyClean(false));
+        assertFalse("a new reel started clean without Always use Clean mode", ReelCleanMode.startClean(false));
+        Object[] left = {Boolean.FALSE};
+        ReelCleanMode.markLeftClean(left);
+        assertSame("a reel taken out was marked without Always use Clean mode", Boolean.FALSE, left[0]);
+        assertSame(Boolean.FALSE, ReelCleanMode.cleanButtonState(left[0]));
     }
 }

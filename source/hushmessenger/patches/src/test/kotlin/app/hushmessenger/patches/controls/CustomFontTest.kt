@@ -72,6 +72,83 @@ private val RESOLVER_BODY = """
     return-object v1
 """.trimIndent()
 
+/**
+ * 587's resolver, cut down from 354's LX/7Xs;->A00: the cache, then the family's file, and with no file yet the phone's
+ * monospace at the weight asked for (clamped into the weight register) on its own return. Parameters start at v6.
+ */
+private val RESOLVER_587_BODY = """
+    const/4 v2, -0x1
+    invoke-virtual {p0}, Ljava/lang/Enum;->name()Ljava/lang/String;
+    move-result-object v5
+    iget-object v4, p1, LX/7V1;->A00:Ljava/util/Map;
+    invoke-interface {v4, v5}, Ljava/util/Map;->get(Ljava/lang/Object;)Ljava/lang/Object;
+    move-result-object v3
+    if-nez v3, :cached
+    iget-object v1, p0, LX/7Uy;->A00:Ljava/io/File;
+    if-nez v1, :load
+    if-ne p3, v2, :weighted
+    sget-object v3, $TYPEFACE->MONOSPACE:$TYPEFACE
+    :mono
+    invoke-static {v3}, LX/cLd;->A0h(Ljava/lang/Object;)V
+    return-object v3
+    :weighted
+    const/4 v3, 0x0
+    sget-object v2, $TYPEFACE->MONOSPACE:$TYPEFACE
+    const/4 v1, 0x1
+    const/16 v0, 0x3e8
+    if-ge p3, v1, :heavy
+    const/4 p3, 0x1
+    :create
+    invoke-static {v2, p3, v3}, $TYPEFACE->create(${TYPEFACE}IZ)$TYPEFACE
+    move-result-object v3
+    goto :mono
+    :heavy
+    if-le p3, v0, :create
+    const/16 p3, 0x3e8
+    goto :create
+    :load
+    invoke-interface {p2, v1}, LX/5oI;->AWQ(Ljava/io/File;)Ljava/lang/Object;
+    move-result-object v3
+    :cached
+    if-nez v3, :found
+    const-string v3, "$FONT_REPOSITORY_ANCHOR"
+    new-instance v0, Ljava/lang/IllegalStateException;
+    invoke-direct {v0, v3}, Ljava/lang/IllegalStateException;-><init>(Ljava/lang/String;)V
+    throw v0
+    :found
+    check-cast v3, $TYPEFACE
+    return-object v3
+""".trimIndent()
+
+private val MONOSPACE_MAKER = "LX/blQ;->A00(IZ)$TYPEFACE"
+
+/** 262's (armv7) copy of the 587 resolver, whose weighted way out asks an outlined monospace helper instead. */
+private val RESOLVER_587_ARM_BODY = RESOLVER_587_BODY.substringBefore("\n:weighted\n") + "\n" + """
+    :weighted
+    const/4 v0, 0x0
+    invoke-static {p3, v0}, $MONOSPACE_MAKER
+    move-result-object v3
+    return-object v3
+    :load
+""".trimIndent() + "\n" + RESOLVER_587_BODY.substringAfter("\n:load\n")
+
+/** 262's LX/blQ;->A00, cut down: the phone's monospace at a weight, or at a style on older Android. Parameters start at v3. */
+private val MONOSPACE_MAKER_BODY = """
+    const/4 v2, 0x0
+    if-eqz p1, :old
+    sget-object v1, $TYPEFACE->MONOSPACE:$TYPEFACE
+    invoke-static {v1, p0, v2}, $TYPEFACE->create(${TYPEFACE}IZ)$TYPEFACE
+    move-result-object v0
+    :done
+    invoke-static {v0}, LX/cXV;->A0c(Ljava/lang/Object;)V
+    return-object v0
+    :old
+    sget-object v0, $TYPEFACE->MONOSPACE:$TYPEFACE
+    invoke-static {v0, v2}, $TYPEFACE->create(${TYPEFACE}I)$TYPEFACE
+    move-result-object v0
+    goto :done
+""".trimIndent()
+
 /** The Roboto builder, whose one return is where both of its branches meet. Parameters start at v2. */
 private val ROBOTO_BODY = """
     invoke-virtual {p1}, Ljava/lang/Integer;->intValue()I
@@ -91,6 +168,22 @@ private val ROBOTO_BODY = """
     const-string v0, "$FONT_ROBOTO_ANCHOR"
     :done
     return-object v1
+""".trimIndent()
+
+internal const val FONT_ROBOTO_COPY = "LX/2KO;->A00(Landroid/content/Context;)$TYPEFACE"
+
+/** Family B's instance copy of one Roboto weight, logging under the builder's class. Its return is a branch target too. */
+private fun robotoCopyBody(builder: String = "LX/1z1;") = """
+    const-string v0, "sans-serif"
+    const/4 v1, 0x0
+    invoke-static {v0, v1}, $TYPEFACE->create(Ljava/lang/String;I)$TYPEFACE
+    move-result-object v0
+    if-nez v0, :done
+    const-class v1, $builder
+    const-string v0, "$FONT_ROBOTO_ANCHOR"
+    const/4 v0, 0x0
+    :done
+    return-object v0
 """.trimIndent()
 
 /** MIG's typeface by name: the repository's family of that name, else Android's, then styled. Parameters start at v2. */
@@ -189,7 +282,10 @@ private fun injectAndCheck(hook: String, method: MutableMethod, message: String)
 }
 
 class CustomFontTest {
-    @AfterTest fun reset() { activeProfile = SYNTHETIC_PROFILE }
+    @AfterTest fun reset() {
+        activeProfile = SYNTHETIC_PROFILE
+        monospaceMakers = emptySet()
+    }
 
     @Test fun everyFontHookIsFoundByItsStringShapeAndCalls() {
         val found = findCustomFont(customFontFixture())
@@ -217,6 +313,17 @@ class CustomFontTest {
         builder.injectCustomFont(FONT_ROBOTO)
         assertTrue(at in builder.jumpTargets())
         assertEquals(FONT_ROBOTO_CALL, builder.code()[at].reference())
+    }
+
+    @Test fun familyBsInstanceCopiesOfTheRobotoBuilderAreHookedBesideIt() {
+        val copy = fixtureClass("LX/2KO;", listOf(fixtureMethod(FONT_ROBOTO_COPY, robotoCopyBody(), registers = 4)))
+        val found = findCustomFont(customFontFixture() + copy)
+        assertEquals(listOf(FONT_ROBOTO_BUILDER, FONT_ROBOTO_COPY), found.getValue(FONT_ROBOTO).map { it.hookId() })
+        for (method in found.getValue(FONT_ROBOTO)) injectAndCheck(FONT_ROBOTO, method as MutableMethod, method.hookId())
+        // A holder that doesn't name the builder's class isn't a copy, and the builder goes unfound with it.
+        val stray = fixtureClass("LX/2KO;", listOf(fixtureMethod(FONT_ROBOTO_COPY, robotoCopyBody("LX/Abc;"), registers = 4)))
+        assertTrue(findCustomFont(customFontFixture() + stray).getValue(FONT_ROBOTO).isEmpty())
+        assertFailsWith<PatchException> { fixtureMethod(FONT_ROBOTO_COPY, robotoCopyBody("LX/Abc;"), registers = 4).validateCustomFont(FONT_ROBOTO) }
     }
 
     @Test fun anInputCallOnARangeStopsThePatch() {
@@ -261,6 +368,53 @@ class CustomFontTest {
         assertFailsWith<PatchException> { fixtureMethod(FONT_BY_NAME_LOOKUP, twoReturns, registers = 5, flags = STATIC).validateCustomFont(FONT_BY_NAME) }
     }
 
+    @Test fun a587ResolverHooksItsCacheReturnAndLeavesTheMonospaceFallbackAsItIs() {
+        fun resolver(body: String) = fixtureMethod(FONT_RESOLVER, body, registers = 10, flags = STATIC)
+        val stock = resolver(RESOLVER_587_BODY)
+        assertTrue(stock.isFontRepository())
+        val returns = stock.code().indices.filter { stock.code()[it].opcode == Opcode.RETURN_OBJECT }
+        assertEquals(2, returns.size)
+        // The cast return gets the call with the family and weight parameters, even though the fallback rewrites the weight.
+        assertEquals(returns.last(), stock.validateCustomFont(FONT_REPOSITORY))
+        injectAndCheck(FONT_REPOSITORY, stock, "587 resolver")
+        assertEquals(Opcode.RETURN_OBJECT, stock.code()[returns.first()].opcode)
+        assertEquals(3, (stock.code()[returns.first()] as OneRegisterInstruction).registerA)
+
+        // A second way out that isn't the phone's monospace could be one of Messenger's own fonts going around the switch.
+        assertFailsWith<PatchException> { resolver(RESOLVER_587_BODY.replace("->MONOSPACE:", "->SERIF:")).validateCustomFont(FONT_REPOSITORY) }
+        val madeElsewhere = RESOLVER_587_BODY.replace("invoke-static {v3}, LX/cLd;->A0h(Ljava/lang/Object;)V",
+            "invoke-static {v3}, LX/cLd;->A0i(Ljava/lang/Object;)$TYPEFACE\nmove-result-object v3")
+        assertTrue(madeElsewhere != RESOLVER_587_BODY)
+        assertFailsWith<PatchException> { resolver(madeElsewhere).validateCustomFont(FONT_REPOSITORY) }
+        // Two returns that both cast leave no telling which one is the cache's.
+        val twoCasts = RESOLVER_587_BODY.replace("A0h(Ljava/lang/Object;)V\nreturn-object v3", "A0h(Ljava/lang/Object;)V\ncheck-cast v3, $TYPEFACE\nreturn-object v3")
+        assertTrue(twoCasts != RESOLVER_587_BODY)
+        assertFailsWith<PatchException> { resolver(twoCasts).validateCustomFont(FONT_REPOSITORY) }
+        // A weight written on the way to the cache's return no longer holds the weight asked for.
+        val reweighted = RESOLVER_587_BODY.replace(":found\ncheck-cast v3", ":found\nconst/4 p3, 0x0\ncheck-cast v3")
+        assertTrue(reweighted != RESOLVER_587_BODY)
+        assertFailsWith<PatchException> { resolver(reweighted).validateCustomFont(FONT_REPOSITORY) }
+    }
+
+    @Test fun armv7sOutlinedMonospaceHelperCountsAsTheFallback() {
+        fun maker(body: String) = fixtureClass("LX/blQ;", listOf(fixtureMethod(MONOSPACE_MAKER, body, registers = 5, flags = STATIC)))
+        val arm = fixtureMethod(FONT_RESOLVER, RESOLVER_587_ARM_BODY, registers = 10, flags = STATIC)
+        assertTrue(arm.isFontRepository())
+        val returns = arm.code().indices.filter { arm.code()[it].opcode == Opcode.RETURN_OBJECT }
+        assertEquals(3, returns.size)
+        findCustomFont(customFontFixture() + maker(MONOSPACE_MAKER_BODY))
+        assertEquals(setOf(MONOSPACE_MAKER), monospaceMakers)
+        assertEquals(returns.last(), arm.validateCustomFont(FONT_REPOSITORY))
+        injectAndCheck(FONT_REPOSITORY, arm, "587 armv7 resolver")
+
+        // Without the helper found, or with one that reaches for another typeface, that return could be Messenger's own font.
+        findCustomFont(customFontFixture())
+        assertFailsWith<PatchException> { fixtureMethod(FONT_RESOLVER, RESOLVER_587_ARM_BODY, registers = 10, flags = STATIC).validateCustomFont(FONT_REPOSITORY) }
+        findCustomFont(customFontFixture() + maker(MONOSPACE_MAKER_BODY.replaceFirst("->MONOSPACE:", "->SERIF:")))
+        assertTrue(monospaceMakers.isEmpty())
+        assertFailsWith<PatchException> { fixtureMethod(FONT_RESOLVER, RESOLVER_587_ARM_BODY, registers = 10, flags = STATIC).validateCustomFont(FONT_REPOSITORY) }
+    }
+
     @Test fun aSecondHolderOfAnAnchorLeavesItsHookUnfound() {
         val copy = fixtureClass("LX/2Tf;", listOf(fixtureMethod(FONT_LAYOUT_SETTER.replace("LX/2Te;", "LX/2Tf;"),
             LAYOUT_BODY.replace("LX/2Te;", "LX/2Tf;"), registers = 4)))
@@ -293,8 +447,10 @@ class CustomFontTest {
             val dex = DexFileFactory.loadDexContainer(apk.toFile(), Opcodes.forApi(35))
             val found = findCustomFont(dex.dexEntryNames.flatMap { dex.getEntry(it)!!.dexFile.classes })
             validateControls(found, CUSTOM_FONT_HOOKS.toSet())
-            // The layout, the repository, the Roboto builder, the by-name lookup and three text inputs.
-            assertEquals(7, found.values.sumOf { it.size }, code)
+            // The layout, the repository, the Roboto builder, the by-name lookup and three text inputs. Family B adds two
+            // instance copies of the builder.
+            assertEquals(6 + found.getValue(FONT_ROBOTO).size, found.values.sumOf { it.size }, code)
+            assertTrue(found.getValue(FONT_ROBOTO).size in setOf(1, 3), code)
             for ((hook, methods) in found) for (method in methods) injectAndCheck(hook, MutableMethod(method), "$code ${method.hookId()}")
         }
     }

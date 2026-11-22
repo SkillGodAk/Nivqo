@@ -61,9 +61,9 @@ param(
     # or on Android's app chooser.
     [string[]]$Visit = @('fb://feed', 'tap:Comment', 'back', 'fb://watch', 'fb://fb_shorts/viewer', 'longpress',
         'fb://notifications', 'fb://marketplace', 'fb://profile', 'fb://search', 'query',
-        'fb://bookmarks', 'tap:Settings and privacy', 'fb://bookmarks', 'tap:Feeds', 'fb://feed'),
+        'fb://bookmarks', 'tap:Settings and privacy', 'tap:Settings', 'tap:Notifications', 'fb://feed'),
     # Only these explicitly optional steps may be absent without failing the requested scope.
-    [string[]]$OptionalVisit = @('tap:Comment', 'tap:Feeds'),
+    [string[]]$OptionalVisit = @('tap:Comment', 'tap:Settings', 'tap:Notifications'),
     [int]$Swipes = 4,
     [int]$SettleSeconds = 4,
     # Setting keys to turn on or off on top of the all-on profile, besides the few the walk itself
@@ -195,7 +195,7 @@ function Assert-AuditLease {
 function Assert-AuditSteps {
     $allowed = @('fb://feed', 'fb://watch', 'fb://fb_shorts/viewer', 'fb://notifications',
         'fb://marketplace', 'fb://profile', 'fb://search', 'fb://bookmarks',
-        'tap:Comment', 'tap:Settings and privacy', 'tap:Feeds', 'back', 'longpress', 'query')
+        'tap:Comment', 'tap:Settings and privacy', 'tap:Settings', 'tap:Notifications', 'tap:Feeds', 'back', 'longpress', 'query')
     foreach ($step in $Visit) {
         if ($allowed -cnotcontains $step) { throw "Not a permitted audit navigation step: $step" }
     }
@@ -251,8 +251,19 @@ function Invoke-Adb {
                 if ($fresh.Count -eq 0) { throw 'No fresh Facebook UI nodes. No input was sent.' }
             }
             $nodeWindow = $script:auditWindowIdentity
-            if ($arguments[2] -eq 'tap') {
-                if ($inputNodeLabel -cnotin @('Comment', 'Settings and privacy', 'Feeds')) {
+            $queryTap = $inputQuery -and $arguments[2] -eq 'tap'
+            if ($queryTap) {
+                # One tap per query step, and only inside the one search field holding the query.
+                if ($script:auditQueryTaps -ge 1) { throw 'The search field already got its tap. No tap was sent.' }
+                $field = Select-AuditQueryField $fresh
+                if ($arguments.Count -ne 5 -or $arguments[3] -notmatch '^\d+$' -or $arguments[4] -notmatch '^\d+$' -or
+                        $null -eq $field -or $field.bounds -notmatch '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$' -or
+                        [int]$arguments[3] -lt [int]$Matches[1] -or [int]$arguments[3] -ge [int]$Matches[3] -or
+                        [int]$arguments[4] -lt [int]$Matches[2] -or [int]$arguments[4] -ge [int]$Matches[4]) {
+                    throw 'The tap is not inside the one search field holding the query. No tap was sent.'
+                }
+            } elseif ($arguments[2] -eq 'tap') {
+                if ($inputNodeLabel -cnotin @('Comment', 'Settings and privacy', 'Settings', 'Notifications', 'Feeds')) {
                     throw 'No permitted navigation node was selected. No tap was sent.'
                 }
                 # The label must still name one target on the fresh screen, and the tap must land in it.
@@ -267,7 +278,8 @@ function Invoke-Adb {
             # in Facebook search on the S22, 2026-10-18), and the query needs the field focused.
             $keyboard = $arguments[2] -ne 'keyevent' -and (Test-AuditKeyboard)
             if ($typing -and $arguments[2] -eq 'text' -and -not $keyboard) { throw 'No keyboard is open for the query. Nothing was typed.' }
-            if (-not $typing -and $keyboard) { throw 'The keyboard is open. No swipe or tap was sent.' }
+            if (-not $typing -and -not $queryTap -and $keyboard) { throw 'The keyboard is open. No swipe or tap was sent.' }
+            if ($queryTap -and -not $keyboard) { throw 'No keyboard is open for the search field tap. No tap was sent.' }
             # A dump can take seconds. An overlay may have taken input while it was running.
             Assert-AuditForeground
             if ($nodeWindow -cne $script:auditWindowIdentity) {
@@ -276,6 +288,7 @@ function Invoke-Adb {
             if ($inputWindow -and $inputWindow -cne $script:auditWindowIdentity) {
                 throw 'The verified destination window changed. No input was sent.'
             }
+            if ($queryTap) { $script:auditQueryTaps++ }
         }
     }
     $preference = $ErrorActionPreference
@@ -316,12 +329,12 @@ function Test-AuditKeyboard {
     return $shown -ccontains 'true'
 }
 
-function Get-UiNodes {
+function Get-UiNodes([int]$Tries = 10) {
     Assert-AuditForeground
     $windowBefore = $script:auditWindowIdentity
     # The settings title's gradient moves every frame, and on an emulator uiautomator then loses the
     # window's root ("null root node returned") up to two dumps in five, so a screen gets ten tries.
-    for ($try = 1; $try -le 10; $try++) {
+    for ($try = 1; $try -le $Tries; $try++) {
         $dump = (Invoke-Adb shell 'rm -f /sdcard/hushfacebook-audit.xml; uiautomator dump /sdcard/hushfacebook-audit.xml >/dev/null 2>&1; cat /sdcard/hushfacebook-audit.xml; rm -f /sdcard/hushfacebook-audit.xml') -join "`n"
         $start = $dump.IndexOf('<?xml')
         if ($start -ge 0) {
@@ -337,8 +350,8 @@ function Get-UiNodes {
     return @()
 }
 
-function Get-ScreenText {
-    $lines = foreach ($node in Get-UiNodes) {
+function Get-ScreenText([int]$Tries = 10) {
+    $lines = foreach ($node in Get-UiNodes -Tries $Tries) {
         foreach ($value in @($node.text, $node.'content-desc')) { if ($value) { $value } }
     }
     return @($lines)
@@ -439,15 +452,22 @@ function Test-AuditReelViewer([string[]]$Top, [string]$Activity) {
 }
 
 # Proves the reel viewer is in front from the resumed Facebook screen's fragments, which can be
-# read while a video plays.
+# read while a video plays. A proof that fails keeps what it read in the results folder, the windows
+# before and after and the fragment dump, since the S22's all-on walk on 2026-11-08 failed a hold
+# on a reel that was on screen and left nothing to show why.
 function Get-AuditReelProof {
     Assert-AuditForeground
     $windowBefore = $script:auditWindowIdentity
     $activity = $windowBefore.Substring(0, $windowBefore.IndexOf('|'))
     $top = @(Invoke-Adb shell dumpsys activity (Format-Shell $activity))
     Assert-AuditForeground
-    if ($script:auditWindowIdentity -cne $windowBefore) { return $false }
-    return Test-AuditReelViewer $top $activity
+    $proved = $script:auditWindowIdentity -ceq $windowBefore -and (Test-AuditReelViewer $top $activity)
+    if (-not $proved -and -not [string]::IsNullOrEmpty($OutDir) -and (Test-Path -LiteralPath $OutDir -PathType Container)) {
+        $script:auditReelMisses++
+        $evidence = @("window before: $windowBefore", "window after: $($script:auditWindowIdentity)", '') + $top
+        Set-Content -LiteralPath (Join-Path $OutDir ('reel-proof-failed-{0:00}.txt' -f $script:auditReelMisses)) -Value $evidence -Encoding utf8
+    }
+    return [bool]$proved
 }
 
 # What a hold on a reel opened (the comment sheet Open comments with a gesture opens, or the share
@@ -455,13 +475,20 @@ function Get-AuditReelProof {
 # same activity, where a Back pops that page instead of the sheet: the fourth S22 walk, 2026-10-27,
 # failed the notifications step after two Backs that way. So the hold step closes it there and then,
 # a Back at a time, up to three (a focused composer takes one), until the reel's own controls are on
-# screen again. An empty dump is a playing reel, which can't be dumped, with nothing over it.
-function Close-AuditHoldCover {
+# screen again. An empty dump is a playing reel, which can't be dumped, with nothing over it. A screen
+# that reads as it did before the hold ($Before, its texts and descriptions) has nothing over it
+# either: on the S22's all-on walk, 2026-11-08, a reel viewer stopped on a page that never loaded
+# read the same before and after the hold, showed no video controls, and the Back closed the viewer.
+# Every read counts, repeats and case included, so a cover holding only a second spinner still differs.
+function Close-AuditHoldCover([string[]]$Before = @()) {
+    $unchanged = (@($Before | Sort-Object -CaseSensitive) -join "`n")
     $backs = 0
     while ($backs -lt 3) {
         $nodes = @(Get-UiNodes)
         if ($nodes.Count -eq 0 -or @($nodes | Where-Object {
                     $_.'content-desc' -ceq 'Tap to show video controls' -or $_.text -ceq 'Tap to show video controls' }).Count -gt 0) { break }
+        $reads = @(foreach ($node in $nodes) { foreach ($value in @($node.text, $node.'content-desc')) { if ($value) { $value } } })
+        if ($Before.Count -gt 0 -and (@($reads | Sort-Object -CaseSensitive) -join "`n") -ceq $unchanged) { break }
         Invoke-Adb shell input keyevent KEYCODE_BACK | Out-Null
         Start-Sleep -Seconds 1
         $backs++
@@ -490,22 +517,49 @@ function Open-AuditRoute([string]$Route, [bool]$Reel) {
     }
 }
 
+# True when $Inner sits somewhere inside $Outer in the dump's tree. Only dumped nodes carry a parent.
+function Test-AuditNodeHolds($Outer, $Inner) {
+    if ($Inner -isnot [Xml.XmlNode]) { return $false }
+    for ($parent = $Inner.ParentNode; $null -ne $parent; $parent = $parent.ParentNode) {
+        if ([object]::ReferenceEquals($parent, $Outer)) { return $true }
+    }
+    return $false
+}
+
+# True when a clickable Facebook node other than the target, its rows or its parts holds the
+# target's middle, where a tap on it would land.
+function Test-AuditTapCovered($Target, [object[]]$Nodes) {
+    if ($Target.bounds -notmatch '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$') { return $true }
+    $x = [int](([int]$Matches[1] + [int]$Matches[3]) / 2)
+    $y = [int](([int]$Matches[2] + [int]$Matches[4]) / 2)
+    foreach ($other in $Nodes) {
+        if ([object]::ReferenceEquals($other, $Target) -or $other.clickable -cne 'true' -or $other.package -cne $Package -or
+                $other.bounds -notmatch '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$') { continue }
+        if ($x -lt [int]$Matches[1] -or $x -ge [int]$Matches[3] -or $y -lt [int]$Matches[2] -or $y -ge [int]$Matches[4]) { continue }
+        if (-not (Test-AuditNodeHolds $other $Target) -and -not (Test-AuditNodeHolds $Target $other)) { return $true }
+    }
+    return $false
+}
+
 # The one node a "tap:<label>" step may tap, or $null. A row can repeat its label on a child that
 # isn't clickable (the menu's Settings and privacy row on the S22), so several matches still
 # name one target when exactly one is clickable and every other match sits inside it.
 # Comment sits under every post, so two short posts put two on one screen, and any of them opens a
-# comment sheet: the topmost clickable one a tap may reach is taken. Every other label must name
-# one target.
+# comment sheet: the topmost clickable one a tap may reach is taken. A Comment scrolled under the
+# top bar, the header row or the tab bar can't be reached, since the tap lands on what covers its
+# middle (the all-on feed's drawer button on the S22, 2026-11-05, opened the drawer). Every other
+# label must name one target.
 function Select-AuditTapNode([string]$Label, [object[]]$Nodes, [string[]]$Repeated = @('Comment')) {
     $boundsPattern = '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$'
     $found = @($Nodes | Where-Object { $_.text -ceq $Label -or $_.'content-desc' -ceq $Label } |
         Where-Object { $_.package -ceq $Package -and $_.bounds -match $boundsPattern })
-    if ($found.Count -eq 1) { return $found[0] }
+    if ($found.Count -eq 1 -and -not ($Repeated -ccontains $Label -and (Test-AuditTapCovered $found[0] $Nodes))) { return $found[0] }
     if ($found.Count -gt 1 -and $Repeated -ccontains $Label) {
         $reachable = @($found | Where-Object { $_.clickable -ceq 'true' } | ForEach-Object {
             $null = $_.bounds -match $boundsPattern
             $box = @([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], [int]$Matches[4])
-            if ($box[2] -gt $box[0] -and $box[3] -gt $box[1] -and [int](($box[1] + $box[3]) / 2) -ge $MinimumTapY) {
+            if ($box[2] -gt $box[0] -and $box[3] -gt $box[1] -and [int](($box[1] + $box[3]) / 2) -ge $MinimumTapY -and
+                    -not (Test-AuditTapCovered $_ $Nodes)) {
                 [pscustomobject]@{ Node = $_; Top = $box[1] }
             }
         })
@@ -513,6 +567,8 @@ function Select-AuditTapNode([string]$Label, [object[]]$Nodes, [string[]]$Repeat
         return @($reachable | Sort-Object Top)[0].Node
     }
     $rows = @($found | Where-Object { $_.clickable -ceq 'true' })
+    # The Menu's header gear and its expanded group's row both say Settings and open the same page.
+    if ($rows.Count -eq 1 -and $Label -ceq 'Settings') { return $rows[0] }
     if ($found.Count -lt 2 -or $rows.Count -ne 1) { return $null }
     $null = $rows[0].bounds -match $boundsPattern
     $outer = @([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], [int]$Matches[4])
@@ -523,6 +579,16 @@ function Select-AuditTapNode([string]$Label, [object[]]$Nodes, [string[]]$Repeat
                 [int]$Matches[3] -gt $outer[2] -or [int]$Matches[4] -gt $outer[3]) { return $null }
     }
     return $rows[0]
+}
+
+# The search field once the query is typed: Facebook's one EditText on screen, holding exactly the
+# query. A typeahead row repeating the query, a second field or other text is no target.
+function Select-AuditQueryField([object[]]$Nodes) {
+    $fields = @($Nodes | Where-Object { $_.package -ceq $Package -and $_.class -ceq 'android.widget.EditText' })
+    if ($fields.Count -ne 1 -or $fields[0].text -cne $AuditQuery -or
+            $fields[0].bounds -notmatch '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$' -or
+            [int]$Matches[3] -le [int]$Matches[1] -or [int]$Matches[4] -le [int]$Matches[2]) { return $null }
+    return $fields[0]
 }
 
 function Find-AuditTapNode([string]$Label) {
@@ -584,10 +650,13 @@ function Send-Profile([string]$Json) {
 # Keep the reel speed run on it alone. Hiding the Comment button under posts leaves tap:Comment
 # nothing to open, and the comment sheet is the only way the walk reaches Open comments at full
 # height (585 hides it; 584 never sent the row's type list on this account, so the baseline didn't
-# see it). A key in both -On and -Off ends off, as the extension applies off after on.
+# see it). Hiding the speaker on reels keeps Move the speaker above the three dots from ever building
+# one, so the walk never called the side column's builder, and 586's Reels tab crash in it (the
+# builder became an instance method) passed a walk with 0 crashes. A key in both -On and -Off ends
+# off, as the extension applies off after on.
 function Get-AuditOff([string[]]$OnKeys, [string[]]$OffKeys,
     [string[]]$WalkKeys = @('hushfacebook_hold_reel_right_edge', 'hushfacebook_long_press_opens_comments',
-        'hushfacebook_hide_post_comment_button')) {
+        'hushfacebook_hide_post_comment_button', 'hushfacebook_hide_reel_sound_button')) {
     $keys = [System.Collections.Generic.List[string]]::new()
     foreach ($key in @(@($WalkKeys | Where-Object { $OnKeys -cnotcontains $_ }) + @($OffKeys))) {
         if ($key -and -not $keys.Contains($key)) { $keys.Add($key) }
@@ -881,7 +950,10 @@ function Test-SettingsScreen([string[]]$Text, [object]$Rows) {
 }
 
 # Back until no Hush settings screen is left. Back first takes a page back from its section jump,
-# then closes the screen.
+# then closes the screen. A section page (schema 3) always shows the toolbar's list toggle, and its
+# title can be one of Facebook's own tab labels (Menu, Search, Marketplace, Notifications), so only
+# a schema 2 page counts by its title alone. Matching "Menu" on Facebook's tab bar sent one Back too
+# many on 586 and put Facebook in the background.
 function Close-Settings {
     for ($i = 0; $i -lt 4; $i++) {
         $text = @(Get-ScreenText)
@@ -889,7 +961,7 @@ function Close-Settings {
         $shown = if ($record) { $record | ConvertFrom-Json } else { $null }
         $table = if ($shown) { Get-AuditLocaleTable ([string]$shown.locale) $shown.localeTags } else { $null }
         if (-not ((Test-SettingsScreen $text $(if ($table) { $table.Rows } else { $null })) -or $text -contains 'Search settings' -or
-                ($shown -and $shown.schema -in @(2, 3) -and $text -contains $shown.title))) { return }
+                ($shown -and $shown.schema -eq 2 -and $text -contains $shown.title))) { return }
         Invoke-Adb shell input keyevent KEYCODE_BACK | Out-Null
         Start-Sleep -Milliseconds 900
     }
@@ -1125,19 +1197,30 @@ try {
                     if ($OptionalVisit -cnotcontains $step) { $problems.Add("Required step $stepNumber was not reached: $step") }
                 }
             } elseif ($step -eq 'longpress') {
+                # One dump only: a playing reel can't be read, and ten tries there cost about two minutes.
+                $holdBefore = @(Get-ScreenText -Tries 1)
                 $inputReel = $routeReel
                 $inputWindow = if ($routeReel) { $routeWindow }
                 try { Invoke-Adb shell input swipe $swipeX $holdY $swipeX $holdY 2500 | Out-Null }
                 finally { $inputReel = $false; $inputWindow = $null }
                 Start-Sleep -Seconds 1
                 $inputReel = $routeReel
-                try { $holdBacks = Close-AuditHoldCover }
+                try { $holdBacks = Close-AuditHoldCover $holdBefore }
                 finally { $inputReel = $false }
                 if ($holdBacks) { $summary.Add("Walk: the hold at step $stepNumber opened something over the reel, closed with $holdBacks Back(s).") }
             } elseif ($step -eq 'back') {
                 if ($skipBack) { $skipBack = $false; continue }
                 $inputReel = $routeReel
-                try { Invoke-Adb shell input keyevent KEYCODE_BACK | Out-Null }
+                try {
+                    # A post with no comments opens its sheet with the composer focused and the keyboard
+                    # up, where a Back only drops the keyboard and leaves the sheet over the next links
+                    # (third S22 walk, 2026-11-09, failed the reel hold under it). So that Back goes first.
+                    if (-not $routeReel -and (Test-AuditKeyboard)) {
+                        Invoke-Adb shell input keyevent KEYCODE_BACK | Out-Null
+                        Start-Sleep -Seconds 1
+                    }
+                    Invoke-Adb shell input keyevent KEYCODE_BACK | Out-Null
+                }
                 finally { $inputReel = $false }
                 $routeReel = $false
                 $routeStep = $null
@@ -1150,9 +1233,29 @@ try {
                 }
                 $inputWindow = $routeWindow
                 $inputQuery = $true
+                $script:auditQueryTaps = 0
                 try {
                     Invoke-Adb shell input text $AuditQuery | Out-Null
                     Start-Sleep -Seconds 2
+                    # Enter straight after typing went to the first typeahead row about 2 times in 10
+                    # (emulator-5590, 0.21.0) and searched nothing. A tap in the field first, then
+                    # Enter, submitted every time.
+                    $field = Select-AuditQueryField @(Get-UiNodes)
+                    if ($field -and $field.bounds -match '^\[(\d+),(\d+)\]\[(\d+),(\d+)\]$' -and
+                            [int]$Matches[1] -ge 0 -and [int]$Matches[2] -ge 0 -and [int]$Matches[3] -le $width -and [int]$Matches[4] -le $height) {
+                        $fieldX = [int](([int]$Matches[1] + [int]$Matches[3]) / 2)
+                        $fieldY = [int](([int]$Matches[2] + [int]$Matches[4]) / 2)
+                        # The field can change before Invoke-Adb's own dump. A refused tap leaves Enter,
+                        # which checks the screen again before it goes.
+                        try {
+                            Invoke-Adb shell input tap $fieldX $fieldY | Out-Null
+                            Start-Sleep -Milliseconds 800
+                        } catch {
+                            $summary.Add("Walk: the search field tap at step $stepNumber was refused ($($_.Exception.Message)). Enter sent without it.")
+                        }
+                    } else {
+                        $summary.Add("Walk: no single search field held the query at step $stepNumber. Enter sent without the tap.")
+                    }
                     Invoke-Adb shell input keyevent KEYCODE_ENTER | Out-Null
                 } finally { $inputWindow = $null; $inputQuery = $false }
                 $routeStep = $null

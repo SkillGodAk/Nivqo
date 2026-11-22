@@ -33,6 +33,7 @@ internal const val GALLERY_CHAT_ITEM_CALL = "$SETTINGS->galleryChatItem(Landroid
 internal const val GALLERY_TRAY_CALL = "$SETTINGS->galleryTray(Z)Z"
 private const val ITEM_TYPE_CALL = "Landroid/content/Intent;->getType()Ljava/lang/String;"
 private const val INVOKE_SUSPEND = "invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;"
+private const val COROUTINE_STEP = "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
 private val TRAY_NULLS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
 
 /**
@@ -157,10 +158,11 @@ private fun copiedMedia(code: List<Instruction>, at: Int): Int? {
  */
 private fun chatDispatchers(methods: List<Method>, byType: Map<String, ClassDef>): Map<String, Set<String>> {
     val found = mutableMapOf<String, MutableSet<String>>()
+    val insertPreview = MemberMatch(INSERT_PREVIEW_INIT)
     for (method in methods) {
         val code = method.implementation?.instructions?.toList() ?: continue
         for (i in 0 until code.size - 1) {
-            if (code[i].opcode != Opcode.INVOKE_DIRECT || code[i].galleryMethod()?.toString() != INSERT_PREVIEW_INIT) continue
+            if (code[i].opcode != Opcode.INVOKE_DIRECT || !insertPreview.matches(code[i].galleryMethod())) continue
             val call = code[i + 1]
             val ref = call.galleryMethod() ?: continue
             if (call.opcode != Opcode.INVOKE_STATIC || ref.returnType != "V" || ref.parameterTypes.size != 2 ||
@@ -177,11 +179,22 @@ private fun chatDispatchers(methods: List<Method>, byType: Map<String, ClassDef>
     return found.filterValues { ids -> ids.all(::publicStatic) }
 }
 
+/** The methods that build a tray insert, the only ones [chatDispatchers] can find a dispatcher in. */
+internal val trayInsertBuilders = MethodCheck {
+    val insertPreview = MemberMatch(INSERT_PREVIEW_INIT)
+    val test: MethodTest = { _, m ->
+        m.implementation?.instructions?.any { it.opcode == Opcode.INVOKE_DIRECT && insertPreview.matches(it.galleryMethod()) } == true
+    }
+    test
+}
+
 /** The tray's composer plugins: the ones whose event set takes Messenger's tray insert. */
-private fun trayPlugins(all: List<ClassDef>): Set<String> = all.filter { cls ->
-    cls.methods.any { m -> m.parameterTypes.isEmpty() && m.returnType == "Ljava/util/Set;" &&
-        m.implementation?.instructions?.any { it.opcode == Opcode.CONST_CLASS && it.galleryType() == INSERT_PREVIEW } == true }
-}.map { it.type }.toSet()
+internal val trayPluginClasses = classCheck { _, m ->
+    m.parameterTypes.isEmpty() && m.returnType == "Ljava/util/Set;" &&
+        m.implementation?.instructions?.any { it.opcode == Opcode.CONST_CLASS && it.galleryType() == INSERT_PREVIEW } == true
+}
+
+private fun trayPlugins(classes: Iterable<ClassDef>): Set<String> = trayPluginClasses.classes(classes).map { it.type }.toSet()
 
 /** Where the tray gate returns its answer, when one return a branch can't skip to hands back a register an invoke reaches. */
 internal fun Method.traySite(): Int? {
@@ -212,8 +225,8 @@ internal fun Method.traySite(): Int? {
  * factory that overrides its gate counts: the chat composer's does, and another surface's composer builds the same
  * plugin behind a base gate it leaves alone.
  */
-private fun trayGate(all: List<ClassDef>): Method? {
-    val trays = trayPlugins(all)
+private fun trayGate(classes: Iterable<ClassDef>, all: List<ClassDef>): Method? {
+    val trays = trayPlugins(classes)
     val gates = mutableSetOf<String>()
     for (factory in all) {
         if (factory.superclass != COMPOSER_FACTORY) continue
@@ -246,6 +259,24 @@ private fun trayGate(all: List<ClassDef>): Method? {
 }
 
 /**
+ * The coroutine's resume and the static helpers of its own class it hands this and the result to. 587's armv7 build
+ * merges coroutines into one class whose resume switches to each one's helper:
+ *
+ *     invoke-static {p0, p1}, <class>->A03(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+ */
+private fun Method.coroutineSteps(byType: Map<String, ClassDef>): List<Method> {
+    val self = parameterRegister(0)
+    val result = parameterRegister(1)
+    val handed = implementation!!.instructions.filter { call ->
+        call.opcode == Opcode.INVOKE_STATIC && (call as FiveRegisterInstruction).registerCount == 2 &&
+            call.registerC == self && call.registerD == result
+    }.mapNotNull { it.galleryMethod()?.toString() }.toSet()
+    return listOf(this) + byType.getValue(definingClass).methods.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.hookId().endsWith(COROUTINE_STEP) && it.hookId() in handed
+    }
+}
+
+/**
  * The chat's handler for a photo from another app, the coroutine it starts and the composer's tray gate, or none. The
  * handler opens one item in Messenger's editor, so the hook at its start hands it the pick one item at a time, and the
  * hook in the coroutine puts each copied item in the chat's tray instead of opening the editor. The gate's hook makes sure
@@ -267,13 +298,14 @@ internal fun findGalleryToChat(classes: Iterable<ClassDef>): List<Method> {
     val started = items.implementation!!.instructions.filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { it.galleryType() }
         .distinct().mapNotNull { byType[it] }
         .mapNotNull { cls -> cls.methods.singleOrNull { it.hookId().substringAfter("->") == INVOKE_SUSPEND } }
-    val editor = started.singleOrNull() ?: return emptyList()
+    val resume = started.singleOrNull() ?: return emptyList()
     val insert = byType[INSERT_PREVIEW] ?: return emptyList()
     if (!AccessFlags.PUBLIC.isSet(insert.accessFlags) ||
         insert.methods.none { it.hookId() == INSERT_PREVIEW_INIT && AccessFlags.PUBLIC.isSet(it.accessFlags) }) return emptyList()
-    val dispatchers = chatDispatchers(methods, byType).filterValues { it.size == 1 }
-    val site = editor.galleryChatSite(dispatchers.keys) ?: return emptyList()
-    val tray = trayGate(all) ?: return emptyList()
+    val dispatchers = chatDispatchers(trayInsertBuilders.methods(classes), byType).filterValues { it.size == 1 }
+    val editor = resume.coroutineSteps(byType).singleOrNull { it.galleryChatSite(dispatchers.keys) != null } ?: return emptyList()
+    val site = editor.galleryChatSite(dispatchers.keys)!!
+    val tray = trayGate(classes, all) ?: return emptyList()
     galleryChatRoute = GalleryChatRoute(items.hookId(), itemsIntent.toString(), editor.hookId(),
         dispatchers.getValue(site.chatType).single(), site.chatType, tray.hookId())
     return listOf(items, editor, tray)

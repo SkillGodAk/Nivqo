@@ -32,8 +32,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.comments.CommentsHeight;
 import app.morphe.extension.facebook.reels.BurnInMode;
 import app.morphe.extension.facebook.reels.BurnInWait;
+import app.morphe.extension.facebook.reels.GrayOver;
+import app.morphe.extension.facebook.reels.HoldReaction;
 import app.morphe.extension.facebook.reels.ReelDateStyle;
 import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
@@ -53,7 +56,9 @@ import app.morphe.extension.facebook.misc.BreakTimer;
 import app.morphe.extension.facebook.misc.HeaderText;
 import app.morphe.extension.facebook.misc.LogoEmoji;
 import app.morphe.extension.facebook.misc.OpeningPause;
+import app.morphe.extension.facebook.misc.PostMenuItems;
 import app.morphe.extension.facebook.misc.ShareSheetItems;
+import app.morphe.extension.facebook.misc.RefreshRate;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.feed.ReactionCeiling;
 import app.morphe.extension.facebook.theme.AccentColor;
@@ -63,6 +68,7 @@ import app.morphe.extension.facebook.theme.MarkColors;
 import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.facebook.navigation.TabOrder;
+import app.morphe.extension.facebook.feed.FoldLines;
 import app.morphe.extension.facebook.feed.SeenPosts;
 import app.morphe.extension.facebook.notifications.QuietHour;
 import app.morphe.extension.shared.settings.BooleanSetting;
@@ -105,13 +111,13 @@ import app.morphe.extension.shared.settings.StringSetting;
  */
 public final class SettingsBackup {
     /**
-     * Far more than a settings file needs: one is a few hundred bytes, or about 88 KB at most with
+     * Far more than a settings file needs: one is a few hundred bytes, or about 96 KB at most with
      * both word lists filling the room they share, the sources list filling its own and every
      * other value at its longest, switches and the 2 KB of share sheet items included. That leaves
      * about 8 KB for switches to come. SettingsBackupTest's longest-file check fails once they've
      * used it; raise this then.
      */
-    public static final int MAX_BYTES = 96 * 1024;
+    public static final int MAX_BYTES = 104 * 1024;
     public static final String FORMAT = "hushfacebook-settings";
     /** The file shape this build writes and the newest it reads. A file declaring more is refused. */
     static final int SCHEMA = 1;
@@ -133,6 +139,7 @@ public final class SettingsBackup {
             Settings.HIDE_PEOPLE_YOU_MAY_KNOW,
             Settings.HIDE_SUGGESTED_GROUPS,
             Settings.HIDE_GROUP_POSTS_NOT_JOINED,
+            Settings.HIDE_GROUP_POSTS,
             Settings.HIDE_STORIES_YOU_MIGHT_LIKE,
             Settings.HIDE_FEED_MEMORIES,
             Settings.HIDE_FEED_FRIEND_REQUESTS,
@@ -164,18 +171,29 @@ public final class SettingsBackup {
             Settings.HIDE_BACKGROUND_POSTS,
             Settings.HIDE_REPOSTS,
             Settings.HIDE_PAGE_POSTS,
+            Settings.ONLY_FRIENDS_POSTS,
             Settings.HIDE_OTHER_LANGUAGES,
             Settings.HIDE_POST_PROMPTS,
             Settings.HIDE_POST_FOLLOW_LINK,
+            Settings.HIDE_POST_SUBSCRIBE_LINK,
             Settings.HIDE_POST_JOIN_BUTTON,
+            Settings.HIDE_POST_X,
             Settings.HIDE_POST_COUNTS,
             Settings.HIDE_POST_REACTIONS,
             Settings.HIDE_COMMENT_REACTIONS,
+            Settings.HIDE_FEED_PROFILE_PICTURES,
+            Settings.HIDE_COMMENT_PROFILE_PICTURES,
             Settings.HIDE_SEEN_POSTS,
             Settings.SEEN_POSTS_COME_BACK_ONCE,
             Settings.HIDE_META_AI_QUESTIONS,
             Settings.KEEP_POST_DATES,
             Settings.SHOW_FULL_POST_TEXT,
+            Settings.SHOW_FULL_REEL_CAPTIONS,
+            Settings.DIM_OPEN_REEL_CAPTIONS,
+            Settings.DIM_FOLDED_REEL_CAPTIONS,
+            Settings.DIM_REEL_NAMES,
+            Settings.DIM_STORY_NAMES,
+            Settings.SOFT_TEXT_BOXES,
             Settings.TRANSLATE_POST_LINK,
             Settings.TRANSLATE_POSTS_BY_THEMSELVES,
             Settings.SEE_WHO_SHARED,
@@ -186,9 +204,12 @@ public final class SettingsBackup {
             Settings.HIDE_SUGGESTED_STORIES,
             Settings.HIDE_CONTACT_IMPORT_CARD,
             Settings.HIDE_STORY_PROMPTS,
+            Settings.HIDE_CREATE_STORY,
             Settings.HIDE_PAGE_STORIES,
             Settings.HIDE_SEEN_STORIES,
+            Settings.SEEN_STORIES_LAST,
             Settings.SHOW_ONLY_WATCHED_STORIES,
+            Settings.HIDE_PASSED_STORIES,
             Settings.BLOCK_STORY_AUTO_ADVANCE,
             Settings.LOOP_STORIES,
             Settings.VIEW_STORIES_ANONYMOUSLY,
@@ -200,7 +221,12 @@ public final class SettingsBackup {
             Settings.STORY_DOUBLE_TAP,
             Settings.HIDE_STORY_CREDITS,
             Settings.HIDE_STORY_REPLY_SUGGESTIONS,
+            Settings.HIDE_STORY_SUBSCRIBE,
+            Settings.HIDE_STORY_CREATE_CARDS,
             Settings.STORY_PROGRESS_BAR,
+            Settings.HIDE_FEED_STORY_RINGS,
+            Settings.HIDE_COMMENT_STORY_RINGS,
+            Settings.HIDE_PROFILE_STORY_RINGS,
             Settings.PINCH_TO_ZOOM,
             Settings.PINCH_TO_ZOOM_KEEP,
             Settings.PINCH_TO_ZOOM_DOUBLE_TAP,
@@ -215,6 +241,7 @@ public final class SettingsBackup {
             Settings.POST_DOWNLOAD_BUTTON,
             Settings.HIDE_POST_LIKE_BUTTON,
             Settings.HIDE_POST_COMMENT_BUTTON,
+            Settings.HIDE_POST_REPOST_BUTTON,
             Settings.HIDE_POST_SHARE_BUTTON,
             Settings.HIDE_POST_SEND_BUTTON,
             Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS,
@@ -232,20 +259,25 @@ public final class SettingsBackup {
             Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON,
             Settings.HIDE_REEL_SOCIAL_FOOTER,
             Settings.HIDE_REEL_THREADS_CARDS,
+            Settings.HIDE_REEL_POST_CARDS,
             Settings.FOLLOWED_REELS_ONLY,
             Settings.REEL_CLEAN_MODE,
+            Settings.REEL_CLEAN_BUTTON,
             Settings.PLAY_REELS_ONCE,
             Settings.ORIGINAL_AUDIO,
             Settings.HIDE_REEL_SEARCH_PILL,
             Settings.HIDE_VIEWER_TOP_BUTTONS,
             Settings.HIDE_REELS_TAB_TITLE,
+            Settings.HIDE_VIEWER_BACK_BUTTON,
             Settings.BURN_IN_STAY_DIM,
             Settings.GRAY_REELS,
+            Settings.REELS_MINUTES,
             Settings.HIDE_REEL_COUNTS,
             Settings.HIDE_REEL_SAVE_BUTTON,
             Settings.HIDE_REEL_WHATSAPP_BUTTON,
             Settings.HIDE_REEL_LIKE_BUTTON,
             Settings.HIDE_REEL_COMMENT_BUTTON,
+            Settings.HIDE_REEL_REPOST_BUTTON,
             Settings.HIDE_REEL_SHARE_BUTTON,
             Settings.SHOW_REEL_COMMENT_BUTTON,
             Settings.SHOW_REEL_POST_DATE,
@@ -254,7 +286,17 @@ public final class SettingsBackup {
             Settings.HIDE_REEL_AUDIO_LINE,
             Settings.HIDE_SLOW_CONNECTION_MESSAGE,
             Settings.HIDE_UP_NEXT,
+            Settings.HIDE_REEL_FULLSCREEN_PILL,
+            Settings.HIDE_FEED_VIDEO_BUTTONS,
             Settings.FEED_VIDEOS_ALONE,
+            Settings.SHARED_REELS_ALONE,
+            Settings.HIDE_SHARED_REEL_FRIEND_SHEET,
+            Settings.WATCH_AGAIN_IN_PLACE,
+            Settings.SAVED_VIDEOS_IN_PLAYER,
+            Settings.SAVED_VIDEOS_IN_ORDER,
+            Settings.SAVED_VIDEOS_STAY_ON_END,
+            Settings.SKIP_STILL_WATCHING,
+            Settings.FILL_REELS,
             Settings.PLAY_FEED_REELS_WHOLE,
             Settings.DONT_SEND_REEL_WATCH_HISTORY,
             Settings.NEWEST_REELS_FIRST,
@@ -269,20 +311,32 @@ public final class SettingsBackup {
             Settings.UNLOCK_APP_ICONS,
             Settings.USE_APP_ICON_IN_HEADER,
             Settings.BLOCK_SCREENSHOT_DETECTION,
+            Settings.SKIP_LOCATION_PROMPTS,
             Settings.HIDE_CHAT_TYPING,
             Settings.HIDE_COMMENT_TYPING,
             Settings.HIDE_READ_RECEIPTS,
             Settings.ORIGINAL_CHAT_MEDIA,
             Settings.TURN_OFF_DOUBLE_TAP_LIKE,
+            Settings.ASK_BEFORE_LIKING_POSTS,
+            Settings.ASK_BEFORE_LIKING_REELS,
+            Settings.ASK_BEFORE_LIKING_COMMENTS,
+            Settings.ASK_BEFORE_FOLLOWING_POSTS,
+            Settings.ASK_BEFORE_FOLLOWING_REELS,
             Settings.DOUBLE_TAP_SKIP,
+            Settings.HIDE_SKIP_SECONDS,
             Settings.TAP_SHOWS_CONTROLS,
             Settings.DOUBLE_TAP_OPENS_COMMENTS,
             Settings.LONG_PRESS_OPENS_COMMENTS,
             Settings.SELECT_POST_TEXT,
+            Settings.HOLD_PHOTO_TO_REACT,
+            Settings.HOLD_VIDEO_TO_REACT,
             Settings.KEEP_REEL_SPEED,
             Settings.KEEP_VIDEO_SPEED,
             Settings.SLOWER_REEL_SPEEDS,
+            Settings.FASTER_REEL_SPEEDS,
             Settings.SPEED_ON_REPLAYS,
+            Settings.POST_MENU_SPEED,
+            Settings.POST_MENU_SPEED_ON_TOP,
             Settings.HOLD_REEL_FOR_2X,
             Settings.HOLD_REEL_RIGHT_EDGE,
             Settings.HOLD_FEED_VIDEO_FOR_2X,
@@ -294,6 +348,7 @@ public final class SettingsBackup {
             Settings.HIDE_COMMENT_GIF_STICKER_BUTTONS,
             Settings.HIDE_COMMENT_EMOJI_ROW,
             Settings.HIDE_COMMENT_BOX_LINE,
+            Settings.HIDE_COMMENT_BOX,
             Settings.OPEN_REPLY_THREADS,
             Settings.LOAD_WHOLE_REPLY_THREADS,
             Settings.HIDE_REPLIES_BUTTON,
@@ -301,6 +356,8 @@ public final class SettingsBackup {
             Settings.HIDE_POST_COMMENT_PREVIEWS,
             Settings.HIDE_COMMENT_DOWNVOTE_BUTTON,
             Settings.HIDE_COMMENT_LIKE_BUTTON,
+            Settings.HIDE_COMMENT_REPLY_BUTTON,
+            Settings.HIDE_COMMENTER_BADGES,
             Settings.COMMENT_BLOCK_BUTTON,
             Settings.REACTOR_BLOCK_BUTTON,
             Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
@@ -308,10 +365,12 @@ public final class SettingsBackup {
             Settings.HIDE_COMMENTS_WITH_WORDS,
             Settings.HIDE_INCOMING_COMMENT_TYPING,
             Settings.HIDE_NEW_COMMENTS_PILL,
+            Settings.SHOW_EVERY_COMMENT_REACTION,
             Settings.HIDE_VIDEO_COMMENT_COMPOSER,
-            Settings.OPEN_COMMENTS_FULL_HEIGHT,
             Settings.PAUSE_REELS_UNDER_COMMENTS,
             Settings.TAP_REELS_ABOVE_COMMENTS,
+            Settings.SEARCH_COMMENTS,
+            Settings.FILTER_COMMENT_SEARCH,
             Settings.TAG_SUGGESTIONS_ONLY_AFTER_AT,
             Settings.TAP_TO_PLAY,
             Settings.TAP_TO_PLAY_REELS_AFTER_FIRST,
@@ -320,8 +379,20 @@ public final class SettingsBackup {
             Settings.INLINE_FEED_VIDEO_CONTROLS,
             Settings.FEED_VIDEO_CAST_BUTTON,
             Settings.FEED_VIDEO_SEEK_BAR,
+            Settings.FEED_VIDEO_SEEK_BAR_FADE,
+            Settings.FEED_VIDEO_SEEK_BAR_LOWER,
+            Settings.FEED_VIDEO_SEEK_BAR_EDGE,
+            Settings.FEED_VIDEO_SEEK_BAR_THIN,
+            Settings.FEED_VIDEO_SEEK_BAR_TIMES,
+            Settings.FEED_VIDEO_SEEK_BAR_LENGTH,
             Settings.FEED_VIDEO_FULL_PLAYER_BUTTON,
+            Settings.FEED_VIDEO_FULL_PLAYER_CORNER,
+            Settings.FEED_VIDEO_SKIP_BUTTONS,
+            Settings.FEED_VIDEO_DOUBLE_TAP_SKIP,
+            Settings.FEED_VIDEO_SPEED_BUTTON,
             Settings.CENTER_FULL_SCREEN_VIDEOS,
+            Settings.STORY_SEEK_BAR,
+            Settings.STORY_SEEK_BAR_FADE,
             Settings.RESUME_LONG_VIDEOS,
             Settings.RECENTLY_WATCHED,
             Settings.FRAME_STEP,
@@ -329,6 +400,8 @@ public final class SettingsBackup {
             Settings.PICTURE_IN_PICTURE,
             Settings.PICTURE_IN_PICTURE_FROM_MENU,
             Settings.PICTURE_IN_PICTURE_BUTTON,
+            Settings.KEEP_PLAYING_IN_BACKGROUND,
+            Settings.BACKGROUND_PLAY_BUTTON,
             Settings.TURN_OFF_HDR_BRIGHTNESS,
             Settings.PREFER_SDR_RENDITIONS,
             Settings.DRAW_VIDEOS_WITH_THE_SCREEN,
@@ -353,6 +426,7 @@ public final class SettingsBackup {
             Settings.SAVE_STORY_PHOTOS,
             Settings.DOWNLOAD_REELS,
             Settings.SHOW_REEL_DOWNLOAD_BUTTON,
+            Settings.QUEUE_REEL_SAVES,
             Settings.REEL_CAST_BUTTON,
             Settings.COPY_REEL_CAPTION,
             Settings.DOWNLOAD_VIDEOS,
@@ -365,6 +439,7 @@ public final class SettingsBackup {
             Settings.DOWNLOAD_COMPATIBLE,
             Settings.DOWNLOAD_CONVERT,
             Settings.DOWNLOAD_QUIET,
+            Settings.DOWNLOAD_QUALITY_ASK,
             Settings.OPEN_ON_CHOSEN_TAB,
             Settings.FOLLOWING_FEED_HOME,
             Settings.SAVED_SHORTCUT,
@@ -413,9 +488,11 @@ public final class SettingsBackup {
             Settings.KEEP_TAB_BAR,
             Settings.KEEP_TOP_BAR,
             Settings.PHONE_LAYOUT_ON_BIG_SCREENS,
+            Settings.HIDE_REELS_TAB_BAR,
             Settings.TRANSLUCENT_BARS,
             Settings.ROUNDED_TAB_BAR,
             Settings.HIDE_STATUS_BAR,
+            Settings.LIGHT_REELS_TAB_BARS,
             Settings.HIDE_MESSENGER_BUTTON,
             Settings.HIDE_MESSENGER_COUNT,
             Settings.HIDE_FACEBOOK_LOGO,
@@ -432,9 +509,12 @@ public final class SettingsBackup {
             Settings.HIDE_CHAT_META_AI_BUTTON,
             Settings.OPEN_MESSENGER_APP,
             Settings.LEAVE_CALLS_AND_CHATS_TO_MESSENGER,
+            Settings.OPEN_CHATS_IN_MESSENGER,
             Settings.HIDE_MENU_UPGRADES,
             Settings.HIDE_MENU_ALSO_FROM_META,
             Settings.HIDE_MENU_HELP,
+            Settings.HIDE_MENU_SHORTCUTS,
+            Settings.HIDE_MENU_CREATE_PAGE,
             Settings.KEEP_MENU_SETTINGS_EXPANDED,
             Settings.HIDE_MENU_MUSE,
             Settings.HIDE_MENU_META_AI,
@@ -450,6 +530,7 @@ public final class SettingsBackup {
             Settings.DONT_SAVE_SEARCH_HISTORY,
             Settings.SEARCH_DATE_RANGE,
             Settings.SEARCH_POSTS_TAB,
+            Settings.SEARCH_SAVED_BUTTON,
             Settings.BLOCK_TRENDING_VIDEO_NOTIFICATIONS,
             Settings.BLOCK_MEMORY_NOTIFICATIONS,
             Settings.BLOCK_BIRTHDAY_NOTIFICATIONS,
@@ -624,10 +705,29 @@ public final class SettingsBackup {
     static final EnumSetting<BurnInWait> BURN_IN_WAIT = Settings.BURN_IN_WAIT;
 
     /**
+     * Hold to react's Reaction (#454), held in a file as its {@link HoldReaction#fileValue}.
+     * Anything else refuses the whole file, as a Dim after wait does.
+     */
+    static final EnumSetting<HoldReaction> HOLD_REACTION = Settings.HOLD_REACTION;
+
+    /**
+     * Show Reels in gray's Turn gray over, held in a file as its {@link GrayOver#fileValue}.
+     * Anything else refuses the whole file, as a reels order does.
+     */
+    static final EnumSetting<GrayOver> GRAY_OVER = Settings.GRAY_REELS_OVER;
+
+    /**
      * How a reel's post date reads (#357), held in a file as its {@link ReelDateStyle#fileValue}.
      * Anything else refuses the whole file, as a reels order does.
      */
     static final EnumSetting<ReelDateStyle> DATE_STYLE = Settings.REEL_POST_DATE_STYLE;
+
+    /**
+     * How high comments open (#179), held in a file as its {@link CommentsHeight#fileValue}.
+     * Anything else refuses the whole file, as a reels order does. A file from before the list
+     * holds the old switch instead, which still reads: true is full height, false Facebook's.
+     */
+    static final EnumSetting<CommentsHeight> COMMENTS_HEIGHT = Settings.COMMENTS_HEIGHT;
 
     /**
      * The hours notification quiet hours start and end, each held in a file as its
@@ -672,10 +772,30 @@ public final class SettingsBackup {
     static final EnumSetting<SeenPosts.Keep> SEEN_KEEP = Settings.SEEN_POSTS_KEEP;
 
     /**
+     * Fold long text's line counts for posts and for comments (#497), each held in a file as its
+     * {@link FoldLines#fileValue}. Anything else refuses the whole file, as a seen posts time does.
+     */
+    static final EnumSetting<FoldLines> FOLD_POSTS = Settings.FOLD_POST_TEXT;
+    static final EnumSetting<FoldLines> FOLD_COMMENTS = Settings.FOLD_COMMENTS;
+
+    /**
      * How large Facebook's text is, held in a file as its {@link TextSize.Scale#fileValue}, the
      * percentage. Anything else refuses the whole file, as a lock time does.
      */
     static final EnumSetting<TextSize.Scale> TEXT_SIZE = Settings.TEXT_SIZE;
+
+    /**
+     * Mark new settings (#16), held in a file as its {@link NewRowMark#fileValue}. Anything else
+     * refuses the whole file, as a text size does. Which rows have been seen stays out.
+     */
+    static final EnumSetting<NewRowMark> NEW_ROW_MARK = Settings.NEW_ROW_MARK;
+
+    /**
+     * Refresh rate (#480), held in a file as its {@link RefreshRate.Rate#fileValue}. Anything else
+     * refuses the whole file, as a text size does. A fixed rate the next phone's screen doesn't
+     * offer still comes in, and that screen keeps Facebook's own rate.
+     */
+    static final EnumSetting<RefreshRate.Rate> REFRESH_RATE = Settings.REFRESH_RATE;
 
     /**
      * The accent color, held in a file as its {@link AccentColor.Preset#fileValue}. Anything else
@@ -699,6 +819,14 @@ public final class SettingsBackup {
     static final StringSetting SHARE_ITEMS = Settings.HIDDEN_SHARE_ITEMS;
 
     /**
+     * The kinds of 3-dot menu row to hide, held in a file exactly as their row stores them: Facebook's
+     * kind names, commas between. A kind this build doesn't name is carried like any other. A list
+     * {@link PostMenuItems#clean} would change refuses the whole file, as a share items list does. The
+     * kinds Facebook has shown on this phone stay on it.
+     */
+    static final StringSetting POST_MENU_ITEMS = Settings.HIDDEN_POST_MENU_ITEMS;
+
+    /**
      * The Menu tiles to hide, held in a file exactly as their row stores them: the first word of each
      * tile's deep link, commas between. A key this build doesn't list is carried like any other. A list
      * {@link MenuTiles#clean} would change refuses the whole file, as a share items list does.
@@ -720,10 +848,10 @@ public final class SettingsBackup {
 
     /** The settings a file carries that aren't switches, in the order Settings declares them. */
     static final List<Setting<?>> VALUES = Collections.unmodifiableList(
-            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, FEED_TYPES, CEILING, BURN_IN, BURN_IN_WAIT, DATE_STYLE, REELS_ORDER, WATCHED_KEEP, SHARE_ITEMS, MENU_TILES, HOME_FEED, TAB_ORDER, BACKGROUND, LIGHT_BACKGROUND, HEADER_TEXT, SEEN_KEEP, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
+            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, FEED_TYPES, CEILING, BURN_IN, BURN_IN_WAIT, GRAY_OVER, DATE_STYLE, REELS_ORDER, HOLD_REACTION, COMMENTS_HEIGHT, WATCHED_KEEP, SHARE_ITEMS, POST_MENU_ITEMS, MENU_TILES, HOME_FEED, TAB_ORDER, BACKGROUND, LIGHT_BACKGROUND, HEADER_TEXT, SEEN_KEEP, FOLD_POSTS, FOLD_COMMENTS, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
                     FILE_NAME, PHOTO_NAME, ACTION, APP, START, SUBTAB, ORDER, PLAYBACK, REELS_QUALITY, STORIES_QUALITY,
-                    QUIET_FROM, QUIET_UNTIL, LOCK_AFTER, PAUSE_LENGTH, BREAK_AFTER, BREAK_LENGTH, TEXT_SIZE, ACCENT, ACCENT_CUSTOM, LOGO_EMOJI, BADGE,
-                    LOGO, TAB));
+                    QUIET_FROM, QUIET_UNTIL, LOCK_AFTER, PAUSE_LENGTH, BREAK_AFTER, BREAK_LENGTH, TEXT_SIZE, REFRESH_RATE, NEW_ROW_MARK, ACCENT, ACCENT_CUSTOM, LOGO_EMOJI,
+                    BADGE, LOGO, TAB));
 
     /** The longest name or value a file holds that isn't a word list, far past a package name. */
     private static final int MAX_OTHER_CHARS = 1024;
@@ -833,6 +961,7 @@ public final class SettingsBackup {
         private static final String ACCENT_NAME = "accent_color";
         private static final String CEILING_NAME = "hide_posts_over_reactions";
         private static final String SHARE_ITEMS_NAME = "hidden_share_items";
+        private static final String POST_MENU_ITEMS_NAME = "hidden_post_menu_items";
         private static final String MENU_TILES_NAME = "hidden_menu_tiles";
         private static final String FEED_TYPES_NAME = "hidden_feed_types";
         private static final String TAB_ORDER_NAME = "tab_order";
@@ -848,7 +977,14 @@ public final class SettingsBackup {
         private static final String REELS_ORDER_NAME = "reels_order";
         private static final String BURN_IN_NAME = "burn_in_guard";
         private static final String BURN_IN_WAIT_NAME = "burn_in_wait";
+        private static final String HOLD_REACTION_NAME = "hold_reaction";
+        private static final String FOLD_POSTS_NAME = "fold_post_text";
+        private static final String FOLD_COMMENTS_NAME = "fold_comments";
+        private static final String GRAY_OVER_NAME = "gray_reels_over";
+        private static final String NEW_ROW_MARK_NAME = "new_row_mark";
+        private static final String REFRESH_RATE_NAME = "refresh_rate";
         private static final String DATE_STYLE_NAME = "reel_post_date_style";
+        private static final String COMMENTS_HEIGHT_NAME = "comments_height";
 
         /** In {@link #ALLOWLIST} order, and only the switches the file named. */
         final Map<BooleanSetting, Boolean> values;
@@ -942,6 +1078,9 @@ public final class SettingsBackup {
         /** The clean list of share sheet items to hide the file holds, or null when it names none. Set once, as it's read. */
         @Nullable
         String shareItems;
+        /** The clean list of 3-dot menu rows to hide the file holds, or null when it names none. Set once, as it's read. */
+        @Nullable
+        String postMenuItems;
         /** The clean list of Menu tiles to hide the file holds, or null when it names none. Set once, as it's read. */
         @Nullable
         String menuTiles;
@@ -987,9 +1126,30 @@ public final class SettingsBackup {
         /** The Dim after wait the file holds, the same way. */
         @Nullable
         BurnInWait burnInWait;
+        /** The Hold to react choice the file holds, the same way. */
+        @Nullable
+        HoldReaction holdReaction;
+        /** The Fold long posts choice the file holds, the same way. */
+        @Nullable
+        FoldLines foldPosts;
+        /** The Fold long comments choice the file holds, the same way. */
+        @Nullable
+        FoldLines foldComments;
+        /** The Turn gray over choice the file holds, the same way. */
+        @Nullable
+        GrayOver grayOver;
+        /** The Mark new settings choice the file holds, the same way. */
+        @Nullable
+        NewRowMark newRowMark;
+        /** The refresh rate the file holds, the same way. */
+        @Nullable
+        RefreshRate.Rate refreshRate;
         /** How the file says a reel's post date reads, the same way. */
         @Nullable
         ReelDateStyle dateStyle;
+        /** How high the file says comments open, the same way. */
+        @Nullable
+        CommentsHeight commentsHeight;
         /** Names the file holds that aren't settings this build knows. They're left out. */
         final int unknown;
 
@@ -1205,6 +1365,8 @@ public final class SettingsBackup {
             if (ceilingChange != null) changes.put(CEILING, ceilingChange);
             String shareItemsChange = shareItemsChange();
             if (shareItemsChange != null) changes.put(SHARE_ITEMS, shareItemsChange);
+            String postMenuItemsChange = postMenuItemsChange();
+            if (postMenuItemsChange != null) changes.put(POST_MENU_ITEMS, postMenuItemsChange);
             String menuTilesChange = menuTilesChange();
             if (menuTilesChange != null) changes.put(MENU_TILES, menuTilesChange);
             String feedTypesChange = feedTypesChange();
@@ -1236,8 +1398,22 @@ public final class SettingsBackup {
             if (burnInChange != null) changes.put(BURN_IN, burnInChange);
             BurnInWait burnInWaitChange = burnInWaitChange();
             if (burnInWaitChange != null) changes.put(BURN_IN_WAIT, burnInWaitChange);
+            HoldReaction holdReactionChange = holdReactionChange();
+            if (holdReactionChange != null) changes.put(HOLD_REACTION, holdReactionChange);
+            FoldLines foldPostsChange = foldPostsChange();
+            if (foldPostsChange != null) changes.put(FOLD_POSTS, foldPostsChange);
+            FoldLines foldCommentsChange = foldCommentsChange();
+            if (foldCommentsChange != null) changes.put(FOLD_COMMENTS, foldCommentsChange);
+            GrayOver grayOverChange = grayOverChange();
+            if (grayOverChange != null) changes.put(GRAY_OVER, grayOverChange);
+            NewRowMark newRowMarkChange = newRowMarkChange();
+            if (newRowMarkChange != null) changes.put(NEW_ROW_MARK, newRowMarkChange);
+            RefreshRate.Rate refreshRateChange = refreshRateChange();
+            if (refreshRateChange != null) changes.put(REFRESH_RATE, refreshRateChange);
             ReelDateStyle dateStyleChange = dateStyleChange();
             if (dateStyleChange != null) changes.put(DATE_STYLE, dateStyleChange);
+            CommentsHeight commentsHeightChange = commentsHeightChange();
+            if (commentsHeightChange != null) changes.put(COMMENTS_HEIGHT, commentsHeightChange);
             SendLink.Action actionChange = actionChange();
             if (actionChange != null) changes.put(ACTION, actionChange);
             String appChange = appChange();
@@ -1431,6 +1607,13 @@ public final class SettingsBackup {
             return shareItems.equals(ShareSheetItems.clean(SHARE_ITEMS.savedValue())) ? null : shareItems;
         }
 
+        /** The 3-dot menu rows to hide this file sets, or null when it names none or the ones already set. */
+        @Nullable
+        String postMenuItemsChange() {
+            if (postMenuItems == null) return null;
+            return postMenuItems.equals(PostMenuItems.clean(POST_MENU_ITEMS.savedValue())) ? null : postMenuItems;
+        }
+
         /** The Menu tiles to hide this file sets, or null when it names none or the ones already set. */
         @Nullable
         String menuTilesChange() {
@@ -1532,10 +1715,52 @@ public final class SettingsBackup {
             return burnInWait == null || burnInWait == BURN_IN_WAIT.savedValue() ? null : burnInWait;
         }
 
+        /** The Hold to react choice after this file, the same way. */
+        @Nullable
+        HoldReaction holdReactionChange() {
+            return holdReaction == null || holdReaction == HOLD_REACTION.savedValue() ? null : holdReaction;
+        }
+
+        /** The Fold long posts choice after this file, the same way. */
+        @Nullable
+        FoldLines foldPostsChange() {
+            return foldPosts == null || foldPosts == FOLD_POSTS.savedValue() ? null : foldPosts;
+        }
+
+        /** The Fold long comments choice after this file, the same way. */
+        @Nullable
+        FoldLines foldCommentsChange() {
+            return foldComments == null || foldComments == FOLD_COMMENTS.savedValue() ? null : foldComments;
+        }
+
+        /** The Turn gray over choice after this file, the same way. */
+        @Nullable
+        GrayOver grayOverChange() {
+            return grayOver == null || grayOver == GRAY_OVER.savedValue() ? null : grayOver;
+        }
+
+        /** Mark new settings after this file, the same way. */
+        @Nullable
+        NewRowMark newRowMarkChange() {
+            return newRowMark == null || newRowMark == NEW_ROW_MARK.savedValue() ? null : newRowMark;
+        }
+
+        /** The refresh rate after this file, the same way. */
+        @Nullable
+        RefreshRate.Rate refreshRateChange() {
+            return refreshRate == null || refreshRate == REFRESH_RATE.savedValue() ? null : refreshRate;
+        }
+
         /** How a reel's post date reads after this file, the same way. */
         @Nullable
         ReelDateStyle dateStyleChange() {
             return dateStyle == null || dateStyle == DATE_STYLE.savedValue() ? null : dateStyle;
+        }
+
+        /** How high comments open after this file, the same way. */
+        @Nullable
+        CommentsHeight commentsHeightChange() {
+            return commentsHeight == null || commentsHeight == COMMENTS_HEIGHT.savedValue() ? null : commentsHeight;
         }
 
         @Nullable
@@ -1582,6 +1807,7 @@ public final class SettingsBackup {
             if (breakLength != null) state.putString(BREAK_LENGTH_NAME, breakLength.fileValue);
             if (watchedKeep != null) state.putString(WATCHED_KEEP_NAME, watchedKeep.fileValue);
             if (shareItems != null) state.putString(SHARE_ITEMS_NAME, shareItems);
+            if (postMenuItems != null) state.putString(POST_MENU_ITEMS_NAME, postMenuItems);
             if (menuTiles != null) state.putString(MENU_TILES_NAME, menuTiles);
             if (feedTypes != null) state.putString(FEED_TYPES_NAME, feedTypes);
             if (tabOrder != null) state.putString(TAB_ORDER_NAME, tabOrder);
@@ -1597,7 +1823,14 @@ public final class SettingsBackup {
             if (reelsOrder != null) state.putString(REELS_ORDER_NAME, reelsOrder.fileValue);
             if (burnIn != null) state.putString(BURN_IN_NAME, burnIn.fileValue);
             if (burnInWait != null) state.putString(BURN_IN_WAIT_NAME, burnInWait.fileValue);
+            if (holdReaction != null) state.putString(HOLD_REACTION_NAME, holdReaction.fileValue);
+            if (foldPosts != null) state.putString(FOLD_POSTS_NAME, foldPosts.fileValue);
+            if (foldComments != null) state.putString(FOLD_COMMENTS_NAME, foldComments.fileValue);
+            if (grayOver != null) state.putString(GRAY_OVER_NAME, grayOver.fileValue);
+            if (newRowMark != null) state.putString(NEW_ROW_MARK_NAME, newRowMark.fileValue);
+            if (refreshRate != null) state.putString(REFRESH_RATE_NAME, refreshRate.fileValue);
             if (dateStyle != null) state.putString(DATE_STYLE_NAME, dateStyle.fileValue);
+            if (commentsHeight != null) state.putString(COMMENTS_HEIGHT_NAME, commentsHeight.fileValue);
             state.putInt(UNKNOWN, unknown);
             return state;
         }
@@ -1658,6 +1891,9 @@ public final class SettingsBackup {
             Object shareItems = state.get(SHARE_ITEMS_NAME);
             read.shareItems = shareItems instanceof String && ShareSheetItems.isClean((String) shareItems)
                     ? (String) shareItems : null;
+            Object postMenuItems = state.get(POST_MENU_ITEMS_NAME);
+            read.postMenuItems = postMenuItems instanceof String && PostMenuItems.isClean((String) postMenuItems)
+                    ? (String) postMenuItems : null;
             Object menuTiles = state.get(MENU_TILES_NAME);
             read.menuTiles = menuTiles instanceof String && MenuTiles.isClean((String) menuTiles)
                     ? (String) menuTiles : null;
@@ -1671,7 +1907,14 @@ public final class SettingsBackup {
             read.reelsOrder = ReelsOrder.fromFile(state.get(REELS_ORDER_NAME));
             read.burnIn = BurnInMode.fromFile(state.get(BURN_IN_NAME));
             read.burnInWait = BurnInWait.fromFile(state.get(BURN_IN_WAIT_NAME));
+            read.holdReaction = HoldReaction.fromFile(state.get(HOLD_REACTION_NAME));
+            read.foldPosts = FoldLines.fromFile(state.get(FOLD_POSTS_NAME));
+            read.foldComments = FoldLines.fromFile(state.get(FOLD_COMMENTS_NAME));
+            read.grayOver = GrayOver.fromFile(state.get(GRAY_OVER_NAME));
+            read.newRowMark = NewRowMark.fromFile(state.get(NEW_ROW_MARK_NAME));
+            read.refreshRate = RefreshRate.Rate.fromFile(state.get(REFRESH_RATE_NAME));
             read.dateStyle = ReelDateStyle.fromFile(state.get(DATE_STYLE_NAME));
+            read.commentsHeight = CommentsHeight.fromFile(state.get(COMMENTS_HEIGHT_NAME));
             Object background = state.get(BACKGROUND_NAME);
             read.background = isBackground(background) ? (String) background : null;
             Object lightBackground = state.get(LIGHT_BACKGROUND_NAME);
@@ -1710,9 +1953,12 @@ public final class SettingsBackup {
     static final class Saved {
         private final Map<Setting<?>, Object> values = new HashMap<>();
 
-        private Saved() {
-            for (BooleanSetting setting : ALLOWLIST) values.put(setting, setting.savedValue());
-            for (Setting<?> setting : VALUES) values.put(setting, setting.savedValue());
+        /** What's saved, or with [defaults] what a new install starts with. */
+        private Saved(boolean defaults) {
+            for (BooleanSetting setting : ALLOWLIST) {
+                values.put(setting, defaults ? setting.defaultValue : setting.savedValue());
+            }
+            for (Setting<?> setting : VALUES) values.put(setting, defaults ? setting.defaultValue : setting.savedValue());
         }
 
         @SuppressWarnings("unchecked")
@@ -1744,7 +1990,12 @@ public final class SettingsBackup {
             switches.put(REELS_ORDER.key, of(REELS_ORDER).fileValue);
             switches.put(BURN_IN.key, of(BURN_IN).fileValue);
             switches.put(BURN_IN_WAIT.key, of(BURN_IN_WAIT).fileValue);
+            switches.put(HOLD_REACTION.key, of(HOLD_REACTION).fileValue);
+            switches.put(FOLD_POSTS.key, of(FOLD_POSTS).fileValue);
+            switches.put(FOLD_COMMENTS.key, of(FOLD_COMMENTS).fileValue);
+            switches.put(GRAY_OVER.key, of(GRAY_OVER).fileValue);
             switches.put(DATE_STYLE.key, of(DATE_STYLE).fileValue);
+            switches.put(COMMENTS_HEIGHT.key, of(COMMENTS_HEIGHT).fileValue);
             switches.put(QUIET_FROM.key, of(QUIET_FROM).fileValue());
             switches.put(QUIET_UNTIL.key, of(QUIET_UNTIL).fileValue());
             switches.put(LOCK_AFTER.key, of(LOCK_AFTER).fileValue);
@@ -1754,6 +2005,8 @@ public final class SettingsBackup {
             switches.put(WATCHED_KEEP.key, of(WATCHED_KEEP).fileValue);
             switches.put(SEEN_KEEP.key, of(SEEN_KEEP).fileValue);
             switches.put(TEXT_SIZE.key, of(TEXT_SIZE).fileValue);
+            switches.put(NEW_ROW_MARK.key, of(NEW_ROW_MARK).fileValue);
+            switches.put(REFRESH_RATE.key, of(REFRESH_RATE).fileValue);
             switches.put(ACCENT.key, of(ACCENT).fileValue);
             switches.put(CEILING.key, of(CEILING).fileValue);
             switches.put(ACTION.key, of(ACTION).fileValue);
@@ -1764,6 +2017,7 @@ public final class SettingsBackup {
             switches.put(KEPT.key, PostWords.clean(of(KEPT)));
             switches.put(SOURCES.key, PostSources.clean(of(SOURCES)));
             switches.put(SHARE_ITEMS.key, ShareSheetItems.clean(of(SHARE_ITEMS)));
+            switches.put(POST_MENU_ITEMS.key, PostMenuItems.clean(of(POST_MENU_ITEMS)));
             switches.put(MENU_TILES.key, MenuTiles.clean(of(MENU_TILES)));
             switches.put(FEED_TYPES.key, FeedTypeNames.clean(of(FEED_TYPES)));
             switches.put(TAB_ORDER.key, TabOrder.clean(of(TAB_ORDER)));
@@ -1792,7 +2046,12 @@ public final class SettingsBackup {
 
     /** What's saved right now, read in one pass on this thread. An export asks on the main thread. */
     static Saved savedNow() {
-        return new Saved();
+        return new Saved(false);
+    }
+
+    /** Every value a file carries as a new install has it, which Reset settings applies. */
+    static Saved defaults() {
+        return new Saved(true);
     }
 
     /** The file for the switches as they're saved now, read and written out on this thread. */
@@ -1846,8 +2105,10 @@ public final class SettingsBackup {
             throw new Rejected(Reason.DUPLICATE, "A name appears twice");
         } catch (IOException | JSONException error) {
             // The parser reports a document that simply stops as an IOException, not a
-            // JSONException, and a download cut off halfway is exactly that.
-            throw new Rejected(Reason.DAMAGED, "Not one JSON object");
+            // JSONException, and a download cut off halfway is exactly that. Its message says
+            // where the reading stopped and why, never what the file holds.
+            throw new Rejected(Reason.DAMAGED, error instanceof IOException
+                    ? "Not one JSON object: " + error.getMessage() : "Not one JSON object");
         }
         if (!FORMAT.equals(root.opt(FORMAT_NAME))) {
             throw new Rejected(Reason.FORMAT, "Not a Hushfacebook settings file");
@@ -1878,6 +2139,7 @@ public final class SettingsBackup {
         for (BooleanSetting setting : ALLOWLIST) known.put(setting.key, setting);
         Map<BooleanSetting, Boolean> found = new HashMap<>();
         Boolean legacyStories = null;
+        Boolean legacyHoldToReact = null;
         String folder = null;
         DownloadQuality quality = null;
         String fileName = null;
@@ -1908,6 +2170,7 @@ public final class SettingsBackup {
         AccentColor.Preset accent = null;
         ReactionCeiling ceiling = null;
         String shareItems = null;
+        String postMenuItems = null;
         String menuTiles = null;
         String feedTypes = null;
         String tabOrder = null;
@@ -1923,7 +2186,15 @@ public final class SettingsBackup {
         ReelsOrder reelsOrder = null;
         BurnInMode burnIn = null;
         BurnInWait burnInWait = null;
+        HoldReaction holdReaction = null;
+        FoldLines foldPosts = null;
+        FoldLines foldComments = null;
+        GrayOver grayOver = null;
+        NewRowMark newRowMark = null;
+        RefreshRate.Rate refreshRate = null;
         ReelDateStyle dateStyle = null;
+        CommentsHeight commentsHeight = null;
+        Boolean legacyFullHeight = null;
         JSONObject values = (JSONObject) settings;
         for (Iterator<String> names = values.keys(); names.hasNext(); ) {
             String name = names.next();
@@ -1933,6 +2204,22 @@ public final class SettingsBackup {
                     throw new Rejected(Reason.VALUE, "Not true or false: " + name);
                 }
                 legacyStories = (Boolean) value;
+                continue;
+            }
+            if (HoldReactSetting.LEGACY_KEY.equals(name)) {
+                Object value = values.opt(name);
+                if (!(value instanceof Boolean)) {
+                    throw new Rejected(Reason.VALUE, "Not true or false: " + name);
+                }
+                legacyHoldToReact = (Boolean) value;
+                continue;
+            }
+            if (CommentsHeightSetting.LEGACY_KEY.equals(name)) {
+                Object value = values.opt(name);
+                if (!(value instanceof Boolean)) {
+                    throw new Rejected(Reason.VALUE, "Not true or false: " + name);
+                }
+                legacyFullHeight = (Boolean) value;
                 continue;
             }
             if (FOLDER.key.equals(name)) {
@@ -2067,9 +2354,44 @@ public final class SettingsBackup {
                 if (burnInWait == null) throw new Rejected(Reason.VALUE, "Not a dim after wait: " + name);
                 continue;
             }
+            if (HOLD_REACTION.key.equals(name)) {
+                holdReaction = HoldReaction.fromFile(values.opt(name));
+                if (holdReaction == null) throw new Rejected(Reason.VALUE, "Not a hold reaction: " + name);
+                continue;
+            }
+            if (FOLD_POSTS.key.equals(name)) {
+                foldPosts = FoldLines.fromFile(values.opt(name));
+                if (foldPosts == null) throw new Rejected(Reason.VALUE, "Not a post fold: " + name);
+                continue;
+            }
+            if (FOLD_COMMENTS.key.equals(name)) {
+                foldComments = FoldLines.fromFile(values.opt(name));
+                if (foldComments == null) throw new Rejected(Reason.VALUE, "Not a comment fold: " + name);
+                continue;
+            }
+            if (GRAY_OVER.key.equals(name)) {
+                grayOver = GrayOver.fromFile(values.opt(name));
+                if (grayOver == null) throw new Rejected(Reason.VALUE, "Not a turn gray over: " + name);
+                continue;
+            }
+            if (NEW_ROW_MARK.key.equals(name)) {
+                newRowMark = NewRowMark.fromFile(values.opt(name));
+                if (newRowMark == null) throw new Rejected(Reason.VALUE, "Not a new settings mark: " + name);
+                continue;
+            }
+            if (REFRESH_RATE.key.equals(name)) {
+                refreshRate = RefreshRate.Rate.fromFile(values.opt(name));
+                if (refreshRate == null) throw new Rejected(Reason.VALUE, "Not a refresh rate: " + name);
+                continue;
+            }
             if (DATE_STYLE.key.equals(name)) {
                 dateStyle = ReelDateStyle.fromFile(values.opt(name));
                 if (dateStyle == null) throw new Rejected(Reason.VALUE, "Not a post date style: " + name);
+                continue;
+            }
+            if (COMMENTS_HEIGHT.key.equals(name)) {
+                commentsHeight = CommentsHeight.fromFile(values.opt(name));
+                if (commentsHeight == null) throw new Rejected(Reason.VALUE, "Not a comments height: " + name);
                 continue;
             }
             if (QUIET_FROM.key.equals(name) || QUIET_UNTIL.key.equals(name)) {
@@ -2170,6 +2492,14 @@ public final class SettingsBackup {
                 shareItems = (String) value;
                 continue;
             }
+            if (POST_MENU_ITEMS.key.equals(name)) {
+                Object value = values.opt(name);
+                if (!(value instanceof String) || !PostMenuItems.isClean((String) value)) {
+                    throw new Rejected(Reason.VALUE, "Not one clean list of 3-dot menu items: " + name);
+                }
+                postMenuItems = (String) value;
+                continue;
+            }
             if (MENU_TILES.key.equals(name)) {
                 Object value = values.opt(name);
                 if (!(value instanceof String) || !MenuTiles.isClean((String) value)) {
@@ -2213,6 +2543,23 @@ public final class SettingsBackup {
             found.putIfAbsent(Settings.HIDE_TOP_STORIES_TRAY, legacyStories);
             found.putIfAbsent(Settings.HIDE_STORIES_BETWEEN_POSTS, legacyStories);
         }
+        if (legacyHoldToReact != null) {
+            // A file from before the split (#454): the old Hold a post to react supplies both, and
+            // either new key the file also carries wins, whatever order the JSON object uses.
+            found.putIfAbsent(Settings.HOLD_PHOTO_TO_REACT, legacyHoldToReact);
+            found.putIfAbsent(Settings.HOLD_VIDEO_TO_REACT, legacyHoldToReact);
+        }
+        Boolean followLink = found.get(Settings.HIDE_POST_FOLLOW_LINK);
+        if (followLink != null) {
+            // A file from before the split (#434) has the Follow key only, which then hid the Subscribe
+            // link too. A file written since carries the Subscribe key, and that one wins.
+            found.putIfAbsent(Settings.HIDE_POST_SUBSCRIBE_LINK, followLink);
+        }
+        if (commentsHeight == null && legacyFullHeight != null) {
+            // A file from before the list: the old switch on is full height, off Facebook's
+            // height. The list's own key wins whatever order the JSON object uses.
+            commentsHeight = CommentsHeightSetting.fromLegacy(legacyFullHeight);
+        }
         // The lists share their room. One the file leaves out stays as it is, so it counts as stored.
         if ((hidden != null || kept != null) && !PostWords.fits(
                 hidden != null ? hidden : PostWords.clean(HIDDEN.savedValue()),
@@ -2233,6 +2580,7 @@ public final class SettingsBackup {
         read.breakLength = breakLength;
         read.watchedKeep = watchedKeep;
         read.shareItems = shareItems;
+        read.postMenuItems = postMenuItems;
         read.menuTiles = menuTiles;
         read.feedTypes = feedTypes;
         read.tabOrder = tabOrder;
@@ -2248,7 +2596,14 @@ public final class SettingsBackup {
         read.reelsOrder = reelsOrder;
         read.burnIn = burnIn;
         read.burnInWait = burnInWait;
+        read.holdReaction = holdReaction;
+        read.foldPosts = foldPosts;
+        read.foldComments = foldComments;
+        read.grayOver = grayOver;
+        read.newRowMark = newRowMark;
+        read.refreshRate = refreshRate;
         read.dateStyle = dateStyle;
+        read.commentsHeight = commentsHeight;
         return read;
     }
 
@@ -2290,6 +2645,8 @@ public final class SettingsBackup {
                 Map<Setting<?>, Object> changes = snapshot.changes();
                 if (changes.isEmpty()) return 0;
                 StoriesSetting.finishMigration();
+                CommentsHeightSetting.finishMigration();
+                HoldReactSetting.finishMigration();
                 Setting.saveAll(changes);
                 return changes.size();
             } catch (Setting.BatchFailed failed) {

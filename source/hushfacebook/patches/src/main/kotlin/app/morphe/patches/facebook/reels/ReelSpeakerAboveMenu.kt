@@ -13,6 +13,7 @@ import app.morphe.patches.facebook.downloads.reel.SIDEBAR
 import app.morphe.patches.facebook.downloads.reel.hookSidebarLayout
 import app.morphe.patches.facebook.downloads.reel.isSidebarBuilder
 import app.morphe.patches.facebook.downloads.reel.sidebarAssemblyIndex
+import app.morphe.patches.facebook.downloads.reel.sidebarRender
 import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.search.branchTarget
@@ -59,6 +60,9 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
  *   says so (arm64 LX/0DhY;->BUh, its only return before the assembly). [OFFER_SPEAKER] asks the same
  *   thing and doesn't mark that reel. The older button layout (from 499 on arm64) has no assembly either,
  *   so the switch asks for the newer one, the way the Download button does (#316).
+ * - 585's Android 9 build (minapi28, read 2026-11-07) splits the side column: its builder
+ *   (LX/09f2;->A03) holds the assembly, and the component the reel's builder news up (LX/0B9q) holds
+ *   the reel and reads the layout's flag in the render that calls the builder ([sidebarRender]).
  * - The corner and the video controls then drop theirs for a marked reel ([REEL_SPEAKER_STAYS]), and
  *   the builder is told to build the speaker while the side column asks ([REEL_FOOTER_LEAVES_SPEAKER]),
  *   since a server flag can leave it to the controls. Its other caller, the video settings row, isn't
@@ -92,7 +96,8 @@ private fun CharSequence.isObjectType() = startsWith("L") || startsWith("[")
 /**
  * The if-nez in the speaker builder [method] that answers null when the video controls are the ones
  * to build it: the last if-nez before it news up one of the sound [toggles], landing on a return.
- * Null when the builder has no such branch.
+ * From 587 (arm64 LX/0DnE;->A02, armv7 LX/0DnT;->A02) it lands on a const/4 of 0 moved straight into
+ * the return, which answers null the same way. Null when the builder has no such branch.
  */
 internal fun footerSpeakerCheck(method: Method, toggles: Set<String>): Int? {
     val code = method.code()
@@ -100,7 +105,8 @@ internal fun footerSpeakerCheck(method: Method, toggles: Set<String>): Int? {
         it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type in toggles
     }
     val check = (toggle - 1 downTo 0).firstOrNull { code[it].opcode == Opcode.IF_NEZ } ?: return null
-    return check.takeIf { branchTarget(code, check)?.let(code::getOrNull)?.opcode == Opcode.RETURN_OBJECT }
+    val lands = branchTarget(code, check) ?: return null
+    return check.takeIf { code.getOrNull(lands)?.opcode == Opcode.RETURN_OBJECT || returnsNullAt(code, lands) }
 }
 
 /**
@@ -133,6 +139,22 @@ internal fun earlyExitAsk(render: Method, assemblyIndex: Int, parameters: Collec
     )
 }
 
+/**
+ * What makes the side column leave before its assembly, wherever it's asked. On 585 the [builder] is
+ * its own [render] and leaves in front of its assembly at [assemblyIndex]. On the Android 9 build the
+ * builder never does, and the render (LX/0B9q;->A15) returns at 0165, before it calls the builder,
+ * when LX/0DkQ;->BV1()Z says yes. A split build where both leave is refused.
+ */
+internal fun sideColumnExitAsk(builder: Method, render: Method, assemblyIndex: Int, parameters: Collection<String>): MethodReference? {
+    val ownExit = earlyExitAsk(builder, assemblyIndex, parameters)
+    if (render === builder) return ownExit
+    if (ownExit != null) throw PatchException("$PATCH: ${builder.definingClass}->${builder.name} and its render both leave early")
+    val code = render.code()
+    val callsBuilder = code.indexOfFirst { instruction -> instruction.calledMethod()?.let { isCalledBy(builder, it) } == true }
+    if (callsBuilder < 0) throw PatchException("$PATCH: ${render.definingClass}->${render.name} doesn't call ${builder.definingClass}->${builder.name}")
+    return earlyExitAsk(render, callsBuilder, parameters)
+}
+
 /** The one instruction of [code] that [picks] picks, or a refusal naming [what]. */
 private fun oneOf(code: List<Instruction>, what: String, picks: (Instruction) -> Boolean): Int =
     code.indices.filter { picks(code[it]) }.singleOrNull()
@@ -162,6 +184,32 @@ private fun reelSlot(site: SpeakerSite, item: String): Int {
     return slot
 }
 
+/**
+ * The one instance the speaker's [builder] is called on at [site], or null when it's static. From 586
+ * it's an instance method of a stateless singleton (arm64 LX/0Cii;->A01 on LX/0Cii;->A00), and a static
+ * call to it shifts every argument one register early. Refused unless [site] calls it virtually on that
+ * instance and its class keeps no state of its own.
+ */
+internal fun builderInstance(site: SpeakerSite, owner: ClassDef, builder: Method): FieldReference? {
+    val call = site.method.code()[site.build.call]
+    val where = "${owner.type}->${builder.name}"
+    if (AccessFlags.STATIC.isSet(builder.accessFlags)) {
+        if (call.opcode != Opcode.INVOKE_STATIC_RANGE) throw PatchException("$PATCH: $where is static but not called so")
+        return null
+    }
+    if (call.opcode != Opcode.INVOKE_VIRTUAL_RANGE) throw PatchException("$PATCH: $where isn't called virtually")
+    if (owner.fields.any { !AccessFlags.STATIC.isSet(it.accessFlags) }) throw PatchException("$PATCH: $where belongs to an object with state")
+    val instance = owner.fields.singleOrNull { AccessFlags.STATIC.isSet(it.accessFlags) && it.type == owner.type }
+        ?: throw PatchException("$PATCH: $where has no one instance to be called on")
+    val reads = site.method.code().any { instruction ->
+        instruction.opcode == Opcode.SGET_OBJECT && ((instruction as ReferenceInstruction).reference as FieldReference).let {
+            it.definingClass == owner.type && it.name == instance.name && it.type == owner.type
+        }
+    }
+    if (!reads) throw PatchException("$PATCH: ${site.owner}->${site.method.name} doesn't call $where on its instance")
+    return instance
+}
+
 /** [REEL_SPEAKER_STAYS] at [site], before its null check, with the reel from the call's own arguments. */
 private fun hookSpeakerStays(site: SpeakerSite, slot: Int) {
     val built = site.build.register
@@ -186,7 +234,9 @@ internal fun BytecodePatchContext.moveReelSpeakerAboveMenu(footer: SpeakerSite, 
         .map { it.type }.filterNot { it.startsWith(EXTENSION_PACKAGE) }.toSet()
     val builder = footer.method.code()[footer.build.call].calledMethod()!!
     val parameters = builder.parameterTypes.map(CharSequence::toString)
-    val builderMethod = mutableClassDefBy(builder.definingClass).methods.single { isCalledBy(it, builder) }
+    val builderClass = mutableClassDefBy(builder.definingClass)
+    val builderMethod = builderClass.methods.single { isCalledBy(it, builder) }
+    val instance = builderInstance(footer, builderClass, builderMethod)
     val check = footerSpeakerCheck(builderMethod, toggles)
         ?: throw PatchException("$PATCH: ${builder.definingClass}->${builder.name} has no check in front of the sound toggle")
     val answer = (builderMethod.code()[check] as OneRegisterInstruction).registerA
@@ -196,6 +246,11 @@ internal fun BytecodePatchContext.moveReelSpeakerAboveMenu(footer: SpeakerSite, 
         .filter { outsideExtension(it.type) }.distinctBy { it.type }
         .flatMap { owner -> owner.methods.filter { isSidebarBuilder(it, owner.methods) }.map { owner to it } }
         .singleOrNull() ?: throw PatchException("$PATCH: expected one render of \"$SIDEBAR\"")
+    // The side column's component, which the reel's builder news up and whose fields hold the reel, is
+    // the class rendering it: the builder's own on 585, the one handing it the scoped context on the
+    // Android 9 build (LX/0B9q for LX/09f2;->A03). The button layout's flag is read in that render too.
+    val (componentType, layoutRender) = sidebarRender(render, PATCH)
+    val component = mutableClassDefBy(componentType)
     val renderCode = render.code()
     val assemblyIndex = sidebarAssemblyIndex(renderCode)
     val assembly = renderCode.getOrNull(assemblyIndex)
@@ -203,7 +258,7 @@ internal fun BytecodePatchContext.moveReelSpeakerAboveMenu(footer: SpeakerSite, 
     if (assembly !is RegisterRangeInstruction) throw PatchException("$PATCH: the assembly isn't called with a range")
     val assemblyCall = assembly.calledMethod()!!
     val taken = assemblyCall.parameterTypes.map(CharSequence::toString)
-    val item = reelItemType(builder, sidebarClass, assemblyCall)
+    val item = reelItemType(builder, component, assemblyCall)
         ?: throw PatchException("$PATCH: the speaker's builder, the side column and its assembly share no one reel type")
 
     // All but the render's context comes from the corner's fields.
@@ -220,19 +275,19 @@ internal fun BytecodePatchContext.moveReelSpeakerAboveMenu(footer: SpeakerSite, 
     val passed = maxOf(itemAt, contextAt, listAt) + 1
     if (!taken.take(passed).all(CharSequence::isObjectType)) throw PatchException("$PATCH: the assembly takes a primitive in front of the button list")
 
-    val asks = earlyExitAsk(render, assemblyIndex, parameters)
+    val asks = sideColumnExitAsk(render, layoutRender, assemblyIndex, parameters)
     val askField = asks?.let { ask -> corner.fields.singleOrNull { it.type.toString() == ask.definingClass } }
     if (asks != null && askField == null) throw PatchException("$PATCH: the corner doesn't hold ${asks.definingClass}")
 
     val (builderOwner, reelBuilder) = classDefByStrings(FOOTER_COMPONENT, StringComparisonType.EQUALS)
         .filter { outsideExtension(it.type) }.distinctBy { it.type }
         .flatMap { owner -> methodsHolding(owner, FOOTER_COMPONENT).map { owner.type to it } }
-        .filter { (_, method) -> newInstanceTypes(method).containsAll(listOf(corner.type, sidebarClass.type)) }
+        .filter { (_, method) -> newInstanceTypes(method).containsAll(listOf(corner.type, componentType)) }
         .singleOrNull() ?: throw PatchException("$PATCH: expected one method of \"$FOOTER_COMPONENT\" to new up the corner and the side column")
     val reelBuilderCode = reelBuilder.code()
     val marked = oneOf(reelBuilderCode, "write of the side column's reel") { instruction ->
         instruction.opcode == Opcode.IPUT_OBJECT && ((instruction as ReferenceInstruction).reference as FieldReference).let {
-            it.definingClass == sidebarClass.type && it.type == item
+            it.definingClass == componentType && it.type == item
         }
     }
     val made = oneOf(reelBuilderCode, "construction of the corner") { instruction ->
@@ -247,8 +302,8 @@ internal fun BytecodePatchContext.moveReelSpeakerAboveMenu(footer: SpeakerSite, 
     val controlsSlot = controls?.let { reelSlot(it, item) }
 
     // The older button layout never reaches the assembly. This one can still refuse, so it goes first.
-    val sidebarRender = mutableClassDefBy(sidebarClass.type).methods.single { isCalledBy(it, render) }
-    hookSidebarLayout(sidebarRender, REEL_SPEAKER_LAYOUT)
+    val layoutMethod = component.methods.single { isCalledBy(it, layoutRender) }
+    hookSidebarLayout(layoutMethod, REEL_SPEAKER_LAYOUT)
 
     // Called as soon as the reel's builder has the corner: marks the reel unless its side column leaves early.
     val cornerType = corner.type
@@ -283,17 +338,26 @@ internal fun BytecodePatchContext.moveReelSpeakerAboveMenu(footer: SpeakerSite, 
     }
     corner.methods.add(offer)
 
-    // v1 up to the builder's last are its arguments. The side column's are past the locals, so they're copied.
-    val locals = parameters.size + 3
-    val builtAt = parameters.size + 1
-    val listCopy = parameters.size + 2
+    // v1 up to the builder's last are its arguments, behind its instance when it has one. The side
+    // column's are past the locals, so they're copied.
+    val shift = if (instance == null) 0 else 1
+    val last = parameters.size + shift
+    val locals = last + 3
+    val builtAt = last + 1
+    val listCopy = last + 2
     val arguments = parameters.indices.joinToString("\n") { index ->
         val field = fields[index]
+        val to = index + 1 + shift
         if (field != null) {
-            "iget-object v${index + 1}, v0, $cornerType->${field.name}:${parameters[index]}"
+            "iget-object v$to, v0, $cornerType->${field.name}:${parameters[index]}"
         } else {
-            "move-object/from16 v${index + 1}, v${locals + contextAt}\ncheck-cast v${index + 1}, ${parameters[index]}"
+            "move-object/from16 v$to, v${locals + contextAt}\ncheck-cast v$to, ${parameters[index]}"
         }
+    }
+    val build = if (instance == null) {
+        "invoke-static/range { v1 .. v$last }, $builder"
+    } else {
+        "sget-object v1, ${builder.definingClass}->${instance.name}:${builder.definingClass}\ninvoke-virtual/range { v1 .. v$last }, $builder"
     }
     val side = ImmutableMethod(
         cornerType,
@@ -314,7 +378,7 @@ internal fun BytecodePatchContext.moveReelSpeakerAboveMenu(footer: SpeakerSite, 
                 if-eqz v0, :none
                 check-cast v0, $cornerType
                 $arguments
-                invoke-static/range { v1 .. v${parameters.size} }, $builder
+                $build
                 move-result-object v$builtAt
                 invoke-static { v$builtAt }, $REEL_SIDE_SPEAKER
                 move-result-object v$builtAt
@@ -338,10 +402,11 @@ internal fun BytecodePatchContext.moveReelSpeakerAboveMenu(footer: SpeakerSite, 
     places.forEach { (index, call) -> reelBuilderMutable.addInstructions(index, call) }
 
     // Last into the list, so it lands behind every other button, the Download one included.
-    val assemblyNow = sidebarAssemblyIndex(sidebarRender.code())
-    val start = (sidebarRender.code()[assemblyNow] as RegisterRangeInstruction).startRegister
+    val sidebarBuilder = mutableClassDefBy(sidebarClass.type).methods.single { isCalledBy(it, render) }
+    val assemblyNow = sidebarAssemblyIndex(sidebarBuilder.code())
+    val start = (sidebarBuilder.code()[assemblyNow] as RegisterRangeInstruction).startRegister
     val descriptor = "$cornerType->$SIDE_SPEAKER(${OBJECT.repeat(passed)})V"
-    sidebarRender.addInstructionsAtControlFlowLabel(
+    sidebarBuilder.addInstructionsAtControlFlowLabel(
         assemblyNow,
         "invoke-static/range { v$start .. v${start + passed - 1} }, $descriptor",
     )

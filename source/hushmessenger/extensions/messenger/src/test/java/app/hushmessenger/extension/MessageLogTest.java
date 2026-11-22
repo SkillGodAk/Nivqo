@@ -377,6 +377,30 @@ public class MessageLogTest {
         assertEquals("Ana", MessageLog.entries().get(0).sender);
     }
 
+    /** A quiet chat's message never gets a notification, so the drop hands the log its sender instead. */
+    @Test public void aQuietChatsMessageIsNamedFromTheDrop() throws Exception {
+        Settings.preferences.edit().putBoolean(QuietChats.KEY, true).commit();
+        QuietChats.forget();
+        try {
+            assertTrue(Settings.quietChat("ONE_TO_ONE:1:2"));
+            assertTrue(Settings.dropQuiet("ONE_TO_ONE:1:2", "mid.1", "Ana"));
+            MessageLog.storeNow("hello", "ONE_TO_ONE:1:2", "mid.1");
+            // No name to hand over still drops the notification, and the entry keeps no sender.
+            assertTrue(Settings.dropQuiet("ONE_TO_ONE:1:2", "mid.2", null));
+            MessageLog.storeNow("again", "ONE_TO_ONE:1:2", "mid.2");
+            java.util.Map<String, String> senders = new java.util.HashMap<>();
+            for (MessageLog.Entry entry : MessageLog.entries()) senders.put(entry.text, entry.sender);
+            assertEquals("Ana", senders.get("hello"));
+            assertEquals("", senders.get("again"));
+            assertFalse("A chat that notifies keeps its notification", Settings.dropQuiet("ONE_TO_ONE:1:3", "mid.3", "Bo"));
+            synchronized (MessageLog.NOTED) {
+                assertTrue(MessageLog.NOTED.isEmpty());
+            }
+        } finally {
+            QuietChats.forget();
+        }
+    }
+
     @Test public void namesAreNotNotedForAMessageWithoutAnId() throws Exception {
         android.app.Notification answered = new android.app.Notification.Builder(Settings.appContext, "chats")
             .setSmallIcon(android.R.drawable.sym_def_app_icon).setContentTitle("Ana").build();
@@ -526,13 +550,34 @@ public class MessageLogTest {
         assertEquals("first", entries.get(2).text);
     }
 
-    @Test public void keepsOnlyTheNewestFiveHundred() throws Exception {
-        for (int i = 0; i < MessageLog.MAX_ENTRIES + 7; i++) MessageLog.storeNow("m" + i, "t");
+    @Test public void keepsOnlyTheNewestUpToTheLimit() throws Exception {
+        long now = System.currentTimeMillis();
+        List<MessageLog.Entry> seeded = new ArrayList<>();
+        for (int i = 0; i < MessageLog.MAX_ENTRIES + 5; i++) seeded.add(new MessageLog.Entry(now - 100_000 + i, "t", "m" + i));
+        MessageLog.write(Settings.appContext, seeded);
+        MessageLog.storeNow("m" + (MessageLog.MAX_ENTRIES + 5), "t");
+        MessageLog.storeNow("m" + (MessageLog.MAX_ENTRIES + 6), "t");
         List<MessageLog.Entry> entries = MessageLog.entries();
         assertEquals(MessageLog.MAX_ENTRIES, entries.size());
         assertEquals("m" + (MessageLog.MAX_ENTRIES + 6), entries.get(0).text);
         // The seven oldest are gone.
-        for (MessageLog.Entry entry : entries) assertNotEquals("m0", entry.text);
+        for (MessageLog.Entry entry : entries) assertNotEquals("m6", entry.text);
+        assertEquals("m7", entries.get(entries.size() - 1).text);
+    }
+
+    @Test public void twentyThousandOrdinaryMessagesAllFit() throws Exception {
+        assertEquals(20_000, MessageLog.MAX_ENTRIES);
+        long now = System.currentTimeMillis();
+        List<MessageLog.Entry> seeded = new ArrayList<>();
+        String sentence = "Running a little late, be there in ten minutes. Save me a seat by the window ok";
+        for (int i = 0; i < MessageLog.MAX_ENTRIES; i++) {
+            seeded.add(new MessageLog.Entry(now - 100_000 + i, "1000" + (100_000_000_000L + i % 40), sentence + " " + i,
+                "Alex Morgan", "Weekend plans", "mid.$cAAAAB" + i, false));
+        }
+        MessageLog.write(Settings.appContext, seeded);
+        MessageLog.expireNow();
+        List<MessageLog.Entry> onDisk = MessageLog.read(logFile());
+        assertEquals("the size cap cut ordinary messages short of the count", MessageLog.MAX_ENTRIES, onDisk.size());
     }
 
     @Test public void dropsEntriesOlderThanThirtyDays() throws Exception {

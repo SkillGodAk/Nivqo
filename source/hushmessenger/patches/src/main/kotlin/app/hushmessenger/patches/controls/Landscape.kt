@@ -15,7 +15,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 /**
@@ -30,8 +29,8 @@ internal const val LANDSCAPE_MEDIA = "landscape_media"
 
 internal const val FB_FRAGMENT_ACTIVITY = "Lcom/facebook/base/activity/FbFragmentActivity;"
 
-/** Meta's server flag for the portrait lock, as 586 numbers it. */
-internal const val LANDSCAPE_FLAG = 0x8105f000002c01L
+/** Meta's server flag for the portrait lock, as 587 numbers it (586 read 0x8105f000002c01). */
+internal const val LANDSCAPE_FLAG = 0x8105e800002b9eL
 
 /** The option the photo and video viewers' orientation helper reads as it's built, the one place 586 names it. */
 internal const val MEDIA_ORIENTATION_OPTION = "allowOrientationChanges"
@@ -86,14 +85,14 @@ internal fun Method.portraitLock(): PortraitLock {
 
 /** The one method that reads the lock flag with this shape. */
 internal fun findPortraitLock(classes: Iterable<ClassDef>): List<Method> {
-    val checks = classes.flatMap { cls ->
-        cls.methods.filter { method ->
-            method.returnType == "Z" && method.parameterTypes.isEmpty() && method.code()?.any {
-                it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == LANDSCAPE_FLAG
-            } == true && runCatching { method.portraitLock() }.isSuccess
-        }
-    }
+    val checks = landscapeFlagReaders.methods(classes).filter { runCatching { it.portraitLock() }.isSuccess }
     return listOfNotNull(checks.singleOrNull())
+}
+
+internal val landscapeFlagReaders = methodCheck { _, method ->
+    method.returnType == "Z" && method.parameterTypes.isEmpty() && method.code()?.any {
+        it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == LANDSCAPE_FLAG
+    } == true
 }
 
 internal fun MutableMethod.validatePortraitLock() {
@@ -116,10 +115,6 @@ internal fun MutableMethod.injectPortraitLock() {
         """.trimIndent())
     }
 }
-
-private fun Method.namesMediaOrientation() = code()?.any {
-    ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == MEDIA_ORIENTATION_OPTION
-} == true
 
 private fun mediaChanged(method: Method, detail: String): Nothing =
     throw PatchException("Messenger controls: the media viewers' orientation call in ${method.hookId()} no longer matches the tested build ($detail)")
@@ -147,9 +142,11 @@ internal fun Method.validateMediaShape() {
     if (handOffs.isEmpty() || !passes) mediaChanged(this, "orientation hand-off")
 }
 
+internal val mediaOrientationClasses = ClassCheck(loadsString(MEDIA_ORIENTATION_OPTION))
+
 /** The one class that names the viewers' orientation option, and its one static method with this shape. */
 internal fun findMediaOrientation(classes: Iterable<ClassDef>): List<Method> {
-    val helper = classes.filter { cls -> cls.methods.any { it.namesMediaOrientation() } }.singleOrNull() ?: return emptyList()
+    val helper = mediaOrientationClasses.classes(classes).singleOrNull() ?: return emptyList()
     return listOfNotNull(helper.methods.filter { runCatching { it.validateMediaShape() }.isSuccess }.singleOrNull())
 }
 

@@ -26,6 +26,7 @@ import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.RegisterLiveness
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.classDefForEachReferencing
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -38,6 +39,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
 private const val ROW = "$EXTENSION_PACKAGE/menu/MenuSettingsRow;"
 internal const val WITH_ROW = "$ROW->withRow(Ljava/util/List;)Ljava/util/List;"
@@ -70,17 +72,21 @@ val hushfacebookInTheMenuPatch = bytecodePatch(
             .flatMap { classDef -> classDef.methods.filter(::isNativeSectionChildren) }
         val native = natives.singleOrNull()
             ?: throw PatchException("$ROW_PATCH: expected one native Menu group section, found ${natives.size}")
-        val builds = rowListBuilds(native)
-        // 584 inlined the builder into the section, which keeps the list itself.
-        val kept = if (builds.isEmpty()) keptRowLists(native)?.settings else null
+        // 586 asks a static method beside the section for its group's list, which makes the builds.
+        val site = rowListSite(native) { classDefByOrNull(it) }
+        val builds = rowListBuilds(site)
+        // 584 inlined the builder into the section, which keeps the list itself, and 586's Android 9
+        // build into the static method, which keeps it the same way.
+        val kept = if (builds.isEmpty()) keptRowLists(site)?.settings else null
         if (kept == null && builds.size != 1) {
             throw PatchException(
-                "$ROW_PATCH: expected ${native.definingClass}->${native.name} to build one row list or keep one itself, " +
+                "$ROW_PATCH: expected ${site.definingClass}->${site.name} to build one row list or keep one itself, " +
                     "found ${builds.size} builds",
             )
         }
 
-        val taps = methodsNaming(ROW_TAP_TRACE, ::isRowTapShape)
+        // 587's handler names no trace: the method it hands the logout row to does.
+        val taps = methodsNaming(ROW_TAP_TRACE, ::isRowTapShape).ifEmpty { rowTapsHandingOver() }
         // 583's 32-bit build inlines the handler into a lambda, so with no handler the tap is found there.
         val resolve: (MethodReference) -> Method? = { call -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
         val isRowItem: (String) -> Boolean = { type ->
@@ -107,10 +113,10 @@ val hushfacebookInTheMenuPatch = bytecodePatch(
         }
 
         if (kept != null) {
-            if (!constructs(native, item)) {
-                throw PatchException("$ROW_PATCH: ${native.definingClass}->${native.name} builds no $item, so its list isn't rows")
+            if (!constructs(site, item)) {
+                throw PatchException("$ROW_PATCH: ${site.definingClass}->${site.name} builds no $item, so its list isn't rows")
             }
-            mutableClassDefBy(native.definingClass).findMutableMethodOf(native).passKeptListThroughRow(kept)
+            mutableClassDefBy(site.definingClass).findMutableMethodOf(site).passKeptListThroughRow(kept)
         } else {
             val build = builds.single()
             val builder = mutableClassDefBy(build.definingClass).methods.single {
@@ -144,6 +150,22 @@ val hushfacebookInTheMenuPatch = bytecodePatch(
         }
         enableStatus("menuSettingsRow")
     }
+}
+
+/**
+ * The tap handlers that hand a row to a method naming [ROW_TAP_TRACE] ([rowHandOvers]). Those
+ * methods are found by their shape ([isRowHandOverShape]) first, so the sweep reads only the classes
+ * that use one.
+ */
+private fun BytecodePatchContext.rowTapsHandingOver(): List<Method> {
+    val namers = methodsNaming(ROW_TAP_TRACE, ::isRowHandOverShape).mapTo(HashSet()) { ImmutableMethodReference.of(it) }
+    if (namers.isEmpty()) return emptyList()
+    val found = mutableListOf<Method>()
+    classDefForEachReferencing(types = namers.map { it.definingClass }.toSet()) { owner ->
+        if (owner.type.startsWith(EXTENSION_CLASSES)) return@classDefForEachReferencing
+        owner.methods.filterTo(found) { method -> rowHandOvers(method).any { ImmutableMethodReference.of(it) in namers } }
+    }
+    return found
 }
 
 /** Whether [method] constructs a [type]. */

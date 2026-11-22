@@ -11,18 +11,24 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
+import app.morphe.patches.facebook.downloads.photo.commentSheetDialogPatch
 import app.morphe.patches.facebook.downloads.photo.commentSheetVideoRow
 import app.morphe.patches.facebook.downloads.story.rememberPlayerSources
+import app.morphe.patches.facebook.feed.addressed
 import app.morphe.patches.facebook.feed.resolveStatic
+import app.morphe.patches.facebook.feed.switchTarget
 import app.morphe.patches.facebook.feed.tableStringAt
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.namedRegisters
+import app.morphe.util.writersReaching
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -30,8 +36,10 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 
@@ -80,7 +88,7 @@ val downloadVideoPatch = bytecodePatch(
     category("Downloads")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.facebook())
-    dependsOn(facebookExtensionPatch)
+    dependsOn(facebookExtensionPatch, commentSheetDialogPatch)
 
     execute {
         val menu = postMenu()
@@ -148,18 +156,15 @@ internal fun BytecodePatchContext.postMenu(): PostMenu {
     //
     // Every override calls its base with invoke-super. The one invoke-virtual of the base is
     // the builder that fills the menu and shows it (580: a static method of the feed menu
-    // helper that returns the sheet; 577: the same method under another Redex name).
+    // helper that returns the sheet; 577: the same method under another Redex name). 586
+    // fills through an interface the base implements, and a second builder there fills the
+    // menu of promotion and carousel units; only the post's builder takes the player origin.
     val sites = mutableListOf<Triple<String, Method, Int>>()
-    classDefForEachReferencing(types = listOf(baseType)) { classDef ->
+    classDefForEachReferencing(types = listOf(baseType) + base.interfaces) { classDef ->
         classDef.methods.forEach { method ->
+            if (!opensPostMenu(method, signature)) return@forEach
             method.instructionsOrEmpty().forEachIndexed { index, instruction ->
-                if (instruction.opcode != Opcode.INVOKE_VIRTUAL && instruction.opcode != Opcode.INVOKE_VIRTUAL_RANGE) {
-                    return@forEachIndexed
-                }
-                val reference = instruction.methodReference() ?: return@forEachIndexed
-                if (reference.definingClass == baseType && reference.name == videoMenu.name &&
-                    reference.parameterTypes.map(CharSequence::toString) == signature
-                ) {
+                if (fillsPostMenu(instruction, base, videoMenu.name, signature)) {
                     sites += Triple(classDef.type, method, index)
                 }
             }
@@ -167,7 +172,8 @@ internal fun BytecodePatchContext.postMenu(): PostMenu {
     }
 
     check(sites.size == 1) {
-        "Expected 1 place that fills a post menu through $baseType->${videoMenu.name}, found ${sites.size}: " +
+        "Expected 1 place that fills a post menu through $baseType->${videoMenu.name} or an interface of it, " +
+            "found ${sites.size}: " +
             sites.joinToString { "${it.first}->${it.second.name}" }
     }
 
@@ -187,9 +193,7 @@ internal fun BytecodePatchContext.postMenu(): PostMenu {
         menuRegister = call.startRegister + 1,
         propsType = propsType,
         itemField = itemField.single().name,
-        icon = stockDownloadIcon(videoMenu.instructionsOrEmpty(), "$optionsType->${videoMenu.name}") { call ->
-            classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) }
-        },
+        icon = stockDownloadIcon(videoMenu, "$optionsType->${videoMenu.name}") { type -> classDefByOrNull(type) },
         attachments = graphQlGetter(GRAPHQL_STORY, IMMUTABLE_LIST, ATTACHMENTS_FIELD, "attachments"),
         media = graphQlGetter(GRAPHQL_STORY_ATTACHMENT, GRAPHQL_MEDIA, MEDIA_FIELD, "media"),
         attachedStory = graphQlGetter(GRAPHQL_STORY, GRAPHQL_STORY, ATTACHED_STORY_FIELD, "attached_story"),
@@ -274,14 +278,24 @@ internal fun BytecodePatchContext.graphQlGetter(owner: String, returnType: Strin
 /**
  * The drawable Facebook's own Download video row sets, read from where that row is built: the
  * `setIcon(I)` the row calls just before it reports itself as [STOCK_DOWNLOAD_ROW], and the
- * constant that call is given.
+ * constant that call is given. 587 builds the row in a helper of its own ([helperRowIcon]).
  */
-private fun stockDownloadIcon(instructions: List<Instruction>, where: String, resolve: (MethodReference) -> Method?): Int {
+private fun stockDownloadIcon(menu: Method, where: String, classOf: (String) -> ClassDef?): Int {
+    val instructions = menu.instructionsOrEmpty()
+    val resolve: (MethodReference) -> Method? = { call -> classOf(call.definingClass)?.let { resolveStatic(it, call) } }
     // 585 asks a string table for the row's name instead of holding the literal, so both forms count.
     val row = instructions.indices.firstOrNull { index ->
         instructions[index].stringReference() == STOCK_DOWNLOAD_ROW ||
             tableStringAt(instructions, index, resolve) == STOCK_DOWNLOAD_ROW
     } ?: -1
+    if (row < 0) {
+        val icons = helperRowIcon(menu, classOf, resolve)
+        check(icons.size == 1) {
+            "$where does not name its $STOCK_DOWNLOAD_ROW row, and ${icons.size} helpers it calls set a row's icon " +
+                "before handing the row to a lambda that names it"
+        }
+        return icons.single()
+    }
     check(row > 0) { "$where does not name its $STOCK_DOWNLOAD_ROW row" }
 
     val setIcon = (row - 1 downTo maxOf(0, row - 16)).firstOrNull { index ->
@@ -301,6 +315,146 @@ private fun stockDownloadIcon(instructions: List<Instruction>, where: String, re
     }
     return icon
 }
+
+/**
+ * Every icon 587's way of building the row sets: the video menu hands a helper a Kotlin lambda made
+ * with a constant key, the case of the lambda's `invoke(Object)` for that key names
+ * [STOCK_DOWNLOAD_ROW] (it reports the row), and the helper sets an icon on a new item right before
+ * it hands the item to that lambda. The icon is the app resource constant that reaches `setIcon(I)`.
+ */
+private fun helperRowIcon(menu: Method, classOf: (String) -> ClassDef?, resolve: (MethodReference) -> Method?): Set<Int> {
+    val code = menu.instructionsOrEmpty()
+    val icons = mutableSetOf<Int>()
+    code.forEachIndexed { at, instruction ->
+        val call = instruction.methodReference()?.takeIf { it.name != "<init>" } ?: return@forEachIndexed
+        val passed = argumentRegisters(call, instruction.namedRegisters(), instruction.opcode in STATIC_CALLS)
+        call.parameterTypes.map(CharSequence::toString).forEachIndexed parameter@{ slot, type ->
+            if (type != FUNCTION1 || passed[slot] < 0) return@parameter
+            val (made, _) = menu.origin(at, passed[slot])?.takeIf { (writer, _) ->
+                writer >= 0 && code[writer].opcode == Opcode.NEW_INSTANCE
+            } ?: return@parameter
+            val key = menu.lambdaKey(made) ?: return@parameter
+            val lambda = classOf(((code[made] as ReferenceInstruction).reference as TypeReference).type) ?: return@parameter
+            if (!caseNamesRow(lambda, key, resolve)) return@parameter
+            val helper = classOf(call.definingClass)?.methods?.firstOrNull {
+                it.name == call.name && it.parameters() == call.parameterTypes.map(CharSequence::toString) &&
+                    it.returnType == call.returnType && it.implementation != null
+            } ?: return@parameter
+            helper.iconBeforeInvoking(slot)?.let { icons += it }
+        }
+    }
+    return icons
+}
+
+/** The register each parameter of [call] goes in, from the invoke's [registers]; a wide one takes two. -1 if missing. */
+private fun argumentRegisters(call: MethodReference, registers: List<Int>, static: Boolean): List<Int> {
+    var next = if (static) 0 else 1
+    return call.parameterTypes.map { type ->
+        registers.getOrElse(next) { -1 }.also { next += width(type.toString()) }
+    }
+}
+
+private fun width(type: String) = if (type == "J" || type == "D") 2 else 1
+
+/**
+ * Where the value [register] holds at [index] was written, through plain object moves: the writer's
+ * index (-1 for the method's entry) and the register it wrote. Null when more than one write reaches.
+ */
+private fun Method.origin(index: Int, register: Int): Pair<Int, Int>? {
+    val code = instructionsOrEmpty()
+    var at = index
+    var holder = register
+    repeat(8) {
+        val writer = writersReaching(at, holder).singleOrNull() ?: return null
+        if (writer < 0 || code[writer].opcode !in OBJECT_MOVES) return writer to holder
+        at = writer
+        holder = (code[writer] as TwoRegisterInstruction).registerB
+    }
+    return null
+}
+
+/** The constant the lambda made at [made] is built with, the first argument of its `<init>(I...)`. */
+private fun Method.lambdaKey(made: Int): Int? {
+    val code = instructionsOrEmpty()
+    val lambda = (code[made] as OneRegisterInstruction).registerA
+    val init = (made + 1 until minOf(code.size, made + 8)).firstOrNull { at ->
+        code[at].methodReference()?.name == "<init>" && code[at].namedRegisters().firstOrNull() == lambda
+    } ?: return null
+    if (code[init].methodReference()!!.parameterTypes.firstOrNull()?.toString() != "I") return null
+    val key = code[init].namedRegisters().getOrNull(1) ?: return null
+    val writer = writersReaching(init, key).singleOrNull()?.takeIf { it >= 0 } ?: return null
+    return (code[writer] as? NarrowLiteralInstruction)?.narrowLiteral
+}
+
+/** Whether [lambda]'s `invoke(Object)` case for [key] names [STOCK_DOWNLOAD_ROW] before it jumps away or returns. */
+private fun caseNamesRow(lambda: ClassDef, key: Int, resolve: (MethodReference) -> Method?): Boolean {
+    val invoke = lambda.methods.singleOrNull {
+        it.name == "invoke" && it.parameters() == listOf(OBJECT) && it.returnType == OBJECT && it.implementation != null
+    } ?: return false
+    val byAddress = addressed(invoke)
+    val target = switchTarget(byAddress, key) ?: return false
+    val code = byAddress.values.toList()
+    for (at in byAddress.keys.indexOf(target) until code.size) {
+        if (code[at].stringReference() == STOCK_DOWNLOAD_ROW || tableStringAt(code, at, resolve) == STOCK_DOWNLOAD_ROW) return true
+        if (code[at].opcode in CASE_ENDS) return false
+    }
+    return false
+}
+
+/**
+ * The icon this helper sets on an item right before it hands the item to its lambda parameter at
+ * [slot]: `setIcon(I)` on the item, then `Function1.invoke` on that parameter with the same item.
+ */
+private fun Method.iconBeforeInvoking(slot: Int): Int? {
+    val code = instructionsOrEmpty()
+    val widths = parameterTypes.map { width(it.toString()) }
+    // Parameters sit in the last registers, `this` (if any) just before them.
+    val parameter = implementation!!.registerCount - widths.sum() + widths.take(slot).sum()
+    val icons = code.indices.mapNotNull { at ->
+        if (code[at].methodReference()?.toString() != FUNCTION1_INVOKE) return@mapNotNull null
+        val (lambda, item) = code[at].namedRegisters().takeIf { it.size == 2 } ?: return@mapNotNull null
+        if (origin(at, lambda) != (-1 to parameter)) return@mapNotNull null
+        val setIcon = (at - 1 downTo maxOf(0, at - 4)).firstOrNull { index ->
+            code[index].methodReference()?.let {
+                it.definingClass == MENU_ITEM && it.name == "setIcon" && it.parameterTypes.map(CharSequence::toString) == listOf("I")
+            } == true && code[index].namedRegisters().first() == item
+        } ?: return@mapNotNull null
+        if (writersReaching(setIcon, item) != writersReaching(at, item)) return@mapNotNull null
+        val writer = writersReaching(setIcon, code[setIcon].namedRegisters()[1]).singleOrNull()?.takeIf { it >= 0 }
+            ?: return@mapNotNull null
+        (code[writer] as? NarrowLiteralInstruction)?.narrowLiteral?.takeIf { it ushr 24 == 0x7f }
+    }
+    return icons.distinct().singleOrNull()
+}
+
+private const val OBJECT = "Ljava/lang/Object;"
+private const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
+private const val FUNCTION1_INVOKE = "$FUNCTION1->invoke($OBJECT)$OBJECT"
+private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+private val CASE_ENDS = setOf(
+    Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32, Opcode.RETURN, Opcode.RETURN_OBJECT, Opcode.RETURN_VOID,
+    Opcode.RETURN_WIDE, Opcode.THROW,
+)
+
+/**
+ * Whether [instruction] fills a post menu through the menu builders' [base], calling [name] with
+ * [signature]: a virtual call on the base, or (586) an interface call on an interface it implements.
+ */
+internal fun fillsPostMenu(instruction: Instruction, base: ClassDef, name: String, signature: List<String>): Boolean {
+    val virtual = instruction.opcode == Opcode.INVOKE_VIRTUAL || instruction.opcode == Opcode.INVOKE_VIRTUAL_RANGE
+    val throughInterface = instruction.opcode == Opcode.INVOKE_INTERFACE || instruction.opcode == Opcode.INVOKE_INTERFACE_RANGE
+    if (!virtual && !throughInterface) return false
+    val reference = instruction.methodReference() ?: return false
+    val owner = if (virtual) reference.definingClass == base.type else reference.definingClass in base.interfaces
+    return owner && reference.name == name && reference.parameterTypes.map(CharSequence::toString) == signature
+}
+
+/**
+ * Whether [method] can be where a post's menu is filled: it takes the player origin the fill
+ * passes on, the last of [signature]. 586's builder for promotion and carousel units doesn't.
+ */
+internal fun opensPostMenu(method: Method, signature: List<String>): Boolean = signature.last() in method.parameters()
 
 private fun Method.parameters(): List<String> = parameterTypes.map(CharSequence::toString)
 

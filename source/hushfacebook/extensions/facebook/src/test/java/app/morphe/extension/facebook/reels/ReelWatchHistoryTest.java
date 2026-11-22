@@ -193,6 +193,74 @@ public class ReelWatchHistoryTest {
         ReelWatchHistory.send(refuses, new SeenStateSendForTests());
     }
 
+    /**
+     * #408: the watched-position mutation and the view-time events go out from feed videos, stories
+     * and reels outside the viewer. The switch holds both back, and the report counts each kind.
+     */
+    @Test
+    public void theSwitchHoldsBackTheWatchedPositionAndTheViewTimeToo() {
+        assertTrue(ReelWatchHistory.holdWatchedPosition());
+        assertTrue(ReelWatchHistory.holdViewTime());
+        assertTrue(ReelWatchHistory.holdViewTime());
+        assertEquals(ReelWatchHistory.ROUTE + ": 3 lists, 3 items, 3 removed. Last reason: " + ReelWatchHistory.VIEW_TIME
+                + ". Removed: " + ReelWatchHistory.VIEW_TIME + " 2, " + ReelWatchHistory.POSITION + " 1. Kinds: "
+                + ReelWatchHistory.VIEW_TIME + " 2, " + ReelWatchHistory.POSITION + " 1", counterLine());
+        assertEquals(FamilyNames.REEL_WATCH_HISTORY + ": invoked 3, 0 found, 0 missing", statusLine());
+    }
+
+    /** Off, paused or before settings are ready, both go out, and the report still shows them seen. */
+    @Test
+    public void offOrPausedTheWatchedPositionAndTheViewTimeGoOut() {
+        Settings.DONT_SEND_REEL_WATCH_HISTORY.save(false);
+        assertFalse(ReelWatchHistory.holdWatchedPosition());
+        assertFalse(ReelWatchHistory.holdViewTime());
+        assertEquals(ReelWatchHistory.ROUTE + ": 2 lists, 2 items, 0 removed. Kinds: "
+                + ReelWatchHistory.VIEW_TIME + " 1, " + ReelWatchHistory.POSITION + " 1", counterLine());
+
+        Settings.DONT_SEND_REEL_WATCH_HISTORY.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse(ReelWatchHistory.holdWatchedPosition());
+        assertFalse(ReelWatchHistory.holdViewTime());
+        PauseForTests.resume();
+        assertTrue(ReelWatchHistory.holdWatchedPosition());
+    }
+
+    /**
+     * #408: "Videos you've watched" is filled from the playback events every video player logs.
+     * The switch keeps each form of them out, and every other event goes through uncounted, since
+     * every analytics event the app makes is asked about.
+     */
+    @Test
+    public void theSwitchKeepsThePlaybackEventsOutAndNothingElse() {
+        for (String playback : new String[] {"media_playback_compound", "media_playback_compound_fast",
+                "media_playback_compound_debug", "media_playback_compound_second_channel"}) {
+            assertTrue(playback, ReelWatchHistory.holdPlaybackEvent(playback));
+        }
+        for (String other : new String[] {"media_playback", "video_playback_compound", "profile_engagement",
+                "Media_playback_compound", "", "fb_stories_visit_profile"}) {
+            assertFalse(other, ReelWatchHistory.holdPlaybackEvent(other));
+        }
+        assertFalse("no name", ReelWatchHistory.holdPlaybackEvent(null));
+        assertEquals(ReelWatchHistory.ROUTE + ": 4 lists, 4 items, 4 removed. Last reason: " + ReelWatchHistory.PLAYBACK
+                + ". Removed: " + ReelWatchHistory.PLAYBACK + " 4. Kinds: " + ReelWatchHistory.PLAYBACK + " 4", counterLine());
+        assertEquals(FamilyNames.REEL_WATCH_HISTORY + ": invoked 4, 0 found, 0 missing", statusLine());
+    }
+
+    /** Off or paused, the playback events are logged as Facebook made them. */
+    @Test
+    public void offOrPausedThePlaybackEventsAreLogged() {
+        Settings.DONT_SEND_REEL_WATCH_HISTORY.save(false);
+        assertFalse(ReelWatchHistory.holdPlaybackEvent("media_playback_compound"));
+        assertEquals(ReelWatchHistory.ROUTE + ": 1 lists, 1 items, 0 removed. Kinds: " + ReelWatchHistory.PLAYBACK + " 1",
+                counterLine());
+
+        Settings.DONT_SEND_REEL_WATCH_HISTORY.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.CRASH_LOOP);
+        assertFalse(ReelWatchHistory.holdPlaybackEvent("media_playback_compound_fast"));
+        PauseForTests.resume();
+        assertTrue(ReelWatchHistory.holdPlaybackEvent("media_playback_compound_fast"));
+    }
+
     /** A failure inside the hook is reported, and the send goes out as Facebook handed it over. */
     @Test
     public void aFailureInsideTheHookLeavesTheSendToFacebook() {

@@ -15,9 +15,11 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,8 +28,9 @@ import java.io.File
 /**
  * Most viewed first on a profile's Reels tab (#232) on every Facebook build the bundle declares.
  * The section is the class that loads the kept section name, the list builder call is the one
- * (parameter, List) static call in its one instance method, and the play count reader is the one
- * static Integer method that holds the play_count key. The tree models' play count getters, the
+ * (parameter, List) static call in its one instance method (587 armeabi-v7a: the (List)V call on a
+ * builder made from the parameter), and the play count reader is the one static Integer (587: int)
+ * method that holds the play_count key, where the build has one. The tree models' play count getters, the
  * no-argument int methods holding it, share one name, and no int getter of that name reads anything
  * else. The Reels tab's rows are read twice, once in the lambda the spec loading the tab's kept name
  * hands its paginated list to, and once in the static builder that lambda calls, each as a paginated
@@ -50,6 +53,32 @@ class ProfileReelsSortFixtureTest {
 
     private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference?.toString()
 
+    /**
+     * Bundles with no play count reader: Redex folded it into every getter, which each hold the key
+     * (587 armeabi-v7a, whose getters are FCe), so the extension is handed the getter alone.
+     */
+    private val noReader = setOf("facebook-587.0.0.39.55-armeabi-v7a.apkm")
+
+    /** Whether [getter] is `this` handed to [reader] and its answer returned, and nothing else. */
+    private fun onlyAsks(getter: Method, reader: Method): Boolean {
+        val code = getter.implementation?.instructions?.toList() ?: return false
+        val call = (code.firstOrNull() as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        return code.size == 3 && code[0].opcode == Opcode.INVOKE_STATIC && call.definingClass == reader.definingClass &&
+            call.name == reader.name && call.returnType == reader.returnType &&
+            call.parameterTypes.map { it.toString() } == reader.parameterTypes.map { it.toString() } &&
+            code[1].opcode == Opcode.MOVE_RESULT && code[2].opcode == Opcode.RETURN
+    }
+
+    /** Builds whose PaginableList extends a Kotlin base that the grid and the tab pass it around as (587: LX/0U1A;). */
+    private val paginatedBase = setOf("587.0.0.39.55")
+
+    private fun paginated(bundle: File): Set<String> {
+        val types = paginatedTypes(FixtureDex.classes(bundle, setOf(PAGINABLE))[PAGINABLE])
+        val version = bundle.name.substringAfter("facebook-").substringBefore("-")
+        assertEquals("${bundle.name}: the paginated list types", if (version in paginatedBase) 2 else 1, types.size)
+        return types
+    }
+
     @Test
     fun `each declared build's profile reels list is found and sorted before the tiles are built`() = bundles { bundle ->
         val name = bundle.name
@@ -62,13 +91,17 @@ class ProfileReelsSortFixtureTest {
         val count = playCount(ints)
         val sites = profileReelsSites(sections, count)
 
-        val reader = ints.single { isPlayCountReader(it) }
+        val readers = ints.filter { isPlayCountReader(it) }
+        assertEquals("$name: play count readers", if (name in noReader) 0 else 1, readers.size)
+        val reader = readers.singleOrNull()
         val getter = count.names.substringAfter('/')
-        assertEquals("$name: the sort is handed the reader's class", reader.definingClass, sites.holder)
-        assertEquals("$name: the reader's name, then the getter's", "${reader.name}/$getter", sites.names)
+        assertEquals("$name: the sort is handed the reader's class", reader?.definingClass ?: NO_READER, sites.holder)
+        assertEquals("$name: the reader's name, then the getter's", "${reader?.name.orEmpty()}/$getter", sites.names)
         val named = ints.filter { it.name == getter && !isPlayCountReader(it) }
         assertTrue("$name: several tree models answer the play count", named.size > 1)
-        assertEquals("$name: every int getter of that name reads the play count", named, named.filter { isPlayCountGetter(it) })
+        // Each holds the key, or (587 arm64) hands itself to the reader and answers what it reads.
+        assertEquals("$name: every int getter of that name reads the play count", named,
+            named.filter { isPlayCountGetter(it) || (reader != null && onlyAsks(it, reader)) })
         assertTrue("$name: three distinct registers", setOf(sites.listRegister, sites.classRegister, sites.nameRegister).size == 3)
 
         val before = sites.section.implementation!!.instructions.toList()
@@ -104,7 +137,9 @@ class ProfileReelsSortFixtureTest {
         val owners = FixtureDex.classesHolding(bundle, PROFILE_GRID_SECTION).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
         val grids = owners.flatMap { owner -> owner.methods.filter { holdsString(it, PROFILE_GRID_SECTION) } }
         val count = playCount(FixtureDex.methodsWhere(bundle, dexFilter = { true }, wanted = { isPlayCountReader(it) || isPlayCountGetter(it) }))
-        val site = profileGridSite(grids, count)
+        val paginated = paginated(bundle)
+        val site = profileGridSite(grids, count, paginated)
+        assertTrue("$name: the grid's list is a paginated list", site.type in paginated)
 
         val before = site.method.implementation!!.instructions.toList()
         val context = PatchContexts.of(owners)
@@ -128,6 +163,7 @@ class ProfileReelsSortFixtureTest {
             after[at + 2].reference(),
         )
         assertEquals("$name: the list is asked for first", Opcode.MOVE_RESULT_OBJECT, after[at - 1].opcode)
+        assertEquals("$name: the answer is cast back to what the call answers", site.type, after[at + 4].reference())
         assertEquals(
             "$name: Facebook's code stays in order",
             stock.map { it.opcode },
@@ -141,10 +177,11 @@ class ProfileReelsSortFixtureTest {
         val owners = FixtureDex.classesHolding(bundle, PROFILE_TAB_SECTION).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
         val tabs = owners.flatMap { owner -> owner.methods.filter { holdsString(it, PROFILE_TAB_SECTION) } }
         val count = playCount(FixtureDex.methodsWhere(bundle, dexFilter = { true }, wanted = { isPlayCountReader(it) || isPlayCountGetter(it) }))
-        val lambda = profileTabLambda(tabs)
+        val paginated = paginated(bundle)
+        val lambda = profileTabLambda(tabs, paginated)
         val fetched = mutableMapOf<String, ClassDef>()
         val classBy = { type: String -> fetched.getOrPut(type) { FixtureDex.classes(bundle, setOf(type)).getValue(type) } }
-        val sites = profileTabRowsSites(classBy(lambda), classBy, count)
+        val sites = profileTabRowsSites(classBy(lambda), classBy, count, paginated)
         assertEquals("$name: the lambda's rows and the builder's", 2, sites.size)
         assertEquals("$name: the second site is the builder, outside the lambda", 2, sites.map { it.method.definingClass }.distinct().size)
 

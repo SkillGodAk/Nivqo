@@ -64,10 +64,11 @@ class DownloadReelFixtureTest {
 
     private val verticalUfi = "Lapp/morphe/extension/facebook/download/ReelDownload;->verticalUfi(Z)Z"
 
-    /** What the block did on each ABI: how far in front of the assembly call it went, its first scratch register, and where it read the helper's six values (session, scoped context, player, story, buttons, markers); then where the render's layout flag is handed to the extension, and its register (#316). Both 585 ABIs lay the render out alike. */
+    /** What the block did on each ABI: how far in front of the assembly call it went, its first scratch register, and where it read the helper's six values (session, scoped context, player, story, buttons, markers); then where the render's layout flag is handed to the extension, and its register (#316). Both 587 phone ABIs lay the render out alike (read 2026-11-13): the builder is the render, the block goes in where the straight run to the assembly call starts, and v1 to v6 are each written there before anything reads them (v6 at the call's own argument moves). 586's Android 9 build lays it out its own way. */
     private val expected = mapOf(
-        "arm64-v8a" to "before=42 scratch=3 sources=[62, 2, 28, 15, 23, 21] layout=217 v8",
-        "armeabi-v7a" to "before=42 scratch=3 sources=[62, 2, 28, 15, 23, 21] layout=217 v8",
+        "arm64-v8a" to "before=37 scratch=1 sources=[69, 9, 31, 38, 22, 15] layout=234 v7",
+        "armeabi-v7a" to "before=37 scratch=1 sources=[69, 9, 31, 38, 22, 15] layout=234 v7",
+        "arm64-v8a-minapi28-storeless" to "before=43 scratch=15 sources=[53, 4, 99, 26, 14, 6] layout=194 v7",
     )
 
     /** A render of the same Litho method as [render]: its name, its one scoped parameter and its return type. */
@@ -122,7 +123,11 @@ class DownloadReelFixtureTest {
                 val makers = reachedFactoryCallers(builder, builderClass.methods) { call ->
                     classes[call.definingClass]?.let { resolveMethod(it, call) }
                 }
-                assertTrue("${bundle.name}: the buttons are made by ${makers.size} methods", makers.size >= 2)
+                // 585 makes each button in a small class of its own, so several methods call the factory.
+                // Its Android 9 build calls it from the static the builder hands each kind to (LX/09f2;->A01).
+                val ownStatic = makers.size == 1 && makers.single().definingClass == builderClass.type &&
+                    AccessFlags.STATIC.isSet(makers.single().accessFlags)
+                assertTrue("${bundle.name}: the buttons are made by ${makers.size} methods", makers.size >= 2 || ownStatic)
                 assertTrue(
                     "${bundle.name}: the render itself doesn't call the factory, it's two calls away",
                     builder.body().none { instruction -> instruction.called()?.let(::isFactory) == true },
@@ -303,28 +308,36 @@ class DownloadReelFixtureTest {
                 }
                 actual[abi] = "before=${assemblyAt - (injectAt - hookShift)} scratch=$scratch sources=$sources layout=$layoutOriginal v$flagRegister"
 
-                // The helper builds the Download and Cast buttons (#182), each behind its own switch,
-                // and adds each and its marker itself.
+                // The helper builds the Download, Cast (#182) and Clean mode (#391) buttons, each behind
+                // its own switch, and adds each and its marker itself.
                 val helperMethod = patchedClass.methods.single { it.name == helperName }
                 assertTrue("${bundle.name}: the helper is static", AccessFlags.STATIC.isSet(helperMethod.accessFlags))
                 assertEquals("${bundle.name}: the helper takes six values", 6, helperMethod.parameterTypes.size)
                 assertEquals("${bundle.name}: and answers nothing", "V", helperMethod.returnType)
                 val helperBody = helperMethod.implementation!!.instructions.toList()
                 assertEquals("${bundle.name}: the helper returns void", Opcode.RETURN_VOID, helperBody.last().opcode)
-                assertEquals("${bundle.name}: it makes two buttons", 2, helperBody.count { it.called()?.toString() == factory.toString() })
+                assertEquals("${bundle.name}: it makes three buttons", 3, helperBody.count { it.called()?.toString() == factory.toString() })
                 val gates = helperBody.mapNotNull { it.called()?.toString() }.filter { it.endsWith("Button()Z") }
                 assertEquals(
                     "${bundle.name}: each behind its own switch, Download first",
-                    listOf("$reelDownload->downloadButton()Z", "$reelDownload->castButton()Z"),
+                    listOf(
+                        "$reelDownload->downloadButton()Z",
+                        "$reelDownload->castButton()Z",
+                        "Lapp/morphe/extension/facebook/reels/ReelCleanMode;->cleanButton()Z",
+                    ),
                     gates,
                 )
                 val handlerFlags = helperBody.indices.filter { at ->
                     helperBody[at].called()?.let { it.definingClass == reelDownload && it.name == "<init>" } == true
                 }.map { at -> (helperBody[at - 1] as NarrowLiteralInstruction).narrowLiteral }
-                assertEquals("${bundle.name}: seven handlers that save, then seven that cast", List(7) { 0 } + List(7) { 1 }, handlerFlags)
                 assertEquals(
-                    "${bundle.name}: it adds both buttons and their markers",
-                    4,
+                    "${bundle.name}: seven handlers that save, seven that cast, then seven that turn on Clean mode",
+                    List(7) { 0 } + List(7) { 1 } + List(7) { 2 },
+                    handlerFlags,
+                )
+                assertEquals(
+                    "${bundle.name}: it adds all three buttons and their markers",
+                    6,
                     helperBody.count { instruction ->
                         instruction.opcode == Opcode.INVOKE_INTERFACE &&
                             instruction.called()?.let { it.definingClass == "Ljava/util/List;" && it.name == "add" } == true
@@ -348,6 +361,12 @@ class DownloadReelFixtureTest {
                 assertTrue(
                     "${bundle.name}: the Cast button has its own slot name",
                     helperBody.any { (it as? ReferenceInstruction)?.reference?.let { ref -> ref is StringReference && ref.string == "cast_button" } == true },
+                )
+                val cleanIcon = enumConstant(context.classDefBy(iconEnum), CLEAN_ICON)
+                assertTrue("${bundle.name}: the Clean mode button draws $CLEAN_ICON, $cleanIcon", cleanIcon != null && cleanIcon in helperFields)
+                assertTrue(
+                    "${bundle.name}: the Clean mode button has its own slot name",
+                    helperBody.any { (it as? ReferenceInstruction)?.reference?.let { ref -> ref is StringReference && ref.string == "clean_mode_button" } == true },
                 )
 
                 val otherRender = context.mutableClassDefBy(other.type).methods.single { rendersLike(it, render) }
@@ -389,7 +408,8 @@ class DownloadReelFixtureTest {
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
-        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), actual.keys)
-        assertEquals("where the block went and what it read", expected, actual)
+        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), Fixtures.abisOf(actual.keys))
+        // The Android 9 bundle sits outside the fixture folder until its target can be declared, so its pin is read when it's there.
+        assertEquals("where the block went and what it read", expected.filterKeys { it in actual || "-minapi" !in it }, actual)
     }
 }

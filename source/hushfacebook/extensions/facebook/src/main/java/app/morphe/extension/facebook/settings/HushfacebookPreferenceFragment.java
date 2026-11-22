@@ -45,18 +45,24 @@ import java.util.TimeZone;
 
 import app.morphe.extension.facebook.coexist.FamilySignatureTrust;
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.comments.CommentsHeight;
 import app.morphe.extension.facebook.reels.BurnInMode;
 import app.morphe.extension.facebook.reels.BurnInWait;
+import app.morphe.extension.facebook.reels.GrayOver;
+import app.morphe.extension.facebook.reels.HoldReaction;
 import app.morphe.extension.facebook.reels.ReelDateStyle;
 import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
 import app.morphe.extension.facebook.download.FileNameTemplate;
+import app.morphe.extension.facebook.download.ReelQueue;
 import app.morphe.extension.facebook.download.SaveControl;
 import app.morphe.extension.facebook.download.SaveFolder;
 import app.morphe.extension.facebook.download.SaveStorage;
 import app.morphe.extension.facebook.download.SaveTo;
 import app.morphe.extension.facebook.download.SendLink;
+import app.morphe.extension.facebook.feed.CaptionBackdrop;
 import app.morphe.extension.facebook.feed.FeedTypeNames;
+import app.morphe.extension.facebook.feed.FoldLines;
 import app.morphe.extension.facebook.feed.PostSources;
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.feed.ReactionCeiling;
@@ -75,6 +81,8 @@ import app.morphe.extension.facebook.profile.LocalProfileCounts;
 import app.morphe.extension.facebook.stories.StoriesTrayCircles;
 import app.morphe.extension.facebook.misc.OpeningPause;
 import app.morphe.extension.facebook.menu.MenuTiles;
+import app.morphe.extension.facebook.misc.PostMenuItems;
+import app.morphe.extension.facebook.misc.RefreshRate;
 import app.morphe.extension.facebook.misc.ShareSheetItems;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.theme.AccentColor;
@@ -87,7 +95,9 @@ import app.morphe.extension.facebook.navigation.HiddenTabs;
 import app.morphe.extension.facebook.navigation.FeedsSubtab;
 import app.morphe.extension.facebook.navigation.StartTab;
 import app.morphe.extension.facebook.navigation.MarketplaceOnly;
+import app.morphe.extension.facebook.navigation.RoundedTabBar;
 import app.morphe.extension.facebook.navigation.TabBarScrollAway;
+import app.morphe.extension.facebook.navigation.TranslucentBars;
 import app.morphe.extension.facebook.notifications.QuietHour;
 import app.morphe.extension.facebook.settings.SettingsRows.Heading;
 import app.morphe.extension.facebook.settings.SettingsRows.Row;
@@ -103,13 +113,18 @@ import app.morphe.extension.facebook.settings.ValueRows.PauseLengthRow;
 import app.morphe.extension.facebook.settings.ValueRows.WatchedKeepRow;
 import app.morphe.extension.facebook.settings.ValueRows.BurnInGuardRow;
 import app.morphe.extension.facebook.settings.ValueRows.BurnInWaitRow;
+import app.morphe.extension.facebook.settings.ValueRows.FoldLinesRow;
+import app.morphe.extension.facebook.settings.ValueRows.HoldReactionRow;
+import app.morphe.extension.facebook.settings.ValueRows.NewRowMarkRow;
 import app.morphe.extension.facebook.settings.ValueRows.ReelDateStyleRow;
+import app.morphe.extension.facebook.settings.ValueRows.CommentsHeightRow;
 import app.morphe.extension.facebook.settings.ValueRows.AccentRow;
 import app.morphe.extension.facebook.settings.ValueRows.BackgroundRow;
 import app.morphe.extension.facebook.settings.ValueRows.CountRow;
 import app.morphe.extension.facebook.settings.ValueRows.HeaderTextRow;
 import app.morphe.extension.facebook.settings.ValueRows.MarkColorRow;
 import app.morphe.extension.facebook.settings.ValueRows.ReactionCeilingRow;
+import app.morphe.extension.facebook.settings.ValueRows.RefreshRateRow;
 import app.morphe.extension.facebook.settings.ValueRows.TextSizeRow;
 import app.morphe.extension.facebook.settings.ValueRows.DownloadActionRow;
 import app.morphe.extension.facebook.settings.ValueRows.FeedsSubtabRow;
@@ -223,6 +238,9 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     /** The rows of the saves running now, by save number. */
     private final Map<Integer, SaveRow> saveRows = new HashMap<>();
 
+    /** The rows of the reels in the reel queue (#462), by their number in its run. */
+    private final Map<Integer, SettingsRows.QueuedReelRow> reelRows = new HashMap<>();
+
     /** Keeps the rows in step with the saves while the page is showing. Saves tell it from their own thread. */
     private final SaveControl.Watcher saves = () -> Utils.runOnMainThread(this::showSaves);
 
@@ -240,6 +258,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     /** Goes to the row the request that opened the page named, if it named one this build has. */
     void showRequestedSetting() {
         String key = SettingsEntry.takeRequestedSetting();
+        // The queue's card opens the page at the queue (#462), whose rows go up with the saves'.
+        if (ReelQueue.ROW_KEY.equals(key)) showSaves();
         Preference target = key == null ? null : findPreference(key);
         // The tab bar switches have no rows of their own: each pair is one choice row.
         TabBarChoices.Pair pair = TabBarChoices.Pair.forKey(key);
@@ -409,6 +429,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     void showSaves() {
         PreferenceCategory group = downloads;
         if (group == null) return;
+        showReelQueue(group);
         List<SaveControl.Running> running = SaveControl.running();
         Set<Integer> now = new HashSet<>();
         for (SaveControl.Running save : running) now.add(save.id);
@@ -445,6 +466,42 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             group.addPreference(last);
         } else {
             last.setSummary(outcome);
+        }
+    }
+
+    /**
+     * The reel queue's row (#449) while it holds reels, with a row under it for each reel in it
+     * (#462), above the running saves. Rows that stay are changed in place.
+     */
+    private void showReelQueue(PreferenceCategory group) {
+        ReelQueue.Status queue = ReelQueue.status();
+        Preference shown = group.findPreference(SettingsRows.QueueRow.KEY);
+        if (queue == null) {
+            if (shown != null) group.removePreference(shown);
+        } else if (shown instanceof SettingsRows.QueueRow) {
+            ((SettingsRows.QueueRow) shown).show(queue);
+        } else {
+            group.addPreference(new SettingsRows.QueueRow(group.getContext(), queue));
+        }
+        List<ReelQueue.Item> items = queue == null ? new ArrayList<>() : ReelQueue.items();
+        Set<Integer> now = new HashSet<>();
+        for (ReelQueue.Item item : items) now.add(item.number);
+        for (java.util.Iterator<Map.Entry<Integer, SettingsRows.QueuedReelRow>> rows = reelRows.entrySet().iterator(); rows.hasNext(); ) {
+            Map.Entry<Integer, SettingsRows.QueuedReelRow> row = rows.next();
+            if (now.contains(row.getKey())) continue;
+            group.removePreference(row.getValue());
+            rows.remove();
+        }
+        for (int place = 0; place < items.size(); place++) {
+            ReelQueue.Item item = items.get(place);
+            SettingsRows.QueuedReelRow row = reelRows.get(item.number);
+            if (row != null) {
+                row.show(item, place);
+                continue;
+            }
+            row = new SettingsRows.QueuedReelRow(group.getContext(), item, place);
+            reelRows.put(item.number, row);
+            group.addPreference(row);
         }
     }
 
@@ -637,7 +694,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         if (!IconDensity.patchSharper(context)) return null;
         Preference row = info(context, L10n.t("Icons look soft on this screen"),
                 L10n.t("The Facebook you patched has no images made for this screen, so some icons are enlarged. "
-                        + "Patch Facebook again from the (arm64-v8a) (120-640dpi) bundle on APKMirror, which has "
+                        + "Patch Facebook again from the (arm64-v8a) (240-640dpi) bundle on APKMirror, which has "
                         + "images for every screen."));
         row.setKey(SOFT_ICONS);
         return row;
@@ -907,6 +964,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         showShareItemsSummary();
         showMenuTilesSummary();
         showFeedTypesSummary();
+        showPostMenuItemsSummary();
         for (TabBarChoices.Pair pair : TabBarChoices.Pair.values()) {
             if (getPreferenceScreen() != null) TabBarChoices.showSaved(findPreference(pair.rowKey), pair);
         }
@@ -941,6 +999,13 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         if (row != null) {
             row.setSummary(FeedPages.feedTypesSummary(FeedTypeNames.hidden()));
         }
+    }
+
+    /** No setting is behind the 3-dot menu items row's key, so its summary is redone here after an import. */
+    private void showPostMenuItemsSummary() {
+        if (getPreferenceScreen() == null) return;
+        Preference row = findPreference(FeedPages.POST_MENU_ITEMS_ROW);
+        if (row != null) row.setSummary(FeedPages.postMenuItemsSummary(PostMenuItems.hidden()));
     }
 
     /** No setting is behind the share sheet row's key, so its summary is redone here after an import. */
@@ -1238,8 +1303,11 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return row;
     }
 
-    /** What the list shows for [quality]: a word for the two ends, the label itself between them. */
-    static String qualityLabel(DownloadQuality quality) {
+    /**
+     * What the list shows for [quality]: a word for the two ends, the label itself between them.
+     * The list a save asks with ({@code QualityChooser}) shows the same.
+     */
+    public static String qualityLabel(DownloadQuality quality) {
         switch (quality) {
             case BEST:
                 return L10n.t("Best");
@@ -1906,6 +1974,145 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 + "stay faded.", burnInWaitLabel(wait));
     }
 
+    /** What a hold to react gives, right under its two switches (#454). */
+    static HoldReactionRow holdReactionRow(Context context) {
+        HoldReactionRow row = new HoldReactionRow(context);
+        row.setKey(Settings.HOLD_REACTION.key);
+        row.setTitle(L10n.t("Reaction"));
+        row.setDialogTitle(L10n.t("Reaction"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        HoldReaction[] choices = HoldReaction.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = holdReactionLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.HOLD_REACTION.savedValue().name());
+        return row;
+    }
+
+    /** What the list and the sentences about it call [reaction]. */
+    static String holdReactionLabel(HoldReaction reaction) {
+        switch (reaction) {
+            case LIKE:
+                return L10n.t("Like");
+            case LOVE:
+                return L10n.t("Love");
+            case CARE:
+                return L10n.t("Care");
+            case HAHA:
+                return L10n.t("Haha");
+            case WOW:
+                return L10n.t("Wow");
+            case SAD:
+                return L10n.t("Sad");
+            case ANGRY:
+                return L10n.t("Angry");
+            default:
+                return L10n.t("Pick one each time");
+        }
+    }
+
+    /** What the choice does, for the row's summary. */
+    static String holdReactionSummary(HoldReaction reaction) {
+        if (reaction == HoldReaction.PICK) {
+            return L10n.t("Pick one each time. The reactions open over the post, so slide to one and let go, or let go "
+                    + "and tap one.");
+        }
+        return L10n.f("%1$s. Holding a post gives it straight away.", holdReactionLabel(reaction));
+    }
+
+    /** How many lines a long post shows before See more (#497), under Show full post text. */
+    static FoldLinesRow foldPostsRow(Context context) {
+        return foldLinesRow(context, Settings.FOLD_POST_TEXT, L10n.t("Fold long posts"), false);
+    }
+
+    /** How many lines a long comment shows before See more (#497). */
+    static FoldLinesRow foldCommentsRow(Context context) {
+        return foldLinesRow(context, Settings.FOLD_COMMENTS, L10n.t("Fold long comments"), true);
+    }
+
+    private static FoldLinesRow foldLinesRow(Context context, EnumSetting<FoldLines> setting, String title,
+            boolean comments) {
+        FoldLinesRow row = new FoldLinesRow(context, comments);
+        row.setKey(setting.key);
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        FoldLines[] choices = FoldLines.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = foldLinesLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(setting.savedValue().name());
+        return row;
+    }
+
+    /** What the lists and the sentences about them call [lines]: Facebook's choice, or a line count. */
+    static String foldLinesLabel(FoldLines lines) {
+        if (lines == FoldLines.FACEBOOK) return L10n.t("Facebook's choice");
+        return L10n.quantity(lines.lines, "%1$d line", "%1$d lines", lines.lines);
+    }
+
+    /** What the choice does, for the row's summary. Show full post text, when in this build, wins for posts. */
+    static String foldLinesSummary(FoldLines lines, boolean comments) {
+        if (comments) {
+            if (lines == FoldLines.FACEBOOK) return L10n.t("Long comments fold where Facebook folds them.");
+            return L10n.f("A long comment shows %1$s before See more.", foldLinesLabel(lines));
+        }
+        if (lines == FoldLines.FACEBOOK) return L10n.t("Long posts fold where Facebook folds them.");
+        String shows = L10n.f("A long post shows %1$s before See more.", foldLinesLabel(lines));
+        if (!PatchFamily.FULL_POST_TEXT.inBuild()) return shows;
+        return shows + " " + L10n.t("Show full post text comes first while it's on.");
+    }
+
+    /** How long Show Reels in gray takes to go from full color to gray, right under its switch. */
+    static BreakRow grayOverRow(Context context) {
+        BreakRow row = new BreakRow(context, value -> grayOverSummary(grayOver(value)), Settings.GRAY_REELS);
+        row.setKey(Settings.GRAY_REELS_OVER.key);
+        row.setTitle(L10n.t("Turn gray over"));
+        row.setDialogTitle(L10n.t("Turn gray over"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        GrayOver[] choices = GrayOver.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = grayOverLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GRAY_REELS_OVER.savedValue().name());
+        return row;
+    }
+
+    private static GrayOver grayOver(@Nullable String name) {
+        for (GrayOver over : GrayOver.values()) {
+            if (over.name().equals(name)) return over;
+        }
+        return GrayOver.AT_ONCE;
+    }
+
+    /** What the list and the sentences about it call [over]. */
+    static String grayOverLabel(GrayOver over) {
+        if (over == GrayOver.AT_ONCE) return L10n.t("At once");
+        return minutesLabel(over.minutes);
+    }
+
+    /** What the choice does, for the row's summary. */
+    static String grayOverSummary(GrayOver over) {
+        if (over == GrayOver.AT_ONCE) return L10n.t("Reels are gray from the start.");
+        return L10n.f("Reels lose their color over %1$s of watching. 15 minutes away starts them in color again.",
+                grayOverLabel(over));
+    }
+
     /** How a reel's post date reads (#357), right under the switch that shows it. */
     static ReelDateStyleRow reelDateStyleRow(Context context) {
         ReelDateStyleRow row = new ReelDateStyleRow(context);
@@ -1938,6 +2145,49 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     /**
+     * How high comments open (#179): where Facebook stops them, the whole screen, or half of it
+     * with the reel or video still playing above. Its values are the setting's own names.
+     */
+    static CommentsHeightRow commentsHeightRow(Context context) {
+        CommentsHeightRow row = new CommentsHeightRow(context);
+        row.setKey(Settings.COMMENTS_HEIGHT.key);
+        row.setTitle(L10n.t("Open comments at"));
+        row.setDialogTitle(L10n.t("Open comments at"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        CommentsHeight[] choices = CommentsHeight.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = commentsHeightLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.COMMENTS_HEIGHT.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [height]. */
+    static String commentsHeightLabel(CommentsHeight height) {
+        if (height == CommentsHeight.FULL) return L10n.t("Full height");
+        if (height == CommentsHeight.HALF) return L10n.t("Half height");
+        return L10n.t("Facebook's height");
+    }
+
+    /** What the choice does, for the row's summary. */
+    static String commentsHeightSummary(CommentsHeight height) {
+        if (height == CommentsHeight.FULL) {
+            return L10n.t("Comments open on a sheet that fills the screen instead of stopping part way up. On reels and "
+                    + "videos, Comment opens that sheet in place of the split view with the video on top.");
+        }
+        if (height == CommentsHeight.HALF) {
+            return L10n.t("Comments open on a sheet that covers half the screen, and the reel or video keeps playing "
+                    + "above it. On reels and videos, Comment opens that sheet in place of the split view.");
+        }
+        return L10n.t("Comments open where Facebook stops them, part way up on reels and videos.");
+    }
+
+    /**
      * How large Facebook's text is. Like the comment order row, its values are the setting's own
      * names and its summary says what the choice does.
      */
@@ -1959,6 +2209,91 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         row.setEntryValues(values);
         row.setValue(Settings.TEXT_SIZE.savedValue().name());
         return row;
+    }
+
+    /**
+     * The refresh rate Facebook's screens ask for (#480). Its list holds the rates this screen
+     * offers, and its summary says what the choice does.
+     */
+    static RefreshRateRow refreshRateRow(Context context) {
+        RefreshRateRow row = new RefreshRateRow(context);
+        row.setKey(Settings.REFRESH_RATE.key);
+        row.setTitle(L10n.t("Refresh rate"));
+        row.setDialogTitle(L10n.t("Refresh rate"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        List<RefreshRate.Rate> choices = RefreshRate.offered(context, Settings.REFRESH_RATE.savedValue());
+        CharSequence[] entries = new CharSequence[choices.size()];
+        CharSequence[] values = new CharSequence[choices.size()];
+        for (int i = 0; i < choices.size(); i++) {
+            entries[i] = refreshRateLabel(choices.get(i));
+            values[i] = choices.get(i).name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.REFRESH_RATE.savedValue().name());
+        return row;
+    }
+
+    /** A refresh rate choice as its list writes it: a fixed one as the phone writes numbers, such as 120 Hz. */
+    static String refreshRateLabel(RefreshRate.Rate rate) {
+        if (rate == RefreshRate.Rate.FACEBOOK) return L10n.t("As Facebook has it");
+        if (rate == RefreshRate.Rate.HIGHEST) return L10n.t("Highest your screen offers");
+        return rate.hertzLabel();
+    }
+
+    /** What a refresh rate choice does, for the row's summary. */
+    static String refreshRateSummary(RefreshRate.Rate rate) {
+        if (rate == RefreshRate.Rate.FACEBOOK) return L10n.t("Facebook runs at whatever refresh rate your phone picks for it.");
+        if (rate == RefreshRate.Rate.HIGHEST) {
+            return L10n.t("Facebook asks for your screen's highest refresh rate, so scrolling and reels look smoother. "
+                    + "It uses a bit more battery, and your phone's own refresh rate setting still caps it.");
+        }
+        return L10n.f("Facebook asks your screen for %1$s. Your phone's own refresh rate setting still caps it.",
+                rate.hertzLabel());
+    }
+
+    /** Mark new settings (#16): how long the dot beside a setting an update added stays. */
+    static NewRowMarkRow newRowMarkRow(Context context) {
+        NewRowMarkRow row = new NewRowMarkRow(context);
+        row.setKey(Settings.NEW_ROW_MARK.key);
+        row.setTitle(L10n.t("Mark new settings"));
+        row.setDialogTitle(L10n.t("Mark new settings"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        NewRowMark[] choices = NewRowMark.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = newRowMarkLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.NEW_ROW_MARK.savedValue().name());
+        return row;
+    }
+
+    /** What the list and the sentences about it call [mark]. The day counts are Keep seen posts hidden's. */
+    static String newRowMarkLabel(NewRowMark mark) {
+        switch (mark) {
+            case OFF:
+                return L10n.t("Off");
+            case THREE_DAYS:
+                return L10n.t("3 days");
+            case SEVEN_DAYS:
+                return L10n.t("7 days");
+            default:
+                return L10n.t("Until I leave the page");
+        }
+    }
+
+    /** What a choice does, for the row's summary. */
+    static String newRowMarkSummary(NewRowMark mark) {
+        if (mark == NewRowMark.OFF) return L10n.t("Settings an update adds get no dot.");
+        if (mark == NewRowMark.ONE_VISIT) {
+            return L10n.t("A dot marks each setting an update adds, until you leave the page it's on.");
+        }
+        return L10n.f("A dot marks each setting an update adds, for %1$s from the first time you open its page.",
+                newRowMarkLabel(mark));
     }
 
     /** What the list and the sentences about it call [scale]. */
@@ -2406,6 +2741,101 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return L10n.f("Round pictures are %1$s dp wide.", StoriesTrayCircles.diameterDp(text));
     }
 
+    /**
+     * A row taking a percent for [setting] (#425): digits only, at most three, blank for [blank].
+     * What's typed that isn't digits is saved as its digits.
+     */
+    static ValueRows.PercentRow percentRow(Context context, StringSetting setting, String title, String message,
+            int blank, ValueRows.PercentSummary summary) {
+        ValueRows.PercentRow row = new ValueRows.PercentRow(context, summary);
+        row.setKey(setting.key);
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setDialogMessage(message);
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        keepEditorInDialog(field, false);
+        field.setInputType(InputType.TYPE_CLASS_NUMBER);
+        field.setFilters(new InputFilter[] {new InputFilter.LengthFilter(3)});
+        field.setHint(String.valueOf(blank));
+        row.setText(setting.savedValue());
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString().trim();
+            String clean = LocalProfileCounts.clean(raw);
+            if (clean.equals(raw)) return true;
+            ((ValueRows.PercentRow) preference).setText(clean);
+            return false;
+        });
+        return row;
+    }
+
+    /** See-through bars' Bar opacity row (#425). */
+    static ValueRows.PercentRow opacityRow(Context context) {
+        return percentRow(context, Settings.SEE_THROUGH_OPACITY, L10n.t("Bar opacity"),
+                L10n.f("How much of their color the see-through bars keep, in percent, from %1$s to %2$s. Lower "
+                                + "lets more of the feed and its blur show. Leave it blank for %3$s, or %4$s over the blur.",
+                        TranslucentBars.MIN_OPACITY, TranslucentBars.MAX_OPACITY,
+                        TranslucentBars.PLAIN_PERCENT, TranslucentBars.FROSTED_PERCENT),
+                TranslucentBars.FROSTED_PERCENT, HushfacebookPreferenceFragment::opacitySummary);
+    }
+
+    /** What the Bar opacity row says for [text], the digits typed there. */
+    static String opacitySummary(String text) {
+        int picked = TranslucentBars.opacityPercent(text);
+        if (picked < 0) {
+            return L10n.f("The bars keep %1$s percent of their color, or %2$s percent over the blur. Type a number "
+                    + "to change it.", TranslucentBars.PLAIN_PERCENT, TranslucentBars.FROSTED_PERCENT);
+        }
+        return L10n.f("The see-through bars keep %1$s percent of their color.", picked);
+    }
+
+    /** Box darkness, for every dark box behind captions and names (#490). */
+    static ValueRows.PercentRow boxDarknessRow(Context context) {
+        return percentRow(context, Settings.TEXT_BOX_DARKNESS, L10n.t("Box darkness"),
+                L10n.f("How dark the boxes behind captions and names are, in percent, from %1$s to %2$s. Leave it "
+                        + "blank for %3$s.", CaptionBackdrop.MIN_DARKNESS, CaptionBackdrop.MAX_DARKNESS,
+                        CaptionBackdrop.DEFAULT_DARKNESS),
+                CaptionBackdrop.DEFAULT_DARKNESS, HushfacebookPreferenceFragment::boxDarknessSummary);
+    }
+
+    /** What the Box darkness row says for [text], the digits typed there. */
+    static String boxDarknessSummary(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return L10n.f("The dark boxes are %1$s percent black. Type a number to change it.",
+                    CaptionBackdrop.DEFAULT_DARKNESS);
+        }
+        return L10n.f("The dark boxes are %1$s percent black.", CaptionBackdrop.darknessPercent(text));
+    }
+
+    /** Rounded tab bar's Tab bar width row (#425). */
+    static ValueRows.PercentRow tabBarWidthRow(Context context) {
+        return percentRow(context, Settings.TAB_BAR_WIDTH, L10n.t("Tab bar width"),
+                L10n.f("Percent of the screen's width, from %1$s to %2$s. The icons grow and shrink with it. Leave "
+                        + "it blank for %3$s.", RoundedTabBar.MIN_WIDTH, RoundedTabBar.MAX_WIDTH, RoundedTabBar.DEFAULT_WIDTH),
+                RoundedTabBar.DEFAULT_WIDTH, HushfacebookPreferenceFragment::tabBarWidthSummary);
+    }
+
+    /** What the Tab bar width row says for [text], the digits typed there. */
+    static String tabBarWidthSummary(String text) {
+        return L10n.f("The rounded tab bar is %1$s percent of the screen wide.", RoundedTabBar.widthPercent(text));
+    }
+
+    /** Rounded tab bar's Tab bar height row (#425). */
+    static ValueRows.PercentRow tabBarHeightRow(Context context) {
+        return percentRow(context, Settings.TAB_BAR_HEIGHT, L10n.t("Tab bar height"),
+                L10n.f("Percent of its full height the rounded tab bar keeps, from %1$s to %2$s, trimmed above and "
+                        + "below the icons. Over 100 makes it taller, mostly toward the bottom of the screen. Leave it "
+                        + "blank for %3$s.", RoundedTabBar.MIN_HEIGHT, RoundedTabBar.MAX_HEIGHT,
+                        RoundedTabBar.DEFAULT_HEIGHT),
+                RoundedTabBar.DEFAULT_HEIGHT, HushfacebookPreferenceFragment::tabBarHeightSummary);
+    }
+
+    /** What the Tab bar height row says for [text], the digits typed there. */
+    static String tabBarHeightSummary(String text) {
+        return L10n.f("The rounded tab bar keeps %1$s percent of its height.", RoundedTabBar.heightPercent(text));
+    }
+
     /** What the Emoji after the logo row says for [text], the emoji typed there. */
     static String logoEmojiSummary(String text) {
         String shown = LogoEmoji.clean(text);
@@ -2604,12 +3034,22 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             ((BurnInGuardRow) listPreference).showSummary();
         } else if (listPreference instanceof BurnInWaitRow) {
             ((BurnInWaitRow) listPreference).showSummary();
+        } else if (listPreference instanceof HoldReactionRow) {
+            ((HoldReactionRow) listPreference).showSummary();
+        } else if (listPreference instanceof FoldLinesRow) {
+            ((FoldLinesRow) listPreference).showSummary();
         } else if (listPreference instanceof ReelDateStyleRow) {
             ((ReelDateStyleRow) listPreference).showSummary();
+        } else if (listPreference instanceof CommentsHeightRow) {
+            ((CommentsHeightRow) listPreference).showSummary();
         } else if (listPreference instanceof BreakRow) {
             ((BreakRow) listPreference).showSummary();
         } else if (listPreference instanceof TextSizeRow) {
             ((TextSizeRow) listPreference).showSummary();
+        } else if (listPreference instanceof RefreshRateRow) {
+            ((RefreshRateRow) listPreference).showSummary();
+        } else if (listPreference instanceof NewRowMarkRow) {
+            ((NewRowMarkRow) listPreference).showSummary();
         } else if (listPreference instanceof AccentRow) {
             ((AccentRow) listPreference).showSummary();
         } else if (listPreference instanceof ReactionCeilingRow) {

@@ -41,9 +41,13 @@ final class SetupSummary {
         }
         String lateStart = HostScreens.lateStart;
         summary.append("Late start: ").append(lateStart == null ? "not needed" : lateStart).append('\n');
+        long[] mismatch = MountedBuild.find(context);
+        summary.append("Mounted build: ")
+            .append(mismatch == null ? "matches" : "installed " + mismatch[0] + ", patched from " + mismatch[1]).append('\n');
         String dataDir = context.getApplicationInfo().dataDir;
         summary.append("Analytics stores: ").append(dataDir == null ? "unreadable" : analyticsStores(new java.io.File(dataDir))).append('\n');
         summary.append("Facebook caller checks: ").append(MessengerSignature.callerSummary()).append('\n');
+        summary.append("Push: ").append(GmsCore.pushRoute(context)).append('\n');
         // Only controls that failed get a line: the exception's class, where it hit HushMessenger's code and when.
         Map<String, String> errors = Settings.lastHookErrors();
         if (!errors.isEmpty()) summary.append("Hook errors:\n");

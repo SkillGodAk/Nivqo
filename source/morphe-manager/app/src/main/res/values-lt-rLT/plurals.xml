@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Under the title of the contributors, how many are listed for the period picked -->
+    <plurals name="contributor_count">
+        <item quantity="one">%s vartotojas</item>
+        <item quantity="few">%s vartotojai</item>
+        <item quantity="many">%s vartotojų</item>
+        <item quantity="other">%s vartotojų</item>
+    </plurals>
     <plurals name="patch_count">
         <item quantity="one">%s pataisa</item>
         <item quantity="few">%s pataisos</item>
@@ -57,12 +64,6 @@
         <item quantity="few">%s šaltiniai paslėpti. Palieskite norint parodyti</item>
         <item quantity="many">%s šaltinio paslėpta. Palieskite norint parodyti</item>
         <item quantity="other">%s šaltinių paslėpta. Palieskite norint parodyti</item>
-    </plurals>
-    <plurals name="sources_search_patch_matches">
-        <item quantity="one">%s atitinkanti pataisa</item>
-        <item quantity="few">%s atitinkančios pataisos</item>
-        <item quantity="many">%s atitinkančių pataisų</item>
-        <item quantity="other">%s atitinkančių pataisų</item>
     </plurals>
     <plurals name="source_count">
         <item quantity="one">%s šaltinis</item>

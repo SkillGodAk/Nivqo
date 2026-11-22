@@ -18,6 +18,7 @@ import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.OperationCanceledException;
@@ -30,6 +31,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+
+import org.json.JSONException;
 
 import java.io.Closeable;
 import java.io.FileNotFoundException;
@@ -46,8 +49,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 import app.morphe.extension.facebook.comments.CommentOrder;
+import app.morphe.extension.facebook.comments.CommentsHeight;
 import app.morphe.extension.facebook.reels.BurnInMode;
 import app.morphe.extension.facebook.reels.BurnInWait;
+import app.morphe.extension.facebook.reels.GrayOver;
+import app.morphe.extension.facebook.reels.HoldReaction;
 import app.morphe.extension.facebook.reels.ReelDateStyle;
 import app.morphe.extension.facebook.reels.ReelsOrder;
 import app.morphe.extension.facebook.download.DownloadQuality;
@@ -56,6 +62,7 @@ import app.morphe.extension.facebook.download.SendLink;
 import app.morphe.extension.facebook.feed.PostSources;
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.feed.FeedTypeNames;
+import app.morphe.extension.facebook.feed.FoldLines;
 import app.morphe.extension.facebook.menu.MenuTiles;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.media.RecentlyWatched;
@@ -64,6 +71,8 @@ import app.morphe.extension.facebook.notifications.QuietHour;
 import app.morphe.extension.facebook.misc.AppLock;
 import app.morphe.extension.facebook.misc.BreakTimer;
 import app.morphe.extension.facebook.misc.OpeningPause;
+import app.morphe.extension.facebook.misc.PostMenuItems;
+import app.morphe.extension.facebook.misc.RefreshRate;
 import app.morphe.extension.facebook.misc.ShareSheetItems;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.feed.ReactionCeiling;
@@ -103,6 +112,9 @@ import app.morphe.extension.shared.settings.preference.LogBufferManager;
 public class SettingsBackupPreference extends Preference {
     static final int EXPORT = 7311;
     static final int IMPORT = 7312;
+    /** Reset settings and Undo the reset act at once, with no file and no picker. */
+    static final int RESET = 7313;
+    static final int UNDO_RESET = 7314;
 
     /** What a settings file is saved as. */
     static final String MIME_TYPE = "application/json";
@@ -177,20 +189,42 @@ public class SettingsBackupPreference extends Preference {
         super(context);
         rowAction = action;
         restingSummary = summary;
-        setKey(action == EXPORT ? "action_export_settings" : "action_import_settings");
+        setKey(keyFor(action));
         setPersistent(false);
         setTitle(title);
         setSummary(summary);
         setOnPreferenceClickListener(preference -> {
             // Rows are out of reach while a run is going, so this is only the race between a tap
             // and that.
-            if (OWNER.get() == null && !stillStalled()) pickFile(page, action);
+            if (OWNER.get() != null || stillStalled()) return true;
+            if (action == RESET) reset(page);
+            else if (action == UNDO_RESET) undoReset(page);
+            else pickFile(page, action);
             return true;
         });
         latestPage = new WeakReference<>(page);
         ROWS.add(new WeakReference<>(this));
         int running = runningAction;
         if (running != 0) showBusy(running, runningLine);
+        else setEnabled(restingEnabled());
+    }
+
+    static String keyFor(int action) {
+        switch (action) {
+            case EXPORT:
+                return "action_export_settings";
+            case RESET:
+                return "action_reset_settings";
+            case UNDO_RESET:
+                return "action_undo_reset_settings";
+            default:
+                return "action_import_settings";
+        }
+    }
+
+    /** Undo the reset is out of reach until a reset has left something to put back. */
+    private boolean restingEnabled() {
+        return rowAction != UNDO_RESET || !Settings.RESET_UNDO.savedValue().isEmpty();
     }
 
     /** A readable, sortable name for the file, stamped in UTC like the diagnostic report. */
@@ -295,10 +329,13 @@ public class SettingsBackupPreference extends Preference {
         boolean accepted = Utils.runOnBackgroundThread(() -> {
             Runnable result = null;
             try {
-                SettingsBackup.Snapshot snapshot = SettingsBackup.parse(read(context.getContentResolver(), uri, run));
+                String text = read(context.getContentResolver(), uri, run);
+                Logger.printInfo(() -> "Settings file read: " + text.length() + " chars");
+                SettingsBackup.Snapshot snapshot = SettingsBackup.parse(text);
                 result = () -> offer(snapshot);
             } catch (SettingsBackup.Rejected refused) {
-                Logger.printInfo(() -> "Settings file refused: " + refused.reason);
+                // A refusal's message names a setting at most, never a value from the file.
+                Logger.printInfo(() -> "Settings file refused: " + refused.reason + ", " + refused.getMessage());
                 String said = refusal(refused.reason);
                 result = () -> Utils.showToastLong(said);
             } finally {
@@ -314,7 +351,11 @@ public class SettingsBackupPreference extends Preference {
     private static String read(ContentResolver resolver, Uri uri, Run run) throws SettingsBackup.Rejected {
         InputStream stream;
         try {
-            stream = run.hold(resolver.openAssetFileDescriptor(uri, "r", run.cancel)).createInputStream();
+            AssetFileDescriptor file = run.hold(resolver.openAssetFileDescriptor(uri, "r", run.cancel));
+            long start = file.getStartOffset();
+            long declared = file.getDeclaredLength();
+            Logger.printInfo(() -> "Settings file opened at " + start + ", declared length " + declared);
+            stream = file.createInputStream();
         } catch (IOException | RuntimeException error) {
             closeQuietly(run.open);
             // The class only: an app's message can carry the document's name or address.
@@ -407,6 +448,7 @@ public class SettingsBackupPreference extends Preference {
                     snapshot.lockAfterChange(), snapshot.textSizeChange(), snapshot.accentChange()));
             if (snapshot.ceilingChange() != null) parts.add(ceilingSentence(snapshot.ceilingChange()));
             if (snapshot.shareItemsChange() != null) parts.add(shareItemsSentence(snapshot.shareItemsChange()));
+            if (snapshot.postMenuItemsChange() != null) parts.add(postMenuItemsSentence(snapshot.postMenuItemsChange()));
             if (snapshot.menuTilesChange() != null) parts.add(menuTilesSentence(snapshot.menuTilesChange()));
             if (snapshot.feedTypesChange() != null) parts.add(feedTypesSentence(snapshot.feedTypesChange()));
             if (snapshot.tabOrderChange() != null) parts.add(tabOrderSentence(snapshot.tabOrderChange()));
@@ -414,7 +456,14 @@ public class SettingsBackupPreference extends Preference {
             if (snapshot.reelsOrderChange() != null) parts.add(reelsOrderSentence(snapshot.reelsOrderChange()));
             if (snapshot.burnInChange() != null) parts.add(burnInSentence(snapshot.burnInChange()));
             if (snapshot.burnInWaitChange() != null) parts.add(burnInWaitSentence(snapshot.burnInWaitChange()));
+            if (snapshot.holdReactionChange() != null) parts.add(holdReactionSentence(snapshot.holdReactionChange()));
+            if (snapshot.foldPostsChange() != null) parts.add(foldPostsSentence(snapshot.foldPostsChange()));
+            if (snapshot.foldCommentsChange() != null) parts.add(foldCommentsSentence(snapshot.foldCommentsChange()));
+            if (snapshot.grayOverChange() != null) parts.add(grayOverSentence(snapshot.grayOverChange()));
+            if (snapshot.newRowMarkChange() != null) parts.add(newRowMarkSentence(snapshot.newRowMarkChange()));
+            if (snapshot.refreshRateChange() != null) parts.add(refreshRateSentence(snapshot.refreshRateChange()));
             if (snapshot.dateStyleChange() != null) parts.add(dateStyleSentence(snapshot.dateStyleChange()));
+            if (snapshot.commentsHeightChange() != null) parts.add(commentsHeightSentence(snapshot.commentsHeightChange()));
             if (snapshot.backgroundChange() != null) parts.add(backgroundSentence(snapshot.backgroundChange()));
             if (snapshot.lightBackgroundChange() != null) parts.add(lightBackgroundSentence(snapshot.lightBackgroundChange()));
             if (snapshot.badgeChange() != null) parts.add(markColorSentence(Mark.BADGE, snapshot.badgeChange()));
@@ -604,16 +653,63 @@ public class SettingsBackupPreference extends Preference {
         return L10n.f("Burn-in guard will be set to %1$s.", HushfacebookPreferenceFragment.burnInLabel(mode));
     }
 
+    /** The sentence that says how new settings are marked after an import (#16). */
+    static String newRowMarkSentence(NewRowMark mark) {
+        if (mark == NewRowMark.OFF) return L10n.t("Settings an update adds won't get a dot.");
+        if (mark == NewRowMark.ONE_VISIT) return L10n.t("Settings an update adds will get a dot until you leave their page.");
+        return L10n.f("Settings an update adds will get a dot for %1$s from the first time you open their page.",
+                HushfacebookPreferenceFragment.newRowMarkLabel(mark));
+    }
+
+    /** The sentence that says what refresh rate Facebook asks for after an import (#480). */
+    static String refreshRateSentence(RefreshRate.Rate rate) {
+        if (rate == RefreshRate.Rate.FACEBOOK) return L10n.t("Facebook will run at the refresh rate your phone picks for it.");
+        if (rate == RefreshRate.Rate.HIGHEST) return L10n.t("Facebook will ask for your screen's highest refresh rate.");
+        return L10n.f("Facebook will ask your screen for %1$s.", rate.hertzLabel());
+    }
+
     /** The sentence that says how long Burn-in guard waits after an import (#288). */
     static String burnInWaitSentence(BurnInWait wait) {
         if (wait == BurnInWait.AT_ONCE) return L10n.t("Burn-in guard will dim the Reels screen as soon as you stop touching it.");
         return L10n.f("Burn-in guard will dim the Reels screen after %1$d seconds without a touch.", (int) (wait.millis / 1000));
     }
 
+    /** The sentence that says what a hold to react gives after an import, for a photo and a video alike (#454). */
+    static String holdReactionSentence(HoldReaction reaction) {
+        if (reaction == HoldReaction.PICK) return L10n.t("Holding a post to react will open the reactions to pick from.");
+        return L10n.f("Holding a post to react will give %1$s.", HushfacebookPreferenceFragment.holdReactionLabel(reaction));
+    }
+
+    /** The sentence that says where Fold long posts folds after an import (#497). */
+    static String foldPostsSentence(FoldLines lines) {
+        if (lines == FoldLines.FACEBOOK) return L10n.t("Fold long posts will fold posts where Facebook does.");
+        return L10n.f("Fold long posts will show %1$s before See more.", HushfacebookPreferenceFragment.foldLinesLabel(lines));
+    }
+
+    /** The sentence that says where Fold long comments folds after an import (#497). */
+    static String foldCommentsSentence(FoldLines lines) {
+        if (lines == FoldLines.FACEBOOK) return L10n.t("Fold long comments will fold comments where Facebook does.");
+        return L10n.f("Fold long comments will show %1$s before See more.", HushfacebookPreferenceFragment.foldLinesLabel(lines));
+    }
+
+    /** The sentence that says how Show Reels in gray takes the color out after an import. */
+    static String grayOverSentence(GrayOver over) {
+        if (over == GrayOver.AT_ONCE) return L10n.t("Show Reels in gray will make reels gray from the start.");
+        return L10n.f("Show Reels in gray will take reels from color to gray over %1$s.",
+                HushfacebookPreferenceFragment.grayOverLabel(over));
+    }
+
     /** The sentence that says how a reel's post date reads after an import (#357). */
     static String dateStyleSentence(ReelDateStyle style) {
         if (style == ReelDateStyle.DATE) return L10n.t("Reel post dates will show the day they were posted.");
         return L10n.t("Reel post dates will show how long ago they were posted.");
+    }
+
+    /** The sentence that says how high comments open after an import (#179). */
+    static String commentsHeightSentence(CommentsHeight height) {
+        if (height == CommentsHeight.FULL) return L10n.t("Comments will open at full height.");
+        if (height == CommentsHeight.HALF) return L10n.t("Comments will open at half height.");
+        return L10n.t("Comments will open where Facebook stops them.");
     }
 
     /** The sentence that says in what order comments open after an import. */
@@ -822,6 +918,14 @@ public class SettingsBackupPreference extends Preference {
         if (items == 0) return L10n.t("Your list of share sheet items to hide will be empty.");
         return L10n.quantity(items, "Your list of share sheet items to hide will hold %1$d item.",
                 "Your list of share sheet items to hide will hold %1$d items.", items);
+    }
+
+    /** The sentence that says how many kinds of 3-dot menu row will be hidden after an import. */
+    static String postMenuItemsSentence(String list) {
+        int items = PostMenuItems.count(list);
+        if (items == 0) return L10n.t("Your list of 3-dot menu items to hide will be empty.");
+        return L10n.quantity(items, "Your list of 3-dot menu items to hide will hold %1$d item.",
+                "Your list of 3-dot menu items to hide will hold %1$d items.", items);
     }
 
     /** The sentence that says how many Menu tiles will be hidden after an import. */
@@ -1060,6 +1164,7 @@ public class SettingsBackupPreference extends Preference {
                     snapshot.lockAfterChange(), snapshot.textSizeChange(), snapshot.accentChange())
                     + (snapshot.ceilingChange() == null ? "" : " " + ceilingSentence(snapshot.ceilingChange()))
                     + (snapshot.shareItemsChange() == null ? "" : " " + shareItemsSentence(snapshot.shareItemsChange()))
+                    + (snapshot.postMenuItemsChange() == null ? "" : " " + postMenuItemsSentence(snapshot.postMenuItemsChange()))
                     + (snapshot.menuTilesChange() == null ? "" : " " + menuTilesSentence(snapshot.menuTilesChange()))
                     + (snapshot.feedTypesChange() == null ? "" : " " + feedTypesSentence(snapshot.feedTypesChange()))
                     + (snapshot.tabOrderChange() == null ? "" : " " + tabOrderSentence(snapshot.tabOrderChange()))
@@ -1067,7 +1172,14 @@ public class SettingsBackupPreference extends Preference {
                     + (snapshot.reelsOrderChange() == null ? "" : " " + reelsOrderSentence(snapshot.reelsOrderChange()))
                     + (snapshot.burnInChange() == null ? "" : " " + burnInSentence(snapshot.burnInChange()))
                     + (snapshot.burnInWaitChange() == null ? "" : " " + burnInWaitSentence(snapshot.burnInWaitChange()))
+                    + (snapshot.holdReactionChange() == null ? "" : " " + holdReactionSentence(snapshot.holdReactionChange()))
+                    + (snapshot.foldPostsChange() == null ? "" : " " + foldPostsSentence(snapshot.foldPostsChange()))
+                    + (snapshot.foldCommentsChange() == null ? "" : " " + foldCommentsSentence(snapshot.foldCommentsChange()))
+                    + (snapshot.grayOverChange() == null ? "" : " " + grayOverSentence(snapshot.grayOverChange()))
+                    + (snapshot.newRowMarkChange() == null ? "" : " " + newRowMarkSentence(snapshot.newRowMarkChange()))
+                    + (snapshot.refreshRateChange() == null ? "" : " " + refreshRateSentence(snapshot.refreshRateChange()))
                     + (snapshot.dateStyleChange() == null ? "" : " " + dateStyleSentence(snapshot.dateStyleChange()))
+                    + (snapshot.commentsHeightChange() == null ? "" : " " + commentsHeightSentence(snapshot.commentsHeightChange()))
                     + (snapshot.backgroundChange() == null ? "" : " " + backgroundSentence(snapshot.backgroundChange()))
                     + (snapshot.lightBackgroundChange() == null ? "" : " " + lightBackgroundSentence(snapshot.lightBackgroundChange()))
                     + (snapshot.badgeChange() == null ? "" : " " + markColorSentence(Mark.BADGE, snapshot.badgeChange()))
@@ -1111,6 +1223,112 @@ public class SettingsBackupPreference extends Preference {
             Logger.printInfo(() -> "Settings import didn't start: " + error.getClass().getSimpleName());
         } finally {
             // This path has no wait that runs out, so nothing else would give the rows back.
+            if (!accepted) {
+                try {
+                    AbstractPreferenceFragment.finishSettingsImport(before, page);
+                } finally {
+                    notStarted(run);
+                }
+            }
+        }
+    }
+
+    /**
+     * Reset settings: everything a settings file carries goes back to how a new install has it, at
+     * once, and what was saved before is kept for Undo the reset. Both are read here on the main
+     * thread, as an export reads, so neither can straddle a change made on this screen.
+     */
+    private static void reset(HushfacebookPreferenceFragment page) {
+        String saved;
+        SettingsBackup.Snapshot defaults;
+        try {
+            saved = SettingsBackup.create();
+            defaults = SettingsBackup.parse(SettingsBackup.defaults().file());
+        } catch (JSONException | SettingsBackup.Rejected error) {
+            Logger.printInfo(() -> "Settings reset didn't start: " + error.getClass().getSimpleName());
+            Utils.showToastLong(L10n.t("Couldn't reset the settings. Nothing was changed."));
+            return;
+        }
+        if (defaults.changes().isEmpty()) {
+            Utils.showToastLong(L10n.t("Your settings already match a new install."));
+            return;
+        }
+        // An earlier copy comes back if this reset is refused, so a failed one can't lose it.
+        String earlier = Settings.RESET_UNDO.savedValue();
+        write(page, RESET, L10n.t("Resetting settings"), defaults,
+                () -> Settings.RESET_UNDO.save(saved), null, () -> Settings.RESET_UNDO.save(earlier),
+                L10n.t("Settings reset. Undo the reset puts yours back."),
+                L10n.t("Couldn't reset the settings. Nothing was changed."));
+    }
+
+    /** Undo the reset: the settings saved just before the last reset come back, and the copy goes. */
+    private static void undoReset(HushfacebookPreferenceFragment page) {
+        String saved = Settings.RESET_UNDO.savedValue();
+        if (saved.isEmpty()) {
+            setRowsBusy(0, null);
+            return;
+        }
+        SettingsBackup.Snapshot snapshot;
+        try {
+            snapshot = SettingsBackup.parse(saved);
+        } catch (SettingsBackup.Rejected refused) {
+            Logger.printInfo(() -> "Reset undo copy refused: " + refused.reason);
+            Settings.RESET_UNDO.save("");
+            setRowsBusy(0, null);
+            Utils.showToastLong(L10n.t("Couldn't undo the reset. Nothing was changed."));
+            return;
+        }
+        write(page, UNDO_RESET, L10n.t("Putting your settings back"), snapshot,
+                null, () -> Settings.RESET_UNDO.save(""), null,
+                L10n.t("Your settings are back the way they were before the reset."),
+                L10n.t("Couldn't undo the reset. Nothing was changed."));
+    }
+
+    /**
+     * Writes [snapshot] the way an import does, holding the rows until it's done, so the page shows
+     * what the store then holds and a switch that needs a restart offers one. On the worker, [first]
+     * runs before the write, [written] after it, and [refused] when it was refused and rolled back.
+     */
+    private static void write(HushfacebookPreferenceFragment page, int action, String line,
+                              SettingsBackup.Snapshot snapshot, @Nullable Runnable first,
+                              @Nullable Runnable written, @Nullable Runnable refused,
+                              String done, String failed) {
+        Run run = start(action, line);
+        if (run == null) return;
+        String name = action == RESET ? "reset" : "undo";
+        Map<Setting<?>, Object> before = new LinkedHashMap<>();
+        boolean accepted = false;
+        try {
+            before.putAll(AbstractPreferenceFragment.beginSettingsImport(snapshot.changes().keySet()));
+            accepted = Utils.runOnBackgroundThread(() -> {
+                try {
+                    if (first != null) first.run();
+                    SettingsBackup.apply(snapshot);
+                    if (written != null) written.run();
+                    Utils.showToastLong(done);
+                } catch (SettingsBackup.ApplyFailed failure) {
+                    Logger.printInfo(() -> "Settings " + name + " failed: " + failure.getMessage()
+                            + (failure.rolledBack ? ", rolled back" : ", not rolled back"));
+                    if (failure.rolledBack && refused != null) refused.run();
+                    Utils.showToastLong(failure.rolledBack ? failed
+                            : L10n.t("Couldn't finish, and couldn't put back the settings you had. "
+                                    + "Check the switches on this screen."));
+                } finally {
+                    Utils.runOnMainThread(() -> {
+                        HushfacebookPreferenceFragment current = latestPage.get();
+                        try {
+                            AbstractPreferenceFragment.finishSettingsImport(before, current);
+                        } finally {
+                            finish(run);
+                            if (current != null && current.isAdded()) current.refreshSwitches();
+                        }
+                    });
+                }
+            });
+        } catch (RuntimeException error) {
+            Logger.printInfo(() -> "Settings " + name + " didn't start: " + error.getClass().getSimpleName());
+        } finally {
+            // Nothing else would give the rows back.
             if (!accepted) {
                 try {
                     AbstractPreferenceFragment.finishSettingsImport(before, page);
@@ -1376,7 +1594,7 @@ public class SettingsBackupPreference extends Preference {
     }
 
     /**
-     * Takes both rows out of reach while one of them runs and puts the running line on the one
+     * Takes every row here out of reach while one of them runs and puts the running line on the one
      * acting. With a zero action and no line, they come back with their own summaries.
      */
     static void setRowsBusy(int action, @Nullable String line) {
@@ -1399,14 +1617,15 @@ public class SettingsBackupPreference extends Preference {
 
     private void showResting() {
         busyLine = null;
-        setEnabled(true);
+        setEnabled(restingEnabled());
         setSummary(restingSummary);
     }
 
     @Override
     protected void onBindView(View view) {
         super.onBindView(view);
-        // A screen reader hears the row as unavailable, and this says why.
-        view.setStateDescription(busyLine);
+        // A screen reader hears the row as unavailable, and this says why. Below Android 11 the
+        // summary has to.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) view.setStateDescription(busyLine);
     }
 }

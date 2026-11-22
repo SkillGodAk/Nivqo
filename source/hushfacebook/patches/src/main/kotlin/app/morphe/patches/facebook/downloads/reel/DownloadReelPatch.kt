@@ -113,9 +113,24 @@ private const val CAST_TEST_ID = "cast_button"
 private const val CAST_LABEL = "$HANDLER->castLabel()Ljava/lang/String;"
 internal const val CAST_ICON = "GOOGLE_CAST"
 
-/** Asked inside the helper, once the sidebar's switch said yes, for each of the two buttons. */
+/**
+ * The Clean mode button (#391), whose tap the Clean up Reels patch's store hooks carry out. It draws
+ * the icon of Facebook's own Clean mode control (fds_control_clear_mode).
+ */
+private const val CLEAN_MODE = "Lapp/morphe/extension/facebook/reels/ReelCleanMode;"
+private const val CLEAN_TEST_ID = "clean_mode_button"
+private const val CLEAN_LABEL = "$CLEAN_MODE->cleanLabel()Ljava/lang/String;"
+internal const val CLEAN_ICON = "SIDEBAR_RIGHT_BLANK"
+
+/** Asked inside the helper, once the sidebar's switch said yes, for each of the three buttons. */
 private const val DOWNLOAD_BUTTON = "$HANDLER->downloadButton()Z"
 private const val CAST_BUTTON = "$HANDLER->castButton()Z"
+private const val CLEAN_BUTTON = "$CLEAN_MODE->cleanButton()Z"
+
+/** What each button's handlers are, as [HANDLER] takes it. */
+private const val SAVE_KIND = 0
+private const val CAST_KIND = 1
+private const val CLEAN_KIND = 2
 
 /**
  * What is written under the icon.
@@ -247,17 +262,10 @@ val downloadReelPatch = bytecodePatch(
         //
         // Up to 582 the builder is the component's own render, which takes the scoped context
         // alone and reads the component's fields. 583 leaves the body in the component's spec,
-        // handed the scoped context, then the fields and the state, and the render only calls it.
+        // handed the scoped context, then the fields and the state, and the render only calls it
+        // (585's Android 9 build does too, with the scoped context among the fields).
         // The component, whose fields the player and the story are found by, is the render's class.
-        val (renderClass, render) = if (sidebar.parameterTypes.size == 1) {
-            sidebarClass to sidebar
-        } else {
-            val renders = mutableListOf<Pair<String, Method>>()
-            classDefForEachReferencing(types = listOf(sidebar.definingClass)) { classDef ->
-                classDef.methods.filter { rendersThrough(it, sidebar) }.forEach { renders += classDef.type to it }
-            }
-            renders.singleOrPatchException("$PATCH: the one render handing the scoped context to $sidebarClass->$sidebarName")
-        }
+        val (renderClass, render) = sidebarRender(sidebar, PATCH)
         val component = mutableClassDefBy(renderClass)
 
         val scopedType = render.parameterTypes
@@ -306,17 +314,18 @@ val downloadReelPatch = bytecodePatch(
         val parameters = factory.parameterTypes.map(CharSequence::toString)
 
         // 577 takes 19 parameters, 580 one boolean more (a MobileConfig flag Facebook reads for
-        // its own buttons). Everything up to the int keeps its place, and the booleans after it
-        // are filled in order, so the shape is checked rather than one count.
-        check(parameters.size in 19..20 && parameters[15] == "I" && parameters.drop(16).all { it == "Z" }) {
-            "The button factory takes ${parameters.size} parameters ending ${parameters.drop(15)}, " +
-                "expected the int and three or four booleans"
+        // its own buttons), 586 a second accessibility action after the first. The booleans after
+        // the int are filled in order, so the shape is checked rather than one count.
+        val layout = buttonFactoryLayout(parameters)
+        check(layout != null) {
+            "The button factory takes ${parameters.size} parameters $parameters, expected the session, the mode, " +
+                "one or two actions, two labels, the icon, ten more, the int and three or four booleans"
         }
 
         val modeType = parameters[1]
         val primaryType = parameters[2]
-        val labelType = parameters[3]
-        val iconType = parameters[5]
+        val labelType = parameters[layout.label]
+        val iconType = parameters[layout.icon]
 
         // The mode constant that every one of Facebook's own buttons is built with.
         val modes = factoryCalls.mapNotNull { instruction ->
@@ -372,6 +381,8 @@ val downloadReelPatch = bytecodePatch(
         // whose enum lost it keeps the Download button.
         val castIcon = mutableClassDefByOrNull(iconEnumType)?.let { enumConstant(it, CAST_ICON) }
         if (castIcon == null) patchLog.warning("$PATCH: $iconEnumType names no $CAST_ICON, so reels get no Cast button.")
+        val cleanIcon = mutableClassDefByOrNull(iconEnumType)?.let { enumConstant(it, CLEAN_ICON) }
+        if (cleanIcon == null) patchLog.warning("$PATCH: $iconEnumType names no $CLEAN_ICON, so reels get no Clean mode button.")
 
         // ---- what the component holds --------------------------------------------------------
         //
@@ -422,10 +433,11 @@ val downloadReelPatch = bytecodePatch(
             null,
             MutableMethodImplementation(HELPER_LOCALS + 6),
         ).toMutable().apply {
-            fun button(icon: String, testId: String, label: String, cast: Boolean) = buildButton(
+            fun button(icon: String, testId: String, label: String, kind: Int) = buildButton(
                 factory = factory,
                 parameters = parameters,
-                trailingBooleans = parameters.size - 16,
+                actions = layout.actions,
+                trailingBooleans = layout.trailingBooleans,
                 mode = mode,
                 icon = icon,
                 iconWrapperClass = iconWrapper.definingClass,
@@ -440,13 +452,14 @@ val downloadReelPatch = bytecodePatch(
                 marker = "${marker.definingClass}->${marker.name}($iconEnumType)${marker.returnType}",
                 testId = testId,
                 label = label,
-                cast = cast,
+                kind = kind,
             )
             addInstructions(
                 0,
                 helperBody(
-                    download = button("${icon!!.definingClass}->${icon!!.name}:$iconEnumType", TEST_ID, LABEL, cast = false),
-                    cast = castIcon?.let { button(it, CAST_TEST_ID, CAST_LABEL, cast = true) },
+                    download = button("${icon!!.definingClass}->${icon!!.name}:$iconEnumType", TEST_ID, LABEL, SAVE_KIND),
+                    cast = castIcon?.let { button(it, CAST_TEST_ID, CAST_LABEL, CAST_KIND) },
+                    clean = cleanIcon?.let { button(it, CLEAN_TEST_ID, CLEAN_LABEL, CLEAN_KIND) },
                 ),
             )
         }
@@ -686,8 +699,32 @@ internal fun BytecodePatchContext.addMissingSidebarDiagnostic() {
 /** How many values [sidebarButtonBlock] hands the helper: the session, the scoped context, the player, the story and the two lists. */
 internal const val SIDEBAR_BLOCK_ARGUMENTS = 6
 
-/** The locals the helper keeps for the button's factory call, whose 20 arguments sit in v40 and up. */
-private const val HELPER_LOCALS = 60
+/** The locals the helper keeps for the button's factory call, whose 21 arguments (586) sit in v40 up to v60. */
+private const val HELPER_LOCALS = 61
+
+/**
+ * Where the button factory keeps its values: [actions] accessibility actions of one type from
+ * index 2 (one up to 585, two on 586), then two labels of another type, the icon, ten values
+ * ending in four handlers, the int, and [trailingBooleans] booleans.
+ */
+internal class ButtonFactoryLayout(val actions: Int, val trailingBooleans: Int) {
+    val label get() = 2 + actions
+    val icon get() = 4 + actions
+    val int get() = 14 + actions
+}
+
+/** The layout of the button factory taking [parameters], or null when they have another shape. */
+internal fun buttonFactoryLayout(parameters: List<String>): ButtonFactoryLayout? {
+    val action = parameters.getOrNull(2) ?: return null
+    val actions = parameters.drop(2).takeWhile { it == action }.size
+    if (actions !in 1..2) return null
+    val layout = ButtonFactoryLayout(actions, parameters.size - 15 - actions)
+    if (layout.trailingBooleans !in 3..4) return null
+    if (parameters[layout.label + 1] != parameters[layout.label]) return null
+    if (parameters.subList(layout.int - 4, layout.int).any { it != FUNCTION1 }) return null
+    if (parameters[layout.int] != "I" || parameters.drop(layout.int + 1).any { it != "Z" }) return null
+    return layout
+}
 
 /** The instructions that take the answer of the call before them, which nothing may be put in front of. */
 private val ANSWERS = setOf(Opcode.MOVE_RESULT, Opcode.MOVE_RESULT_WIDE, Opcode.MOVE_RESULT_OBJECT, Opcode.MOVE_EXCEPTION)
@@ -856,21 +893,39 @@ internal fun iconMarkers(builder: Method, iconEnumType: String, resolve: (Method
 
 /**
  * Whether [method] is a render handing everything to [builder], the sidebar's builder kept in its
- * spec: it takes one parameter, the scoped context [builder] takes first, and calls [builder]. On
- * 583 the builder (arm64 LX/APP;->A02, armeabi-v7a LX/AR8;->A02, 37 parameters) is handed the
- * scoped context, then the component's fields and its state, by the component's render
- * (LX/APO;->A1C, LX/AR7;->A1C).
+ * spec: it takes one parameter, the scoped context, which [builder] takes exactly once, and calls
+ * [builder]. On 583 the builder (arm64 LX/APP;->A02, armeabi-v7a LX/AR8;->A02, 37 parameters) is
+ * handed the scoped context first, then the component's fields and its state, by the component's
+ * render (LX/APO;->A1C, LX/AR7;->A1C). 585's Android 9 build moves it among the fields: its builder
+ * (LX/09f2;->A03, rendered by LX/0B9q;->A15) takes the tree props first and the scoped context
+ * thirteenth, so where it sits doesn't decide, only that it's there once.
  */
 internal fun rendersThrough(method: Method, builder: Method): Boolean {
-    val scoped = builder.parameterTypes.firstOrNull()?.toString() ?: return false
-    if (method.parameterTypes.size != 1 || method.parameterTypes.single().toString() != scoped) return false
+    if (method.parameterTypes.size != 1) return false
+    val scoped = method.parameterTypes.single().toString()
     val parameters = builder.parameterTypes.map(CharSequence::toString)
+    if (parameters.count { it == scoped } != 1) return false
     return method.instructions().any { instruction ->
         instruction.methodReference()?.let {
             it.definingClass == builder.definingClass && it.name == builder.name &&
                 it.parameterTypes.map(CharSequence::toString) == parameters
         } == true
     }
+}
+
+/**
+ * The side column's render for its builder [sidebar], and the render's class. The builder is the
+ * render when it takes the scoped context alone (585). Otherwise it's the one method handing it the
+ * scoped context ([rendersThrough]): 585's Android 9 build renders LX/09f2;->A03 from LX/0B9q;->A15,
+ * and that render, not the builder, reads the button layout's flag.
+ */
+internal fun BytecodePatchContext.sidebarRender(sidebar: Method, patch: String): Pair<String, Method> {
+    if (sidebar.parameterTypes.size == 1) return sidebar.definingClass to sidebar
+    val renders = mutableListOf<Pair<String, Method>>()
+    classDefForEachReferencing(types = listOf(sidebar.definingClass)) { classDef ->
+        classDef.methods.filter { rendersThrough(it, sidebar) }.forEach { renders += classDef.type to it }
+    }
+    return renders.singleOrPatchException("$patch: the one render handing the scoped context to ${sidebar.definingClass}->${sidebar.name}")
 }
 
 /**
@@ -1027,11 +1082,12 @@ internal fun <T : Field> fieldOfType(fields: Iterable<T>, type: String, what: St
     fields.filter { it.type.toString() == type }.singleOrPatchException("$PATCH: $what")
 
 /**
- * The helper's whole body: the Download button and then the Cast button (#182), each built only
- * when its own switch is on. The sidebar's block asked whether either is, so it calls the helper for
- * a sidebar that gets one or both. [cast] is null on a build whose icon enum has no cast icon.
+ * The helper's whole body: the Download button, the Cast button (#182) and the Clean mode button
+ * (#391), each built only when its own switch is on. The sidebar's block asked whether any is, so it
+ * calls the helper for a sidebar that gets at least one. [cast] and [clean] are null on a build whose
+ * icon enum lacks their icon.
  */
-private fun helperBody(download: String, cast: String?): String = """
+private fun helperBody(download: String, cast: String?, clean: String?): String = """
         invoke-static { }, $DOWNLOAD_BUTTON
         move-result v0
         if-eqz v0, :no_download
@@ -1045,6 +1101,14 @@ $download
 $it
         :no_cast
 """
+} ?: "") + (clean?.let {
+    """
+        invoke-static { }, $CLEAN_BUTTON
+        move-result v0
+        if-eqz v0, :no_clean
+$it
+        :no_clean
+"""
 } ?: "") + """
         return-void
 """
@@ -1055,8 +1119,9 @@ $it
  *
  * Register use here is dictated by the instruction formats, not by taste. An `invoke-direct` with
  * arguments and an `iget` both take **4-bit** registers, so everything they touch has to sit in
- * `v0` to `v15`. The factory takes nineteen arguments, and thus needs nineteen **consecutive**
- * registers, so its block sits high at `v40` and each value is moved up once it is built.
+ * `v0` to `v15`. The factory takes nineteen to twenty-one arguments, and thus needs as many
+ * **consecutive** registers, so its block sits high at `v40` and each value is moved up once it is
+ * built. 586's second accessibility action gets the same action as the first.
  * `new-instance` and `const-string` take 8-bit registers, so those can write high directly.
  *
  * The six parameters are the session, the scoped context, the player, the reel's story and the
@@ -1067,6 +1132,7 @@ $it
 private fun buildButton(
     factory: MethodReference,
     parameters: List<String>,
+    actions: Int,
     trailingBooleans: Int,
     mode: FieldReference,
     icon: String,
@@ -1082,10 +1148,12 @@ private fun buildButton(
     marker: String,
     testId: String,
     label: String,
-    cast: Boolean,
+    kind: Int,
 ): String {
     val signature = "${factory.definingClass}->${factory.name}" +
         parameters.joinToString("", "(", ")") + factory.returnType
+    // Everything after the actions moves up one register for each action past the first (586's second).
+    val shift = actions - 1
 
     return """
         move-object/from16 v0, p1
@@ -1095,42 +1163,42 @@ private fun buildButton(
         move-object/from16 v6, p0
         move-object/from16 v3, p3
 
-${handlers(hdField, sdField, manifestField, cast)}
+${handlers(hdField, sdField, manifestField, kind)}
         invoke-static { }, $label
         move-result-object v1
 
         new-instance v2, $primaryType
         invoke-direct { v2, v1, v8 }, $primaryType-><init>(Ljava/lang/String;$FUNCTION1)V
         move-object/from16 v42, v2
-
+${(1..shift).joinToString("") { "        move-object/from16 v${42 + it}, v2\n" }}
         new-instance v2, $labelType
         invoke-direct { v2, v1, v9 }, $labelType-><init>(Ljava/lang/String;$FUNCTION1)V
-        move-object/from16 v43, v2
+        move-object/from16 v${43 + shift}, v2
 
         new-instance v2, $labelType
         invoke-direct { v2, v1, v10 }, $labelType-><init>(Ljava/lang/String;$FUNCTION1)V
-        move-object/from16 v44, v2
+        move-object/from16 v${44 + shift}, v2
 
         sget-object v7, $icon
         new-instance v2, $iconWrapperClass
         invoke-direct { v2, v7 }, $iconWrapperClass-><init>($iconEnumType)V
-        move-object/from16 v45, v2
+        move-object/from16 v${45 + shift}, v2
 
         move-object/from16 v40, v6
         sget-object v41, ${mode.definingClass}->${mode.name}:${mode.type}
-        sget-object v46, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;
-        sget-object v47, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;
-        const-string v48, "$testId"
-        const-string v49, "$CAPTION"
-        const/16 v50, 0x0
-        move-object/from16 v51, v11
-        move-object/from16 v52, v12
-        move-object/from16 v53, v13
-        move-object/from16 v54, v14
-        const/16 v55, 0x11
-${trailingBooleanArguments(trailingBooleans)}
+        sget-object v${46 + shift}, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;
+        sget-object v${47 + shift}, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;
+        const-string v${48 + shift}, "$testId"
+        const-string v${49 + shift}, "$CAPTION"
+        const/16 v${50 + shift}, 0x0
+        move-object/from16 v${51 + shift}, v11
+        move-object/from16 v${52 + shift}, v12
+        move-object/from16 v${53 + shift}, v13
+        move-object/from16 v${54 + shift}, v14
+        const/16 v${55 + shift}, 0x11
+${trailingBooleanArguments(trailingBooleans, 56 + shift)}
 
-        invoke-static/range { v40 .. v${55 + trailingBooleans} }, $signature
+        invoke-static/range { v40 .. v${55 + shift + trailingBooleans} }, $signature
         move-result-object v0
         move-object/from16 v1, p4
         invoke-interface { v1, v0 }, $LIST_ADD
@@ -1144,17 +1212,17 @@ ${trailingBooleanArguments(trailingBooleans)}
 }
 
 /**
- * The booleans after the factory's int, from v56 up. The first three are what Andrew Liang
+ * The booleans after the factory's int, from [first] up. The first three are what Andrew Liang
  * measured on 577 (off, on, off); a flag 580 added in front of the last is passed as off, the
  * value for an experiment Facebook has not turned on for the button.
  */
-private fun trailingBooleanArguments(count: Int): String =
+private fun trailingBooleanArguments(count: Int, first: Int): String =
     (0 until count).joinToString("\n") { index ->
         val value = when {
             index == 1 -> 1
             else -> 0
         }
-        "        const/16 v${56 + index}, 0x$value"
+        "        const/16 v${first + index}, 0x$value"
     }
 
 /**
@@ -1162,10 +1230,11 @@ private fun trailingBooleanArguments(count: Int): String =
  *
  * Only the tap slot saves. The others are still given a handler rather than null, because the
  * factory is not documented to accept null, and a handler that returns without a word costs
- * nothing. Each gets the player (v4), the context (v5) and the reel's story (v3), and whether it
- * belongs to the Cast button, whose tap casts instead of saving.
+ * nothing. Each gets the player (v4), the context (v5) and the reel's story (v3), and the [kind] of
+ * button it belongs to: the Cast button's tap casts and the Clean mode button's hides the sidebar
+ * instead of saving.
  */
-private fun handlers(hd: String, sd: String, manifest: String, cast: Boolean) = (0..6).joinToString("\n") { slot ->
+private fun handlers(hd: String, sd: String, manifest: String, kind: Int) = (0..6).joinToString("\n") { slot ->
     val saves = if (slot == TAP_SLOT) 1 else 0
 
     """
@@ -1178,8 +1247,8 @@ private fun handlers(hd: String, sd: String, manifest: String, cast: Boolean) = 
         const/16 v26, 0x$slot
         const/16 v27, 0x$saves
         move-object/from16 v28, v3
-        const/16 v29, 0x${if (cast) 1 else 0}
-        invoke-direct/range { v20 .. v29 }, $HANDLER-><init>($OBJECT${CONTEXT}Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IZ${OBJECT}Z)V
+        const/16 v29, 0x$kind
+        invoke-direct/range { v20 .. v29 }, $HANDLER-><init>($OBJECT${CONTEXT}Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IZ${OBJECT}I)V
         move-object/from16 v${8 + slot}, v20
     """
 }

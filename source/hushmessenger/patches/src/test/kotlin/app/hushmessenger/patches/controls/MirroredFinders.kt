@@ -62,8 +62,10 @@ private fun mirrored(classes: Iterable<ClassDef>, skip: Set<String>, find: (List
         val swap = proved.flatMap { found.getValue(it) }.filter { it.implementation != null }.associateWith { it.starved() }
         if (swap.isNotEmpty()) {
             val starved = list.map { it.withMethods(swap) }
-            val saved = listOf(messageTextGetterName, messageIdGetterName, messageIsUnsentGetterName)
+            val saved = listOf(messageTextGetterName, messageIdGetterName, messageIsUnsentGetterName, messageOtidGetterName, messageRowInterface,
+                messageTimestampGetterName, messageSenderGetterName, messageContentTypeGetterName, messageContentSubtypeGetterName)
             val savedLog = messageLogContract
+            val savedQuiet = quietChatContract
             val savedThreads = readReceiptThreadFields
             val savedRecipe = markReadRecipe
             val savedLogButton = messageLogButtonRecipe
@@ -74,6 +76,9 @@ private fun mirrored(classes: Iterable<ClassDef>, skip: Set<String>, find: (List
             val savedGalleryChat = galleryChatRoute
             val savedCircle = vitoCircleField
             val savedTile = tileShapeSetter
+            val savedPinGetters = pinLimitGetters
+            val savedAiGetters = metaAiFlagGetters
+            val savedAiCells = aiStickerCells
             try {
                 val starvedFound = find(starved)
                 val starvedDiffer = disagreements(starved, starvedFound, CompatMirror.controls(starved).filterKeys { it !in skip }, proved)
@@ -82,7 +87,14 @@ private fun mirrored(classes: Iterable<ClassDef>, skip: Set<String>, find: (List
                 messageTextGetterName = saved[0]
                 messageIdGetterName = saved[1]
                 messageIsUnsentGetterName = saved[2]
+                messageOtidGetterName = saved[3]
+                messageRowInterface = saved[4]
+                messageTimestampGetterName = saved[5]
+                messageSenderGetterName = saved[6]
+                messageContentTypeGetterName = saved[7]
+                messageContentSubtypeGetterName = saved[8]
                 messageLogContract = savedLog
+                quietChatContract = savedQuiet
                 readReceiptThreadFields = savedThreads
                 markReadRecipe = savedRecipe
                 messageLogButtonRecipe = savedLogButton
@@ -93,6 +105,9 @@ private fun mirrored(classes: Iterable<ClassDef>, skip: Set<String>, find: (List
                 galleryChatRoute = savedGalleryChat
                 vitoCircleField = savedCircle
                 tileShapeSetter = savedTile
+                pinLimitGetters = savedPinGetters
+                metaAiFlagGetters = savedAiGetters
+                aiStickerCells = savedAiCells
             }
         }
     }

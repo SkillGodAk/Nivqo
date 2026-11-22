@@ -6,6 +6,7 @@
 package app.morphe.patcher.dex
 
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableClass.Companion.toMutable
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.Opcodes
@@ -31,6 +32,7 @@ import java.util.zip.Adler32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -146,6 +148,28 @@ internal class DexReadWriteTest {
     }
 
     @Test
+    fun `dex files read into memory are the same as the extracted ones and leave no files`() {
+        val opcodes = Opcodes.forApi(26)
+        val first = dexOf(opcodes, "La;" to stringInstruction("first"))
+        val second = dexOf(opcodes, "Lb;" to stringInstruction("second"))
+        val apk = zipOf("classes.dex" to first, "classes2.dex" to second)
+        val outputDir = temporaryDirectory.resolve("out")
+
+        DexReadWrite.readMultidexFileFromZip(apk, outputDir, inMemory = true).use { result ->
+            assertTrue(result.mappedFiles.all { it is MemoryDexFile })
+            assertEquals(listOf("classes.dex", "classes2.dex"), result.mappedFiles.map { it.originalFile.name })
+            assertContentEquals(second, (result.mappedFiles[1] as MemoryDexFile).bytes)
+            assertEquals(setOf("La;", "Lb;"), result.dexFile.classes.mapTo(HashSet()) { it.type })
+        }
+        assertFalse(outputDir.resolve("classes.dex").exists())
+
+        DexReadWrite.readMultidexFileFromZip(apk, outputDir, inMemory = false).use { result ->
+            assertFalse(result.mappedFiles.any { it is MemoryDexFile })
+            assertContentEquals(first, outputDir.resolve("classes.dex").readBytes())
+        }
+    }
+
+    @Test
     fun `apk without dex files fails with a clear message`() {
         val apk = zipOf("assets/readme.txt" to "nothing to patch".toByteArray())
 
@@ -153,5 +177,44 @@ internal class DexReadWriteTest {
             DexReadWrite.readMultidexFileFromZip(apk, temporaryDirectory.resolve("out"))
         }
         assertEquals("APK contains no DEX files to patch", exception.message)
+    }
+
+    @Test
+    fun `methods patches left alone are written from their own instructions`() {
+        val opcodes = Opcodes.getDefault()
+        fun method(name: String, string: String) = ImmutableMethod(
+            "La;", name, null, "V", AccessFlags.PUBLIC.value, null, null,
+            MutableMethodImplementation(1).apply {
+                addInstruction(stringInstruction(string))
+                addInstruction(BuilderInstruction10x(Opcode.RETURN_VOID))
+            },
+        )
+        val dexBytes = MemoryDataStore().also { dataStore ->
+            DexPool(opcodes).apply {
+                internClass(
+                    ImmutableClassDef(
+                        "La;", AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+                        listOf(method("changed", "old"), method("unchanged", "kept")),
+                    )
+                )
+                writeTo(dataStore)
+            }
+        }.data
+
+        val mutableClass = DexReadWrite.readDexStream(dexBytes.inputStream()).classes.single().toMutable()
+        mutableClass.methods.first { it.name == "changed" }.implementation!!.replaceInstruction(0, stringInstruction("new"))
+
+        val written = DexReadWrite.writeMultiDexFile(temporaryDirectory.resolve("out"), mutableListOf(mutableClass), opcodes)
+
+        assertFalse(
+            mutableClass.methods.first { it.name == "unchanged" }.isImplementationCreated,
+            "Writing must not create the mutable implementation of a method patches left alone",
+        )
+        val strings = DexReadWrite.readDexStream(written.single().readBytes().inputStream()).classes.single().methods.associate { method ->
+            method.name to method.implementation!!.instructions.firstNotNullOf { instruction ->
+                ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string
+            }
+        }
+        assertEquals(mapOf("changed" to "new", "unchanged" to "kept"), strings)
     }
 }

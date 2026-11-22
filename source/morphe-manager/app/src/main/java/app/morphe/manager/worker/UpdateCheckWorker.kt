@@ -9,49 +9,19 @@ import android.content.Context
 import android.util.Log
 import androidx.work.*
 import app.morphe.manager.BuildConfig
-import app.morphe.manager.R
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.domain.repository.ManagerUpdateRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.notification.UpdateNotifications
+import app.morphe.manager.util.LOG_TAG
 import app.morphe.manager.util.normalizeVersion
-import app.morphe.manager.util.tag
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
 /**
- * How often the background update check WorkManager job should repeat.
- *
- * Each entry carries [minutes] - the repeat interval passed to
- * [PeriodicWorkRequestBuilder] - and a string resource ID for the
- * human-readable label shown in Settings.
- *
- * WorkManager enforces a minimum of 15 minutes, so [HOURLY] is the
- * shortest practical option that also keeps battery impact negligible.
- */
-enum class UpdateCheckInterval(val minutes: Long, val labelResId: Int) {
-    HOURLY(
-        minutes = 60L,
-        labelResId = R.string.settings_advanced_update_interval_hourly
-    ),
-    DAILY(
-        minutes = 24 * 60L,
-        labelResId = R.string.settings_advanced_update_interval_daily
-    ),
-    WEEKLY(
-        minutes = 7 * 24 * 60L,
-        labelResId = R.string.settings_advanced_update_interval_weekly
-    ),
-    MONTHLY(
-        minutes = 30 * 24 * 60L,
-        labelResId = R.string.settings_advanced_update_interval_monthly
-    )
-}
-
-/**
  * WorkManager worker that periodically checks for updates in the background.
- * The repeat interval is controlled by [UpdateCheckInterval] and stored in
- * [PreferencesManager.updateCheckInterval] (default: [UpdateCheckInterval.DAILY]).
+ * The repeat interval is controlled by [ScheduleInterval] and stored in
+ * [PreferencesManager.updateCheckInterval] (default: [ScheduleInterval.DAILY]).
  *
  * Checks for:
  * - Morphe Manager app updates
@@ -68,19 +38,19 @@ class UpdateCheckWorker(
     override suspend fun doWork(): Result {
         // Skip if background update notifications are disabled by user
         if (!prefs.backgroundUpdateNotifications.get()) {
-            Log.d(tag, "UpdateCheckWorker: background notifications disabled, skipping")
+            Log.d(LOG_TAG, "UpdateCheckWorker: background notifications disabled, skipping")
             return Result.success()
         }
 
-        Log.d(tag, "UpdateCheckWorker: starting background update check")
+        Log.d(LOG_TAG, "UpdateCheckWorker: starting background update check")
 
         return try {
             checkForManagerUpdate()
             checkForBundleUpdate()
-            Log.d(tag, "UpdateCheckWorker: background update check completed")
+            Log.d(LOG_TAG, "UpdateCheckWorker: background update check completed")
             Result.success()
         } catch (e: Exception) {
-            Log.e(tag, "UpdateCheckWorker: failed to check for updates", e)
+            Log.e(LOG_TAG, "UpdateCheckWorker: failed to check for updates", e)
             // Retry later; avoids spamming logs on persistent failures (e.g. no internet)
             Result.retry()
         }
@@ -97,7 +67,7 @@ class UpdateCheckWorker(
         }.getOrNull() ?: return
 
         val newVersion = update.version.normalizeVersion()
-        Log.d(tag, "UpdateCheckWorker: manager update available (${BuildConfig.VERSION_NAME} -> $newVersion)")
+        Log.d(LOG_TAG, "UpdateCheckWorker: manager update available (${BuildConfig.VERSION_NAME} -> $newVersion)")
         notificationManager.showManagerUpdateNotification(newVersion)
     }
 
@@ -113,10 +83,10 @@ class UpdateCheckWorker(
         val update = patchBundleRepository.checkForBundleUpdatesQuiet()
 
         if (update != null) {
-            Log.d(tag, "UpdateCheckWorker: patch bundle update available (${update.version})")
+            Log.d(LOG_TAG, "UpdateCheckWorker: patch bundle update available (${update.version})")
             notificationManager.showBundleUpdateNotification(update.version, update.bundleUid)
         } else {
-            Log.d(tag, "UpdateCheckWorker: patch bundles are up to date")
+            Log.d(LOG_TAG, "UpdateCheckWorker: patch bundles are up to date")
         }
     }
 
@@ -129,7 +99,7 @@ class UpdateCheckWorker(
          *
          * Uses [ExistingPeriodicWorkPolicy.UPDATE] so that changing the interval in Settings takes effect immediately.
          */
-        fun schedule(context: Context, interval: UpdateCheckInterval = UpdateCheckInterval.DAILY) {
+        fun schedule(context: Context, interval: ScheduleInterval = ScheduleInterval.DAILY) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
@@ -147,7 +117,7 @@ class UpdateCheckWorker(
                 request
             )
 
-            Log.d("UpdateCheckWorker", "Periodic update check scheduled (every ${interval.minutes}m / ${interval.name})")
+            Log.d(LOG_TAG, "UpdateCheckWorker: periodic update check scheduled (every ${interval.minutes}m / ${interval.name})")
         }
 
         /**
@@ -155,7 +125,7 @@ class UpdateCheckWorker(
          */
         fun cancel(context: Context) {
             WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
-            Log.d("UpdateCheckWorker", "Periodic update check cancelled")
+            Log.d(LOG_TAG, "UpdateCheckWorker: periodic update check cancelled")
         }
     }
 }

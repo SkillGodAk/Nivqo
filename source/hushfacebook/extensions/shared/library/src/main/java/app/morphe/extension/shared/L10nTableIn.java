@@ -18,7 +18,7 @@ final class L10nTableIn {
     }
 
     static Map<String, String> build() {
-        Map<String, String> table = new HashMap<>(3328);
+        Map<String, String> table = new HashMap<>(3938);
         fill0(table);
         fill1(table);
         fill2(table);
@@ -47,6 +47,11 @@ final class L10nTableIn {
         fill25(table);
         fill26(table);
         fill27(table);
+        fill28(table);
+        fill29(table);
+        fill30(table);
+        fill31(table);
+        fill32(table);
         return table;
     }
 
@@ -65,10 +70,16 @@ final class L10nTableIn {
                 "%1$d item dalam file itu bukan pengaturan yang dikenali versi Hushfacebook ini, jadi tidak akan disertakan.");
         table.put("%1$d items in that file aren't settings this version of Hushfacebook knows, so they'll be left out.",
                 "%1$d item dalam file itu bukan pengaturan yang dikenali versi Hushfacebook ini, jadi tidak akan disertakan.");
+        table.put("%1$d line",
+                "%1$d baris");
         table.put("%1$d line was left out. A phrase needs %2$d to %3$d characters, but a single emoji or Chinese, Japanese or Korean character is enough. One given twice counts once.",
                 "%1$d baris dilewati. Frasa harus %2$d sampai %3$d karakter, tetapi satu emoji atau satu karakter Tionghoa, Jepang, atau Korea sudah cukup. Yang muncul dua kali dihitung sekali.");
+        table.put("%1$d lines",
+                "%1$d baris");
         table.put("%1$d lines were left out. A phrase needs %2$d to %3$d characters, but a single emoji or Chinese, Japanese or Korean character is enough. One given twice counts once.",
                 "%1$d baris dilewati. Frasa harus %2$d sampai %3$d karakter, tetapi satu emoji atau satu karakter Tionghoa, Jepang, atau Korea sudah cukup. Yang muncul dua kali dihitung sekali.");
+        table.put("%1$d min",
+                "%1$d mnt");
         table.put("%1$d more",
                 "%1$d lainnya");
         table.put("%1$d of %2$d people, Pages or sites. The list fills %3$d%% of its room.",
@@ -85,6 +96,10 @@ final class L10nTableIn {
                 "%1$d postingan atau kartu: %2$s");
         table.put("%1$d posts and cards: %2$s",
                 "%1$d postingan dan kartu: %2$s");
+        table.put("%1$d reels",
+                "%1$d reel");
+        table.put("%1$d saved, %2$d waiting, %3$d failed",
+                "%1$d tersimpan, %2$d menunggu, %3$d gagal");
         table.put("%1$d setting found",
                 "%1$d pengaturan ditemukan");
         table.put("%1$d settings found",
@@ -139,6 +154,8 @@ final class L10nTableIn {
                 "%1$s reaksi");
         table.put("%1$s so far",
                 "%1$s terunduh");
+        table.put("%1$s. Holding a post gives it straight away.",
+                "%1$s. Menahan postingan langsung memberikannya.");
         table.put("%1$s. Tapping the video and double-tapping it to like don't count as a touch, so the buttons stay faded.",
                 "%1$s. Mengetuk video dan mengetuk dua kali untuk menyukai tidak dihitung sebagai sentuhan, jadi tombol tetap pudar.");
         table.put("1 day",
@@ -155,8 +172,13 @@ final class L10nTableIn {
                 "15 menit");
         table.put("3 days",
                 "3 hari");
+        table.put("3-dot menu items to hide",
+                "Item menu titik tiga yang disembunyikan");
         table.put("30 days",
                 "30 hari");
+    }
+
+    private static void fill1(Map<String, String> table) {
         table.put("30 minutes",
                 "30 menit");
         table.put("45 minutes",
@@ -171,9 +193,6 @@ final class L10nTableIn {
                 "90 hari");
         table.put("A GIF comment gets Save GIF when you long-press it.",
                 "Tekan lama komentar GIF untuk memunculkan Simpan GIF.");
-    }
-
-    private static void fill1(Map<String, String> table) {
         table.put("A break also starts once you've watched 20 reels, if that comes first. A reel counts once it's played for 3 seconds, and ads and live videos don't count.",
                 "Istirahat juga dimulai setelah kamu menonton 20 reel, jika itu terjadi lebih dulu. Reel dihitung setelah diputar selama 3 detik, dan iklan serta video siaran langsung tidak dihitung.");
         table.put("A break starts after %1$s of Home, Feeds, Video and Reels.",
@@ -192,18 +211,28 @@ final class L10nTableIn {
                 "Kode warna (#RRGGBB) untuk ikon tab yang dipilih dan garis di atasnya di bilah tab, misalnya #2ECC71. Biarkan kosong untuk warna Facebook.");
         table.put("A diagnostic report is already being exported.",
                 "Laporan diagnostik sedang diekspor.");
+        table.put("A dot marks each setting an update adds, for %1$s from the first time you open its page.",
+                "Titik menandai setiap pengaturan yang ditambahkan pembaruan, selama %1$s sejak pertama kali kamu membuka halamannya.");
+        table.put("A dot marks each setting an update adds, until you leave the page it's on.",
+                "Titik menandai setiap pengaturan yang ditambahkan pembaruan, sampai kamu keluar dari halamannya.");
         table.put("A double tap on a reel opens its comments instead of liking it. Turn off double tap to like still wins when it's on. Off by default, since it hasn't been tried on a real account yet.",
                 "Mengetuk dua kali reel membuka komentarnya, bukan menyukainya. Jika \"Matikan ketuk dua kali untuk menyukai\" aktif, pengaturan itu yang berlaku. Nonaktif secara bawaan, karena belum dicoba di akun sungguhan.");
         table.put("A double tap on a reel, a video or a photo in the feed no longer likes it or shows a heart. A single tap and the Like button work as before.",
                 "Mengetuk dua kali reel, video, atau foto di feed tidak lagi menyukainya atau menampilkan hati. Satu ketukan dan tombol Suka tetap berfungsi seperti biasa.");
+        table.put("A double tap on the edge still skips, but the +5s or -10s over the reel or video stays hidden. It also works when Facebook turned the skip on for you.",
+                "Ketuk dua kali di tepi tetap melompat, tetapi +5s atau -10s di atas reel atau video tetap tersembunyi. Ini juga berfungsi jika Facebook sendiri yang mengaktifkan lompatan untukmu.");
         table.put("A double tap on the left or right edge of a reel or video skips back or forward 10 seconds, or 5 on one under 30 seconds. A double tap in the middle works as before.",
                 "Mengetuk dua kali tepi kiri atau kanan reel atau video akan mundur atau maju 10 detik, atau 5 detik jika kurang dari 30 detik. Ketuk dua kali di tengah tetap berfungsi seperti biasa.");
+        table.put("A feed or Watch video's 3-dot menu gets Playback speed, from 0.5x to 3x, live videos too. Off by default, since it hasn't been tried on a real account yet.",
+                "Menu titik tiga video feed atau Watch mendapat Kecepatan putar, dari 0,5x sampai 3x, juga untuk video siaran langsung. Mati secara bawaan, karena belum dicoba di akun sungguhan.");
         table.put("A few seconds after you leave Facebook, it closes all the way and leaves your recent apps, so it isn't running in the background. It waits for uploads and saves to finish first. Notifications may come late, or not until you open Facebook again.",
                 "Beberapa detik setelah kamu keluar dari Facebook, aplikasi ini tertutup sepenuhnya dan hilang dari aplikasi terbaru, jadi tidak berjalan di latar belakang. Unggahan dan penyimpanan diselesaikan dulu. Notifikasi bisa datang terlambat atau baru muncul saat kamu membuka Facebook lagi.");
         table.put("A file named %1$s in %2$s paused Hushfacebook.",
                 "File bernama %1$s di %2$s menjeda Hushfacebook.");
         table.put("A finished story stays on screen until you tap or swipe. Turn this off for Facebook's timing.",
                 "Cerita yang selesai tetap di layar sampai Anda mengetuk atau menggeser. Matikan ini untuk memakai waktu bawaan Facebook.");
+        table.put("A folded reel caption, the short one with more at the end, sits on the same dark box. Turn on both to box every caption. A change shows from the next reel.",
+                "Keterangan reel yang dilipat, yang pendek dengan selengkapnya di akhir, tampil di atas kotak gelap yang sama. Aktifkan keduanya agar setiap keterangan punya kotak. Perubahan berlaku mulai reel berikutnya.");
         table.put("A group post's comments end without the Related groups list and its Join buttons.",
                 "Komentar postingan grup berakhir tanpa daftar Grup terkait dan tombol Gabung-nya.");
         table.put("A line between slashes, like /gr[ae]y/, is a pattern that can match several spellings (a regular expression). A list holds up to %1$d, each up to %2$d characters.",
@@ -216,10 +245,16 @@ final class L10nTableIn {
                 "Halaman iklan menampilkan sudah berapa lama iklan dipasang beserta tanggalnya, di bawah harganya dan di samping lokasinya. Facebook hanya menampilkannya untuk iklan baru.");
         table.put("A live video that has ended gets Playback speed in its gear menu, like other videos. Videos that are still live, and ads, keep Facebook's menu.",
                 "Video siaran langsung yang sudah selesai mendapat Kecepatan pemutaran di menu roda gigi, seperti video lainnya. Video yang masih siaran langsung dan iklan tetap memakai menu Facebook.");
+        table.put("A long comment shows %1$s before See more.",
+                "Komentar panjang menampilkan %1$s sebelum Lihat selengkapnya.");
+        table.put("A long post shows %1$s before See more.",
+                "Postingan panjang menampilkan %1$s sebelum Lihat selengkapnya.");
         table.put("A long press on Like doesn't open the reactions. A tap still likes.",
                 "Menekan lama Suka tidak lagi membuka reaksi. Mengetuknya tetap memberi Suka.");
         table.put("A long press on the Facebook logo at the top of the home feed, or on the title at the top of another tab, opens these settings. Off, the long press goes back to Facebook.",
                 "Menekan lama logo Facebook di bagian atas beranda, atau judul di bagian atas tab lain, membuka pengaturan ini. Jika dimatikan, tekan lama itu kembali menjadi milik Facebook.");
+        table.put("A magnifier at the top of the comments opens a search box that finds the comments with your words.",
+                "Kaca pembesar di bagian atas komentar membuka kotak pencarian yang menemukan komentar berisi kata-kata Anda.");
         table.put("A playback speed you pick in a reel's menu stays for the next reels, after a restart too, until you pick another. Off, every reel starts at normal speed.",
                 "Kecepatan pemutaran yang kamu pilih di menu reel tetap dipakai untuk reel berikutnya, juga setelah dimulai ulang, sampai kamu memilih yang lain. Jika mati, setiap reel dimulai dengan kecepatan normal.");
         table.put("A playing reel or full-screen video keeps going in a small window when you leave Facebook. Android 12 or later.",
@@ -250,24 +285,53 @@ final class L10nTableIn {
                 "Reel berhenti di bingkai terakhirnya alih-alih diputar ulang dari awal. Ketuk untuk menonton lagi, atau geser ke reel berikutnya. Video di feed dan cerita tidak berubah. Mati secara bawaan, karena belum dicoba di akun sungguhan.");
         table.put("A reel stops while you read its comments and plays on from the same spot when you close them.",
                 "Reel berhenti saat Anda membaca komentarnya dan lanjut dari titik yang sama saat Anda menutupnya.");
+        table.put("A reel you open from a link in another app or from a chat plays by itself, with no reels to swipe to after it.",
+                "Reel yang kamu buka dari tautan di aplikasi lain atau dari obrolan diputar sendiri, tanpa reel lain untuk digeser setelahnya.");
+        table.put("A reel's Download button and a video's Download to phone show the qualities first, and the save takes the one you pick. Download quality stays as it is.",
+                "Tombol Unduh pada reel dan \"Unduh ke ponsel\" pada video menampilkan pilihan kualitas dulu, lalu yang Anda pilih yang disimpan. Kualitas unduhan tetap seperti semula.");
         table.put("A reel's More menu gets Copy caption, which copies the whole caption, even the part behind See more.",
                 "Menu Lainnya pada reel mendapat Salin keterangan, yang menyalin seluruh keterangan, termasuk bagian di balik Lihat selengkapnya.");
         table.put("A reel's progress bar stays full size, ready to drag. A full-screen video's controls stay until you tap.",
                 "Bilah progres reel tetap berukuran penuh, siap digeser. Kontrol video layar penuh tetap tampil sampai Anda mengetuk.");
+        table.put("A saved video that ends stays on screen instead of opening the next one. Swipe up when you want the next.",
+                "Video tersimpan yang selesai tetap di layar, bukan membuka video berikutnya. Geser ke atas kalau kamu mau yang berikutnya.");
+        table.put("A small label at the top of Reels shows the minutes you've watched. Time on other tabs doesn't count, and 15 minutes away starts it over.",
+                "Label kecil di bagian atas Reels menampilkan berapa menit kamu menonton. Waktu di tab lain tidak dihitung, dan 15 menit di luar Reels memulainya lagi dari nol.");
         table.put("A song you add to a photo for your Story plays for up to 30 seconds instead of 15. Applies to the next song you pick.",
                 "Lagu yang Anda tambahkan ke foto untuk cerita Anda diputar hingga 30 detik, bukan 15. Berlaku untuk lagu berikutnya yang Anda pilih.");
+    }
+
+    private static void fill2(Map<String, String> table) {
+        table.put("A story you scrolled past in the Stories tray leaves it the next time you open Facebook, even if you didn't watch it. A new story brings that person back.",
+                "Cerita yang kamu lewati di baris Cerita hilang dari situ saat kamu membuka Facebook lagi, meski belum kamu tonton. Cerita baru membawa orang itu kembali.");
         table.put("A tablet or an unfolded phone gets the layout Facebook uses on a phone, so the tab bar choices above work on the big screen too. Facebook's wider big screen layout goes away. Off by default, since it hasn't been tried on a big screen yet. Restart Facebook to see the change.",
                 "Tablet atau ponsel lipat yang terbuka mendapat tata letak yang dipakai Facebook di ponsel, jadi pengaturan bilah tab di atas juga berfungsi di layar besar. Tata letak layar besar Facebook yang lebih lebar hilang. Mati secara bawaan, karena belum dicoba di layar besar. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("A tap in the middle of a story shows a play and pause button, like Reels. Taps on the sides still change stories.",
                 "Ketukan di tengah cerita menampilkan tombol putar dan jeda, seperti Reels. Ketukan di sisi tetap mengganti cerita.");
+        table.put("A tap on Follow beside a reel's author asks first, and only Continue follows or unfollows.",
+                "Mengetuk Ikuti di samping pembuat reel akan bertanya dulu, dan hanya Lanjutkan yang mengikuti atau berhenti mengikuti.");
+        table.put("A tap on Follow in a post, beside the poster's name or on its Follow button, asks first, and only Continue follows or unfollows.",
+                "Mengetuk Ikuti di postingan, di samping nama pengunggah atau di tombol Ikuti-nya, akan bertanya dulu, dan hanya Lanjutkan yang mengikuti atau berhenti mengikuti.");
+        table.put("A tap on Like beside a reel asks first, and only Continue likes or unlikes it.",
+                "Mengetuk Suka di samping reel akan bertanya dulu, dan hanya Lanjutkan yang menyukai atau batal menyukainya.");
+        table.put("A tap on Like under a comment asks first, and only Continue likes or unlikes it.",
+                "Mengetuk Suka di bawah komentar akan bertanya dulu, dan hanya Lanjutkan yang menyukai atau batal menyukainya.");
+        table.put("A tap on Like under a post asks first, and only Continue likes or unlikes it.",
+                "Mengetuk Suka di bawah postingan akan bertanya dulu, dan hanya Lanjutkan yang menyukai atau batal menyukainya.");
         table.put("A tap on a playing reel shows its controls while it keeps playing, and a second tap hides them. The button in the middle still pauses.",
                 "Ketukan pada reel yang sedang diputar menampilkan kontrolnya tanpa menghentikannya, dan ketukan kedua menyembunyikannya. Tombol di tengah tetap menjeda.");
         table.put("A thin gray line between posts in the feed, so posts without photos don't run together on the black page.",
                 "Garis abu-abu tipis di antara postingan di feed, agar postingan tanpa foto tidak menyatu di halaman hitam.");
         table.put("A video comment gets Save video when you long-press it.",
                 "Tekan lama komentar video untuk memunculkan Simpan video.");
+        table.put("A video you open from Saved goes on to the next one in Saved when it ends or when you swipe up, instead of a suggested reel. Swipe down to go back one.",
+                "Video yang kamu buka dari Tersimpan lanjut ke video berikutnya di Tersimpan saat selesai atau saat kamu menggeser ke atas, bukan ke reel saran. Geser ke bawah untuk kembali ke video sebelumnya.");
         table.put("A video you open plays with its sound as usual. Back in the feed, the sound is what it was before you opened it, even after a long watch.",
                 "Video yang kamu buka tetap diputar dengan suara seperti biasa. Saat kembali ke Kabar Beranda, suaranya kembali seperti sebelum kamu membukanya, meskipun kamu menonton lama.");
+        table.put("A video you started with a tap keeps its sound after you leave Facebook, and its notification can pause it. Swiping the notification away or taking a call stops it.",
+                "Video yang Anda mulai dengan ketukan tetap bersuara setelah Anda keluar dari Facebook, dan notifikasinya bisa menjedanya. Menggeser notifikasi atau menerima panggilan akan menghentikannya.");
+        table.put("A video you tap in Saved plays in the video player instead of Reels, where the next swipe is a suggested reel.",
+                "Video yang kamu ketuk di Tersimpan diputar di pemutar video, bukan di Reels, yang menampilkan reel saran saat kamu menggeser.");
         table.put("A video you tap in the feed opens full screen by itself, with no reels to swipe to after it. The Reels tab keeps scrolling. Off by default, since it hasn't been tried on a real account yet.",
                 "Video yang kamu ketuk di feed terbuka sendiri dalam layar penuh, tanpa reel untuk digeser setelahnya. Tab Reels tetap bisa digulir. Mati secara default, karena belum dicoba di akun sungguhan.");
         table.put("AI posts",
@@ -294,19 +358,24 @@ final class L10nTableIn {
                 "Tambahkan Simpan ke semua menu cerita dengan kualitas unduhan Anda. Saat mati atau dijeda, Facebook hanya menyimpan cerita sendiri.");
         table.put("Add a Download button to reels, using your download quality. Off or paused, Facebook's own buttons return.",
                 "Tambahkan tombol Unduh ke reel dengan kualitas unduhan Anda. Saat mati atau dijeda, tombol asli Facebook kembali.");
-    }
-
-    private static void fill2(Map<String, String> table) {
         table.put("Add a Translate link to posts",
                 "Tambahkan tautan Terjemahkan ke postingan");
         table.put("Add a topic pack",
                 "Tambahkan paket topik");
+        table.put("Add to Favorites",
+                "Tambahkan ke Favorit");
         table.put("Added %1$d word from %2$s.",
                 "%1$d kata dari %2$s ditambahkan.");
         table.put("Added %1$d words from %2$s.",
                 "%1$d kata dari %2$s ditambahkan.");
+        table.put("Added to the reel queue",
+                "Ditambahkan ke antrean reel");
+        table.put("Added to the reel queue. To pause or cancel it, open Downloads in Hushfacebook settings.",
+                "Ditambahkan ke antrean reel. Untuk menjeda atau membatalkannya, buka Unduhan di pengaturan Hushfacebook.");
         table.put("Adds 0.1x and 0.25x to the speed menu of reels and of feed and Watch videos, for slowing down a fast moment.",
                 "Menambahkan 0,1x dan 0,25x ke menu kecepatan reel serta video feed dan Watch, untuk memperlambat momen yang terlalu cepat.");
+        table.put("Adds 2.5x and 3x to the speed menu of reels and of feed and Watch videos, for watching faster.",
+                "Menambahkan 2,5x dan 3x ke menu kecepatan reel serta video feed dan Watch, untuk menonton lebih cepat.");
         table.put("Adds Facebook's chime to your phone's notification sounds, for categories set to None. Then pick it in Android's notification settings for Facebook, under Sound.",
                 "Menambahkan nada dering Facebook ke suara notifikasi ponsel, untuk kategori yang disetel ke Tidak ada. Lalu pilih di pengaturan notifikasi Android untuk Facebook, di bagian Suara.");
         table.put("Adds Facebook's own Save button next to Like, Comment and Share under posts. A saved post shows its bookmark filled in.",
@@ -329,6 +398,8 @@ final class L10nTableIn {
                 "Menambahkan Riwayat tontonan, yaitu video dan reel yang sudah Anda tonton, ke menu yang muncul saat ikon Facebook ditekan lama, jika ada ruang, dan baris Riwayat tontonan di Pengaturan dan privasi. Pintasan yang ada tetap tersedia.");
         table.put("Adds Watch history, the videos and reels you've watched, to the menu you get by holding Facebook's icon, if there's room. Existing shortcuts stay.",
                 "Menambahkan Riwayat tontonan, yaitu video dan reel yang sudah Anda tonton, ke menu yang muncul saat ikon Facebook ditekan lama, jika ada ruang. Pintasan yang ada tetap tersedia.");
+        table.put("Adds a Clean mode button to the buttons down the side of a reel. Tap it to hide them, and Clean mode stays on as you swipe. Facebook's own Clean mode button brings them back.",
+                "Menambahkan tombol mode bersih ke tombol-tombol di sisi reel. Ketuk untuk menyembunyikannya, dan mode bersih tetap aktif saat kamu menggeser. Tombol mode bersih milik Facebook sendiri memunculkannya kembali.");
         table.put("Adds a Download button under posts with a video or photos. It saves the video, the photo, or every photo of an album, using the Downloads settings.",
                 "Menambahkan tombol Unduh di bawah postingan yang berisi video atau foto. Tombol ini menyimpan video, foto, atau setiap foto dalam album dengan pengaturan Unduhan.");
         table.put("Adds a Hushfacebook settings row at the end of Settings and privacy in Facebook's Menu. Off, the row leaves the Menu.",
@@ -337,16 +408,25 @@ final class L10nTableIn {
                 "Menambahkan tombol Lihat profil ke halaman setiap penjual di Marketplace, yang membuka profil Facebook-nya. Facebook hanya menampilkannya ke beberapa akun.");
         table.put("Adds a button to feed videos that opens the video in Facebook's own full player, with all its controls. Live videos get it too. With Tap to play on, it needs Inline feed video controls on too.",
                 "Menambahkan tombol ke video feed yang membuka video di pemutar penuh milik Facebook, lengkap dengan semua kontrolnya. Video siaran langsung juga mendapatkannya. Jika \u201cKetuk untuk memutar\u201d aktif, \u201cKontrol video di beranda\u201d juga harus aktif.");
+        table.put("Adds a button to feed videos that shows their speed. Each tap moves to the next one: 1x, 1.25x, 1.5x, 2x, then 0.5x. Live videos and ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.",
+                "Menambahkan tombol di video feed yang menunjukkan kecepatannya. Setiap ketukan pindah ke kecepatan berikutnya: 1x, 1.25x, 1.5x, 2x, lalu 0.5x. Video live dan iklan tetap memakai kontrolnya sendiri. Jika \u201cKetuk untuk memutar\u201d aktif, \u201cKontrol video di beranda\u201d juga harus aktif.");
         table.put("Adds a cast button to feed videos. It hands the video to a casting app you have, such as Web Video Caster, which sends it to your TV. Facebook has no casting of its own anymore.",
                 "Menambahkan tombol transmisi ke video feed. Tombol ini menyerahkan video ke aplikasi transmisi yang kamu punya, seperti Web Video Caster, yang mengirimnya ke TV-mu. Facebook sudah tidak punya fitur transmisi sendiri.");
         table.put("Adds a cast button to reels, under Download. It hands the reel to a casting app you have, such as Web Video Caster, which sends it to your TV.",
                 "Menambahkan tombol transmisi ke reel, di bawah Unduh. Tombol ini menyerahkan reel ke aplikasi transmisi yang kamu punya, seperti Web Video Caster, yang mengirimnya ke TV-mu.");
+        table.put("Adds a headphones button to the picture-in-picture window. Tap it to close the window and keep the sound playing, with a notification to pause it.",
+                "Menambahkan tombol headphone ke jendela gambar dalam gambar. Ketuk untuk menutup jendela dan tetap memutar suaranya, dengan notifikasi untuk menjedanya.");
         table.put("Adds a play/pause button to feed videos. Tap the video itself to open it full screen. Ads keep their own controls. With Tap to play on too, Facebook's own Autoplay setting stays as you set it so the button can show, and videos still wait for your tap.",
                 "Menambahkan tombol putar/jeda pada video di beranda. Ketuk video untuk membukanya dalam layar penuh. Iklan tetap memakai kontrolnya sendiri. Jika \u201cKetuk untuk memutar\u201d juga aktif, pengaturan putar otomatis Facebook tetap seperti yang kamu pilih agar tombol ini bisa muncul, dan video tetap menunggu ketukanmu.");
         table.put("Adds an Adv. Filters button under Marketplace's Filters on search results. It opens lists of words to keep, words to hide and places, and writes the rules into the search for you.",
                 "Menambahkan tombol Filter lanj. di bawah Filter Marketplace pada hasil pencarian. Tombol ini membuka daftar kata yang disimpan, kata yang disembunyikan, dan tempat, lalu menuliskan aturannya ke pencarian untukmu.");
         table.put("Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.",
                 "Menambahkan tombol mata di bagian atas setiap cerita saat kamu melihat secara anonim. Ketuk tombol itu agar kamu muncul di daftar penonton cerita tersebut. Cerita lainnya tetap tersembunyi.");
+    }
+
+    private static void fill3(Map<String, String> table) {
+        table.put("Adds buttons to feed videos that jump back or ahead 10 seconds, like Facebook's own player has. Live videos and ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.",
+                "Menambahkan tombol di video feed untuk mundur atau maju 10 detik, seperti pemutar Facebook sendiri. Video live dan iklan tetap memakai kontrolnya sendiri. Jika \u201cKetuk untuk memutar\u201d aktif, \u201cKontrol video di beranda\u201d juga harus aktif.");
         table.put("Ads and suggestions",
                 "Iklan dan saran");
         table.put("Ads downloaded in advance",
@@ -385,6 +465,8 @@ final class L10nTableIn {
                 "Setelah waktu yang kamu pilih di Beranda, Feed, Video, dan Reels, semuanya ditutup untuk istirahat. Chat, profilmu, dan Menu tetap berfungsi, dan pergi selama satu kali istirahat dihitung sebagai istirahat.");
         table.put("After this update, a switch you had on may be off now. Tap to see which.",
                 "Setelah pembaruan ini, sakelar yang tadinya kamu nyalakan mungkin kini mati. Ketuk untuk melihat yang mana.");
+        table.put("Ahead 10 seconds",
+                "Maju 10 detik");
         table.put("Alerts about places near you and about the weather stop.",
                 "Peringatan tentang tempat di dekat Anda dan tentang cuaca berhenti.");
         table.put("All",
@@ -393,6 +475,8 @@ final class L10nTableIn {
                 "Semua komentar");
         table.put("Allow screenshots",
                 "Izinkan tangkapan layar");
+        table.put("Already in the reel queue",
+                "Sudah ada di antrean reel");
         table.put("Also after 20 reels",
                 "Juga setelah 20 reel");
         table.put("Also hide posts labeled as AI",
@@ -405,6 +489,8 @@ final class L10nTableIn {
                 "Kuning amber");
         table.put("An emoji drawn right after the Facebook logo at the top of Home, in its own colors. Leave it blank for none.",
                 "Emoji yang digambar tepat setelah logo Facebook di bagian atas Beranda, dengan warnanya sendiri. Biarkan kosong jika tidak ingin ada.");
+        table.put("An open reel caption sits on a dark box, like subtitles, so it's easy to read over a bright video. A change shows from the next reel.",
+                "Keterangan reel yang dibuka tampil di atas kotak gelap, seperti subtitle, agar mudah dibaca di atas video yang terang. Perubahan berlaku mulai reel berikutnya.");
         table.put("An open reply thread gets a Hide replies button, so you can close it again after reading.",
                 "Utas balasan yang terbuka mendapat tombol Sembunyikan balasan, jadi kamu bisa menutupnya lagi setelah membaca.");
         table.put("An open reply thread keeps loading as you scroll, so there's no View more replies to tap.",
@@ -417,9 +503,6 @@ final class L10nTableIn {
                 "Android tidak bisa memverifikasi Facebook yang sudah dipatch untuk tautan Facebook. Jika kamu memilih alamatnya sendiri, tautan itu terbuka di sini. Pengaturan tautan lainnya tetap.");
         table.put("Android couldn't use that font file. Your font didn't change.",
                 "Android tidak bisa memakai file font itu. Font kamu tidak berubah.");
-    }
-
-    private static void fill3(Map<String, String> table) {
         table.put("Android didn't say which links open here. Tap to check in Android's settings.",
                 "Android tidak memberi tahu tautan mana yang terbuka di sini. Ketuk untuk memeriksanya di pengaturan Android.");
         table.put("Android verified this app for Facebook's web addresses, so their links open here.",
@@ -428,6 +511,8 @@ final class L10nTableIn {
                 "Android akan menanyakan aplikasi penerima tautan setiap kali.");
         table.put("Android's settings for this app didn't open. Open App info from Facebook's icon, then Open by default.",
                 "Pengaturan Android untuk aplikasi ini tidak terbuka. Buka Info aplikasi dari ikon Facebook, lalu Buka secara default.");
+        table.put("Angry",
+                "Marah");
         table.put("Answer rewarded game ads as watched",
                 "Anggap iklan berhadiah game sudah ditonton");
         table.put("App ID",
@@ -444,14 +529,29 @@ final class L10nTableIn {
                 "Seperti di Facebook. Ketuk untuk menyusun tab sesuai urutan yang Anda mau. Facebook terbuka di tab pertama. Mulai ulang Facebook setelah mengubah ini.");
         table.put("As soon as you leave",
                 "Begitu Anda keluar");
+        table.put("Ask before following from a post",
+                "Tanya sebelum mengikuti dari postingan");
+        table.put("Ask before following from a reel",
+                "Tanya sebelum mengikuti dari reel");
+        table.put("Ask before liking a comment",
+                "Tanya sebelum menyukai komentar");
+        table.put("Ask before liking a post",
+                "Tanya sebelum menyukai postingan");
+        table.put("Ask before liking a reel",
+                "Tanya sebelum menyukai reel");
         table.put("Asks GitHub for the newest release right now, even with the switch above off.",
                 "Menanyakan rilis terbaru ke GitHub sekarang juga, meski sakelar di atas mati.");
         table.put("At once",
                 "Langsung");
         table.put("At the bottom",
                 "Di bawah");
+    }
+
+    private static void fill4(Map<String, String> table) {
         table.put("At the top",
                 "Di atas");
+        table.put("Audio and language",
+                "Audio dan bahasa");
         table.put("Auto",
                 "Otomatis");
         table.put("Autoplay and resume",
@@ -460,6 +560,8 @@ final class L10nTableIn {
                 "Putar otomatis, kualitas, dan suara");
         table.put("Back",
                 "Kembali");
+        table.put("Back 10 seconds",
+                "Mundur 10 detik");
         table.put("Back keeps your place without saying \"Press Back again to go to the top\".",
                 "Kembali mempertahankan posisi Anda tanpa menampilkan \u201cTekan Kembali lagi untuk ke atas\u201d.");
         table.put("Back leaves Home where it is",
@@ -468,12 +570,16 @@ final class L10nTableIn {
                 "Kembali ke bawaan");
         table.put("Background color",
                 "Warna latar");
+        table.put("Background play button in the window",
+                "Tombol putar di latar belakang di jendela");
         table.put("Backup and restore",
                 "Cadangkan dan pulihkan");
         table.put("Badge color",
                 "Warna lencana");
         table.put("Badges keep Facebook's red. Type a color code to change it.",
                 "Lencana tetap merah Facebook. Ketik kode warna untuk mengubahnya.");
+        table.put("Bar opacity",
+                "Opasitas bilah");
         table.put("Best",
                 "Terbaik");
         table.put("Birthdays",
@@ -520,12 +626,16 @@ final class L10nTableIn {
                 "Kedua daftar mengisi %1$d%% dari ruang yang dipakai bersama.");
         table.put("Both lists together would fill %1$d%% of the room they share. Remove or shorten some phrases, then save again.",
                 "Kedua daftar akan mengisi %1$d%% dari ruang yang dipakai bersama. Hapus atau persingkat beberapa frasa, lalu simpan lagi.");
+        table.put("Box darkness",
+                "Kegelapan kotak");
         table.put("Break after",
                 "Istirahat setelah");
         table.put("Break length",
                 "Lama istirahat");
         table.put("Break settings",
                 "Pengaturan istirahat");
+        table.put("Brings back the switches and choices you had before the last reset.",
+                "Mengembalikan sakelar dan pilihan yang kamu punya sebelum setel ulang terakhir.");
         table.put("Build %1$s",
                 "Versi build %1$s");
         table.put("Build %1$s (modified)",
@@ -540,9 +650,6 @@ final class L10nTableIn {
                 "Pelindung burn-in");
         table.put("Burn-in guard will be set to %1$s.",
                 "Pelindung burn-in akan diatur ke %1$s.");
-    }
-
-    private static void fill4(Map<String, String> table) {
         table.put("Burn-in guard will dim the Reels screen after %1$d seconds without a touch.",
                 "Pelindung burn-in akan meredupkan layar Reels setelah %1$d detik tanpa sentuhan.");
         table.put("Burn-in guard will dim the Reels screen as soon as you stop touching it.",
@@ -553,10 +660,23 @@ final class L10nTableIn {
                 "Batalkan penyimpanan foto ini");
         table.put("Cancel saving this video",
                 "Batalkan penyimpanan video ini");
+        table.put("Cancel the reel queue",
+                "Batalkan antrean reel");
+        table.put("Cancel this reel",
+                "Batalkan reel ini");
         table.put("Caption copied",
                 "Keterangan disalin");
+        table.put("Captions",
+                "Teks");
+    }
+
+    private static void fill5(Map<String, String> table) {
         table.put("Cards and menus take the page's own color instead of the near black that sets them apart. Buttons and search fields keep a dark gray fill, so you can still see them. Restart Facebook to see the change.",
                 "Kartu dan menu memakai warna halaman itu sendiri, bukan warna hampir hitam yang membuatnya menonjol. Tombol dan kolom pencarian tetap berisi abu-abu gelap agar tetap terlihat. Mulai ulang Facebook untuk melihat perubahannya.");
+        table.put("Care",
+                "Peduli");
+        table.put("Cast",
+                "Transmisikan");
         table.put("Cast button on feed videos",
                 "Tombol transmisi di video feed");
         table.put("Cast button on reels",
@@ -595,10 +715,16 @@ final class L10nTableIn {
                 "Pilih nama folder di Movies dan Pictures. Karakter yang tidak valid menjadi garis bawah. Kosongkan untuk memakai folder bawaan, %1$s.");
         table.put("Choose a settings file you saved earlier. You'll see how many switches it changes before anything is applied.",
                 "Pilih file pengaturan yang pernah kamu simpan. Kamu akan melihat berapa banyak sakelar yang berubah sebelum apa pun diterapkan.");
+        table.put("Choose quality on each save",
+                "Pilih kualitas setiap menyimpan");
         table.put("Choose where Facebook opens from its icon. Notifications and links still open their destination.",
                 "Pilih tab saat Facebook dibuka dari ikonnya. Notifikasi dan tautan tetap membuka tujuannya.");
         table.put("Choose which links open here",
                 "Pilih tautan yang terbuka di sini");
+        table.put("Clean mode",
+                "Mode bersih");
+        table.put("Clean mode button on reels",
+                "Tombol mode bersih di reel");
         table.put("Cleaner reels and video controls",
                 "Reels lebih bersih dan kontrol video");
         table.put("Clear",
@@ -607,14 +733,20 @@ final class L10nTableIn {
                 "Hapus semua");
         table.put("Clear diagnostic data",
                 "Hapus data diagnostik");
+        table.put("Clear mode",
+                "Mode bersih");
         table.put("Clear search",
                 "Hapus pencarian");
+        table.put("Clone install under another package name",
+                "Instal klon dengan nama paket lain");
         table.put("Close",
                 "Tutup");
         table.put("Close Facebook",
                 "Tutup Facebook");
         table.put("Close Facebook when you leave it",
                 "Tutup Facebook saat kamu keluar");
+        table.put("Close search",
+                "Tutup pencarian");
         table.put("Collapsed",
                 "Diciutkan");
         table.put("Colors and theme",
@@ -627,18 +759,30 @@ final class L10nTableIn {
                 "Komentar dibuka dengan urutan yang dipilih Facebook, biasanya Paling relevan.");
         table.put("Comments open oldest first, on every post. Facebook's sort menu then shows All comments.",
                 "Komentar terbuka dari yang terlama di setiap postingan. Menu urutan Facebook lalu menampilkan Semua komentar.");
+        table.put("Comments open on a sheet that covers half the screen, and the reel or video keeps playing above it. On reels and videos, Comment opens that sheet in place of the split view.",
+                "Komentar terbuka di lembar yang menutupi setengah layar, dan reel atau video tetap diputar di atasnya. Di reel dan video, Komentari membuka lembar itu, bukan tampilan terbagi.");
         table.put("Comments open on a sheet that fills the screen instead of stopping part way up. On reels and videos, Comment opens that sheet in place of the split view with the video on top.",
                 "Komentar terbuka di lembar yang memenuhi layar, bukan berhenti di tengah. Di reel dan video, Komentari membuka lembar itu, bukan tampilan terbagi dengan video di atas.");
+        table.put("Comments open where Facebook stops them, part way up on reels and videos.",
+                "Komentar terbuka di tempat Facebook menghentikannya, di tengah pada reel dan video.");
         table.put("Comments show their replies right away, so there's no View replies to tap.",
                 "Komentar langsung menampilkan balasannya, jadi tidak perlu mengetuk Lihat balasan.");
+        table.put("Comments will open at full height.",
+                "Komentar akan terbuka dengan tinggi penuh.");
+        table.put("Comments will open at half height.",
+                "Komentar akan terbuka setengah tinggi.");
         table.put("Comments will open in the order Facebook picks.",
                 "Komentar akan dibuka dengan urutan yang dipilih Facebook.");
         table.put("Comments will open oldest first.",
                 "Komentar akan terbuka dari yang terlama.");
+        table.put("Comments will open where Facebook stops them.",
+                "Komentar akan terbuka di tempat Facebook menghentikannya.");
         table.put("Comments will open with %1$s picked in their sort menu.",
                 "Komentar akan dibuka dengan %1$s terpilih di menu urutannya.");
         table.put("Content filters",
                 "Filter konten");
+        table.put("Continue",
+                "Lanjutkan");
         table.put("Controls and picture-in-picture",
                 "Kontrol dan gambar-dalam-gambar");
         table.put("Convert to keep the full size",
@@ -647,6 +791,9 @@ final class L10nTableIn {
                 "Disalin");
         table.put("Copy a short report to the clipboard.",
                 "Salin laporan singkat ke papan klip.");
+    }
+
+    private static void fill6(Map<String, String> table) {
         table.put("Copy all",
                 "Salin semua");
         table.put("Copy caption",
@@ -663,9 +810,6 @@ final class L10nTableIn {
                 "Salin keterangan reel");
         table.put("Copying diagnostic report...",
                 "Menyalin laporan diagnostik...");
-    }
-
-    private static void fill5(Map<String, String> table) {
         table.put("Copying the font file",
                 "Menyalin file font");
         table.put("Copying the picture",
@@ -682,6 +826,8 @@ final class L10nTableIn {
                 "Tautan reel ini tidak ditemukan");
         table.put("Couldn't find this video's link",
                 "Tautan video ini tidak ditemukan");
+        table.put("Couldn't finish, and couldn't put back the settings you had. Check the switches on this screen.",
+                "Tidak dapat diselesaikan, dan pengaturan sebelumnya tidak dapat dikembalikan. Periksa sakelar di layar ini.");
         table.put("Couldn't get this photo. Try again in a moment.",
                 "Tidak bisa mengambil foto ini. Coba lagi sebentar lagi.");
         table.put("Couldn't go back to your phone's font. Try again.",
@@ -714,6 +860,8 @@ final class L10nTableIn {
                 "GitHub tidak dapat dihubungi. Coba lagi nanti.");
         table.put("Couldn't remove the header picture. Try again.",
                 "Gambar header tidak dapat dihapus. Coba lagi.");
+        table.put("Couldn't reset the settings. Nothing was changed.",
+                "Pengaturan tidak dapat disetel ulang. Tidak ada yang diubah.");
         table.put("Couldn't save a copy of that font. Check that the phone has room, then try again.",
                 "Salinan font itu tidak dapat disimpan. Pastikan ponsel masih punya ruang, lalu coba lagi.");
         table.put("Couldn't save a copy of that picture. Check that the phone has room, then try again.",
@@ -726,6 +874,8 @@ final class L10nTableIn {
                 "Suara tidak bisa disimpan. Coba lagi.");
         table.put("Couldn't save this GIF. Try again in a moment.",
                 "GIF ini tidak dapat disimpan. Coba lagi sebentar lagi.");
+        table.put("Couldn't save this photo. Try again in a moment.",
+                "Foto ini tidak dapat disimpan. Coba lagi sebentar lagi.");
         table.put("Couldn't save this post's photos. Try again in a moment.",
                 "Foto postingan ini tidak dapat disimpan. Coba lagi sebentar lagi.");
         table.put("Couldn't save this story's photo. Try again in a moment.",
@@ -740,6 +890,8 @@ final class L10nTableIn {
                 "Tidak bisa menerjemahkan ini. Periksa koneksi Anda lalu coba lagi.");
         table.put("Couldn't turn Hushfacebook back on. Try again.",
                 "Hushfacebook tidak dapat diaktifkan lagi. Coba lagi.");
+        table.put("Couldn't undo the reset. Nothing was changed.",
+                "Setel ulang tidak dapat diurungkan. Tidak ada yang diubah.");
         table.put("Count badges on the tabs are %1$s. Restart Facebook to see the change.",
                 "Lencana angka di tab berwarna %1$s. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Create",
@@ -748,12 +900,23 @@ final class L10nTableIn {
                 "Kripto");
         table.put("Custom color",
                 "Warna kustom");
+        table.put("Dark box behind folded captions",
+                "Kotak gelap di balik keterangan yang dilipat");
+        table.put("Dark box behind open captions",
+                "Kotak gelap di balik keterangan yang dibuka");
+        table.put("Dark box behind reel names",
+                "Kotak gelap di balik nama reel");
+        table.put("Dark box behind story names",
+                "Kotak gelap di balik nama cerita");
         table.put("Dark mode and this screen use colors from your wallpaper (blue on Android 11). Turn on dark mode in Facebook to see it.",
                 "Mode gelap dan layar ini memakai warna dari wallpaper kamu (biru di Android 11). Aktifkan mode gelap di Facebook untuk melihatnya.");
         table.put("Dark mode uses %1$s instead of dark gray. Turn on dark mode in Facebook to see it.",
                 "Mode gelap memakai %1$s, bukan abu-abu gelap. Aktifkan mode gelap di Facebook untuk melihatnya.");
         table.put("Dark mode uses black instead of dark gray. Turn on dark mode in Facebook to see it.",
                 "Mode gelap memakai hitam, bukan abu-abu gelap. Aktifkan mode gelap di Facebook untuk melihatnya.");
+    }
+
+    private static void fill7(Map<String, String> table) {
         table.put("Dark mode's backgrounds use %1$s. Restart Facebook to see the change.",
                 "Latar mode gelap memakai %1$s. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Data saver",
@@ -786,9 +949,6 @@ final class L10nTableIn {
                 "Hanya angka, maksimal 10. Profil Anda sendiri menampilkan angka ini di ponsel ini. Biarkan kosong untuk angka asli Facebook.");
         table.put("Dim after",
                 "Redupkan setelah");
-    }
-
-    private static void fill6(Map<String, String> table) {
         table.put("Dim around a zoom",
                 "Gelapkan sekitar zoom");
         table.put("Dim when idle",
@@ -807,8 +967,12 @@ final class L10nTableIn {
                 "Ketuk dua kali untuk cerita berikutnya");
         table.put("Double tap opens comments",
                 "Ketuk dua kali membuka komentar");
+        table.put("Double tap the right side of a playing feed video to jump ahead 10 seconds, or the left side to go back 10. Keep tapping to go further. Live videos work too when they can be rewound. One tap on a side still opens the video, a moment later than usual. With Tap to play on, it needs Inline feed video controls on too.",
+                "Ketuk dua kali sisi kanan video feed yang sedang diputar untuk maju 10 detik, atau sisi kiri untuk mundur 10 detik. Terus ketuk untuk melompat lebih jauh. Video live juga bisa jika dapat diputar mundur. Satu ketukan di sisi tetap membuka video, hanya sedikit lebih lambat dari biasanya. Jika \u201cKetuk untuk memutar\u201d aktif, \u201cKontrol video di beranda\u201d juga harus aktif.");
         table.put("Double tap to skip",
                 "Ketuk dua kali untuk melompat");
+        table.put("Double tap to skip on feed videos",
+                "Ketuk dua kali untuk melompat di video feed");
         table.put("Double tap to zoom",
                 "Ketuk dua kali untuk zoom");
         table.put("Download",
@@ -837,6 +1001,8 @@ final class L10nTableIn {
                 "Menampilkan teks Facebook dengan font ponsel atau file font yang kamu pilih di bawah. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Draws the stories row on Home as round pictures, like Instagram. Applies the next time Home loads its stories.",
                 "Menampilkan baris cerita di Beranda sebagai gambar bulat, seperti Instagram. Berlaku saat Beranda memuat ceritanya berikutnya.");
+        table.put("Each reel you tap Download on joins a queue that saves one reel at a time in the background. Pause or cancel it from its notification or from Downloads here. A reel already in the queue is skipped, and one that fails gets one more try. The queue lasts until Facebook closes. Hold Download to save that reel and the ones after it, 10 to 150 at a time.",
+                "Setiap reel yang kamu ketuk Unduh masuk ke antrean yang menyimpan satu reel dalam satu waktu di latar belakang. Jeda atau batalkan dari notifikasinya atau dari Unduhan di sini. Reel yang sudah ada di antrean dilewati, dan reel yang gagal dicoba sekali lagi. Antrean bertahan sampai Facebook ditutup. Tahan Unduh untuk menyimpan reel itu dan reel sesudahnya, 10 sampai 150 sekaligus.");
         table.put("Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.",
                 "Setiap video disimpan dalam %1$s atau kualitas terdekat di bawahnya. Video yang tidak memiliki kualitas serendah itu disimpan dalam kualitas terdekat di atasnya.");
         table.put("Each video saves at its lowest quality, for the smallest file.",
@@ -871,6 +1037,9 @@ final class L10nTableIn {
                 "Semua kecuali Marketplace");
         table.put("Example without post details",
                 "Contoh tanpa detail postingan");
+    }
+
+    private static void fill8(Map<String, String> table) {
         table.put("Expanded",
                 "Diperluas");
         table.put("Explore",
@@ -883,6 +1052,10 @@ final class L10nTableIn {
                 "Iklan Facebook di aplikasi lain");
         table.put("Facebook asks for your fingerprint, face or screen lock at startup and when you return after the time below. Your phone needs a screen lock.",
                 "Facebook meminta sidik jari, wajah, atau kunci layar saat dibuka dan saat kamu kembali setelah waktu di bawah. Ponselmu perlu kunci layar.");
+        table.put("Facebook asks for your screen's highest refresh rate, so scrolling and reels look smoother. It uses a bit more battery, and your phone's own refresh rate setting still caps it.",
+                "Facebook meminta kecepatan refresh tertinggi layarmu, jadi gulir dan reels terlihat lebih mulus. Ini memakai sedikit lebih banyak baterai, dan pengaturan kecepatan refresh ponselmu tetap jadi batas atasnya.");
+        table.put("Facebook asks your screen for %1$s. Your phone's own refresh rate setting still caps it.",
+                "Facebook meminta %1$s ke layarmu. Pengaturan kecepatan refresh ponselmu tetap jadi batas atasnya.");
         table.put("Facebook blue",
                 "Biru Facebook");
         table.put("Facebook can't tell when you take a screenshot or record your screen, so it can't react.",
@@ -909,9 +1082,6 @@ final class L10nTableIn {
                 "Facebook terkunci");
         table.put("Facebook isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you. Stories you watch to the end show as watched on this phone only, until that person posts a new one.",
                 "Facebook tidak diberi tahu cerita mana yang kamu tonton, jadi kamu tidak masuk daftar penontonnya. Membalas atau memberi reaksi tetap menunjukkan dirimu. Cerita yang kamu tonton sampai habis ditandai sudah dilihat hanya di ponsel ini, sampai orang itu memposting cerita baru.");
-    }
-
-    private static void fill7(Map<String, String> table) {
         table.put("Facebook leaves calls and chat notifications to Messenger while Messenger is installed and enabled. Restart Facebook after changing this switch, or after installing, removing, enabling or disabling Messenger, so call routing updates. If you're signed out of Messenger, you'll miss calls and messages.",
                 "Facebook menyerahkan panggilan dan notifikasi chat ke Messenger selama Messenger terpasang dan aktif. Mulai ulang Facebook setelah mengubah sakelar ini, atau setelah memasang, menghapus, mengaktifkan, atau menonaktifkan Messenger, agar perutean panggilan diperbarui. Jika kamu keluar dari Messenger, kamu akan melewatkan panggilan dan pesan.");
         table.put("Facebook locks as soon as you leave it.",
@@ -930,18 +1100,30 @@ final class L10nTableIn {
                 "Facebook terbuka di Beranda selama \u201cSembunyikan tab Reels\u201d aktif, karena Video tidak ada di bilah tab. Pilihan Anda tetap tersimpan.");
         table.put("Facebook picks the quality as each video plays, from your connection.",
                 "Facebook memilih kualitas saat setiap video diputar, sesuai koneksi Anda.");
+        table.put("Facebook runs at whatever refresh rate your phone picks for it.",
+                "Facebook berjalan pada kecepatan refresh yang dipilih ponselmu untuknya.");
         table.put("Facebook stops asking whether to share your post to Threads too. Posting to Facebook works as before.",
                 "Facebook berhenti menanyakan apakah postinganmu mau dibagikan juga ke Threads. Memposting di Facebook berjalan seperti biasa.");
+        table.put("Facebook video",
+                "Video Facebook");
+        table.put("Facebook will ask for your screen's highest refresh rate.",
+                "Facebook akan meminta kecepatan refresh tertinggi layarmu.");
+        table.put("Facebook will ask your screen for %1$s.",
+                "Facebook akan meminta %1$s ke layarmu.");
         table.put("Facebook will keep its own blue.",
                 "Facebook akan tetap memakai birunya sendiri.");
         table.put("Facebook will pick the quality videos play at.",
                 "Facebook akan memilih kualitas pemutaran video.");
+        table.put("Facebook will run at the refresh rate your phone picks for it.",
+                "Facebook akan berjalan pada kecepatan refresh yang dipilih ponselmu untuknya.");
         table.put("Facebook's \"On this day\" memories stop showing up in your notifications.",
                 "Kenangan \u201cPada Hari Ini\u201d dari Facebook tidak lagi muncul di notifikasi Anda.");
         table.put("Facebook's Whitehat settings",
                 "Pengaturan Whitehat Facebook");
         table.put("Facebook's choice",
                 "Pilihan Facebook");
+        table.put("Facebook's height",
+                "Tinggi Facebook");
         table.put("Facebook's logo stays at the top of Home. Type your own words to show them there.",
                 "Logo Facebook tetap di bagian atas Beranda. Ketik kata-katamu sendiri untuk menampilkannya di sana.");
         table.put("Facebook's on-phone learning jobs stop too, and a change applies after Facebook restarts.",
@@ -950,6 +1132,8 @@ final class L10nTableIn {
                 "Layar milik Facebook untuk pengujian keamanan. Layar ini bisa membuat Facebook memercayai sertifikat keamanan yang kamu pasang, atau mengirim datanya lewat proksi (server perantara). Hushfacebook tidak mengubah apa pun di sana.");
         table.put("Facebook's own setting blocks it. Open Settings, Tab bar, Customize the bar and choose Hide next to Reels, which some accounts call Video. If neither is listed, choose the %1$s patch in Morphe Manager and patch again.",
                 "Pengaturan Facebook sendiri yang memblokirnya. Buka Pengaturan, Bilah tab, Sesuaikan bilah, lalu pilih Sembunyikan di samping Reels, yang di beberapa akun disebut Video. Jika keduanya tidak tercantum, pilih tambalan %1$s di Morphe Manager lalu tambal ulang.");
+        table.put("Facebook's page asking you to allow Location Services, the one with Skip and Continue, doesn't show. Location you turn on yourself still works.",
+                "Layar Facebook yang memintamu mengizinkan Layanan Lokasi, yang ada Lewati dan Lanjutkan, tidak muncul. Lokasi yang kamu nyalakan sendiri tetap berfungsi.");
         table.put("Facebook's real number shows. Type digits to show your own.",
                 "Angka asli Facebook ditampilkan. Ketik angka untuk menampilkan angka Anda sendiri.");
         table.put("Facebook's server didn't send the file. Try again in a moment.",
@@ -968,8 +1152,17 @@ final class L10nTableIn {
                 "Alamat web Facebook dipilih untuk aplikasi ini di pengaturan Android, jadi tautannya terbuka di sini.");
         table.put("Facebook's web addresses open here now.",
                 "Alamat web Facebook kini terbuka di sini.");
+        table.put("Fade the seek bar and speaker",
+                "Redupkan bilah geser dan speaker");
+        table.put("Fade the story seek bar",
+                "Redupkan bilah geser cerita");
+        table.put("Faster speeds",
+                "Kecepatan lebih cepat");
         table.put("Favorites",
                 "Favorit");
+    }
+
+    private static void fill9(Map<String, String> table) {
         table.put("Feed layout",
                 "Tata letak feed");
         table.put("Feed posts stop showing a few comments under their buttons. Tap Comment to read them all.",
@@ -986,16 +1179,32 @@ final class L10nTableIn {
                 "Nama file");
         table.put("File name set to %1$s.",
                 "Nama file diatur menjadi %1$s.");
+        table.put("Fill the screen with reels",
+                "Penuhi layar dengan reels");
         table.put("Finds",
                 "Finds");
         table.put("Fix washed-out video colors",
                 "Perbaiki warna video yang pudar");
         table.put("Fixes saved videos that play without sound in WhatsApp, video editors such as CapCut and InShot, or some galleries and players. May lower quality.",
                 "Memperbaiki video tersimpan yang diputar tanpa suara di WhatsApp, editor video seperti CapCut dan InShot, atau beberapa galeri dan pemutar. Bisa menurunkan kualitas.");
+        table.put("Fold long comments",
+                "Lipat komentar panjang");
+        table.put("Fold long comments will fold comments where Facebook does.",
+                "Lipat komentar panjang akan melipat komentar di tempat Facebook melipatnya.");
+        table.put("Fold long comments will show %1$s before See more.",
+                "Lipat komentar panjang akan menampilkan %1$s sebelum Lihat selengkapnya.");
+        table.put("Fold long posts",
+                "Lipat postingan panjang");
+        table.put("Fold long posts will fold posts where Facebook does.",
+                "Lipat postingan panjang akan melipat postingan di tempat Facebook melipatnya.");
+        table.put("Fold long posts will show %1$s before See more.",
+                "Lipat postingan panjang akan menampilkan %1$s sebelum Lihat selengkapnya.");
         table.put("Folder name",
                 "Nama folder");
         table.put("Folder set to %1$s.",
                 "Folder diatur menjadi %1$s.");
+        table.put("Follow or unfollow this account?",
+                "Ikuti atau berhenti mengikuti akun ini?");
         table.put("Followers shown",
                 "Pengikut yang ditampilkan");
         table.put("Following feed on Home",
@@ -1028,13 +1237,16 @@ final class L10nTableIn {
                 "Teman yang ditampilkan");
         table.put("From day",
                 "Dari tanggal");
+        table.put("Full height",
+                "Tinggi penuh");
+        table.put("Full length on the seek bar",
+                "Durasi penuh di bilah geser");
+        table.put("Full player button by the speaker",
+                "Tombol pemutar penuh di samping speaker");
         table.put("Full player button on feed videos",
                 "Tombol pemutar penuh di video feed");
         table.put("Full report saved to %1$s",
                 "Laporan lengkap disimpan ke %1$s");
-    }
-
-    private static void fill8(Map<String, String> table) {
         table.put("Fundraisers",
                 "Penggalangan dana");
         table.put("Games you play in Facebook show no ads. A game that asks for one is told there's none, so rewarded ads give no reward.",
@@ -1055,16 +1267,25 @@ final class L10nTableIn {
                 "Langsung ke satu kelompok setelan. Kembali membawamu ke tempat semula.");
         table.put("Go to the Menu",
                 "Buka Menu");
+        table.put("Going through %1$d reels for the reel queue. Hold Download again or cancel the queue to stop.",
+                "Menelusuri %1$d reel untuk antrean reel. Tahan Unduh lagi atau batalkan antrean untuk berhenti.");
         table.put("Green",
                 "Hijau");
         table.put("Groups",
                 "Grup");
         table.put("HDR videos and photos stay at your screen's usual brightness instead of turning it up to full. They keep their resolution.",
                 "Video dan foto HDR tetap di kecerahan layar yang biasa, alih-alih menaikkannya sampai penuh. Resolusinya tetap sama.");
+        table.put("Haha",
+                "Haha");
+        table.put("Half height",
+                "Setengah tinggi");
         table.put("Header picture removed. Restart Facebook to see the change.",
                 "Gambar header dihapus. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Help and restart",
                 "Bantuan dan mulai ulang");
+    }
+
+    private static void fill10(Map<String, String> table) {
         table.put("Help and support: %s",
                 "Bantuan dan dukungan: %s");
         table.put("Hid %1$d post since Facebook started.",
@@ -1095,10 +1316,16 @@ final class L10nTableIn {
                 "Sembunyikan reel dan video yang terdeteksi dibuat dengan AI");
         table.put("Hide Also from Meta",
                 "Sembunyikan \u201cJuga dari Meta\u201d");
+        table.put("Hide Back on opened videos",
+                "Sembunyikan Kembali di video yang dibuka");
         table.put("Hide Comment on reels",
                 "Sembunyikan Komentari di reel");
         table.put("Hide Comment under posts",
                 "Sembunyikan Komentari di bawah postingan");
+        table.put("Hide Create Facebook Page",
+                "Sembunyikan \u201cBuat Halaman Facebook\u201d");
+        table.put("Hide Create story",
+                "Sembunyikan Buat cerita");
         table.put("Hide Edits promotions",
                 "Sembunyikan promosi Edits");
         table.put("Hide For you in search",
@@ -1131,6 +1358,12 @@ final class L10nTableIn {
                 "Sembunyikan Muse di menu bagikan");
         table.put("Hide Reels in the feed",
                 "Sembunyikan Reels di Kabar Beranda");
+        table.put("Hide Reply on comments",
+                "Sembunyikan Balas di komentar");
+        table.put("Hide Repost on reels",
+                "Sembunyikan Posting Ulang di reel");
+        table.put("Hide Repost under posts",
+                "Sembunyikan Posting Ulang di bawah postingan");
         table.put("Hide Save on reels",
                 "Sembunyikan Simpan di reel");
         table.put("Hide Send under posts",
@@ -1153,13 +1386,16 @@ final class L10nTableIn {
                 "Sembunyikan \u201cUpgrade\u201d");
         table.put("Hide WhatsApp on reels",
                 "Sembunyikan WhatsApp di reel");
+        table.put("Hide Your shortcuts",
+                "Sembunyikan \u201cPintasan Anda\u201d");
         table.put("Hide affiliate product links",
                 "Sembunyikan tautan produk afiliasi");
-    }
-
-    private static void fill9(Map<String, String> table) {
+        table.put("Hide all group posts",
+                "Sembunyikan semua postingan grup");
         table.put("Hide avatar sticker promotions",
                 "Sembunyikan promosi stiker avatar");
+        table.put("Hide badges like Top fan on comments",
+                "Sembunyikan lencana seperti Penggemar berat di komentar");
         table.put("Hide chat list promotions",
                 "Sembunyikan promosi di daftar obrolan");
         table.put("Hide comment and reaction previews",
@@ -1170,16 +1406,23 @@ final class L10nTableIn {
                 "Sembunyikan komentar dengan tautan toko");
         table.put("Hide comments with your words",
                 "Sembunyikan komentar dengan kata-katamu");
+    }
+
+    private static void fill11(Map<String, String> table) {
         table.put("Hide counts on posts",
                 "Sembunyikan angka di postingan");
         table.put("Hide counts on reels",
                 "Sembunyikan angka di reel");
+        table.put("Hide create story cards",
+                "Sembunyikan kartu buat cerita");
         table.put("Hide dislike on comments",
                 "Sembunyikan jempol ke bawah di komentar");
         table.put("Hide friend requests in the feed",
                 "Sembunyikan permintaan pertemanan di feed");
         table.put("Hide friends' locations",
                 "Sembunyikan lokasi teman");
+        table.put("Hide from the 3-dot menus of posts and reels",
+                "Sembunyikan dari menu titik tiga postingan dan reel");
         table.put("Hide from the Menu",
                 "Sembunyikan dari Menu");
         table.put("Hide from the share sheet",
@@ -1202,6 +1445,10 @@ final class L10nTableIn {
                 "Sembunyikan postingan foto");
         table.put("Hide pictures on the Blocked list",
                 "Sembunyikan foto di daftar blokir");
+        table.put("Hide post",
+                "Sembunyikan postingan");
+        table.put("Hide post cards between reels",
+                "Sembunyikan kartu postingan di antara reel");
         table.put("Hide post prompts",
                 "Sembunyikan pertanyaan di bawah postingan");
         table.put("Hide posts from Pages",
@@ -1222,6 +1469,10 @@ final class L10nTableIn {
                 "Sembunyikan kiriman yang sudah dilihat");
         table.put("Hide profile notes",
                 "Sembunyikan catatan profil");
+        table.put("Hide profile pictures in comments",
+                "Sembunyikan foto profil di komentar");
+        table.put("Hide profile pictures on posts",
+                "Sembunyikan foto profil di postingan");
         table.put("Hide promoted posts",
                 "Sembunyikan postingan promosi");
         table.put("Hide prompts and promos under reels",
@@ -1242,6 +1493,12 @@ final class L10nTableIn {
                 "Sembunyikan saran balasan");
         table.put("Hide reposts",
                 "Sembunyikan postingan yang dibagikan ulang");
+        table.put("Hide rings in comments",
+                "Sembunyikan cincin di komentar");
+        table.put("Hide rings in the feed",
+                "Sembunyikan cincin di feed");
+        table.put("Hide rings on profiles",
+                "Sembunyikan cincin di profil");
         table.put("Hide seen stories",
                 "Sembunyikan cerita yang sudah dilihat");
         table.put("Hide song and effect credits",
@@ -1260,6 +1517,8 @@ final class L10nTableIn {
                 "Sembunyikan cerita bersponsor");
         table.put("Hide stories from Pages",
                 "Sembunyikan cerita dari Halaman");
+        table.put("Hide stories you scrolled past",
+                "Sembunyikan cerita yang sudah kamu lewati");
         table.put("Hide story prompts",
                 "Sembunyikan ide cerita");
         table.put("Hide suggested groups",
@@ -1270,6 +1529,11 @@ final class L10nTableIn {
                 "Sembunyikan popup 2x");
         table.put("Hide the Ad Center tab",
                 "Sembunyikan tab Pusat Iklan");
+    }
+
+    private static void fill12(Map<String, String> table) {
+        table.put("Hide the Add friend pop-up on shared reels",
+                "Sembunyikan pop-up Tambahkan teman di reel yang dibagikan");
         table.put("Hide the Back reminder",
                 "Sembunyikan pengingat Kembali");
         table.put("Hide the Commission eligible label",
@@ -1278,9 +1542,6 @@ final class L10nTableIn {
                 "Sembunyikan tombol Buat");
         table.put("Hide the Create tab",
                 "Sembunyikan tab Buat");
-    }
-
-    private static void fill10(Map<String, String> table) {
         table.put("Hide the Data mode banner",
                 "Sembunyikan banner Mode Data");
         table.put("Hide the Dating tab",
@@ -1307,6 +1568,8 @@ final class L10nTableIn {
                 "Sembunyikan tab Teman");
         table.put("Hide the Friends tab badge",
                 "Sembunyikan lencana tab Teman");
+        table.put("Hide the Fullscreen button",
+                "Sembunyikan tombol Layar penuh");
         table.put("Hide the Gaming tab",
                 "Sembunyikan tab Game");
         table.put("Hide the Get Messenger card",
@@ -1351,16 +1614,26 @@ final class L10nTableIn {
                 "Sembunyikan tab Tersimpan");
         table.put("Hide the Stories tray",
                 "Sembunyikan deretan Cerita");
+        table.put("Hide the Subscribe button",
+                "Sembunyikan tombol Berlangganan");
         table.put("Hide the Subscribe button on videos",
                 "Sembunyikan tombol Berlangganan di video");
+        table.put("Hide the Subscribe link on posts",
+                "Sembunyikan tautan Berlangganan di postingan");
+        table.put("Hide the X on posts",
+                "Sembunyikan X di kiriman");
         table.put("Hide the app icon count",
                 "Sembunyikan angka di ikon aplikasi");
         table.put("Hide the audio line on reels",
                 "Sembunyikan baris audio di reel");
+        table.put("Hide the comment box",
+                "Sembunyikan kotak komentar");
         table.put("Hide the composer row",
                 "Sembunyikan baris pembuat postingan");
         table.put("Hide the emoji row on comments",
                 "Sembunyikan baris emoji di komentar");
+        table.put("Hide the full-screen and PiP buttons",
+                "Sembunyikan tombol Layar penuh dan gambar-dalam-gambar");
         table.put("Hide the line over the comment box",
                 "Sembunyikan garis di atas kotak komentar");
         table.put("Hide the new comments pop-up",
@@ -1377,12 +1650,19 @@ final class L10nTableIn {
                 "Sembunyikan tombol cari");
         table.put("Hide the search pill on reels",
                 "Sembunyikan saran pencarian di reel");
+        table.put("Hide the skip seconds",
+                "Sembunyikan detik lompatan");
+    }
+
+    private static void fill13(Map<String, String> table) {
         table.put("Hide the slow connection message",
                 "Sembunyikan pesan koneksi lambat");
         table.put("Hide the speaker button on reels",
                 "Sembunyikan tombol speaker di reel");
         table.put("Hide the status bar",
                 "Sembunyikan bilah status");
+        table.put("Hide the tab bar on the Reels tab",
+                "Sembunyikan bilah tab di tab Reels");
         table.put("Hide the tab bar while scrolling",
                 "Sembunyikan bilah tab saat menggulir");
         table.put("Hide the top right buttons on opened videos",
@@ -1401,9 +1681,6 @@ final class L10nTableIn {
                 "Sembunyikan siapa yang sedang mengetik di komentar");
         table.put("Hides \"Pages you may like\" cards, cards promoting Facebook's own features, and surveys in the feed.",
                 "Menyembunyikan kartu \u201cHalaman yang mungkin kamu suka\u201d, kartu yang mempromosikan fitur Facebook sendiri, dan survei di feed.");
-    }
-
-    private static void fill11(Map<String, String> table) {
         table.put("Hides Memories between posts, like \"On this day\" and friendship anniversaries. Your Memories page stays.",
                 "Menyembunyikan Kenangan di antara postingan, seperti \u201cPada hari ini\u201d dan hari jadi pertemanan. Halaman Kenanganmu tetap ada.");
         table.put("Hides Meta AI cards between posts and cards promoting the Vibes app. People's posts stay, whatever they say about AI.",
@@ -1432,6 +1709,8 @@ final class L10nTableIn {
                 "Menyembunyikan komentar yang berisi kata dari daftar Kata untuk disembunyikan di Kabar Beranda, beserta balasannya. Kata yang mempertahankan postingan juga mempertahankan komentar.");
         table.put("Hides comments that link to a shop like Shopee, Lazada or Amazon, along with their replies.",
                 "Menyembunyikan komentar yang menautkan ke toko seperti Shopee, Lazada, atau Amazon, beserta balasannya.");
+        table.put("Hides every post from a group in your feed, your own groups' too, and a group post a friend commented on or shared. The Groups tab keeps its feed.",
+                "Menyembunyikan setiap postingan dari grup di feed kamu, termasuk dari grup kamu sendiri, dan postingan grup yang dikomentari atau dibagikan teman. Tab Grup tetap menampilkan feed-nya.");
         table.put("Hides friend requests shown between posts. Your requests stay under Friends.",
                 "Menyembunyikan permintaan pertemanan yang muncul di antara postingan. Permintaanmu tetap ada di Teman.");
         table.put("Hides friend suggestions between posts and on your own profile.",
@@ -1448,16 +1727,16 @@ final class L10nTableIn {
                 "Menyembunyikan postingan dan reel di tab Reels dalam bahasa yang tidak kamu pertahankan, berdasarkan tebakan ponsel sendiri atas teks setiap postingan atau keterangan setiap reel. Yang tidak pasti tetap ada, dan tidak ada yang keluar dari ponsel.");
         table.put("Hides posts by people or Pages on your list below, or linking to sites on it, including shares. Your list stays on this phone unless you export it.",
                 "Menyembunyikan postingan dari orang atau Halaman di daftarmu di bawah, atau yang menautkan ke situs di dalamnya, termasuk yang dibagikan ulang. Daftarmu tetap di ponsel ini kecuali kamu mengekspornya.");
-        table.put("Hides posts containing a word or phrase from your list below. Words that keep a post win over it. Your words stay on this phone unless you export them.",
-                "Menyembunyikan postingan yang berisi kata atau frasa dari daftarmu di bawah. Kata yang mempertahankan postingan lebih diutamakan. Kata-katamu tetap di ponsel ini kecuali kamu mengekspornya.");
+        table.put("Hides posts containing a word or phrase from your list below. Words that keep a post win over it. Your words stay on this phone unless you export them. Posts on profiles, Pages and in groups go too, and Reels tab reels go by their captions.",
+                "Menyembunyikan postingan yang berisi kata atau frasa dari daftarmu di bawah. Kata yang mempertahankan postingan lebih diutamakan. Kata-katamu tetap di ponsel ini kecuali kamu mengekspornya. Postingan di profil, Halaman, dan grup juga disembunyikan, dan Reel di tab Reels disaring menurut keterangannya.");
         table.put("Hides posts featuring Meta's AI characters, the chatbots people make with Meta AI Studio. Off by default, since it hasn't been tried on a real feed yet.",
                 "Menyembunyikan postingan yang menampilkan karakter AI Meta, chatbot yang dibuat orang dengan Meta AI Studio. Mati secara bawaan, karena belum dicoba di feed sungguhan.");
         table.put("Hides posts from groups you haven't joined, like a friend's post in a public group, and a group post a friend commented on or shared. Posts from your groups stay.",
                 "Menyembunyikan postingan dari grup yang belum kamu ikuti, seperti postingan teman di grup publik, dan postingan grup yang dikomentari atau dibagikan teman. Postingan dari grup kamu tetap ada.");
         table.put("Hides posts that Facebook's own detection marks as made with AI. Posts only their creator labeled stay. Off by default, since it hasn't been tried on a real feed yet.",
                 "Menyembunyikan postingan yang oleh deteksi Facebook ditandai sebagai buatan AI. Postingan yang hanya ditandai pembuatnya tetap ada. Mati secara bawaan, karena belum dicoba di feed sungguhan.");
-        table.put("Hides posts that share a link to a website, with its preview card.",
-                "Menyembunyikan postingan yang membagikan tautan ke situs web, beserta kartu pratinjaunya.");
+        table.put("Hides posts that share a link to a website, with its preview card. On profiles, Pages, groups and the Reels tab, a post or reel whose words name a website goes too.",
+                "Menyembunyikan postingan yang membagikan tautan ke situs web, beserta kartu pratinjaunya. Di profil, Halaman, grup, dan tab Reels, postingan atau reel yang teksnya menyebut situs web juga disembunyikan.");
         table.put("Hides posts that share another post, with or without a caption. Original posts stay. Off by default, since it hasn't been tried on a real feed yet.",
                 "Menyembunyikan postingan yang membagikan postingan lain, dengan atau tanpa keterangan. Postingan asli tetap ada. Mati secara bawaan, karena belum dicoba di feed sungguhan.");
         table.put("Hides posts with a photo or album, including shares.",
@@ -1484,6 +1763,8 @@ final class L10nTableIn {
                 "Menyembunyikan tautan \"Ikuti\" di samping nama pada postingan dari Halaman dan orang yang tidak kamu ikuti. Mengetuk nama tetap membuka profil. Perubahan terlihat pada postingan yang dimuat setelahnya.");
         table.put("Hides the \"Related posts\" list Facebook adds under some posts, with its titles written by Meta AI. The post and its comments stay.",
                 "Menyembunyikan daftar \"Postingan terkait\" yang ditambahkan Facebook di bawah beberapa postingan, dengan judul yang ditulis oleh Meta AI. Postingan dan komentarnya tetap ada.");
+        table.put("Hides the \"Subscribe\" link next to a creator's name on posts and videos. Tapping the name still opens the profile. A change shows on the posts drawn after it.",
+                "Menyembunyikan tautan \"Berlangganan\" di samping nama kreator pada postingan dan video. Mengetuk nama tetap membuka profil. Perubahan terlihat pada postingan yang dimuat setelahnya.");
         table.put("Hides the \"Threads you might like\" card between reels. Off by default, since it hasn't been tried on a real account yet.",
                 "Menyembunyikan kartu \u201cThreads yang mungkin kamu suka\u201d di antara reel. Mati secara bawaan, karena belum dicoba di akun sungguhan.");
         table.put("Hides the \"Want to see more posts from friends?\" card with its Find friends button where your friends' posts run out.",
@@ -1494,6 +1775,9 @@ final class L10nTableIn {
                 "Menyembunyikan tombol Edits di pembuat Reels dan label Edits di bawah video. Kamu tetap bisa membuat reel di Facebook.");
         table.put("Hides the Facebook logo in the top bar. The empty spot is the same size and still opens Hushfacebook settings when you press and hold it. Restart Facebook to see the change.",
                 "Menyembunyikan logo Facebook di bilah atas. Ruang kosongnya berukuran sama dan tetap membuka pengaturan Hushfacebook saat ditekan lama. Mulai ulang Facebook untuk melihat perubahannya.");
+    }
+
+    private static void fill14(Map<String, String> table) {
         table.put("Hides the For you searches Facebook suggests when you open search. Your recent searches and the suggestions as you type stay.",
                 "Menyembunyikan pencarian Untuk Anda yang disarankan Facebook saat kamu membuka pencarian. Pencarian terbaru kamu dan saran saat mengetik tetap ada.");
         table.put("Hides the Imagine me button on posts and the Imagine option when you write a post or create a story. Everything else works as before.",
@@ -1512,6 +1796,8 @@ final class L10nTableIn {
                 "Menyembunyikan kartu di atas Chat yang mengajak kamu memasang Messenger, jika Messenger sudah terpasang. Tanpa Messenger, kartu itu tetap ada.");
         table.put("Hides the card between posts that shows where your friends are.",
                 "Menyembunyikan kartu di antara postingan yang menunjukkan di mana teman-temanmu berada.");
+        table.put("Hides the carousels of posts Facebook puts between reels, like \"Catch up on conversations\" from your groups. Off by default.",
+                "Menyembunyikan carousel postingan yang ditaruh Facebook di antara reel, seperti \u201cIkuti percakapan terbaru\u201d dari grupmu. Mati secara bawaan.");
         table.put("Hides the note bubble that sits on profile pictures. Applies the next time you open a profile.",
                 "Menyembunyikan gelembung catatan di atas foto profil. Berlaku saat kamu membuka profil berikutnya.");
         table.put("Hides the other Meta AI buttons Facebook puts under posts. The post's next button shows instead, if it has one.",
@@ -1520,13 +1806,12 @@ final class L10nTableIn {
                 "Menyembunyikan baris pertanyaan Meta AI di bawah beberapa postingan. Postingan, kartu tautan, dan tombolnya tetap ada.");
         table.put("Hides the row of Stories from people you aren't connected to, between posts. Your friends' Stories and the Stories tray stay.",
                 "Menyembunyikan baris Cerita dari orang yang tidak terhubung denganmu, di antara postingan. Cerita teman dan baris Cerita tetap ada.");
+        table.put("Hides the row of groups to join between posts and the groups card between reels. Posts from groups you're in stay.",
+                "Menyembunyikan baris grup untuk diikuti di antara postingan dan kartu grup di antara reel. Postingan dari grup yang sudah kamu ikuti tetap ada.");
         table.put("Hides the row of groups to join between posts. Posts from groups you're in stay.",
                 "Menyembunyikan baris grup untuk diikuti di antara postingan. Postingan dari grup yang sudah kamu ikuti tetap ada.");
         table.put("Hides the row of stories at the top of the feed, including Create story.",
                 "Menyembunyikan baris cerita di bagian atas feed, termasuk Buat cerita.");
-    }
-
-    private static void fill12(Map<String, String> table) {
         table.put("Hides the search suggestion under a reel's caption, the magnifier with a question to look up, the one at the top of its comments and the search bar over reels you open from a profile.",
                 "Menyembunyikan saran pencarian di bawah keterangan reel, ikon kaca pembesar dengan pertanyaan untuk dicari, yang ada di atas komentarnya, dan bilah pencarian di atas reel yang Anda buka dari sebuah profil.");
         table.put("Hides the stacked reaction icons and the reactions count under posts. The space stays, so a tap where they were still opens the list of reactions. To take the number off the Like button too, turn on Hide counts on posts.",
@@ -1539,22 +1824,36 @@ final class L10nTableIn {
                 "Sembunyi saat menggulir");
         table.put("Highest",
                 "Tertinggi");
+        table.put("Highest your screen offers",
+                "Tertinggi yang didukung layar");
+        table.put("Hold a feed photo to react",
+                "Tahan foto feed untuk bereaksi");
         table.put("Hold a feed video for 2x",
                 "Tahan video feed untuk 2x");
+        table.put("Hold a feed video to react",
+                "Tahan video feed untuk bereaksi");
         table.put("Hold a reel for 2x",
                 "Tahan reel untuk 2x");
         table.put("Hold back analytics uploads",
                 "Tahan unggahan analitik");
         table.put("Hold back camera roll processing",
                 "Tahan pemrosesan rol kamera");
+        table.put("Holding a post to react will give %1$s.",
+                "Menahan postingan untuk bereaksi akan memberikan %1$s.");
+        table.put("Holding a post to react will open the reactions to pick from.",
+                "Menahan postingan untuk bereaksi akan membuka reaksi untuk dipilih.");
+        table.put("Holding a post's photo opens its reactions, as holding Like does. It comes before Long press opens comments.",
+                "Menahan foto postingan membuka reaksinya, seperti menahan Suka. Ini didahulukan sebelum Tekan lama membuka komentar.");
         table.put("Holding a post's text opens it in a box where you can select just the part you want and copy that, or copy all of it. The hold itself copies nothing.",
                 "Menahan teks postingan membukanya di kotak tempat kamu bisa memilih bagian yang kamu mau lalu menyalinnya, atau menyalin semuanya. Menahan saja tidak menyalin apa pun.");
+        table.put("Holding a post's video opens its reactions too. It comes before Long press opens comments. With Hold a feed video for 2x on, that one wins and the video plays fast.",
+                "Menahan video postingan juga membuka reaksinya. Ini didahulukan sebelum Tekan lama membuka komentar. Jika Tahan video feed untuk 2x aktif, sakelar itu yang didahulukan dan video diputar cepat.");
         table.put("Holding a reel opens its comments instead of Facebook's long-press menu or the 2x hold. The reel's more button still opens that menu. Holding a feed post's photo or the line with its name opens that post's comments, and holding its text or a profile picture works as before. Off by default, since it hasn't been tried on a real account yet.",
                 "Menahan reel membuka komentarnya, bukan menu tekan lama Facebook atau pemutaran 2x. Tombol lainnya pada reel tetap membuka menu itu. Menahan foto postingan di feed atau baris namanya membuka komentar postingan itu, sedangkan menahan teks atau foto profil tetap bekerja seperti biasa. Nonaktif secara bawaan, karena belum dicoba di akun sungguhan.");
         table.put("Holding a reel plays it at double speed until you let go, in place of Facebook's long-press menu. The reel's more button still opens that menu.",
                 "Menahan reel memutarnya dengan kecepatan dua kali lipat sampai kamu melepaskannya, sebagai ganti menu tekan lama Facebook. Tombol lainnya pada reel tetap membuka menu itu.");
-        table.put("Holding a video for 2x shows no pill at all, so no \"Speed: 2x\", \"Release to lock\" or \"Locked at 2x speed\". The hold and the lock still work.",
-                "Menahan video untuk 2x tidak menampilkan pil apa pun, jadi tidak ada \"Kecepatan: 2x\", \"Lepaskan untuk mengunci\", atau \"Terkunci pada kecepatan 2x\". Menahan dan mengunci tetap berfungsi.");
+        table.put("Holding a video for 2x shows no pill at all, so no \"Speed: 2x\", \"Release to lock\" or \"Locked at 2x speed\", and feed videos drop the \"2x speed\" tip. The hold and the lock still work.",
+                "Menahan video untuk 2x tidak menampilkan pil apa pun, jadi tidak ada \"Kecepatan: 2x\", \"Lepaskan untuk mengunci\", atau \"Terkunci pada kecepatan 2x\", dan video di feed tidak lagi menampilkan tip \"Kecepatan 2x\". Menahan dan mengunci tetap berfungsi.");
         table.put("Holding a video for 2x shows the plain 2x pill, without the \"Pull down to lock 2x speed\" hint. Pulling down still locks it. It works without the switches above.",
                 "Menahan video untuk 2x hanya menampilkan label 2x biasa, tanpa petunjuk \"Tarik ke bawah untuk mengunci kecepatan 2x\". Menarik ke bawah tetap menguncinya. Ini berfungsi tanpa sakelar di atas.");
         table.put("Holding a video in the feed or in Watch plays it at double speed until you let go. Pull down before you let go to keep it at 2x, then tap the video to go back. It works without the switches above.",
@@ -1585,14 +1884,23 @@ final class L10nTableIn {
                 "Beranda, Feed, Video, dan Reels tetap tertutup selama %1$s.");
         table.put("How Adv. Filters works",
                 "Cara kerja Filter lanj.");
+        table.put("How dark the boxes behind captions and names are, in percent, from %1$s to %2$s. Leave it blank for %3$s.",
+                "Seberapa gelap kotak di balik keterangan dan nama, dalam persen, dari %1$s sampai %2$s. Biarkan kosong untuk %3$s.");
         table.put("How far a photo or video you're saving has got, with a button to cancel it",
                 "Progres foto atau video yang sedang Anda simpan, dengan tombol untuk membatalkannya");
         table.put("How long ago",
                 "Berapa lama yang lalu");
+        table.put("How much of their color the see-through bars keep, in percent, from %1$s to %2$s. Lower lets more of the feed and its blur show. Leave it blank for %3$s, or %4$s over the blur.",
+                "Seberapa banyak warna yang dipertahankan bilah tembus pandang, dalam persen, dari %1$s sampai %2$s. Angka lebih kecil membuat feed dan efek buramnya lebih terlihat. Biarkan kosong untuk %3$s, atau %4$s di atas efek buram.");
         table.put("How to block Reels",
                 "Cara memblokir Reels");
+        table.put("Hush hid the suggested posts after this, so Home ends here.",
+                "Hush menyembunyikan postingan yang disarankan setelah ini, jadi Beranda berakhir di sini.");
         table.put("Hushfacebook %1$s is out. Update it in Morphe Manager.",
                 "Hushfacebook %1$s sudah dirilis. Perbarui di Morphe Manager.");
+    }
+
+    private static void fill15(Map<String, String> table) {
         table.put("Hushfacebook %1$s on Facebook %2$s",
                 "Hushfacebook %1$s di Facebook %2$s");
         table.put("Hushfacebook %1$s targets Facebook %2$s.",
@@ -1603,6 +1911,8 @@ final class L10nTableIn {
                 "Hushfacebook aktif");
         table.put("Hushfacebook is paused",
                 "Hushfacebook dijeda");
+        table.put("Hushfacebook logo",
+                "logo Hushfacebook");
         table.put("Hushfacebook pauses when Facebook restarts.",
                 "Hushfacebook dijeda saat Facebook dimulai ulang.");
         table.put("Hushfacebook saves",
@@ -1617,8 +1927,8 @@ final class L10nTableIn {
                 "Hushfacebook aktif lagi saat Facebook dimulai ulang.");
         table.put("Icons look soft on this screen",
                 "Ikon terlihat buram di layar ini");
-        table.put("Icons look soft on this screen. Repatch with the 120-640dpi bundle.",
-                "Ikon terlihat buram di layar ini. Patch ulang dengan bundle 120-640dpi.");
+        table.put("Icons look soft on this screen. Repatch with the 240-640dpi bundle.",
+                "Ikon terlihat buram di layar ini. Patch ulang dengan bundle 240-640dpi.");
         table.put("If your patched Facebook includes Accent color, Facebook's blue will be %1$s.",
                 "Jika Facebook yang kamu patch menyertakan Warna aksen, biru Facebook akan menjadi %1$s.");
         table.put("If your patched Facebook includes Accent color, the Custom choice will be %1$s.",
@@ -1647,9 +1957,6 @@ final class L10nTableIn {
                 "Jika Facebook yang kamu patch menyertakan Tema hitam AMOLED, latar mode gelap akan memakai warna yang dipilih saat ditambal.");
         table.put("If your patched Facebook includes the AMOLED black theme, light mode's backgrounds will be %1$s.",
                 "Jika Facebook yang kamu patch menyertakan Tema hitam AMOLED, latar mode terang akan menjadi %1$s.");
-    }
-
-    private static void fill13(Map<String, String> table) {
         table.put("If your patched Facebook includes the AMOLED black theme, light mode's backgrounds will be Facebook's own white.",
                 "Jika Facebook yang kamu patch menyertakan Tema hitam AMOLED, latar mode terang akan memakai putih bawaan Facebook.");
         table.put("Import",
@@ -1666,6 +1973,8 @@ final class L10nTableIn {
                 "Di \u201cReels dan Watch\u201d, \u201cSembunyikan tab Reels\u201d memblokirnya setelah dimulai ulang.");
         table.put("In Video and audio, Tap to play blocks autoplay, so reels and other videos wait for your tap.",
                 "Di Video dan audio, \u201cKetuk untuk memutar\u201d memblokir putar otomatis, jadi Reels dan video lain menunggu ketukan Anda.");
+        table.put("In light mode, the Reels tab keeps the same light status bar, top bar and tab bar as the other tabs, instead of turning them dark.",
+                "Dalam mode terang, tab Reels tetap memakai bilah status, bilah atas, dan bilah tab terang yang sama dengan tab lain, bukan menggelapkannya.");
         table.put("In the list of people who reacted to a post, the button on each row, like Add friend or Message, becomes Block. One tap opens Facebook's own block screen.",
                 "Di daftar orang yang bereaksi pada postingan, tombol di setiap baris, seperti Tambahkan teman atau Kirim pesan, menjadi Blokir. Satu ketukan membuka layar blokir Facebook.");
         table.put("In this order: %1$s. Facebook opens on the first one. Restart Facebook after you change this.",
@@ -1680,6 +1989,8 @@ final class L10nTableIn {
                 "Instagram bisa mengambil alih tautan facebook.com, sehingga sakelar tautan aplikasi ini mati lagi. Ketuk, matikan Buka tautan yang didukung di sana (di Android yang lebih baru, pilih Di browser Anda), lalu periksa lagi Tautan yang didukung di atas.");
         table.put("Instagram's settings didn't open. Open App info from Instagram's icon, then Open by default.",
                 "Pengaturan Instagram tidak terbuka. Buka Info aplikasi dari ikon Instagram, lalu Buka secara default.");
+        table.put("Interested",
+                "Tertarik");
         table.put("Invites to events stop showing up in your notifications.",
                 "Undangan acara tidak lagi muncul di notifikasi Anda.");
         table.put("It targets Facebook %1$s.",
@@ -1702,12 +2013,17 @@ final class L10nTableIn {
                 "Pertahankan posisi beranda saat kembali");
         table.put("Keep feed videos muted",
                 "Tetap bisukan video di Kabar Beranda");
+        table.put("Keep playing in the background",
+                "Tetap putar di latar belakang");
         table.put("Keep post dates",
                 "Pertahankan tanggal postingan");
         table.put("Keep seen posts hidden for",
                 "Sembunyikan kiriman yang dilihat selama");
         table.put("Keep the name and buttons while seeking",
                 "Pertahankan nama dan tombol saat melompat");
+    }
+
+    private static void fill16(Map<String, String> table) {
         table.put("Keep the original audio",
                 "Pertahankan audio asli");
         table.put("Keep the progress bar",
@@ -1742,8 +2058,8 @@ final class L10nTableIn {
                 "Penyimpanan terakhir");
         table.put("Leave calls and chats to Messenger",
                 "Serahkan panggilan dan chat ke Messenger");
-        table.put("Leaving Facebook doesn't open the window. Tap Picture-in-picture in a reel's More menu (the three dots) when you want one. That row shows on upright reels, not wide ones.",
-                "Keluar dari Facebook tidak membuka jendela. Ketuk Gambar dalam gambar di menu reel (tiga titik) saat kamu menginginkannya. Baris itu ada di reel tegak, bukan di reel lebar.");
+        table.put("Leaving Facebook doesn't open the window. Tap Picture-in-picture in a reel's More menu (the three dots) when you want one.",
+                "Keluar dari Facebook tidak membuka jendela. Ketuk Gambar dalam gambar di menu reel (tiga titik) saat kamu menginginkannya.");
         table.put("Left alone: %s",
                 "Tidak diterjemahkan: %s");
         table.put("Let each post come back once",
@@ -1758,21 +2074,28 @@ final class L10nTableIn {
                 "Lisensi");
         table.put("Light background color",
                 "Warna latar terang");
+        table.put("Light bars on the Reels tab",
+                "Bilah terang di tab Reels");
         table.put("Light mode's backgrounds use %1$s. Restart Facebook to see the change.",
                 "Latar mode terang memakai %1$s. Mulai ulang Facebook untuk melihat perubahannya.");
+        table.put("Like",
+                "Suka");
         table.put("Like \"%1$s\". A change shows from the next reel.",
                 "Misalnya \"%1$s\". Perubahan terlihat mulai reel berikutnya.");
         table.put("Like only",
                 "Hanya Suka");
+        table.put("Like or unlike this comment?",
+                "Suka atau batal suka komentar ini?");
+        table.put("Like or unlike this post?",
+                "Suka atau batal suka postingan ini?");
+        table.put("Like or unlike this reel?",
+                "Suka atau batal suka reel ini?");
         table.put("Likes and reactions to your posts and comments stop showing up in your notifications. Comments still come through.",
                 "Suka dan reaksi pada postingan dan komentar Anda tidak lagi muncul di notifikasi Anda. Komentar tetap masuk.");
         table.put("Line %1$d can't be saved. Check its length or use the profile or Page ID, then save again.",
                 "Baris %1$d tidak dapat disimpan. Periksa panjangnya atau gunakan ID profil atau Halaman, lalu simpan lagi.");
         table.put("Line %1$d isn't a pattern Hushfacebook can read. Fix it or remove it, then save again.",
                 "Baris %1$d bukan pola yang bisa dibaca Hushfacebook. Perbaiki atau hapus, lalu simpan lagi.");
-    }
-
-    private static void fill14(Map<String, String> table) {
         table.put("Lines between posts",
                 "Garis di antara postingan");
         table.put("Link copied",
@@ -1803,22 +2126,41 @@ final class L10nTableIn {
                 "Angka profil sendiri");
         table.put("Lock Facebook",
                 "Kunci Facebook");
+        table.put("Lock Facebook needs Android 10 or newer.",
+                "Kunci Facebook memerlukan Android 10 atau yang lebih baru.");
         table.put("Lock after",
                 "Kunci setelah");
         table.put("Locked at 2x. Tap the video to go back.",
                 "Terkunci di 2x. Ketuk video untuk kembali.");
         table.put("Logo color",
                 "Warna logo");
+        table.put("Long captions on reels show all of their text right away. Tap the caption to fold it back. A change shows from the next reel.",
+                "Keterangan panjang di reels langsung menampilkan seluruh teksnya. Ketuk keterangannya untuk melipatnya kembali. Perubahan berlaku mulai reel berikutnya.");
+        table.put("Long comments fold where Facebook folds them.",
+                "Komentar panjang dilipat di tempat Facebook melipatnya.");
+        table.put("Long posts fold where Facebook folds them.",
+                "Postingan panjang dilipat di tempat Facebook melipatnya.");
         table.put("Long press opens comments",
                 "Tekan lama membuka komentar");
         table.put("Longer music on photo stories",
                 "Musik lebih panjang di cerita foto");
+    }
+
+    private static void fill17(Map<String, String> table) {
         table.put("Loop stories",
                 "Ulangi Cerita");
+        table.put("Love",
+                "Super");
+        table.put("Lower the seek bar and speaker",
+                "Turunkan bilah geser dan speaker");
+        table.put("Manage your Feed",
+                "Kelola Feed");
         table.put("Mark as seen",
                 "Tandai sudah dilihat");
         table.put("Mark as seen button",
                 "Tombol Tandai sudah dilihat");
+        table.put("Mark new settings",
+                "Tandai pengaturan baru");
         table.put("Marked as seen and sent",
                 "Ditandai sudah dilihat dan dikirim");
         table.put("Marked as seen. Tap again to undo.",
@@ -1881,6 +2223,8 @@ final class L10nTableIn {
                 "Paling relevan");
         table.put("Most viewed on profile Reels",
                 "Paling banyak dilihat di Reels profil");
+        table.put("Move seen stories to the end",
+                "Pindahkan cerita yang sudah dilihat ke akhir");
         table.put("Move the speaker above the three dots",
                 "Pindahkan speaker ke atas tiga titik");
         table.put("Moves Download to phone and Save photo from the end of a post's three-dot menu to the start of its options list. Facebook's own top rows stay above them (on photo posts the list is the More options page). A post with nothing to save gets neither.",
@@ -1889,13 +2233,14 @@ final class L10nTableIn {
                 "Memindahkan bilah tab Facebook ke bawah, dekat jempol, pada akun yang menampilkannya di atas. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Moves Facebook's tab bar to the top, under the search row, as older Facebook had it. Restart Facebook to see the change.",
                 "Memindahkan bilah tab Facebook ke atas, di bawah baris pencarian, seperti Facebook versi lama. Mulai ulang Facebook untuk melihat perubahannya.");
+        table.put("Moves a feed video's seek bar closer to the bottom edge, along with Facebook's speaker and tagged people buttons. Needs Seek bar on feed videos on.",
+                "Memindahkan bilah geser video feed lebih dekat ke tepi bawah, bersama tombol speaker dan orang yang ditandai milik Facebook. Perlu \u201cBilah geser di video feed\u201d aktif.");
         table.put("Movies and Pictures",
                 "Movies dan Pictures");
         table.put("Mute stories",
                 "Bisukan Cerita");
-    }
-
-    private static void fill15(Map<String, String> table) {
+        table.put("Names in the stories row and on an open story sit on a dark box, so a bright story doesn't hide them. Box darkness under Reels and Watch sets how dark. A change shows the next time the stories load.",
+                "Nama di baris cerita dan di cerita yang dibuka tampil di atas kotak gelap, jadi cerita yang terang tidak menutupinya. Kegelapan kotak di Reels dan Watch mengatur seberapa gelap. Perubahan berlaku saat cerita dimuat berikutnya.");
         table.put("New",
                 "Baru");
         table.put("Newest",
@@ -1904,8 +2249,10 @@ final class L10nTableIn {
                 "Reel terbaru dulu");
         table.put("News feed",
                 "Kabar Beranda");
-        table.put("No \"Are you interested in this reel?\" prompt on reels. The reel plays as usual.",
-                "Tanpa pertanyaan \u201cApakah Anda tertarik dengan reel ini?\u201d di reel. Reel diputar seperti biasa.");
+        table.put("Next match",
+                "Hasil berikutnya");
+        table.put("No \"Are you interested in this reel?\" prompt on reels, and no survey card between them asking how well a video matches your interests.",
+                "Tanpa pertanyaan \u201cApakah Anda tertarik dengan reel ini?\u201d di reel, dan tanpa kartu survei di antara reel yang menanyakan seberapa cocok video dengan minat Anda.");
         table.put("No Facebook ads in other apps",
                 "Tanpa iklan Facebook di aplikasi lain");
         table.put("No Meta Verified offer after you post, and no Meta Verified label under the names on posts. Posting works as usual.",
@@ -1920,6 +2267,9 @@ final class L10nTableIn {
                 "Tidak ada aplikasi di ponsel ini yang dapat membuka tautan ini. Alamatnya %1$s.");
         table.put("No app on this phone can open this video",
                 "Tidak ada aplikasi di ponsel ini yang bisa membuka video ini");
+    }
+
+    private static void fill18(Map<String, String> table) {
         table.put("No app on this phone can search with a photo",
                 "Tidak ada aplikasi di ponsel ini yang bisa mencari dengan foto");
         table.put("No dot or count on Feeds, Gaming, Events and the other tabs not listed here. The Reels tab has its own switch.",
@@ -1932,8 +2282,14 @@ final class L10nTableIn {
                 "Tidak ada emoji setelah logo. Ketik satu untuk menampilkannya di sana.");
         table.put("No file chosen. Choose a .ttf or .otf font file of up to %1$d MB.",
                 "Belum ada file yang dipilih. Pilih file font .ttf atau .otf hingga %1$d MB.");
+        table.put("No matches",
+                "Tidak ada hasil");
         table.put("No matching settings",
                 "Tidak ada pengaturan yang cocok");
+        table.put("No more matches",
+                "Tidak ada hasil lagi");
+        table.put("No more reels came. %1$d went in the reel queue.",
+                "Tidak ada reel lagi. %1$d masuk ke antrean reel.");
         table.put("No more reminders that it's a friend's birthday.",
                 "Tidak ada lagi pengingat bahwa seorang teman sedang berulang tahun.");
         table.put("No number on Facebook's app icon. Notifications still arrive. Some launchers add their own count, which this can't remove.",
@@ -1970,6 +2326,8 @@ final class L10nTableIn {
                 "Belum ada yang dipilih. Postingan dalam bahasa apa pun bisa diterjemahkan.");
         table.put("Not enough free space to save this. Free some up and try again.",
                 "Ruang kosong tidak cukup untuk menyimpan ini. Kosongkan sedikit lalu coba lagi.");
+        table.put("Not found yet",
+                "Belum ditemukan");
         table.put("Not in this build, so dark mode stays Facebook's dark gray. Morphe Manager doesn't pick it by default. Turn on Expert mode in Manager, choose the %1$s patch and patch again.",
                 "Tidak ada di build ini, jadi mode gelap tetap abu-abu gelap bawaan Facebook. Morphe Manager tidak memilihnya secara bawaan. Aktifkan mode Ahli di Manager, pilih tambalan %1$s lalu tambal ulang.");
         table.put("Not in this build. To block this, choose the %1$s patch in Morphe Manager and patch again.",
@@ -1978,6 +2336,8 @@ final class L10nTableIn {
                 "Tidak ada di build ini: %1$s. Morphe Manager memilihnya secara default. Pilih tambalan itu lalu tambal ulang untuk mendapatkan fungsinya.");
         table.put("Not in this build: %1$s. Morphe Manager selects them by default. Patch again with them selected to get what they do.",
                 "Tidak ada di build ini: %1$s. Morphe Manager memilihnya secara default. Pilih tambalan itu lalu tambal ulang untuk mendapatkan fungsinya.");
+        table.put("Not interested",
+                "Tidak tertarik");
         table.put("Not saved: that isn't a Facebook photo or video",
                 "Tidak disimpan: itu bukan foto atau video Facebook");
         table.put("Not saved: the file is over 512 MB",
@@ -2016,9 +2376,6 @@ final class L10nTableIn {
                 "Tawarkan unduhan untuk tautan yang disalin");
         table.put("Oldest",
                 "Terlama");
-    }
-
-    private static void fill16(Map<String, String> table) {
         table.put("On",
                 "Aktif");
         table.put("On a patched Facebook, profiles, photos, posts and some Settings pages wouldn't open. This fixes that.",
@@ -2033,6 +2390,9 @@ final class L10nTableIn {
                 "Di layar Reels, tombol, keterangan, dan bilah memudar saat dibiarkan, dan layar bergeser sedikit setiap 2 menit. Menyentuh salah satunya mengembalikannya.");
         table.put("On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.",
                 "Di layar Reels, tombol, keterangan, dan bilah memudar saat dibiarkan. Menyentuh salah satunya mengembalikannya.");
+    }
+
+    private static void fill19(Map<String, String> table) {
         table.put("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.",
                 "Setelah Pelindung burn-in meredupkan tombol, tombol tetap redup di Reels apa pun yang kamu ketuk atau geser, termasuk di reel berikutnya. Tombol tetap berfungsi. Keluar dari Reels mengembalikannya.");
         table.put("Once a day, when Facebook starts, checks GitHub for a newer Hushfacebook and tells you at the top of this page. Nothing downloads on its own.",
@@ -2045,6 +2405,8 @@ final class L10nTableIn {
                 "Satu kata atau frasa per baris");
         table.put("One word or phrase per line, up to %1$d lines, each %2$d to %3$d characters long. A single emoji or Chinese, Japanese or Korean character is enough on its own. Capital letters don't matter, and a phrase matches anywhere in a post's text, even inside longer words.",
                 "Satu kata atau frasa per baris, hingga %1$d baris, masing-masing %2$d sampai %3$d karakter. Satu emoji atau satu karakter Tionghoa, Jepang, atau Korea sudah cukup. Huruf besar tidak berpengaruh, dan frasa cocok di bagian mana pun teks postingan, bahkan di dalam kata yang lebih panjang.");
+        table.put("Only friends' posts",
+                "Hanya postingan teman");
         table.put("Only from a reel's More menu",
                 "Hanya dari menu reel");
         table.put("Only on the right edge",
@@ -2061,8 +2423,10 @@ final class L10nTableIn {
                 "Hanya reel pertama yang menunggu");
         table.put("Open",
                 "Buka");
-        table.put("Open comments at full height",
-                "Buka komentar dengan tinggi penuh");
+        table.put("Open chats in Messenger",
+                "Buka chat di Messenger");
+        table.put("Open comments at",
+                "Buka komentar pada");
         table.put("Open every reply thread",
                 "Buka semua utas balasan");
         table.put("Open feed videos on their own",
@@ -2085,8 +2449,12 @@ final class L10nTableIn {
                 "Buka sekarang bisa dipakai setelah %1$s.");
         table.put("Open on a chosen tab",
                 "Buka di tab pilihan");
+        table.put("Open saved videos in the video player",
+                "Buka video tersimpan di pemutar video");
         table.put("Open settings from the logo",
                 "Buka pengaturan dari logo");
+        table.put("Open shared reels on their own",
+                "Buka reel yang dibagikan sendiri");
         table.put("Open the Messenger app",
                 "Buka aplikasi Messenger");
         table.put("Open the setting",
@@ -2101,6 +2469,8 @@ final class L10nTableIn {
                 "Saat Facebook dibuka");
         table.put("Opening Facebook from its icon shows a short countdown first, so you can change your mind. Links, notifications and shares open it straight away, and so does coming back within a minute.",
                 "Membuka Facebook dari ikonnya menampilkan hitung mundur singkat dulu, supaya kamu bisa berubah pikiran. Tautan, notifikasi, dan berbagi langsung membukanya, begitu juga kembali dalam satu menit.");
+        table.put("Opening a reel from someone who isn't your friend yet no longer pops up a sheet asking you to add them. A change shows from the next shared reel.",
+                "Saat kamu membuka reel dari orang yang belum menjadi temanmu, tidak ada lagi jendela yang memintamu menambahkannya. Perubahan terlihat mulai reel yang dibagikan berikutnya.");
         table.put("Opening pause",
                 "Jeda saat membuka");
         table.put("Opening supported links is off for this app in Android's settings. Tap to turn it on.",
@@ -2111,6 +2481,8 @@ final class L10nTableIn {
                 "Membuka halaman Ikon aplikasi Facebook, juga di akun yang tidak menampilkannya di Pengaturan & privasi.");
         table.put("Opens a GitHub report with your versions and settings filled in. Add what happened.",
                 "Membuka laporan GitHub dengan versi dan pengaturan Anda yang sudah terisi. Tambahkan apa yang terjadi.");
+        table.put("Opens chats in the Messenger app instead of inside Facebook, the Message button on a profile included, while Messenger is installed and enabled. Without Messenger, chats stay in Facebook. Restart Facebook after changing it.",
+                "Membuka chat di aplikasi Messenger, bukan di dalam Facebook, termasuk dari tombol Kirim Pesan di profil, selama Messenger terpasang dan aktif. Tanpa Messenger, chat tetap di Facebook. Mulai ulang Facebook setelah mengubahnya.");
         table.put("Opens reels and videos in Facebook's Clean mode, which hides the buttons down the side. You can still leave Clean mode as usual. Off by default, since it hasn't been tried on a real account yet.",
                 "Membuka reel dan video dalam mode bersih Facebook, yang menyembunyikan tombol di sisi. Kamu tetap bisa keluar dari mode bersih seperti biasa. Mati secara bawaan, karena belum dicoba di akun sungguhan.");
         table.put("Opt-out read: %1$s. Triggered read: %2$s.",
@@ -2135,13 +2507,17 @@ final class L10nTableIn {
                 "Jeda reel saat komentar terbuka");
         table.put("Pause story",
                 "Jeda cerita");
+        table.put("Pause this reel",
+                "Jeda reel ini");
         table.put("Pause, backup and diagnostics",
                 "Jeda, cadangan, dan diagnostik");
-        table.put("Paused with Hushfacebook. Your Events choice stays saved. Tabs already hidden return after a restart while paused.",
-                "Dijeda bersama Hushfacebook. Pilihan Acara tetap tersimpan. Tab yang sudah disembunyikan kembali setelah aplikasi dimulai ulang saat masih dijeda.");
+        table.put("Paused",
+                "Dijeda");
     }
 
-    private static void fill17(Map<String, String> table) {
+    private static void fill20(Map<String, String> table) {
+        table.put("Paused with Hushfacebook. Your Events choice stays saved. Tabs already hidden return after a restart while paused.",
+                "Dijeda bersama Hushfacebook. Pilihan Acara tetap tersimpan. Tab yang sudah disembunyikan kembali setelah aplikasi dimulai ulang saat masih dijeda.");
         table.put("Paused with Hushfacebook. Your Marketplace choice stays saved. Tabs already hidden return after a restart while paused.",
                 "Dijeda bersama Hushfacebook. Pilihan Marketplace tetap tersimpan. Tab yang sudah disembunyikan kembali setelah aplikasi dimulai ulang saat masih dijeda.");
         table.put("People looking at a post don't see that you're writing a comment.",
@@ -2154,6 +2530,10 @@ final class L10nTableIn {
                 "Orang yang kamu blokir tampil tanpa foto profil di halaman Pemblokiran pada pengaturan Facebook. Buka ulang halaman itu jika sudah terbuka.");
         table.put("People, Pages and sites to hide",
                 "Orang, Halaman, dan situs yang disembunyikan");
+        table.put("Percent of its full height the rounded tab bar keeps, from %1$s to %2$s, trimmed above and below the icons. Over 100 makes it taller, mostly toward the bottom of the screen. Leave it blank for %3$s.",
+                "Persen dari tinggi penuh yang dipertahankan bilah tab membulat, dari %1$s sampai %2$s, dipotong di atas dan di bawah ikon. Di atas 100 membuatnya lebih tinggi, terutama ke arah bawah layar. Biarkan kosong untuk %3$s.");
+        table.put("Percent of the screen's width, from %1$s to %2$s. The icons grow and shrink with it. Leave it blank for %3$s.",
+                "Persen dari lebar layar, dari %1$s sampai %2$s. Ikon ikut membesar dan mengecil. Biarkan kosong untuk %3$s.");
         table.put("Phone layout on big screens",
                 "Tata letak ponsel di layar besar");
         table.put("Phone storage",
@@ -2178,14 +2558,18 @@ final class L10nTableIn {
                 "Pilih Warna kustom lagi untuk mengubahnya.");
         table.put("Pick an app icon",
                 "Pilih ikon aplikasi");
+        table.put("Pick one each time",
+                "Pilih setiap kali");
+        table.put("Pick one each time. The reactions open over the post, so slide to one and let go, or let go and tap one.",
+                "Pilih setiap kali. Reaksi terbuka di atas postingan, jadi geser ke salah satunya lalu lepaskan, atau lepaskan lalu ketuk salah satunya.");
         table.put("Picking a type Home needs can leave it empty.",
                 "Memilih jenis yang dibutuhkan Beranda bisa membuatnya kosong.");
         table.put("Picture-in-picture",
                 "Gambar dalam gambar");
         table.put("Picture-in-picture button",
                 "Tombol gambar dalam gambar");
-        table.put("Pinch a story or a photo on someone's profile to zoom in. It goes back when you let go.",
-                "Cubit cerita atau foto di profil seseorang untuk memperbesarnya. Kembali seperti semula saat kamu melepaskan jari.");
+        table.put("Pinch a story, a video in your feed, or a photo on someone's profile or in Photo carousel to zoom in. It goes back when you let go.",
+                "Cubit cerita, video di feed kamu, atau foto di profil seseorang atau di Korsel foto untuk memperbesarnya. Kembali seperti semula saat kamu melepaskan jari.");
         table.put("Pinch to zoom",
                 "Cubit untuk zoom");
         table.put("Pink",
@@ -2196,6 +2580,8 @@ final class L10nTableIn {
                 "Putar video beranda");
         table.put("Play reels once",
                 "Putar reel sekali saja");
+        table.put("Play saved videos in a row",
+                "Putar video tersimpan berurutan");
         table.put("Play story",
                 "Putar cerita");
         table.put("Play videos, reels and stories at the quality below. A quality picked in a video's own menu still wins.",
@@ -2206,14 +2592,20 @@ final class L10nTableIn {
                 "Pemutaran");
         table.put("Playback quality",
                 "Kualitas pemutaran");
+        table.put("Playback speed",
+                "Kecepatan putar");
+        table.put("Playback speed in the post menu",
+                "Kecepatan putar di menu postingan");
+        table.put("Playback speed on the menu's first page",
+                "Kecepatan putar di halaman pertama menu");
         table.put("Politics",
                 "Politik");
         table.put("Posts in another language get a Translate link under their text. A tap sends that post's text to Google Translate.",
                 "Postingan dalam bahasa lain mendapat tautan Terjemahkan di bawah teksnya. Mengetuknya mengirim teks postingan itu ke Google Terjemahan.");
         table.put("Posts in another language show translated, with See original under them. Each post's text goes to Google Translate as it's drawn.",
                 "Postingan dalam bahasa lain tampil sudah diterjemahkan, dengan Lihat aslinya di bawahnya. Teks tiap postingan dikirim ke Google Terjemahan saat ditampilkan.");
-        table.put("Posts in the feed and captions on reels show all of their text, so there's no See more to tap. Tap the text to fold it back.",
-                "Postingan di feed dan keterangan di reels menampilkan seluruh teksnya, jadi tidak perlu mengetuk Lihat selengkapnya. Ketuk teksnya untuk melipatnya kembali.");
+        table.put("Posts in the feed show all of their text, so there's no See more to tap. Tap the text to fold it back. Reel captions have their own switch under Reels and Watch.",
+                "Postingan di feed menampilkan seluruh teksnya, jadi tidak perlu mengetuk Lihat selengkapnya. Ketuk teksnya untuk melipatnya kembali. Keterangan reels punya tombolnya sendiri di Reels dan Watch.");
         table.put("Posts stay however many reactions they have.",
                 "Postingan tetap tampil berapa pun jumlah reaksinya.");
         table.put("Posts you've scrolled past stay out of the feed when it loads again. The list stays on this phone. Turning this off empties it.",
@@ -2232,6 +2624,8 @@ final class L10nTableIn {
                 "Saat bilah progres reel ditekan, nama, keterangan, dan tombol tetap tampil. Jika nonaktif, Facebook menyembunyikannya sampai kamu melepasnya.");
         table.put("Preview",
                 "Pratinjau");
+        table.put("Previous match",
+                "Hasil sebelumnya");
         table.put("Privacy",
                 "Privasi");
         table.put("Professional dashboard",
@@ -2242,29 +2636,43 @@ final class L10nTableIn {
                 "Profil, foto, dan postingan tidak akan terbuka");
         table.put("Progress bar at the bottom",
                 "Bilah progres di bawah");
+    }
+
+    private static void fill21(Map<String, String> table) {
         table.put("Purple",
                 "Ungu");
+        table.put("Put %1$d reels in the reel queue",
+                "%1$d reel dimasukkan ke antrean reel");
         table.put("Puts Hushfacebook settings in the menu you get by holding Facebook's icon. Off, it leaves that menu.",
                 "Menaruh Pengaturan Hushfacebook di menu yang muncul saat ikon Facebook ditekan lama. Jika dimatikan, pintasan itu hilang dari menu tersebut.");
+        table.put("Puts Playback speed on the menu's first page, with Save and Report, so it's one tap away. Off, it stays under More options.",
+                "Menaruh Kecepatan putar di halaman pertama menu, bersama Simpan dan Laporkan, jadi cukup sekali ketuk. Saat mati, tetap ada di Opsi lainnya.");
         table.put("Puts Posts back in the row over search results, after Reels, so you can see only posts for what you searched.",
                 "Mengembalikan Postingan ke baris di atas hasil pencarian, setelah Reels, agar kamu bisa melihat postingan saja untuk yang kamu cari.");
+        table.put("Puts a Saved button at the end of the search bar, so your saved posts and videos are one tap away. Restart Facebook to see the change.",
+                "Menaruh tombol Tersimpan di ujung bilah pencarian, agar postingan dan video yang kamu simpan cukup satu ketukan saja. Mulai ulang Facebook untuk melihat perubahannya.");
+        table.put("Puts a feed video's full player button in its bottom corner, next to Facebook's speaker button, which moves over to make room. Live videos, and videos without Facebook's speaker, keep it up with the other buttons. Needs Full player button on feed videos on.",
+                "Menaruh tombol pemutar penuh video feed di sudut bawahnya, di samping tombol speaker Facebook, yang bergeser untuk memberi tempat. Video siaran langsung dan video tanpa speaker Facebook tetap menaruhnya di atas bersama tombol lainnya. Perlu \u201cTombol pemutar penuh di video feed\u201d aktif.");
+        table.put("Puts a feed video's seek bar right on its bottom edge, so it's out of the way while you scroll. Facebook's speaker and tagged people buttons move up to sit above it. Wins over Lower the seek bar and speaker. Needs Seek bar on feed videos on.",
+                "Menaruh bilah geser video feed tepat di tepi bawahnya, agar tidak mengganggu saat Anda menggulir. Tombol speaker dan orang yang ditandai milik Facebook naik ke atasnya. Lebih diutamakan daripada \u201cTurunkan bilah geser dan speaker\u201d. Perlu \u201cBilah geser di video feed\u201d aktif.");
         table.put("Puts every feature switch but Lock Facebook back the way it started.",
                 "Mengembalikan setiap sakelar fitur kecuali Kunci Facebook seperti semula.");
         table.put("Puts the speaker button in the side column of reels, right above the three dots. A change shows from the next reel.",
                 "Menaruh tombol speaker di kolom samping reel, tepat di atas tiga titik. Perubahan terlihat mulai reel berikutnya.");
         table.put("Puts your words or Facebook's logo back at the top of Home. Restart Facebook to see the change.",
                 "Mengembalikan kata-kata Anda atau logo Facebook ke bagian atas Beranda. Mulai ulang Facebook untuk melihat perubahannya.");
+        table.put("Putting your settings back",
+                "Mengembalikan pengaturan kamu");
         table.put("Quality, format and file names",
                 "Kualitas, format, dan nama file");
+        table.put("Queue reel saves",
+                "Antrekan penyimpanan reel");
         table.put("Quick setups",
                 "Pengaturan cepat");
         table.put("Quiet",
                 "Tenang");
         table.put("Quiet hours",
                 "Jam tenang");
-    }
-
-    private static void fill18(Map<String, String> table) {
         table.put("Quiet hours end",
                 "Jam tenang selesai");
         table.put("Quiet hours start",
@@ -2277,6 +2685,8 @@ final class L10nTableIn {
                 "Simpan tanpa pesan");
         table.put("Quiet social notifications",
                 "Senyapkan notifikasi sosial");
+        table.put("Reaction",
+                "Reaksi");
         table.put("Reading the settings file",
                 "Membaca file pengaturan");
         table.put("Recently watched",
@@ -2291,30 +2701,48 @@ final class L10nTableIn {
                 "Merah");
         table.put("Reel",
                 "Reel");
+        table.put("Reel %1$d",
+                "Reel %1$d");
         table.put("Reel caption",
                 "Keterangan reel");
+        table.put("Reel from %1$s",
+                "Reel dari %1$s");
         table.put("Reel post dates will show how long ago they were posted.",
                 "Tanggal posting reel akan menampilkan berapa lama yang lalu diposting.");
         table.put("Reel post dates will show the day they were posted.",
                 "Tanggal posting reel akan menampilkan hari diposting.");
+        table.put("Reel queue canceled",
+                "Antrean reel dibatalkan");
+        table.put("Reel queue done",
+                "Antrean reel selesai");
+        table.put("Reel queue paused",
+                "Antrean reel dijeda");
         table.put("Reel watch history",
                 "Riwayat tontonan reel");
         table.put("Reels",
                 "Reels");
         table.put("Reels and Watch",
                 "Reels dan Watch");
+        table.put("Reels and full-screen videos that would leave black bars fill the screen instead, with a little cut off the edges. Pinch in on a reel to see all of it, or pinch out to fill it again.",
+                "Reels dan video layar penuh yang akan menyisakan bilah hitam akan memenuhi layar, dengan sedikit bagian tepinya terpotong. Cubit ke dalam pada reel untuk melihat seluruhnya, atau cubit ke luar untuk memenuhi layar lagi.");
         table.put("Reels and their buttons show in black and white, which makes them easier to put down. Your feed, stories, photos and chats keep their colors. It starts from the next reel, and Reels use a little more battery.",
                 "Reels dan tombolnya tampil hitam putih, jadi lebih mudah untuk berhenti menonton. Feed, cerita, foto, dan chat kamu tetap berwarna. Mulai berlaku dari reel berikutnya, dan Reels memakai sedikit lebih banyak baterai.");
         table.put("Reels and videos go to the app below as a facebook.com link. Hold the reel Download button to copy the link instead. Stories still save to this phone.",
                 "Reel dan video dikirim ke aplikasi di bawah sebagai tautan facebook.com. Tahan tombol Unduh pada reel untuk menyalin tautannya. Cerita tetap disimpan di ponsel ini.");
+        table.put("Reels and videos keep going to the next one without pausing to ask if you're still watching.",
+                "Reels dan video terus berlanjut ke berikutnya tanpa berhenti untuk bertanya apakah Anda masih menonton.");
         table.put("Reels and videos play with the sound they were made with, not a version Facebook dubbed into your language with Meta AI. Off by default, since it hasn't been tried on a real account yet.",
                 "Reel dan video diputar dengan suara aslinya, bukan versi yang di-dubbing Facebook ke bahasamu dengan Meta AI. Mati secara bawaan, karena belum dicoba di akun sungguhan.");
         table.put("Reels and videos will save to this phone when you tap Download.",
                 "Saat mengetuk Unduh, reel dan video akan disimpan di ponsel ini.");
+        table.put("Reels are gray from the start.",
+                "Reels berwarna abu-abu sejak awal.");
         table.put("Reels follow the Default quality row.",
                 "Reel mengikuti baris Kualitas bawaan.");
         table.put("Reels in the feed",
                 "Reels di Kabar Beranda");
+        table.put("Reels lose their color over %1$s of watching. 15 minutes away starts them in color again.",
+                "Reels kehilangan warnanya selama %1$s menonton. 15 menit pergi membuatnya berwarna lagi.");
         table.put("Reels order",
                 "Urutan reel");
         table.put("Reels order will be set to %1$s.",
@@ -2331,6 +2759,9 @@ final class L10nTableIn {
                 "Reels yang diputar sendiri");
         table.put("Reels will play at the same quality as other videos.",
                 "Reel akan diputar dengan kualitas yang sama seperti video lainnya.");
+    }
+
+    private static void fill22(Map<String, String> table) {
         table.put("Reels you've already seen may come back.",
                 "Reel yang sudah Anda tonton bisa muncul lagi.");
         table.put("Reels, videos and stories leave the list %1$s after you watch them.",
@@ -2341,6 +2772,8 @@ final class L10nTableIn {
                 "Reel, video, dan cerita tetap di daftar sampai kamu menghapusnya.");
         table.put("Reels, videos and stories you watched, newest first. Tap one to open it again.",
                 "Reel, video, dan cerita yang kamu tonton, yang terbaru di atas. Ketuk salah satunya untuk membukanya lagi.");
+        table.put("Refresh rate",
+                "Kecepatan refresh");
         table.put("Remember what you watch",
                 "Ingat yang kamu tonton");
         table.put("Reminders to finish setting up a Facebook account stop. Login and security alerts still come through.",
@@ -2373,10 +2806,20 @@ final class L10nTableIn {
                 "Menghapus tab ini dari bilah tab. Halamannya masih ada di Menu. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Removes tracking tags like mibextid from links you share or copy. A facebook.com/share/ link is unique to each share, so Facebook can still trace it.",
                 "Menghapus tag pelacak seperti mibextid dari tautan yang kamu bagikan atau salin. Tautan facebook.com/share/ unik untuk setiap pembagian, jadi Facebook masih bisa melacaknya.");
+        table.put("Replay feed videos in place",
+                "Putar ulang video feed di tempat");
+        table.put("Replay story",
+                "Putar ulang cerita");
+        table.put("Report",
+                "Laporkan");
         table.put("Report a problem",
                 "Laporkan masalah");
         table.put("Reports, restart and app information",
                 "Laporan, mulai ulang, dan informasi aplikasi");
+        table.put("Reset settings",
+                "Setel ulang pengaturan");
+        table.put("Resetting settings",
+                "Menyetel ulang pengaturan");
         table.put("Restart Facebook",
                 "Mulai ulang Facebook");
         table.put("Restart Facebook to apply %1$d changes",
@@ -2385,9 +2828,6 @@ final class L10nTableIn {
                 "Mulai ulang Facebook untuk menerapkan perubahan ini");
         table.put("Restart needed. Events only will turn on the next time Facebook starts.",
                 "Perlu dimulai ulang. Mode Acara akan aktif saat Facebook dimulai lagi.");
-    }
-
-    private static void fill19(Map<String, String> table) {
         table.put("Restart needed. Marketplace only will turn on the next time Facebook starts.",
                 "Perlu dimulai ulang. Mode Marketplace akan aktif saat Facebook dimulai lagi.");
         table.put("Restart needed. The normal tabs will return the next time Facebook starts.",
@@ -2400,6 +2840,8 @@ final class L10nTableIn {
                 "Lanjutkan");
         table.put("Resume long videos",
                 "Lanjutkan video panjang");
+        table.put("Resume this reel",
+                "Lanjutkan reel ini");
         table.put("Retry",
                 "Coba lagi");
         table.put("Return to regular Facebook",
@@ -2416,6 +2858,8 @@ final class L10nTableIn {
                 "Bilah tab membulat");
         table.put("SD card that isn't in the phone",
                 "Kartu SD yang tidak ada di ponsel");
+        table.put("Sad",
+                "Sedih");
         table.put("Same as default",
                 "Sama dengan bawaan");
         table.put("Save",
@@ -2438,6 +2882,9 @@ final class L10nTableIn {
                 "Simpan crash ke Download");
         table.put("Save folder",
                 "Folder simpan");
+    }
+
+    private static void fill23(Map<String, String> table) {
         table.put("Save full report",
                 "Simpan laporan lengkap");
         table.put("Save on",
@@ -2450,6 +2897,8 @@ final class L10nTableIn {
                 "Simpan foto di lebih banyak cerita");
         table.put("Save the full report in Download/Hushfacebook.",
                 "Simpan laporan lengkap di Download/Hushfacebook.");
+        table.put("Save this reel and the ones after it",
+                "Simpan reel ini dan reel sesudahnya");
         table.put("Save to",
                 "Simpan ke");
         table.put("Save to phone",
@@ -2462,6 +2911,8 @@ final class L10nTableIn {
                 "Tersimpan");
         table.put("Saved as %1$s in the Notifications folder. Pick it under Sound in Android's notification settings for Facebook.",
                 "Disimpan sebagai %1$s di folder Notifications. Pilih di Suara pada pengaturan notifikasi Android untuk Facebook.");
+        table.put("Saved button in search",
+                "Tombol Tersimpan di pencarian");
         table.put("Saved isn't available in this build.",
                 "Tersimpan tidak tersedia dalam versi ini.");
         table.put("Saved now %1$s. After import %2$s.",
@@ -2500,6 +2951,10 @@ final class L10nTableIn {
                 "Menyimpan video");
         table.put("Saving diagnostic report...",
                 "Menyimpan laporan diagnostik...");
+        table.put("Saving now",
+                "Sedang disimpan");
+        table.put("Saving queued reels",
+                "Menyimpan reel dalam antrean");
         table.put("Saving reels",
                 "Menyimpan reel");
         table.put("Saving the settings file",
@@ -2508,17 +2963,18 @@ final class L10nTableIn {
                 "Menyimpan, memutar, dan menonton secara anonim");
         table.put("Saving...",
                 "Menyimpan...");
-    }
-
-    private static void fill20(Map<String, String> table) {
         table.put("Saving... To cancel, open Downloads in Hushfacebook settings.",
                 "Menyimpan\u2026 Untuk membatalkan, buka Unduhan di pengaturan Hushfacebook.");
         table.put("Screen and motion",
                 "Layar dan gerakan");
+        table.put("Scroll to next reel automatically",
+                "Gulir ke reel berikutnya secara otomatis");
         table.put("Search",
                 "Pencarian");
         table.put("Search box not found. Type the search again.",
                 "Kotak pencarian tidak ditemukan. Ketik pencarian lagi.");
+        table.put("Search comments",
+                "Cari komentar");
         table.put("Search date range",
                 "Rentang tanggal di pencarian");
         table.put("Search no longer shows Meta AI answers or Ask Meta AI prompts, or sends your search to Meta AI. Results for people, groups, pages and posts stay.",
@@ -2541,10 +2997,17 @@ final class L10nTableIn {
                 "Bilah tembus pandang");
         table.put("Seek bar on feed videos",
                 "Bilah geser di video feed");
+        table.put("Seek bar on stories",
+                "Bilah geser di cerita");
+        table.put("Seek bar on the bottom edge",
+                "Bilah geser di tepi bawah");
         table.put("Seen posts forgotten.",
                 "Kiriman yang dilihat sudah dilupakan.");
         table.put("Select part of a post's text",
                 "Pilih sebagian teks postingan");
+    }
+
+    private static void fill24(Map<String, String> table) {
         table.put("Select text",
                 "Pilih teks");
         table.put("Selected %1$s. Font changes apply after restarting Facebook.",
@@ -2581,6 +3044,14 @@ final class L10nTableIn {
                 "Diatur saat menambal, jadi Jeda tidak dapat mematikannya:\n%1$s\nUntuk memastikan bukan ini penyebabnya, tambal ulang tanpa tambalannya.");
         table.put("Set when you patched, so Pause can't turn these off:\n%1$s\nTo rule one out, patch again and leave out its patch.",
                 "Diatur saat menambal, jadi Jeda tidak dapat mematikannya:\n%1$s\nUntuk memastikan salah satunya bukan penyebabnya, tambal ulang tanpa tambalannya.");
+        table.put("Settings an update adds get no dot.",
+                "Pengaturan yang ditambahkan pembaruan tidak diberi titik.");
+        table.put("Settings an update adds will get a dot for %1$s from the first time you open their page.",
+                "Pengaturan yang ditambahkan pembaruan akan diberi titik selama %1$s sejak pertama kali kamu membuka halamannya.");
+        table.put("Settings an update adds will get a dot until you leave their page.",
+                "Pengaturan yang ditambahkan pembaruan akan diberi titik sampai kamu keluar dari halamannya.");
+        table.put("Settings an update adds won't get a dot.",
+                "Pengaturan yang ditambahkan pembaruan tidak akan diberi titik.");
         table.put("Settings and privacy in Facebook's Menu stays open, so its rows show without a tap.",
                 "\u201cPengaturan dan privasi\u201d tetap terbuka di Menu Facebook, jadi barisnya terlihat tanpa perlu diketuk.");
         table.put("Settings and privacy: %s",
@@ -2601,6 +3072,8 @@ final class L10nTableIn {
                 "Pengaturan diimpor. %1$d sakelar berubah.");
         table.put("Settings imported. Saves will go to a folder named %1$s.",
                 "Pengaturan diimpor. Semua yang Anda simpan akan masuk ke folder bernama %1$s.");
+        table.put("Settings reset. Undo the reset puts yours back.",
+                "Pengaturan disetel ulang. Urungkan setel ulang akan mengembalikan pengaturan kamu.");
         table.put("Settings row in Menu",
                 "Baris pengaturan di Menu");
         table.put("Settings shortcut on the app icon",
@@ -2627,17 +3100,26 @@ final class L10nTableIn {
                 "Tampilkan Postingan di pencarian");
         table.put("Show Reels in gray",
                 "Tampilkan Reels dalam abu-abu");
+        table.put("Show Reels in gray will make reels gray from the start.",
+                "Tampilkan Reels dalam abu-abu akan membuat Reels abu-abu sejak awal.");
+        table.put("Show Reels in gray will take reels from color to gray over %1$s.",
+                "Tampilkan Reels dalam abu-abu akan mengubah Reels dari berwarna ke abu-abu selama %1$s.");
         table.put("Show View profile on Marketplace sellers",
                 "Tampilkan Lihat profil pada penjual Marketplace");
         table.put("Show a reel's time",
                 "Tampilkan waktu reel");
-    }
-
-    private static void fill21(Map<String, String> table) {
         table.put("Show all settings as a list",
                 "Tampilkan semua pengaturan sebagai daftar");
+        table.put("Show every reaction on comments",
+                "Tampilkan semua reaksi di komentar");
         table.put("Show full post text",
                 "Tampilkan teks postingan lengkap");
+        table.put("Show full post text comes first while it's on.",
+                "Tampilkan teks postingan lengkap didahulukan selama aktif.");
+        table.put("Show full reel captions",
+                "Tampilkan keterangan reel lengkap");
+        table.put("Show only comments that match",
+                "Tampilkan hanya komentar yang cocok");
         table.put("Show only watched stories",
                 "Tampilkan hanya cerita yang sudah ditonton");
         table.put("Show original",
@@ -2646,24 +3128,41 @@ final class L10nTableIn {
                 "Tampilkan pengaturan per kategori");
         table.put("Show the post date as",
                 "Tampilkan tanggal posting sebagai");
+    }
+
+    private static void fill25(Map<String, String> table) {
         table.put("Show the post date on reels",
                 "Tampilkan tanggal posting di reel");
+        table.put("Show time in Reels",
+                "Tampilkan waktu di Reels");
         table.put("Show translation",
                 "Tampilkan terjemahan");
         table.put("Show when listings went up",
                 "Tampilkan kapan iklan dipasang");
+        table.put("Shows Hushfacebook's logo at the top of Home in place of your words and Facebook's logo. Restart Facebook to see it.",
+                "Menampilkan logo Hushfacebook di bagian atas Beranda sebagai pengganti kata-kata Anda dan logo Facebook. Mulai ulang Facebook untuk melihatnya.");
         table.put("Shows Save photo on every photo you open, even where saving is turned off, and saves the biggest size. Off or paused, Facebook decides again.",
                 "Menampilkan Simpan foto di setiap foto yang kamu buka, bahkan jika penyimpanan dimatikan, dan menyimpan ukuran terbesar. Saat mati atau dijeda, Facebook yang menentukan lagi.");
         table.put("Shows a bar along the bottom of a feed video. Drag it and let go to jump to that point. Live videos and ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.",
                 "Menampilkan bilah di bagian bawah video feed. Geser lalu lepaskan untuk melompat ke titik itu. Video live dan iklan tetap memakai kontrolnya sendiri. Jika \u201cKetuk untuk memutar\u201d aktif, \u201cKontrol video di beranda\u201d juga harus aktif.");
+        table.put("Shows a bar along the bottom of a video story that you drag to move through it. The story waits while you drag. Progress bar at the bottom makes way for it on video stories.",
+                "Menampilkan bilah di bagian bawah cerita video yang bisa kamu geser untuk berpindah di dalamnya. Cerita menunggu selama kamu menggeser. \u201cBilah progres di bawah\u201d memberi tempat untuknya di cerita video.");
+        table.put("Shows a feed video's full length at the right end of its seek bar, in place of the time left. Needs Times on the seek bar on.",
+                "Menampilkan durasi penuh video feed di ujung kanan bilah gesernya, sebagai ganti sisa waktunya. Perlu \u201cWaktu di bilah geser\u201d aktif.");
+        table.put("Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot or times until you drag it. Live videos get it too while they can be rewound. Let go at the far right end to go back to live. Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.",
+                "Menampilkan bilah geser video feed sebagai garis tipis tepat di tepi bawahnya, seperti di Instagram, tanpa titik atau waktu sampai Anda menyeretnya. Video live juga mendapatkannya selama bisa dimundurkan. Lepaskan di ujung kanan untuk kembali ke siaran langsung. Tombol speaker dan orang yang ditandai milik Facebook naik ke atasnya. Perlu \u201cBilah geser di video feed\u201d aktif.");
         table.put("Shows a small button at the left edge of a reel or video that has the window ready. Tap it to open the window right away. Works with Picture-in-picture on.",
                 "Menampilkan tombol kecil di tepi kiri reel atau video yang jendelanya sudah siap. Ketuk untuk langsung membuka jendela. Berfungsi saat Gambar dalam gambar aktif.");
         table.put("Shows a thin bar along the bottom of a story that fills as it plays, like the one on Reels.",
                 "Menampilkan bilah tipis di bagian bawah cerita yang terisi saat cerita diputar, seperti di Reels.");
+        table.put("Shows how far into a feed video you are at the left end of its seek bar, and how much is left at the right end. Needs Seek bar on feed videos on.",
+                "Menampilkan berapa lama video feed sudah diputar di ujung kiri bilah gesernya, dan sisa waktunya di ujung kanan. Perlu \u201cBilah geser di video feed\u201d aktif.");
         table.put("Shows only friends and followed Pages in the Stories tray. Applies when Facebook next loads the tray.",
                 "Hanya menampilkan teman dan Halaman yang diikuti di baris Cerita. Berlaku saat Facebook memuat baris itu lagi.");
         table.put("Shows only people's stories in the Stories tray, without the Pages you follow. Applies when Facebook next loads the tray.",
                 "Hanya menampilkan cerita dari orang di baris Cerita, tanpa Halaman yang kamu ikuti. Berlaku saat Facebook memuat baris itu lagi.");
+        table.put("Shows only posts your friends wrote and hides Pages, groups, ads, suggested posts and feed reels. A post whose author it can't tell stays. Turn on %1$s too for the newest posts first.",
+                "Hanya menampilkan postingan yang ditulis teman kamu dan menyembunyikan Halaman, grup, iklan, postingan yang disarankan, dan reel di feed. Postingan yang penulisnya tidak bisa dikenali tetap ada. Nyalakan juga %1$s agar postingan terbaru muncul lebih dulu.");
         table.put("Shows the Feeds tab straight on its posts, without the title row or the filters. Restart Facebook to see the change.",
                 "Menampilkan tab Feed langsung dengan postingannya, tanpa baris judul dan filter. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Shows the app icon you picked at the top of Home instead of the Facebook wordmark. Needs Unlock app icons and a pick other than the blue one. Restart Facebook to see the change.",
@@ -2678,8 +3177,14 @@ final class L10nTableIn {
                 "Menampilkan emoji bawaan ponsel, bukan milik Facebook. Reaksi dan stiker tidak berubah. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Silent parts play in this video",
                 "Bagian yang hening diputar di video ini");
+        table.put("Skip \"Are you still watching?\"",
+                "Lewati \"Masih menonton?\"");
+        table.put("Skip buttons on feed videos",
+                "Tombol lompat di video feed");
         table.put("Skip feed preloading",
                 "Lewati pramuat beranda");
+        table.put("Skip location prompts",
+                "Lewati permintaan lokasi");
         table.put("Skip silent parts",
                 "Lewati bagian yang hening");
         table.put("Skip silent parts: off for this video",
@@ -2692,6 +3197,10 @@ final class L10nTableIn {
                 "Kecepatan lebih lambat");
         table.put("Smallest",
                 "Terkecil");
+        table.put("Snooze",
+                "Tunda");
+        table.put("Soft box edges",
+                "Tepi kotak lembut");
         table.put("Sort loaded reels",
                 "Urutkan reel yang dimuat");
         table.put("Sorting, replies and reactions",
@@ -2700,6 +3209,8 @@ final class L10nTableIn {
                 "Suara");
         table.put("Source code and issues",
                 "Kode sumber dan laporan masalah");
+        table.put("Speed button on feed videos",
+                "Tombol kecepatan di video feed");
         table.put("Speed on finished live videos",
                 "Kecepatan di video siaran langsung yang sudah selesai");
         table.put("Sports",
@@ -2708,6 +3219,8 @@ final class L10nTableIn {
                 "Perbaikan saat mulai untuk ponsel x86");
         table.put("Stay dim when I tap",
                 "Tetap redup saat saya ketuk");
+        table.put("Stay on a saved video when it ends",
+                "Tetap di video tersimpan saat selesai");
         table.put("Stay zoomed",
                 "Tetap diperbesar");
         table.put("Stays in while paused",
@@ -2722,10 +3235,12 @@ final class L10nTableIn {
                 "Hentikan riwayat tautan di browser Facebook");
         table.put("Stop update prompts",
                 "Hentikan permintaan pembaruan");
+        table.put("Stopped going through reels",
+                "Berhenti menelusuri reel");
         table.put("Stops Facebook sending usage statistics in the background and running its on-phone learning tasks. Restart Facebook to see the change.",
                 "Facebook berhenti mengirim statistik penggunaan di latar belakang dan menjalankan tugas pembelajarannya di ponsel. Mulai ulang Facebook untuk melihat perubahannya.");
-        table.put("Stops sending Facebook your list of watched reels. It uses the list to rank your feed, so reels you've watched may come back.",
-                "Berhenti mengirim daftar reel yang sudah kamu tonton ke Facebook. Facebook memakainya untuk menyusun feed kamu, jadi reel yang sudah ditonton bisa muncul lagi.");
+        table.put("Stops sending Facebook your list of watched reels, and where you stopped in each video and how long you watched it. Facebook ranks your feed with these, so videos you've watched may come back.",
+                "Berhenti mengirim ke Facebook daftar reel yang sudah kamu tonton, juga posisi terakhir dan lama kamu menonton setiap video. Facebook memakainya untuk menyusun feed kamu, jadi video yang sudah ditonton bisa muncul lagi.");
         table.put("Stops the \"This is taking a while\" message about your network connection when a video or GIF is slow to load. It keeps loading as before.",
                 "Menghentikan pesan \"Ini memerlukan waktu agak lama\" tentang koneksi jaringan Anda saat video atau GIF lambat dimuat. Video tetap dimuat seperti biasa.");
         table.put("Stops the camera roll processing behind sharing suggestions, which goes through your photos and videos and uploads photos and details about them, and stops the report of how many you have. Restart Facebook to see the change.",
@@ -2736,6 +3251,9 @@ final class L10nTableIn {
                 "Menghentikan desakan pembaruan lewat Meta App Manager dan menyembunyikan promosi obrolan untuk versi lama. Facebook yang sudah dipatch tidak bisa memakai pembaruan Meta.");
         table.put("Stories",
                 "Cerita");
+    }
+
+    private static void fill26(Map<String, String> table) {
         table.put("Stories change only on a double tap, the left side for the one before and anywhere else for the next. A single tap pauses or plays the story, or shows the play button when that's on.",
                 "Cerita hanya berganti dengan ketukan dua kali, sisi kiri ke cerita sebelumnya dan tempat lain ke berikutnya. Ketukan sekali menjeda atau memutar cerita, atau menampilkan tombol putar jika aktif.");
         table.put("Stories quality",
@@ -2746,17 +3264,18 @@ final class L10nTableIn {
                 "Cerita selalu mulai tanpa suara setiap kali kamu membuka Facebook. Ketuk ikon speaker atau tekan tombol volume naik untuk mendengarnya, dan suara tetap menyala sampai kamu membisukannya lagi.");
         table.put("Stories you've already watched leave the Stories tray until there's a new one. Applies when Facebook next loads the tray.",
                 "Cerita yang sudah kamu tonton hilang dari baris Cerita sampai ada yang baru. Berlaku saat Facebook memuat baris itu lagi.");
+        table.put("Stories you've already watched move to the end of the Stories tray, after the ones you haven't. Hide seen stories goes first while it's on. Applies when Facebook next loads the tray.",
+                "Cerita yang sudah kamu tonton pindah ke akhir baris Cerita, setelah yang belum kamu tonton. Selama Sembunyikan cerita yang sudah dilihat aktif, pengaturan itu didahulukan. Berlaku saat Facebook memuat baris itu lagi.");
         table.put("Story",
                 "Cerita");
         table.put("Story play button",
                 "Tombol putar cerita");
+        table.put("Story position",
+                "Posisi cerita");
         table.put("Support",
                 "Bantuan");
         table.put("Support Hushfacebook",
                 "Dukung Hushfacebook");
-    }
-
-    private static void fill22(Map<String, String> table) {
         table.put("Support the project",
                 "Dukung proyek ini");
         table.put("Supported links",
@@ -2769,10 +3288,14 @@ final class L10nTableIn {
                 "Bilah tab di bawah");
         table.put("Tab bar at the top",
                 "Bilah tab di atas");
+        table.put("Tab bar height",
+                "Tinggi bilah tab");
         table.put("Tab bar position",
                 "Posisi bilah tab");
         table.put("Tab bar while scrolling",
                 "Bilah tab saat menggulir");
+        table.put("Tab bar width",
+                "Lebar bilah tab");
         table.put("Tab bar, top bar, hidden tabs and dots",
                 "Bilah tab, bilah atas, tab tersembunyi, dan titik");
         table.put("Tab order",
@@ -2791,22 +3314,40 @@ final class L10nTableIn {
                 "Ambil istirahat");
         table.put("Takes Like off the row under comments. Reply and the reaction count stay.",
                 "Menghapus Suka dari baris di bawah komentar. Balas dan jumlah reaksi tetap ada.");
+        table.put("Takes Reply off the row under comments. View replies, Like and the reaction count stay.",
+                "Menghapus Balas dari baris di bawah komentar. Lihat balasan, Suka, dan jumlah reaksi tetap ada.");
         table.put("Takes Search and the button next to it off the top of a video or reel you open, and off the Reels tab. Back and Menu stay, and so does More at the bottom of the side buttons, where Download is.",
                 "Menghapus Cari dan tombol di sebelahnya dari bagian atas video atau reel yang kamu buka, dan dari tab Reels. Kembali dan Menu tetap ada, begitu juga Lainnya di bawah tombol samping, tempat Unduh berada.");
+        table.put("Takes Top fan, Subscriber and the other badges off commenters' names. The name and the comment stay.",
+                "Menghapus Penggemar berat, Pelanggan, dan lencana lainnya dari nama orang yang berkomentar. Nama dan komentarnya tetap ada.");
         table.put("Takes away Send to group when you pick two or more people, and the share sheet's own ways to start a new group, so nothing you share makes a group chat by accident. Send separately stays.",
                 "Menghapus \u201cKirim ke grup\u201d saat Anda memilih dua orang atau lebih, beserta cara membuat grup baru saat berbagi, agar tidak ada yang Anda bagikan membuat obrolan grup tanpa sengaja. \u201cKirim terpisah\u201d tetap ada.");
         table.put("Takes away the line that says someone is typing a comment. Your own typing is a separate switch under Privacy.",
                 "Menghapus baris yang menunjukkan seseorang sedang mengetik komentar. Saat Anda sendiri mengetik punya sakelar terpisah di Privasi.");
+        table.put("Takes out the card between stories that asks you to make one, including the ones built from photos in your gallery. Applies the next time you open stories.",
+                "Menghapus kartu di antara cerita yang mengajakmu membuat cerita, termasuk yang dibuat dari foto di galerimu. Berlaku saat berikutnya kamu membuka cerita.");
         table.put("Takes out the empty band some phones show above a listing's top row, like Pixels on Android 17.",
                 "Menghapus pita kosong yang muncul di atas baris teratas listingan di beberapa ponsel, seperti Pixel dengan Android 17.");
         table.put("Takes the + button for making a post, reel or story out of the top bar. Restart Facebook to see the change.",
                 "Menghapus tombol + untuk membuat postingan, reel, dan cerita dari bilah atas. Mulai ulang Facebook untuk melihat perubahannya.");
+        table.put("Takes the Back arrow off the top of a video or reel you open, and Menu off the top of the Reels tab. Your phone's back gesture or button still goes back.",
+                "Menghapus panah Kembali dari bagian atas video atau reel yang kamu buka, dan Menu dari bagian atas tab Reels. Gestur atau tombol kembali di ponselmu tetap berfungsi.");
+        table.put("Takes the Create story tile off the start of the Stories tray. The stories stay. Applies when Facebook next loads the tray.",
+                "Menghapus kotak Buat cerita dari awal baris Cerita. Ceritanya tetap ada. Berlaku saat Facebook memuat baris itu lagi.");
+        table.put("Takes the Fullscreen button off the space under a wide video in Reels. A change shows from the next video.",
+                "Menghapus tombol Layar penuh dari ruang di bawah video lebar di Reels. Perubahan berlaku mulai video berikutnya.");
         table.put("Takes the Messenger button out of the top bar, and the buttons beside it close up the gap. Restart Facebook to see the change.",
                 "Menghapus tombol Messenger dari bilah atas, dan tombol di sebelahnya bergeser menutup celah. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("Takes the Save button off the side of reels. The buttons above it move down. A change shows from the next reel.",
                 "Menghapus tombol Simpan dari sisi reel. Tombol di atasnya turun. Perubahan terlihat mulai reel berikutnya.");
+        table.put("Takes the Subscribe button off the top of a story. Applies from the next story you open.",
+                "Menghapus tombol Berlangganan di bagian atas cerita. Berlaku mulai cerita berikutnya yang kamu buka.");
         table.put("Takes the UP NEXT bar with the next video off the bottom of a video you open from the feed, and the empty space kept for it, so the seek bar stays at the bottom. A change shows from the next video you open.",
                 "Menghapus bilah BERIKUTNYA berisi video selanjutnya dari bagian bawah video yang kamu buka dari feed, beserta ruang kosong yang disiapkan untuknya, jadi bilah progres tetap di bawah. Perubahan berlaku mulai video berikutnya yang kamu buka.");
+        table.put("Takes the X off the top corner of posts in your feed. The three-dot menu next to it stays. A change shows on the posts drawn after it.",
+                "Menghapus X di pojok atas kiriman di feed kamu. Menu titik tiga di sebelahnya tetap ada. Perubahan terlihat pada kiriman yang dimuat sesudahnya.");
+        table.put("Takes the full-screen and picture-in-picture buttons off videos that play in the feed and in search results, like a live video that has ended. A change shows from the next video.",
+                "Menghapus tombol layar penuh dan gambar-dalam-gambar dari video yang diputar di feed dan hasil pencarian, seperti video siaran langsung yang sudah selesai. Perubahan berlaku mulai video berikutnya.");
         table.put("Takes the line with the reel's sound, \"Original audio\" or a song, off the bottom of reels. Other info stays. A change shows from the next reel.",
                 "Menghapus baris berisi suara reel, \"Audio asli\" atau lagu, dari bagian bawah reel. Info lain tetap ada. Perubahan terlihat mulai reel berikutnya.");
         table.put("Takes the numbers away from under a reel's Like, Comment and Share icons. The icons stay where they are. A change shows from the next reel.",
@@ -2815,6 +3356,10 @@ final class L10nTableIn {
                 "Menghapus angka dari tombol Suka, Komentari, dan Bagikan di bawah postingan, sehingga tiap tombol hanya menampilkan katanya. Tombol tetap di tempatnya. Perubahan terlihat pada postingan yang dimuat setelahnya.");
         table.put("Takes the phone's status bar, with the time and battery, off Facebook's main screen, so the app gets the whole screen. Swipe down from the top edge to see it for a moment.",
                 "Menghapus bilah status ponsel, yang berisi jam dan baterai, dari layar utama Facebook, sehingga aplikasi memakai seluruh layar. Geser ke bawah dari tepi atas untuk melihatnya sebentar.");
+        table.put("Takes the profile picture off comments, so the name and text start where the picture was. A change shows on the comments drawn after it.",
+                "Menghapus foto profil dari komentar, sehingga nama dan teks dimulai di tempat foto tadi. Perubahan terlihat pada komentar yang ditampilkan setelahnya.");
+        table.put("Takes the profile picture off the top of posts, so the name starts where the picture was. A change shows on the posts drawn after it.",
+                "Menghapus foto profil dari bagian atas postingan, sehingga nama dimulai di tempat foto tadi. Perubahan terlihat pada postingan yang ditampilkan setelahnya.");
         table.put("Takes the row of profile pictures off the share sheet, the people Facebook suggests sending a post to. The search box and the other ways to share stay.",
                 "Menghapus deretan foto profil dari lembar berbagi, yaitu orang-orang yang disarankan Facebook untuk dikirimi kiriman. Kotak pencarian dan cara berbagi lainnya tetap ada.");
         table.put("Takes the row of suggested replies off the bottom of a story. The reply box stays. Applies from the next story you open.",
@@ -2825,6 +3370,15 @@ final class L10nTableIn {
                 "Menghapus kredit lagu dan efek dari baris di bawah nama pengunggah cerita. Berlaku mulai cerita berikutnya yang kamu buka.");
         table.put("Takes the speaker button off the bottom of the side of reels. A change shows from the next reel.",
                 "Menghapus tombol speaker dari bagian bawah sisi reel. Perubahan terlihat mulai reel berikutnya.");
+        table.put("Takes the story and LIVE rings off the picture on a profile, and in the lists and search results that show it the same way. Applies the next time the picture draws.",
+                "Menghapus cincin cerita dan LIVE dari foto di profil, serta di daftar dan hasil pencarian yang menampilkannya dengan cara yang sama. Berlaku saat foto ditampilkan berikutnya.");
+        table.put("Takes the story and LIVE rings off the profile pictures at the top of posts. Tapping the picture opens the profile. Applies to posts drawn after the change.",
+                "Menghapus cincin cerita dan LIVE dari foto profil di bagian atas postingan. Mengetuk foto akan membuka profil. Berlaku untuk postingan yang ditampilkan setelah perubahan.");
+    }
+
+    private static void fill27(Map<String, String> table) {
+        table.put("Takes the story ring off the profile pictures next to comments. Applies to comments drawn after the change.",
+                "Menghapus cincin cerita dari foto profil di samping komentar. Berlaku untuk komentar yang ditampilkan setelah perubahan.");
         table.put("Takes the thumbs-down off comments. Like and Reply stay.",
                 "Menghapus jempol ke bawah dari komentar. Suka dan Balas tetap ada.");
         table.put("Takes the word Reels off the top of the Reels tab. The buttons beside it stay.",
@@ -2877,9 +3431,6 @@ final class L10nTableIn {
                 "File itu bukan teks yang dapat dibaca, jadi mungkin rusak saat ditransfer. Tidak ada yang diubah.");
         table.put("That file lists a setting twice, so Hushfacebook can't tell which value to use. Nothing was changed.",
                 "File itu mencantumkan satu pengaturan dua kali, jadi Hushfacebook tidak tahu nilai mana yang dipakai. Tidak ada yang diubah.");
-    }
-
-    private static void fill23(Map<String, String> table) {
         table.put("That font file is over %1$d MB. Your font didn't change.",
                 "File font itu lebih dari %1$d MB. Font Anda tidak berubah.");
         table.put("That isn't a .ttf or .otf font file. Your font didn't change.",
@@ -2890,6 +3441,8 @@ final class L10nTableIn {
                 "Itu bukan gambar yang bisa dibuka Android. Bagian atas Beranda tidak berubah.");
         table.put("That picture is over %1$d MB. The top of Home didn't change.",
                 "Gambar itu lebih dari %1$d MB. Bagian atas Beranda tidak berubah.");
+        table.put("That reel is already saved",
+                "Reel itu sudah disimpan");
         table.put("That saved file is no longer available.",
                 "File yang disimpan itu tidak tersedia lagi.");
         table.put("That settings file holds a value Hushfacebook can't read. Nothing was changed.",
@@ -2904,14 +3457,16 @@ final class L10nTableIn {
                 "Kotak komentar di bawah video layar penuh hilang. Kotak komentar di postingan tetap ada.");
         table.put("The Also from Meta section leaves Facebook's Menu, with its links to Meta's other apps and its ads for Meta's devices. Your own shortcuts stay.",
                 "Bagian \u201cJuga dari Meta\u201d hilang dari Menu Facebook, beserta tautannya ke aplikasi Meta lainnya dan iklannya untuk perangkat Meta. Pintasanmu sendiri tetap ada.");
+        table.put("The Create Facebook Page row leaves the top of Facebook's Menu. Your profile above it stays.",
+                "Baris \u201cBuat Halaman Facebook\u201d hilang dari bagian atas Menu Facebook. Profil Anda di atasnya tetap ada.");
         table.put("The Date posted filter in post search asks for a from and to date, in place of a list of years.",
                 "Filter tanggal posting di pencarian kiriman meminta tanggal awal dan tanggal akhir, bukan daftar tahun.");
         table.put("The Facebook logo at the top of Home is %1$s. Restart Facebook to see the change.",
                 "Logo Facebook di atas Beranda berwarna %1$s. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("The Facebook logo keeps its blue. Type a color code to change it.",
                 "Logo Facebook tetap biru. Ketik kode warna untuk mengubahnya.");
-        table.put("The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (120-640dpi) bundle on APKMirror, which has images for every screen.",
-                "Facebook yang kamu patch tidak punya gambar untuk layar ini, jadi beberapa ikon diperbesar. Patch ulang Facebook dari bundle (arm64-v8a) (120-640dpi) di APKMirror, yang punya gambar untuk semua layar.");
+        table.put("The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (240-640dpi) bundle on APKMirror, which has images for every screen.",
+                "Facebook yang kamu patch tidak punya gambar untuk layar ini, jadi beberapa ikon diperbesar. Patch ulang Facebook dari bundle (arm64-v8a) (240-640dpi) di APKMirror, yang punya gambar untuk semua layar.");
         table.put("The Feeds tab will open on %1$s.",
                 "Tab Feed akan terbuka di %1$s.");
         table.put("The Feeds tab will open on the filter Facebook picks.",
@@ -2942,8 +3497,15 @@ final class L10nTableIn {
                 "Baki Cerita hanya menyimpan cerita yang sudah Anda tonton, jadi Anda bisa menemukannya lagi. Matikan untuk melihat yang baru. Sembunyikan cerita yang sudah dilihat menunggu selama ini aktif. Berlaku saat Facebook memuat baki berikutnya.");
         table.put("The Subscribe button some authors get there instead, which subscribes with one tap. Follow buttons stay.",
                 "Tombol Berlangganan yang dimiliki sebagian pembuat di sana, yang langsung berlangganan dengan sekali ketuk. Tombol Ikuti tetap ada.");
+    }
+
+    private static void fill28(Map<String, String> table) {
         table.put("The Upgrades section and its offers leave Facebook's Menu. Settings, Help and support and the rest of the Menu stay.",
                 "Bagian \u201cUpgrade\u201d dan penawarannya hilang dari Menu Facebook. Pengaturan, Bantuan & dukungan, dan bagian Menu lainnya tetap ada.");
+        table.put("The Write a comment box under a post's comments goes away. You can still read every comment.",
+                "Kotak Tulis komentar di bawah komentar postingan hilang. Kamu tetap bisa membaca semua komentar.");
+        table.put("The Your shortcuts row leaves Facebook's Menu, with the groups and Pages Facebook keeps putting back in it. The Menu tiles under it stay.",
+                "Baris \u201cPintasan Anda\u201d hilang dari Menu Facebook, beserta grup dan Halaman yang terus dimasukkan kembali oleh Facebook. Ubin Menu di bawahnya tetap ada.");
         table.put("The app holding that file is taking too long, so Hushfacebook stopped waiting. Nothing was changed.",
                 "Aplikasi yang menyimpan file itu terlalu lama, jadi Hushfacebook berhenti menunggu. Tidak ada yang diubah.");
         table.put("The app holding that font file is taking too long, so Hushfacebook stopped waiting. Your font didn't change.",
@@ -2958,6 +3520,8 @@ final class L10nTableIn {
                 "Aplikasi yang menyimpan file pengaturan terakhir masih belum merespons. Coba lagi nanti.");
         table.put("The app holding the settings file is taking too long, so Hushfacebook stopped waiting. That app may still finish saving it, so check the file before you rely on it.",
                 "Aplikasi yang menyimpan file pengaturan terlalu lama, jadi Hushfacebook berhenti menunggu. Aplikasi itu mungkin masih menyelesaikan penyimpanannya, jadi periksa file itu sebelum mengandalkannya.");
+        table.put("The bars keep %1$s percent of their color, or %2$s percent over the blur. Type a number to change it.",
+                "Bilah mempertahankan %1$s persen warnanya, atau %2$s persen di atas efek buram. Ketik angka untuk mengubahnya.");
         table.put("The bottom tab bar hides as you scroll down and returns when you scroll up, for more room. Restart Facebook to see the change.",
                 "Bilah tab di bawah menghilang saat kamu menggulir ke bawah dan muncul lagi saat menggulir ke atas, agar lebih lega. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("The bottom tab bar stays put while you scroll, on accounts where Facebook slides it away. Restart Facebook to see the change.",
@@ -2968,6 +3532,12 @@ final class L10nTableIn {
                 "Kotak komentar tidak lagi menampilkan tombol GIF dan stiker. Mengetik, foto, dan mengirim tetap berfungsi seperti biasa.");
         table.put("The connection failed. Check your internet and try again.",
                 "Koneksi gagal. Periksa internetmu lalu coba lagi.");
+        table.put("The dark boxes are %1$s percent black.",
+                "Kotak gelap berwarna hitam %1$s persen.");
+        table.put("The dark boxes are %1$s percent black. Type a number to change it.",
+                "Kotak gelap berwarna hitam %1$s persen. Ketik angka untuk mengubahnya.");
+        table.put("The dark boxes fade out at their edges instead of ending sharp. A change shows from the next reel or story.",
+                "Kotak gelap memudar di tepinya, bukan berakhir tajam. Perubahan berlaku mulai reel atau cerita berikutnya.");
         table.put("The date",
                 "Tanggalnya");
         table.put("The diagnostic report couldn't be copied. Try again.",
@@ -2998,23 +3568,28 @@ final class L10nTableIn {
                 "Daftar penuh, jadi tidak ada yang ditambahkan.");
         table.put("The list is full, so the rest weren't added.",
                 "Daftar penuh, jadi sisanya tidak ditambahkan.");
+        table.put("The name at the bottom of a reel sits on the same dark box, so it's easy to read over a bright video. A change shows from the next reel.",
+                "Nama di bagian bawah reel tampil di atas kotak gelap yang sama, jadi mudah dibaca di atas video yang terang. Perubahan berlaku mulai reel berikutnya.");
         table.put("The newest Hushfacebook release is %1$s.",
                 "Rilis Hushfacebook terbaru adalah %1$s.");
-    }
-
-    private static void fill24(Map<String, String> table) {
         table.put("The phone's language",
                 "Bahasa ponsel");
         table.put("The photo wasn't saved. Try again.",
                 "Foto tidak tersimpan. Coba lagi.");
         table.put("The places Facebook shows ads or reports what you do, and what this build does about each. A line with a switch takes you to it.",
                 "Tempat Facebook menampilkan iklan atau melaporkan apa yang Anda lakukan, dan apa yang dilakukan build ini di masing-masing. Baris yang punya sakelar membawa Anda ke sakelar itu.");
+        table.put("The reel queue is full. Try again when it's shorter.",
+                "Antrean reel penuh. Coba lagi saat antreannya lebih pendek.");
         table.put("The reels in your feed's Reels row play from the start and keep going, instead of repeating a second or two. Tiles drawn after a change pick it up.",
                 "Reel di baris Reels pada feed kamu diputar dari awal dan terus berlanjut, bukan mengulang satu atau dua detik. Kotak yang muncul setelah perubahan akan mengikutinya.");
         table.put("The report couldn't be copied. Try again.",
                 "Laporan tidak dapat disalin. Coba lagi.");
         table.put("The report couldn't be saved. Try again.",
                 "Laporan tidak dapat disimpan. Coba lagi.");
+        table.put("The rounded tab bar is %1$s percent of the screen wide.",
+                "Bilah tab membulat selebar %1$s persen layar.");
+        table.put("The rounded tab bar keeps %1$s percent of its height.",
+                "Bilah tab membulat mempertahankan %1$s persen tingginya.");
         table.put("The row of emoji over the comment box goes away. You can still type emoji from your keyboard.",
                 "Baris emoji di atas kotak komentar hilang. Kamu tetap bisa mengetik emoji dari keyboard.");
         table.put("The saved copy of %1$s is missing. Choose the file again.",
@@ -3023,6 +3598,8 @@ final class L10nTableIn {
                 "Salinan tersimpan dari %1$s tidak ditemukan. Pilih gambar itu lagi.");
         table.put("The search box didn't open. Type the search again.",
                 "Kotak pencarian tidak terbuka. Ketik pencarian lagi.");
+        table.put("The see-through bars keep %1$s percent of their color.",
+                "Bilah tembus pandang mempertahankan %1$s persen warnanya.");
         table.put("The selected tab in the tab bar is %1$s. Restart Facebook to see the change.",
                 "Tab yang dipilih di bilah tab berwarna %1$s. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("The selected tab keeps Facebook's color. Type a color code to change it.",
@@ -3035,12 +3612,17 @@ final class L10nTableIn {
                 "Kecepatan yang kamu pilih di menu video feed atau Watch berlaku juga untuk video berikutnya. Reel punya kecepatannya sendiri. Mati secara bawaan, karena belum dicoba di akun sungguhan.");
         table.put("The switches above block their kinds only between the two times below. The rest of the day those kinds come through.",
                 "Sakelar di atas hanya memblokir jenisnya di antara dua waktu di bawah. Di luar itu, jenis tersebut tetap masuk.");
+        table.put("The tab bar goes away while the Reels tab is open, and the reel gets the whole screen. The other tabs keep the bar. Restart Facebook to see the change.",
+                "Bilah tab hilang selama tab Reels terbuka, dan reel memenuhi seluruh layar. Tab lainnya tetap menampilkan bilah. Mulai ulang Facebook untuk melihat perubahannya.");
         table.put("The thin line along the top of the comment box goes away.",
                 "Garis tipis di bagian atas kotak komentar hilang.");
         table.put("The thumbs-down on a comment becomes Block. One tap opens Facebook's own block screen for that person.",
                 "Jempol ke bawah pada komentar menjadi Blokir. Satu ketukan membuka layar blokir Facebook untuk orang itu.");
         table.put("The top bar and the tab bar turn see-through, so the feed shows through them as you scroll. On Android 12 and newer the feed behind them is blurred.",
                 "Bilah atas dan bilah tab menjadi tembus pandang, jadi feed terlihat di baliknya saat kamu menggulir. Di Android 12 dan yang lebih baru, feed di belakangnya diburamkan.");
+    }
+
+    private static void fill29(Map<String, String> table) {
         table.put("The top bar with search and Messenger stays put while you scroll down, instead of sliding away.",
                 "Bilah atas dengan pencarian dan Messenger tetap di tempat saat kamu menggulir ke bawah, tidak ikut menghilang.");
         table.put("The top of Home says %1$s. Restart Facebook to see the change.",
@@ -3067,6 +3649,8 @@ final class L10nTableIn {
                 "Tidak ada data diagnostik yang dapat dikembalikan.");
         table.put("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.",
                 "Semua ini dipilih di Morphe Manager saat Anda menambal, dan Jeda tidak mematikannya. Tambal ulang untuk mengubahnya.");
+        table.put("Thin line seek bar",
+                "Bilah geser garis tipis");
         table.put("This Facebook build has no App icon page.",
                 "Versi Facebook ini tidak punya halaman Ikon aplikasi.");
         table.put("This Facebook build has no Whitehat settings screen.",
@@ -3083,6 +3667,8 @@ final class L10nTableIn {
                 "Aplikasi itu menampilkan iklannya sendiri atau tidak sama sekali, dan iklan berhadiahnya bisa gagal.");
         table.put("Time for a break",
                 "Waktunya istirahat");
+        table.put("Times on the seek bar",
+                "Waktu di bilah geser");
         table.put("Title must include",
                 "Judul harus berisi");
         table.put("To day",
@@ -3091,6 +3677,8 @@ final class L10nTableIn {
                 "Terlalu banyak unduhan sekaligus. Coba lagi setelah salah satunya selesai.");
         table.put("Top bar",
                 "Bilah atas");
+        table.put("Transcript",
+                "Transkrip");
         table.put("Translate",
                 "Terjemahkan");
         table.put("Translate posts by themselves",
@@ -3113,6 +3701,8 @@ final class L10nTableIn {
                 "Coba lagi, atau kembali ke Facebook.");
         table.put("Try the lists on some text",
                 "Coba daftar pada sebuah teks");
+        table.put("Turn gray over",
+                "Menjadi abu-abu dalam");
         table.put("Turn off %1$s to use this.",
                 "Matikan %1$s untuk menggunakannya.");
         table.put("Turn off HDR brightness",
@@ -3123,15 +3713,18 @@ final class L10nTableIn {
                 "Matikan ketuk dua kali untuk menyukai");
         table.put("Turn off haptics",
                 "Matikan haptik");
-    }
-
-    private static void fill25(Map<String, String> table) {
         table.put("Turn off screen transitions",
                 "Matikan transisi layar");
         table.put("Turn on %1$s to save videos that WhatsApp and these editors accept.",
                 "Nyalakan %1$s untuk menyimpan video yang diterima WhatsApp dan editor-editor ini.");
         table.put("Turn on %1$s to use this.",
                 "Nyalakan %1$s untuk menggunakannya.");
+        table.put("Turn on notifications for this post",
+                "Aktifkan notifikasi untuk postingan ini");
+        table.put("Turned off lately",
+                "Baru dinonaktifkan");
+        table.put("Turns every switch and choice that Export settings saves back to how a new install has them. Pause, Debug logging and the update check stay as they are.",
+                "Mengembalikan setiap sakelar dan pilihan yang disimpan Ekspor pengaturan ke keadaan instalasi baru. Jeda, Pencatatan debug, dan pengecekan pembaruan tetap seperti semula.");
         table.put("Type @ before Facebook suggests someone to tag in posts or comments. Your text stays unchanged.",
                 "Ketik @ sebelum Facebook menyarankan orang untuk ditandai dalam postingan atau komentar. Teks Anda tidak berubah.");
         table.put("Type a six-digit color code, like #2ECC71.",
@@ -3142,12 +3735,21 @@ final class L10nTableIn {
                 "Ketik atau tempel teks postingan untuk melihat apa yang akan dilakukan daftar ini. Teks tidak disimpan.");
         table.put("Undo",
                 "Urungkan");
+        table.put("Undo the reset",
+                "Urungkan setel ulang");
+        table.put("Unfollow",
+                "Berhenti mengikuti");
         table.put("Unlock",
                 "Buka kunci");
         table.put("Unlock Facebook",
                 "Buka kunci Facebook");
+    }
+
+    private static void fill30(Map<String, String> table) {
         table.put("Unlock app icons",
                 "Buka ikon aplikasi");
+        table.put("Until I leave the page",
+                "Sampai halaman ditinggalkan");
         table.put("Until you clear it",
                 "Sampai kamu menghapusnya");
         table.put("Until you resume, every switch but Debug logging and Lock Facebook acts as if it were off. Changes made when you patched stay in.",
@@ -3160,6 +3762,8 @@ final class L10nTableIn {
                 "Unggah cerita dalam HD");
         table.put("Usage statistics uploads",
                 "Unggahan statistik penggunaan");
+        table.put("Use the Hushfacebook logo",
+                "Gunakan logo Hushfacebook");
         table.put("Use the icon at the top of Home",
                 "Pakai ikon di bagian atas Beranda");
         table.put("Use the order below. A choice made on a post lasts until restart. Links to comments keep Facebook's order.",
@@ -3246,9 +3850,6 @@ final class L10nTableIn {
                 "Video diputar dengan kualitas terbaik hingga %1$s yang ditawarkan Facebook untuk masing-masing, atau yang terdekat di atasnya.");
         table.put("Videos play at the highest quality Facebook offers for each.",
                 "Video diputar dengan kualitas tertinggi yang ditawarkan Facebook untuk masing-masing.");
-    }
-
-    private static void fill26(Map<String, String> table) {
         table.put("Videos play at the lowest quality Facebook offers for each.",
                 "Video diputar dengan kualitas terendah yang ditawarkan Facebook untuk masing-masing.");
         table.put("Videos will go in a subfolder named %1$s.",
@@ -3265,6 +3866,9 @@ final class L10nTableIn {
                 "Video akan disimpan dengan kualitas terendahnya, agar ukuran filenya sekecil mungkin.");
         table.put("Videos you open full screen, from a comment or a link, start with their details and comments folded away, so the video sits in the middle of the screen. The arrow under it still brings them back.",
                 "Video yang kamu buka layar penuh, dari komentar atau tautan, dimulai dengan detail dan komentar terlipat, jadi video berada di tengah layar. Panah di bawahnya tetap bisa menampilkannya lagi.");
+    }
+
+    private static void fill31(Map<String, String> table) {
         table.put("Videos you post to your Story ask Facebook for its high upload quality instead of standard. Applies to the next Story you post.",
                 "Video yang Anda posting ke cerita Anda meminta kualitas unggahan tinggi dari Facebook, bukan standar. Berlaku untuk cerita berikutnya yang Anda posting.");
         table.put("Videos, reels and stories jump past the quiet stretches in their sound, so talks and how-tos get to the point sooner.",
@@ -3273,12 +3877,16 @@ final class L10nTableIn {
                 "Video, reel, cerita, dan musik menunggu ketukanmu, tidak diputar sendiri. Pengaturan Putar otomatis milik Facebook menampilkan Mati selama ini menyala.");
         table.put("View stories anonymously",
                 "Lihat cerita secara anonim");
+        table.put("Waiting",
+                "Menunggu");
         table.put("Waiting for Facebook's tab bar. Events only will apply when Facebook builds it.",
                 "Menunggu bilah tab Facebook. Mode Acara akan diterapkan saat Facebook membuatnya.");
         table.put("Waiting for Facebook's tab bar. Marketplace only will apply when Facebook builds it.",
                 "Menunggu bilah tab Facebook. Mode Marketplace akan diterapkan saat Facebook membuatnya.");
         table.put("Wallpaper accent",
                 "Aksen wallpaper");
+        table.put("Watch again at the end of a feed video plays it again right there, instead of opening it in Reels.",
+                "\u201cTonton lagi\u201d di akhir video feed memutarnya lagi di situ juga, bukan membukanya di Reels.");
         table.put("Watch history",
                 "Riwayat tontonan");
         table.put("Watch history isn't available in this build.",
@@ -3303,12 +3911,20 @@ final class L10nTableIn {
                 "Saat Facebook terbuka di Feed, tab Feed terbuka di filter yang dipilih Facebook.");
         table.put("When you tap Download",
                 "Saat mengetuk Unduh");
+        table.put("Where Facebook shows only a comment's top reaction next to its count, keeps Like, Reply and every reaction instead. A change shows on the comments drawn after it.",
+                "Saat Facebook hanya menampilkan reaksi teratas sebuah komentar di samping jumlahnya, Suka, Balas, dan semua reaksi tetap ditampilkan. Perubahan terlihat pada komentar yang ditampilkan setelahnya.");
         table.put("Where ads and tracking are blocked",
                 "Tempat iklan dan pelacakan diblokir");
         table.put("While Marketplace only is on, loads less of the feed in the background. Some loading still happens at startup.",
                 "Selama mode Marketplace menyala, memuat lebih sedikit feed di latar belakang. Sebagian masih dimuat saat Facebook dibuka.");
         table.put("While Marketplace only is on, silences video suggestions, memories, birthdays and friend suggestions. Messages and trading updates still arrive.",
                 "Selama mode Marketplace menyala, membisukan saran video, kenangan, ulang tahun, dan saran teman. Pesan dan kabar jual beli tetap masuk.");
+        table.put("While a feed video plays, its seek bar and Facebook's speaker button fade a few seconds after it starts or you last touch them. Touch the bar or pause the video and they come back. Needs Seek bar on feed videos on.",
+                "Saat video feed diputar, bilah gesernya dan tombol speaker Facebook meredup beberapa detik setelah video mulai atau setelah terakhir kali kamu menyentuhnya. Sentuh bilahnya atau jeda videonya, dan keduanya muncul lagi. Perlu \u201cBilah geser di video feed\u201d aktif.");
+        table.put("While the search box holds words, comments without them are hidden. Clearing the box brings them back.",
+                "Selama kotak pencarian berisi kata, komentar tanpa kata itu disembunyikan. Mengosongkan kotak akan menampilkannya lagi.");
+        table.put("Why am I seeing this post?",
+                "Mengapa saya melihat postingan ini?");
         table.put("Width in dp, from %1$s to %2$s. Leave it blank for %3$s.",
                 "Lebar dalam dp, dari %1$s sampai %2$s. Biarkan kosong untuk %3$s.");
         table.put("With %1$s on, Facebook will open on %2$s.",
@@ -3327,8 +3943,8 @@ final class L10nTableIn {
                 "Dengan Kunci Facebook aktif, Facebook akan terkunci setelah Anda pergi selama %1$s.");
         table.put("With Opening pause on, Facebook will wait %1$s before it opens.",
                 "Dengan Jeda saat membuka aktif, Facebook akan menunggu %1$s sebelum terbuka.");
-        table.put("With Pinch to zoom on, a video you zoom on a profile or Page keeps playing. With Stay zoomed on too, press and hold the zoom to pause the video, and again to play it. Stories hold still while you zoom.",
-                "Saat Cubit untuk zoom aktif, video yang kamu perbesar di profil atau Halaman tetap diputar. Kalau Tetap diperbesar juga aktif, tekan lama tampilan zoom untuk menjeda video, dan tekan lama lagi untuk memutarnya. Cerita tetap diam selama kamu memperbesar.");
+        table.put("With Pinch to zoom on, a video you zoom keeps playing, stories included. To zoom a story on a still frame, hold it first and then pinch. With Stay zoomed on too, press and hold the zoom to pause the video, and again to play it.",
+                "Saat Cubit untuk zoom aktif, video yang kamu perbesar tetap diputar, termasuk di cerita. Untuk memperbesar cerita dalam gambar diam, tekan lama dulu, lalu cubit. Kalau Tetap diperbesar juga aktif, tekan lama tampilan zoom untuk menjeda video, dan tekan lama lagi untuk memutarnya.");
         table.put("With Pinch to zoom on, double tap a photo on a profile to zoom in where you tapped, and double tap again to put it back. A single tap still opens the photo, a moment later.",
                 "Saat Cubit untuk zoom aktif, ketuk dua kali foto di profil untuk memperbesar di tempat yang kamu ketuk, lalu ketuk dua kali lagi untuk mengembalikannya. Ketuk sekali tetap membuka foto, hanya sesaat lebih lambat.");
         table.put("With Pinch to zoom on, the photo or story stays zoomed when you let go, and a story stays paused. Drag with one finger or pinch again. Tap or press Back when you're done.",
@@ -3341,6 +3957,8 @@ final class L10nTableIn {
                 "Saat Simpan foto apa pun aktif, postingan berisi foto juga mendapat Simpan foto di menu titik tiganya. Postingan dengan beberapa foto menyimpan semuanya satu per satu.");
         table.put("With Save videos other apps can open on, a full size video Facebook only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 10 minutes stay smaller.",
                 "Saat Simpan video yang bisa dibuka aplikasi lain aktif, video ukuran penuh yang di Facebook hanya ada sebagai VP9 atau AV1 dikonversi ke H.264 di ponselmu, bukan disimpan lebih kecil. Lebih lambat, dan video lebih dari 10 menit tetap lebih kecil.");
+        table.put("With Seek bar on stories on, the bar fades a few seconds after the story starts or you last touched it. A touch or a pause brings it back.",
+                "Dengan \u201cBilah geser di cerita\u201d aktif, bilahnya meredup beberapa detik setelah cerita mulai atau setelah terakhir kali kamu menyentuhnya. Sentuhan atau jeda memunculkannya lagi.");
         table.put("With Stop Story auto-advance on, a finished story plays again from the start instead of waiting on its last frame. Tap or swipe to move on.",
                 "Saat Hentikan perpindahan otomatis Cerita aktif, Cerita yang selesai diputar lagi dari awal, bukan berhenti di bingkai terakhirnya. Ketuk atau geser untuk lanjut.");
         table.put("With Take breaks on, a break will last %1$s.",
@@ -3361,6 +3979,8 @@ final class L10nTableIn {
                 "Kata yang mempertahankan postingan");
         table.put("Words to hide",
                 "Kata untuk disembunyikan");
+        table.put("Wow",
+                "Wow");
         table.put("Writing",
                 "Menulis");
         table.put("You can also type \"word\", -word or in:place straight into the search box.",
@@ -3371,7 +3991,7 @@ final class L10nTableIn {
                 "Kamu bisa membukanya dalam %1$d detik.");
     }
 
-    private static void fill27(Map<String, String> table) {
+    private static void fill32(Map<String, String> table) {
         table.put("You have the newest Hushfacebook release.",
                 "Anda sudah memakai rilis Hushfacebook terbaru.");
         table.put("You paused Hushfacebook.",
@@ -3382,6 +4002,12 @@ final class L10nTableIn {
                 "Kontrol Anda aktif.");
         table.put("Your launcher has no room for another shortcut.",
                 "Peluncur tidak memiliki ruang untuk pintasan lain.");
+        table.put("Your list of 3-dot menu items to hide will be empty.",
+                "Daftar item menu titik tiga yang disembunyikan akan kosong.");
+        table.put("Your list of 3-dot menu items to hide will hold %1$d item.",
+                "Daftar item menu titik tiga yang disembunyikan akan berisi %1$d item.");
+        table.put("Your list of 3-dot menu items to hide will hold %1$d items.",
+                "Daftar item menu titik tiga yang disembunyikan akan berisi %1$d item.");
         table.put("Your list of Menu tiles to hide will be empty.",
                 "Daftar ubin Menu yang disembunyikan akan kosong.");
         table.put("Your list of Menu tiles to hide will hold %1$d tile.",
@@ -3426,8 +4052,12 @@ final class L10nTableIn {
                 "Ponselmu tidak bisa menulis filenya. Periksa ruang kosongnya lalu coba lagi.");
         table.put("Your profile shows %1$s on this phone.",
                 "Profil Anda menampilkan %1$s di ponsel ini.");
+        table.put("Your settings already match a new install.",
+                "Pengaturan kamu sudah sama dengan instalasi baru.");
         table.put("Your settings already match that file, so nothing will change.",
                 "Pengaturan Anda sudah sesuai dengan file itu, jadi tidak ada yang akan berubah.");
+        table.put("Your settings are back the way they were before the reset.",
+                "Pengaturan kamu sudah kembali seperti sebelum setel ulang.");
         table.put("Your start tab and launch settings",
                 "Tab awal dan pengaturan saat dibuka");
         table.put("Your tab bar will go in this order: %1$s.",

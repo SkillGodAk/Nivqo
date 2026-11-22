@@ -6,8 +6,10 @@ package app.morphe.extension.facebook.navigation;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -38,7 +40,9 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *
  * <p>Facebook picks the tab its main screen opens on from the intent that started it. A shortcut or
  * a notification meant for a tab carries the tab's id as {@link FacebookTabs#TARGET_TAB_ID}, and
- * Facebook opens that tab when its tab bar has it and its first tab, Home, when it doesn't. A
+ * Facebook opens that tab when its tab bar has it and its first tab, usually Home, when it doesn't.
+ * Tabs are asked for by id, so Home still opens on a bar that starts with Reels or a tab this
+ * build doesn't know. A
  * start from the launcher icon carries nothing, so Facebook opens where it chooses, usually Home.
  * The patch calls {@link #onActivityCreate} first thing in every Facebook activity's
  * {@code onCreate}. When that's the main screen started from the launcher icon, the screen gets a
@@ -51,10 +55,13 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * is asked for as Home.
  *
  * <p>Feeds has a page of its own, the one the Menu's Feeds row opens when the tab bar has no Feeds
- * tab. So a start that chose Feeds, on a bar without it, opens that page over Home once Facebook
- * has built the main screen, on the screen Facebook keeps for pages that aren't tabs, the way the
- * Menu's Feeds row starts it, and Back comes back to Home. It's skipped when the screen has moved on
- * from Home or isn't in front by then. The chosen filter is asked for there too, through
+ * tab. So a start that chose Feeds, on a bar without it, opens that page over the tab Facebook
+ * opened once it has built the main screen (Home, or the bar's first tab when the bar lacks the tab
+ * Facebook was asked for and starts with another tab), on the screen Facebook keeps for pages that
+ * aren't tabs, the way the Menu's Feeds row starts it, and Back comes back to that tab: Facebook's feed
+ * keeps Back on that page, so {@link #feedsPageBack} closes it. It's skipped when
+ * the screen has moved on from that tab or isn't in front by then. The chosen filter is asked for
+ * there too, through
  * {@link FeedsSubtabRoute}. Facebook's own links for the page can't be used for it: on 582 its link
  * map hands both {@code fb://feeds} and {@code fb://recent_feed} Home's launch link, so Facebook
  * switches to Home instead of opening the page.
@@ -387,18 +394,35 @@ public final class StartTabRoute {
         private boolean shown;
         /** Whether the screen is resumed, so in front of the person. */
         volatile boolean inFront;
+        /**
+         * The screen watched. Android 9 has callbacks only for the whole app, which hear every
+         * screen, so there the others are passed over. Null from Android 10, where they're the
+         * screen's own.
+         */
+        @Nullable
+        private final WeakReference<Activity> only;
 
-        private Landing(StartTab asked, StartTab chosen) {
+        private Landing(StartTab asked, StartTab chosen, @Nullable Activity only) {
             this.asked = asked;
             this.chosen = chosen;
+            this.only = only == null ? null : new WeakReference<>(only);
         }
 
         static void watch(Activity activity, StartTab asked, StartTab chosen) {
-            activity.registerActivityLifecycleCallbacks(new Landing(asked, chosen));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                activity.registerActivityLifecycleCallbacks(new Landing(asked, chosen, null));
+            } else {
+                activity.getApplication().registerActivityLifecycleCallbacks(new Landing(asked, chosen, activity));
+            }
+        }
+
+        private boolean watched(Activity activity) {
+            return only == null || only.get() == activity;
         }
 
         @Override
         public void onActivityPostResumed(@NonNull Activity activity) {
+            if (!watched(activity)) return;
             inFront = true;
             if (shown) return;
             shown = true;
@@ -408,7 +432,9 @@ public final class StartTabRoute {
 
         @Override
         public void onActivityDestroyed(@NonNull Activity activity) {
-            activity.unregisterActivityLifecycleCallbacks(this);
+            if (!watched(activity)) return;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) activity.unregisterActivityLifecycleCallbacks(this);
+            else activity.getApplication().unregisterActivityLifecycleCallbacks(this);
             settled(activity);
         }
 
@@ -422,11 +448,13 @@ public final class StartTabRoute {
 
         @Override
         public void onActivityResumed(@NonNull Activity activity) {
+            // Android 9 never calls onActivityPostResumed, and the check waits a moment anyway.
+            if (only != null) onActivityPostResumed(activity);
         }
 
         @Override
         public void onActivityPaused(@NonNull Activity activity) {
-            inFront = false;
+            if (watched(activity)) inFront = false;
         }
 
         @Override
@@ -467,24 +495,35 @@ public final class StartTabRoute {
 
     /**
      * For a start that chose Feeds, once the main screen is built: when its tab bar has no Feeds tab,
-     * opens Facebook's Feeds page on its own screen over Home, the way the Menu's Feeds row does,
-     * so Back comes back to Home. A bar that has Feeds, or can't be read while Facebook was asked
-     * for Feeds, is left alone, and so is a screen that has moved on from Home or isn't in front,
-     * since the person has gone somewhere already. Never throws.
+     * opens Facebook's Feeds page on its own screen over the tab Facebook opened, the way the Menu's
+     * Feeds row does, so Back comes back to it ({@link #feedsPageBack}, which the page's intent marks
+     * it for). That tab is Home, or the bar's first tab, which
+     * Facebook falls back to when the bar lacks the tab it was asked for. A bar that has Feeds, or
+     * can't be read while Facebook was asked for Feeds, is left alone, and so is a screen that has
+     * moved on from that tab or isn't in front, since the person has gone somewhere already. Never
+     * throws.
      */
     static void openFeedsPage(@Nullable Activity activity, StartTab asked, StartTab chosen, boolean inFront) {
         try {
             if (chosen != StartTab.FEEDS || activity == null || activity.isFinishing() || activity.isDestroyed()) return;
             Object current = TabBar.currentTab(activity);
             if (current == null) return;
-            // Asked for Home, a switch keeps Feeds off the bar. Asked for Feeds, the bar has to say it hasn't got it.
-            if (asked == StartTab.FEEDS) {
-                List<Object> tabs = TabBar.tabs(activity);
-                if (tabs == null || TabBar.has(tabs, StartTab.FEEDS)) return;
+            String shown = current.getClass().getName();
+            // Asked for Home, a switch keeps Feeds off the bar, and Facebook opens Home. Asked for
+            // Feeds, the bar has to say it hasn't got it. A bar without the asked tab, Feeds or
+            // Home, makes Facebook fall back to its first tab, which a bar that opens on Reels, or a
+            // Tab order, makes a tab other than Home.
+            List<Object> tabs = TabBar.tabs(activity);
+            if (asked == StartTab.FEEDS && (tabs == null || TabBar.has(tabs, StartTab.FEEDS))) return;
+            String first = null;
+            if (tabs != null && !tabs.isEmpty() && !TabBar.has(tabs, asked)) {
+                String name = tabs.get(0).getClass().getName();
+                if (!StartTab.HOME.isTab(name)) first = name;
             }
-            if (!inFront || !StartTab.HOME.isTab(current.getClass().getName())) {
-                debug(() -> "the tab bar has no feeds tab, but the main screen had already left Home,"
-                        + " so the Feeds page stays closed.");
+            if (!inFront || !(StartTab.HOME.isTab(shown) || shown.equals(first))) {
+                String left = first == null ? "Home" : "Home and the bar's first tab";
+                debug(() -> "the tab bar has no feeds tab, but the main screen had already left " + left
+                        + ", so the Feeds page stays closed.");
                 return;
             }
             // The restart row lands back on the settings screen, which shows over this one.
@@ -500,9 +539,11 @@ public final class StartTabRoute {
                     .putExtra("feed_type", "most_recent")
                     .putExtra("extra_launch_uri", FEEDS_LAUNCH_LINK)
                     .putExtra("presentation_type", "BOOKMARK")
-                    .putExtra("should_show_nav_bar", true));
+                    .putExtra("should_show_nav_bar", true)
+                    .putExtra(ROUTED, StartTab.FEEDS.fileValue));
             HookStatus.bound(FamilyNames.START_TAB, "feeds page");
-            debug(() -> "the tab bar has no feeds tab, so opened the Feeds page over Home.");
+            String under = StartTab.HOME.isTab(shown) ? "Home" : TabBar.name(current);
+            debug(() -> "the tab bar has no feeds tab, so opened the Feeds page over " + under + ".");
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.START_TAB, "feeds page", failure);
         }
@@ -564,6 +605,47 @@ public final class StartTabRoute {
         } catch (Throwable unreadable) {
             return false;
         }
+    }
+
+    /**
+     * Injection point, first thing in the Feeds tab's {@code onBackPressed}. On the Feeds page a
+     * start that chose Feeds opened, Facebook's feed keeps Back for itself: it scrolls to the top,
+     * or answers that it took Back and does nothing more, so the page could never be left. There
+     * this closes the page, which shows the tab it was opened over again, and answers null, which
+     * the patch returns as Facebook's yes. The Menu's own Feeds page, the Feeds tab, a failure in
+     * here and everything else get [feeds] back, and Facebook's own Back runs. Never throws.
+     */
+    @Nullable
+    public static Object feedsPageBack(@Nullable Object feeds) {
+        try {
+            Activity page = feeds == null ? null : screenOf(feeds);
+            if (page == null || page.isFinishing() || !openedFeedsPage(page)) return feeds;
+            page.finish();
+            HookStatus.bound(FamilyNames.START_TAB, "feeds page back");
+            debug(() -> "Back closed the Feeds page.");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.START_TAB, "feeds page back", failure);
+            return feeds;
+        }
+    }
+
+    /** Whether [activity] is a Feeds page {@link #openFeedsPage} opened, which its intent marks. */
+    static boolean openedFeedsPage(Activity activity) {
+        return feedsPage(activity) && StartTab.FEEDS.fileValue.equals(activity.getIntent().getStringExtra(ROUTED));
+    }
+
+    /**
+     * The screen [fragment] shows on, through androidx's {@code Fragment.getContext()}, a name
+     * Facebook keeps, or null when it isn't on one.
+     */
+    @Nullable
+    static Activity screenOf(Object fragment) throws ReflectiveOperationException {
+        Object context = fragment.getClass().getMethod("getContext").invoke(fragment);
+        while (context instanceof ContextWrapper && !(context instanceof Activity)) {
+            context = ((ContextWrapper) context).getBaseContext();
+        }
+        return context instanceof Activity ? (Activity) context : null;
     }
 
     /**

@@ -30,8 +30,10 @@ import app.morphe.extension.facebook.settings.PatchFamily;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.HookStatus;
+import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
+import app.morphe.extension.shared.settings.preference.LogBufferManager;
 
 /**
  * Hide the tab bar while scrolling: with the switch on, Facebook's check of whether the bar at the
@@ -64,10 +66,43 @@ public class TabBarScrollAwayTest {
         Settings.BOTTOM_TAB_BAR.resetToDefault();
         Settings.TOP_TAB_BAR.resetToDefault();
         Settings.TRANSLUCENT_BARS.resetToDefault();
+        Settings.HIDE_STATUS_BAR.resetToDefault();
         TabBarScrollAway.topBarsTakenBack();
         TabBarScrollAway.mainScreenCreated(null);
         TabBarScrollAway.forgetBuilt();
+        TabBarScrollAway.Stored.ROW_MADE.resetToDefault();
+        TabBarScrollAway.Stored.LIST_HEIGHT.resetToDefault();
+        TabBarScrollAway.Stored.ROW_SETUP.resetToDefault();
+        BaseSettings.DEBUG.resetToDefault();
+        LogBufferManager.clearLogBuffer();
         HookStatus.clear();
+    }
+
+    private static int occurrences(String text, String part) {
+        int count = 0;
+        for (int at = text.indexOf(part); at >= 0; at = text.indexOf(part, at + 1)) count++;
+        return count;
+    }
+
+    @Test
+    public void theReelUnderTheBarsIsLoggedOnceEachTimeItStarts() {
+        // Facebook asks for the padding on every layout pass of the Reels tab. A debug line on each
+        // answer put 1,202 copies of it in one S22 log export.
+        TabBarScrollAway.forgetBuilt();
+        BaseSettings.DEBUG.save(true);
+        LogBufferManager.clearLogBuffer();
+        Settings.TOP_TAB_BAR.save(true);
+        for (int visit = 0; visit < 2; visit++) {
+            onTab(new WatchTab());
+            TabBarScrollAway.topBarsLetGo();
+            for (int pass = 0; pass < 5; pass++) assertEquals(0, TabBarScrollAway.pagesTop(150));
+            TabBarScrollAway.topBarsTakenBack();
+            onTab(new FeedTab());
+            assertEquals("back on the feed", 150, TabBarScrollAway.pagesTop(150));
+        }
+        String log = LogBufferManager.buildExportText();
+        assertEquals("one line per visit to the Reels tab: " + log, 2,
+                occurrences(log, "Top bars: the reel runs under them"));
     }
 
     @Test
@@ -410,15 +445,56 @@ public class TabBarScrollAwayTest {
     @Test
     public void theReelRunsUnderATopBarOnlyOnTheReelsTab() {
         Settings.TOP_TAB_BAR.save(true);
-        onTab(new WatchTab());
+        onTab(new FeedTab());
         assertEquals("the feed keeps its padding", 150, TabBarScrollAway.pagesTop(150));
+        onTab(new WatchTab());
         TabBarScrollAway.topBarsLetGo();
         assertEquals("on the Reels tab the top bar's padding is dropped", 0, TabBarScrollAway.pagesTop(150));
         assertEquals("a zero stays zero", 0, TabBarScrollAway.pagesTop(0));
         String line = statusLine();
         assertTrue(line, line != null && line.contains(TabBarScrollAway.REEL_UNDER_BAR + " 1"));
         TabBarScrollAway.topBarsTakenBack();
+        onTab(new FeedTab());
         assertEquals("back on the feed", 150, TabBarScrollAway.pagesTop(150));
+    }
+
+    @Test
+    public void reelsFirstOnTheBarRunsUnderTheTopBarUnlessTheBarIsKept() {
+        Settings.TOP_TAB_BAR.save(true);
+        // Reels first on the bar: Facebook treats it as its feed, so scroll-away stays on there (#390).
+        onTab(new WatchTab());
+        assertEquals("the title bar slides off the reels, so no band is left where it was", 0,
+                TabBarScrollAway.pagesTop(150));
+        Settings.KEEP_TOP_BAR.save(true);
+        assertEquals("a kept title bar stays, so the reel starts below it", 150, TabBarScrollAway.pagesTop(150));
+        TabBarScrollAway.topBarsLetGo();
+        assertEquals("Reels further along the bar, where Facebook hides the title bar itself", 0,
+                TabBarScrollAway.pagesTop(150));
+        TabBarScrollAway.topBarsTakenBack();
+        Settings.KEEP_TOP_BAR.save(false);
+        onTab(new FeedTab());
+        assertEquals("Home with the title bar free to slide keeps its padding", 150, TabBarScrollAway.pagesTop(150));
+        onTab(null);
+        assertEquals("a main screen with no tab yet keeps it too", 150, TabBarScrollAway.pagesTop(150));
+    }
+
+    @Test
+    public void reelsFirstRunsUnderTheTitleBarWhereverTheTabBarSits() {
+        // Reels first with the bar at the bottom: scroll-away stays on and Facebook pads the reel by the title bar (#390).
+        Settings.BOTTOM_TAB_BAR.save(true);
+        onTab(new WatchTab());
+        assertEquals("tab bar at the bottom", 0, TabBarScrollAway.pagesTop(150));
+        Settings.BOTTOM_TAB_BAR.save(false);
+        assertEquals("tab bar where Facebook has it", 0, TabBarScrollAway.pagesTop(150));
+        Settings.KEEP_TOP_BAR.save(true);
+        assertEquals("a kept title bar stays, so the reel starts below it", 150, TabBarScrollAway.pagesTop(150));
+        Settings.KEEP_TOP_BAR.save(false);
+        Settings.BOTTOM_TAB_BAR.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        assertEquals("Reels further along a bottom bar keeps Facebook's padding", 150, TabBarScrollAway.pagesTop(150));
+        TabBarScrollAway.topBarsTakenBack();
+        onTab(new FeedTab());
+        assertEquals("Home under a bottom bar keeps its padding", 150, TabBarScrollAway.pagesTop(150));
     }
 
     @Test
@@ -453,16 +529,184 @@ public class TabBarScrollAwayTest {
         TabBarScrollAway.mainScreenCreated(screen);
     }
 
+    /** A new main screen showing [tab], its tab bar showing [bar] in order. */
+    private void onTabOf(Object tab, Object... bar) {
+        onTab(tab);
+        StartTabRouteForTests.tabBar(screen, StartTabRouteForTests.tabs(bar), null);
+    }
+
+    @Test
+    public void aReelsRowMadeAheadOnHomeGetsTheTabBarPaddingBack() {
+        // #466 on a cold start: Facebook made the Reels list while Home showed, each row 2075 tall,
+        // the 2199 page less the 124 tab bar, and kept those rows once Reels showed with the reel run
+        // from the top of the page, so the next reel showed in the last 124.
+        Settings.TOP_TAB_BAR.save(true);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("made ahead on Home, Reels further along a top bar", 2199, TabBarScrollAway.rowFor(2075, 124, 0));
+        String line = statusLine();
+        assertTrue(line, line != null && line.contains(TabBarScrollAway.REEL_ROW_FILLED + " 1"));
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("made again on the Reels tab", 2199, TabBarScrollAway.rowFor(2075, 124, 0));
+        assertEquals("with the status bar hidden the tab bar's padding takes it in too", 2274,
+                TabBarScrollAway.rowFor(2075, 199, 0));
+        assertEquals("no padding read and nothing dropped yet", 2075, TabBarScrollAway.rowFor(2075, 0, 0));
+        assertEquals(0, TabBarScrollAway.pagesTop(124));
+        assertEquals("the dropped padding when the maker's can't be read", 2199, TabBarScrollAway.reelRow(2075, new Object()));
+        assertEquals("no row yet", 0, TabBarScrollAway.reelRow(0, null));
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals("paused", 2075, TabBarScrollAway.reelRow(2075, null));
+    }
+
+    @Test
+    public void aReelsRowTakesTheListsHeightAndRowsMadeAheadTakeTheLastOneSeen() {
+        // #466 on the S22: the maker's tab padding read -1 on every row, Facebook worked the row out
+        // once as 2075 while Home showed, before the Reels page was laid out, and pagesTop dropped
+        // 126 where the list it ran under was 2199 (2075 + 126 left the next reel 2 px short).
+        Settings.TOP_TAB_BAR.save(true);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("a cold start, nothing seen yet", 2075, TabBarScrollAway.rowFor(2075, -1, 0));
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals(0, TabBarScrollAway.pagesTop(126));
+        assertEquals("on the Reels tab the row is the list's height, not the dropped padding's", 2199,
+                TabBarScrollAway.rowFor(2075, -1, 2199));
+        assertEquals("a list still padded below the bars", 2199, TabBarScrollAway.rowFor(2075, -1, 2073));
+
+        TabBarScrollAway.forgetBuilt();
+        TabBarScrollAway.topBarsTakenBack();
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("the next cold start, made ahead on Home", 2199, TabBarScrollAway.rowFor(2075, -1, 0));
+        assertEquals("a row Facebook worked out another way isn't the one seen", 2150, TabBarScrollAway.rowFor(2150, -1, 0));
+        Settings.KEEP_TOP_BAR.save(true);
+        Settings.TOP_TAB_BAR.save(false);
+        assertEquals("a kept top bar leaves the list padded below it, and the height seen without it stays behind",
+                2075, TabBarScrollAway.rowFor(2075, -1, 2073));
+        assertEquals("made ahead under the kept bar", 2075, TabBarScrollAway.rowFor(2075, -1, 0));
+        Settings.KEEP_TOP_BAR.save(false);
+        Settings.TOP_TAB_BAR.save(true);
+
+        // The status bar hidden: the list runs 75 taller, seen once, then made ahead to match.
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals(2274, TabBarScrollAway.rowFor(2075, -1, 2274));
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals(2274, TabBarScrollAway.rowFor(2075, -1, 0));
+        assertEquals("a list shorter than the row is passed over for the one seen", 2274, TabBarScrollAway.rowFor(2075, -1, 1800));
+    }
+
+    @Test
+    public void aReelsRowFillsTheListWithTheTabsAtTheBottomToo() {
+        // #494: tabs at the bottom, see-through and kept, the status bar hidden, on a 2362 tall
+        // screen. Reels sits second, so it runs off the feed and nothing runs under the top bars,
+        // yet Facebook made each row 2071 while the list ran the whole 2362, so the next reel
+        // showed below a black band.
+        Settings.BOTTOM_TAB_BAR.save(true);
+        Settings.KEEP_TAB_BAR.save(true);
+        Settings.TRANSLUCENT_BARS.save(true);
+        Settings.HIDE_STATUS_BAR.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("nothing dropped and no list yet", 2071, TabBarScrollAway.rowFor(2071, -1, 0));
+        assertEquals("a list as tall as the row", 2071, TabBarScrollAway.rowFor(2071, -1, 2071));
+        assertEquals("on the Reels tab the row is the list's height", 2362, TabBarScrollAway.rowFor(2071, -1, 2362));
+
+        TabBarScrollAway.forgetBuilt();
+        TabBarScrollAway.topBarsTakenBack();
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("the next start, made ahead on Home", 2362, TabBarScrollAway.rowFor(2071, -1, 0));
+        Settings.HIDE_STATUS_BAR.save(false);
+        assertEquals("the status bar back: the height seen with it hidden stays behind", 2071,
+                TabBarScrollAway.rowFor(2071, -1, 0));
+        assertEquals("until the list is seen again", 2287, TabBarScrollAway.rowFor(2071, -1, 2287));
+        assertEquals(2287, TabBarScrollAway.rowFor(2071, -1, 0));
+    }
+
+    @Test
+    public void aReelsRowMadeAheadKeepsItsHeightWhereReelsWontRunUnderTheBars() {
+        Settings.TOP_TAB_BAR.save(true);
+        assertEquals("no main screen", 2075, TabBarScrollAway.rowFor(2075, 124, 0));
+        onTabOf(new FeedTab(), new FeedTab(), new NotificationsTab());
+        assertEquals("no Reels on the bar", 2075, TabBarScrollAway.rowFor(2075, 124, 0));
+        onTab(new FeedTab());
+        assertEquals("a bar that can't be read", 2075, TabBarScrollAway.rowFor(2075, 124, 0));
+        Settings.TOP_TAB_BAR.save(false);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab());
+        assertEquals("Reels further along a bar at the bottom", 2075, TabBarScrollAway.rowFor(2075, 124, 0));
+    }
+
+    @Test
+    public void aReelsRowGetsBackThePaddingDroppedOverIt() {
+        // Reels first with the bar at the bottom: the title bar's padding goes, so the row gets it
+        // back, never a tab padding Facebook gives for a bar that isn't at the top.
+        Settings.BOTTOM_TAB_BAR.save(true);
+        onTabOf(new WatchTab(), new WatchTab(), new FeedTab());
+        assertEquals("nothing dropped yet", 2000, TabBarScrollAway.rowFor(2000, 120, 0));
+        assertEquals(0, TabBarScrollAway.pagesTop(150));
+        assertEquals("the dropped padding goes back on the row", 2150, TabBarScrollAway.rowFor(2000, 120, 0));
+        Settings.KEEP_TOP_BAR.save(true);
+        assertEquals("a kept title bar keeps its padding, and the row its height", 2000, TabBarScrollAway.rowFor(2000, 120, 0));
+        Settings.KEEP_TOP_BAR.save(false);
+        TabBarScrollAway.topBarsLetGo();
+        assertEquals("Reels further along a bottom bar keeps Facebook's row", 2000, TabBarScrollAway.rowFor(2000, 120, 0));
+    }
+
+    @Test
+    public void reelsFirstMadeAheadRunsUnderTheBarsUnlessTheTopBarIsKept() {
+        // Reels first, its list made before the first tab shows: Facebook leaves scroll-away on there.
+        Settings.TOP_TAB_BAR.save(true);
+        onTabOf(new FeedTab(), new WatchTab(), new FeedTab());
+        assertEquals(2199, TabBarScrollAway.rowFor(2075, 124, 0));
+        Settings.KEEP_TOP_BAR.save(true);
+        assertEquals("a kept top bar", 2075, TabBarScrollAway.rowFor(2075, 124, 0));
+    }
+
+    @Test
+    public void aReelsRowFollowsTheReelsTabNotTheTabShowing() {
+        Settings.TOP_TAB_BAR.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new NotificationsTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("another tab off the feed, Reels further along a top bar", 2199, TabBarScrollAway.rowFor(2075, 124, 0));
+        Settings.TOP_TAB_BAR.save(false);
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab());
+        assertEquals("Reels further along with the top bar off", 2075, TabBarScrollAway.rowFor(2075, 124, 0));
+    }
+
     @Test
     public void thePaddingStaysWithoutATopBarOrWhilePaused() {
         onTab(new WatchTab());
         TabBarScrollAway.topBarsLetGo();
-        assertEquals("top bar off", 150, TabBarScrollAway.pagesTop(150));
+        assertEquals("Reels further along with the top bar off", 150, TabBarScrollAway.pagesTop(150));
         Settings.TOP_TAB_BAR.save(true);
         Settings.BOTTOM_TAB_BAR.save(true);
         assertEquals("the bottom switch wins", 150, TabBarScrollAway.pagesTop(150));
         Settings.BOTTOM_TAB_BAR.save(false);
         PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals("paused", 150, TabBarScrollAway.pagesTop(150));
+    }
+
+    @Test
+    public void reelsFurtherAlongABarFacebookPutAtTheTopRunsUnderIt() {
+        // Neither position switch is on: Facebook put the tabs at the top itself, so the top bar's
+        // scroll-away entry it moves carries them (#390).
+        onTab(new FeedTab());
+        assertEquals(-40, TabBarScrollAway.topBarOffset(TabBarScrollAway.TITLE_AND_TABS, -40));
+        TabBarScrollAway.topBarsLetGo();
+        onTab(new WatchTab());
+        assertEquals("Reels second on a bar Facebook put at the top kept a band where the title bar was", 0,
+                TabBarScrollAway.pagesTop(150));
+        onTab(new NotificationsTab());
+        assertEquals("Notifications under that bar lost its padding", 150, TabBarScrollAway.pagesTop(150));
+
+        // The same account with its bar at the bottom: the top entry is the title bar alone.
+        TabBarScrollAway.topBarsTakenBack();
+        assertEquals(0.5f, TabBarScrollAway.topBarFade(TabBarScrollAway.APP_HEADER, 0.5f), 0f);
+        TabBarScrollAway.topBarsLetGo();
+        onTab(new WatchTab());
+        assertEquals("Reels further along a bar at the bottom lost Facebook's padding", 150, TabBarScrollAway.pagesTop(150));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        TabBarScrollAway.topBarOffset(TabBarScrollAway.TITLE_AND_TABS, 0);
         assertEquals("paused", 150, TabBarScrollAway.pagesTop(150));
     }
 }

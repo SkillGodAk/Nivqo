@@ -41,8 +41,11 @@ import app.morphe.extension.shared.settings.Setting;
  * screen, a layer of its own under the content view with the same bar in it (S22, 585). The Reels
  * tab's header there has the same id too, Menu where Back would be, inside the tab pages that slide
  * sideways, and its Search and profile button go the same way (#346). No other tab's header has the
- * id (emulator, 585, 2026-11-02). So past the full-screen player screens, each layer of the content
- * view is looked through for the bar.
+ * id (emulator, 585, 2026-11-02). So past the full-screen player screens, every view with the bar's
+ * id under the content view is tidied, since a reel opened from search results shares the main
+ * screen's layer with the Reels tab's header (#388). On 587 that reel opens on a player screen
+ * instead, under a header with no id at the top of the reel's own LithoView, which is found by its
+ * shape: full width, short, Back on its start side and another button (#388).
  *
  * <p>The buttons are Litho hosts with no ids, and their labels change with the language, so with
  * the switch on every clickable host in the bar that sits past its middle, away from Back, and in
@@ -51,6 +54,10 @@ import app.morphe.extension.shared.settings.Setting;
  * is left alone. A host gets its visibility back when Litho takes it off the screen, so one Litho
  * hands to something else comes back as Facebook left it. Off, paused, before the settings are
  * ready, or when anything here fails, the bar is Facebook's own.
+ *
+ * <p>A second switch takes Back itself, the clickable host nearest the bar's start, the same way
+ * (#388). On the Reels tab's header that host is Menu, so with the title switch on as well the
+ * header keeps nothing on its start side (#390). The phone's own back still works.
  */
 public final class ViewerTopBar {
     private static final String FAMILY = FamilyNames.REEL_DECLUTTER;
@@ -63,8 +70,17 @@ public final class ViewerTopBar {
     /** Counted for each part of the Reels tab's title taken off its header. */
     static final String TITLE_HIDDEN = "Reels title hidden";
 
+    /** Counted for each Back (or Menu, on the Reels tab) taken off a viewer's top bar. */
+    static final String BACK_HIDDEN = "Viewer Back button hidden";
+
     /** How many levels under the bar a button is looked for. 585's sit 2 to 5 down. */
     static final int MAX_DEPTH = 8;
+
+    /** The class of a Litho surface, a reel's own LithoView among them. */
+    static final String LITHO = "com.facebook.litho.LithoView";
+
+    /** How deep under the content view a LithoView holding a header is looked for. 587's sits 6 down. */
+    static final int HEADER_DEPTH = 12;
 
     /** The screens watched for layouts. */
     private static final Map<Activity, Boolean> watched = new WeakHashMap<>();
@@ -146,19 +162,81 @@ public final class ViewerTopBar {
 
     private static void laidOut(Activity activity) {
         int id = id();
-        if (id == 0 || (hidden.isEmpty() && !on() && !titleOn())) return;
+        if (id == 0 || (hidden.isEmpty() && !on() && !titleOn() && !backOn())) return;
         if (FeedVideoAlone.PLAYER_SCREENS.contains(activity.getClass().getName())) {
             View bar = activity.findViewById(id);
             if (bar != null) tidy(bar);
+            for (View header : headers(activity.findViewById(android.R.id.content))) {
+                if (bar == null || !within(bar, header)) tidy(header);
+            }
             return;
         }
         View content = activity.findViewById(android.R.id.content);
         if (!(content instanceof ViewGroup)) return;
-        ViewGroup layers = (ViewGroup) content;
-        for (int i = 0; i < layers.getChildCount(); i++) {
-            View bar = layers.getChildAt(i).findViewById(id);
-            if (bar != null) tidy(bar, true);
+        List<View> bars = new ArrayList<>();
+        collectBars(content, id, bars);
+        for (View bar : bars) tidy(bar, true);
+    }
+
+    /**
+     * Every view with the bar's id under [view], not only the first: a reel opened from search
+     * results sits in the main screen's own layer, after the tab pages holding the Reels tab's
+     * header, so a first match stops at the header (#388). A bar holds no bar, so one isn't looked in.
+     */
+    static void collectBars(View view, int id, List<View> found) {
+        if (view.getId() == id) {
+            found.add(view);
+            return;
         }
+        if (!(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) collectBars(group.getChildAt(i), id, found);
+    }
+
+    /**
+     * The headers with no id over the reels a player screen shows, under [content]. A reel opened
+     * from search results on 587 shows Back, the "Find related reels" pill and Search in a Litho host
+     * at the top of the reel's LithoView, which fills the screen, so the bar's id never finds them
+     * (S22, 2026-11-16: the LithoView 0,0-1080,2274, the header 0,0-1080,338, Back's clickable host
+     * at -6,95-107,208, #388). Only a LithoView at least three quarters of [content]'s height is
+     * looked at, so a post's header in a list keeps its buttons.
+     */
+    static List<View> headers(View content) {
+        List<View> found = new ArrayList<>();
+        if (content instanceof ViewGroup && content.getHeight() > 0) {
+            collectHeaders(content, 0, content.getHeight() * 3 / 4, found);
+        }
+        return found;
+    }
+
+    private static void collectHeaders(View view, int depth, int tall, List<View> found) {
+        if (!(view instanceof ViewGroup) || depth > HEADER_DEPTH || view.getVisibility() != View.VISIBLE) return;
+        ViewGroup group = (ViewGroup) view;
+        boolean litho = LITHO.equals(view.getClass().getName());
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (!litho) {
+                collectHeaders(child, depth + 1, tall, found);
+            } else if (view.getHeight() >= tall && isHeader(group, child)) {
+                found.add(child);
+            }
+        }
+    }
+
+    /**
+     * Whether [host] is a header of [litho]: a host that isn't a button, at its top, as wide as it
+     * and at most a fifth of its height, with an icon-sized Back on its start side and a second
+     * button. A reel page's own column, as tall as its LithoView, isn't one.
+     */
+    private static boolean isHeader(View litho, View host) {
+        if (!isHost(host) || host.isClickable() || host.getVisibility() != View.VISIBLE) return false;
+        int width = litho.getWidth();
+        if (width <= 0 || host.getLeft() != 0 || host.getTop() != 0 || host.getWidth() != width) return false;
+        if (host.getHeight() <= 0 || host.getHeight() * 5 > litho.getHeight()) return false;
+        List<View> found = new ArrayList<>();
+        buttons(host, 0, found);
+        View back = back(host, found);
+        return back != null && found.size() >= 2 && back.getWidth() * 6 <= width;
     }
 
     /** Whether the Reels tab's title goes now. */
@@ -169,6 +247,11 @@ public final class ViewerTopBar {
     /** Whether the bar's far buttons go now. */
     private static boolean on() {
         return Utils.settingsReady() && !Setting.isPaused() && Settings.HIDE_VIEWER_TOP_BUTTONS.get();
+    }
+
+    /** Whether the bar's Back, Menu on the Reels tab, goes now (#388, #390). */
+    private static boolean backOn() {
+        return Utils.settingsReady() && !Setting.isPaused() && Settings.HIDE_VIEWER_BACK_BUTTON.get();
     }
 
     /**
@@ -186,14 +269,17 @@ public final class ViewerTopBar {
     static int tidy(View bar, boolean tab) {
         boolean on = on();
         boolean title = tab && titleOn();
+        boolean start = backOn();
         List<View> far = on ? farButtons(bar) : new ArrayList<>();
         List<View> titles = title ? titleHosts(bar) : new ArrayList<>();
+        View back = start ? backButton(bar) : null;
         List<View> wanted = new ArrayList<>(far);
         wanted.addAll(titles);
+        if (back != null) wanted.add(back);
         for (View host : new ArrayList<>(hidden.keySet())) {
             if (host != null && !wanted.contains(host) && within(bar, host)) show(host);
         }
-        if (!on && !title) return 0;
+        if (!on && !title && !start) return 0;
         HookStatus.invoked(FAMILY);
         if (title && !titleLogged.containsKey(bar)) {
             titleLogged.put(bar, Boolean.TRUE);
@@ -224,6 +310,14 @@ public final class ViewerTopBar {
         if (count > 0) {
             int hid = count;
             Logger.printDebug(() -> "Viewer top bar: hid " + hid + " button" + (hid == 1 ? "" : "s") + " past Back");
+        }
+        if (back != null && back.getVisibility() == View.VISIBLE) {
+            back.setVisibility(View.INVISIBLE);
+            remember(back);
+            count++;
+            HookStatus.bound(FAMILY, "viewer back");
+            HookStatus.counted(FAMILY, BACK_HIDDEN);
+            Logger.printDebug(() -> "Viewer top bar: hid " + (tab ? "Back or Menu on a tab's header" : "Back"));
         }
         return count;
     }
@@ -301,20 +395,10 @@ public final class ViewerTopBar {
         List<View> found = new ArrayList<>();
         List<View> far = new ArrayList<>();
         buttons(bar, 0, found);
-        if (found.isEmpty() || bar.getWidth() <= 0) return far;
+        View back = back(bar, found);
+        if (back == null) return far;
         boolean rtl = bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
         int middle = bar.getWidth() / 2;
-        View back = null;
-        int backStart = Integer.MAX_VALUE;
-        for (View host : found) {
-            int[] at = offset(bar, host);
-            int start = rtl ? bar.getWidth() - (at[0] + host.getWidth()) : at[0];
-            if (start + host.getWidth() / 2 < middle && start < backStart) {
-                back = host;
-                backStart = start;
-            }
-        }
-        if (back == null) return far;
         int[] backAt = offset(bar, back);
         int backTop = backAt[1];
         int backBottom = backAt[1] + back.getHeight();
@@ -327,6 +411,35 @@ public final class ViewerTopBar {
             far.add(host);
         }
         return far;
+    }
+
+    /**
+     * Back in [bar], the clickable host nearest its start on the start half: Back over an opened
+     * video or reel, Menu on the Reels tab's header. Null when no clickable host sits there.
+     */
+    @Nullable
+    static View backButton(View bar) {
+        List<View> found = new ArrayList<>();
+        buttons(bar, 0, found);
+        return back(bar, found);
+    }
+
+    @Nullable
+    private static View back(View bar, List<View> found) {
+        if (found.isEmpty() || bar.getWidth() <= 0) return null;
+        boolean rtl = bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        int middle = bar.getWidth() / 2;
+        View back = null;
+        int backStart = Integer.MAX_VALUE;
+        for (View host : found) {
+            int[] at = offset(bar, host);
+            int start = rtl ? bar.getWidth() - (at[0] + host.getWidth()) : at[0];
+            if (start + host.getWidth() / 2 < middle && start < backStart) {
+                back = host;
+                backStart = start;
+            }
+        }
+        return back;
     }
 
     /** Adds the clickable Litho hosts under [view] to [found], a clickable host's own children passed over. */

@@ -36,8 +36,8 @@ import javax.crypto.spec.GCMParameterSpec;
 
 /**
  * A local log of the messages that reached a notification, kept so an unsend can't take them back. It's the only way to
- * keep an end-to-end encrypted chat's message past the notification, which is as far as "Keep unsent messages" reaches
- * there. The file and its key stay on the phone, and the key lives in the Android keystore, so nothing here leaves the
+ * keep an end-to-end encrypted chat's message past a Messenger restart, since "Keep unsent messages" holds the words of
+ * an encrypted chat's rows in memory only. The file and its key stay on the phone, and the key lives in the Android keystore, so nothing here leaves the
  * device and clearing the log throws the key away with it. Writing happens off Messenger's notification thread, and any failure is swallowed into the control's
  * hook-error record the way the other controls handle theirs. When the sender unsends a logged message, its entry is
  * marked Unsent, found by Messenger's id for it or by the notification that showed it.
@@ -61,7 +61,7 @@ public final class MessageLog {
     static final String DAMAGED = FILE + ".damaged";
     static final String KEY_ALIAS = "hushmessenger_message_log";
     /** Keep the newest of these, within the time picked under the switch. */
-    static final int MAX_ENTRIES = 5_000;
+    static final int MAX_ENTRIES = 20_000;
     static final long DAY_MS = 24L * 60 * 60 * 1000;
     /** How long messages stay unless another time is picked. */
     static final long MAX_AGE_MS = 30 * DAY_MS;
@@ -326,8 +326,20 @@ public final class MessageLog {
      */
     static void noteNames(String thread, String id, String text, android.app.Notification notification) {
         if (thread == null || id == null || id.isEmpty() || text == null || notification == null || !Settings.wouldUse(KEY)) return;
-        String sender = ChatNotifications.sender(notification, text, thread);
-        String chat = ChatNotifications.conversation(notification);
+        note(thread, id, ChatNotifications.sender(notification, text, thread), ChatNotifications.conversation(notification));
+    }
+
+    /**
+     * A chat that doesn't notify ({@link QuietChats}) has no notification to read the sender off later, so the
+     * notification manager hands over the name from the message itself as it drops the notification. The message
+     * doesn't carry a group's own name, so a group shows as any group the log couldn't name.
+     */
+    static void noteSender(String thread, String id, String sender) {
+        if (thread == null || id == null || id.isEmpty() || sender == null || sender.isEmpty() || !Settings.wouldUse(KEY)) return;
+        note(thread, id, sender, null);
+    }
+
+    private static void note(String thread, String id, String sender, String chat) {
         if (sender == null && chat == null) return;
         String key = clip(thread, MAX_THREAD_CHARS) + '\u0000' + clip(id, MAX_ID_CHARS);
         synchronized (NOTED) {

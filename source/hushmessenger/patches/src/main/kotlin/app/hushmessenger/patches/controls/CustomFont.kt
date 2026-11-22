@@ -11,10 +11,12 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val CUSTOM_FONT = "custom_font"
 internal const val FONT_LAYOUT = "font_layout"
@@ -58,9 +60,74 @@ private fun Method.fontParameters() = parameterTypes.map { it.toString() }
 private fun Method.holds(anchor: String) = fontCode().any { it.fontString() == anchor }
 
 /** Whether anything in the method writes [register], so it no longer holds its parameter at the return. */
-private fun Method.writes(register: Int) = fontCode().any { insn ->
-    val written = (insn as? OneRegisterInstruction)?.registerA
-    insn.opcode.setsRegister() && written != null && (written == register || (insn.opcode.setsWideRegister() && written + 1 == register))
+private fun Method.writes(register: Int) = fontCode().any { it.writesRegister(register) }
+
+private fun Instruction.writesRegister(register: Int): Boolean {
+    val written = (this as? OneRegisterInstruction)?.registerA
+    return opcode.setsRegister() && written != null && (written == register || (opcode.setsWideRegister() && written + 1 == register))
+}
+
+private val FONT_GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+private val FONT_EXITS = setOf(Opcode.RETURN, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT, Opcode.RETURN_VOID, Opcode.THROW)
+
+/** Where control goes from each instruction: on, and to a branch's target. Exception handlers are left out. */
+private fun List<Instruction>.flow(): List<List<Int>> {
+    val addresses = IntArray(size + 1)
+    for (i in indices) addresses[i + 1] = addresses[i] + this[i].codeUnits
+    val indexAt = indices.associateBy { addresses[it] }
+    return indices.map { i ->
+        val insn = this[i]
+        val next = (i + 1).takeIf { it < size }
+        val target = (insn as? OffsetInstruction)?.let { indexAt[addresses[i] + it.codeOffset] }
+        when (insn.opcode) {
+            // A switch could go anywhere, as far as this walk knows.
+            Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH -> indices.toList()
+            // Its offset points at the array's data, which never runs.
+            Opcode.FILL_ARRAY_DATA -> listOfNotNull(next)
+            in FONT_GOTOS -> listOfNotNull(target)
+            in FONT_EXITS -> emptyList()
+            else -> listOfNotNull(next, target)
+        }
+    }
+}
+
+/** Every instruction control can reach from [from], [from] included. */
+private fun List<List<Int>>.reach(from: Int): Set<Int> {
+    val seen = mutableSetOf(from)
+    val todo = ArrayDeque(listOf(from))
+    while (todo.isNotEmpty()) for (next in this[todo.removeFirst()]) if (seen.add(next)) todo.add(next)
+    return seen
+}
+
+private const val MONOSPACE = "$TYPEFACE->MONOSPACE:$TYPEFACE"
+private const val CREATE_WEIGHTED = "$TYPEFACE->create(${TYPEFACE}IZ)$TYPEFACE"
+
+/**
+ * 587's armv7 build moves the fallback's weighted monospace into a static (weight, italic) helper with its own return.
+ * Their ids, set by [findCustomFont] before anything asks [fontRepositorySite].
+ */
+internal var monospaceMakers: Set<String> = emptySet()
+
+/** A static (weight, italic) helper whose only typeface is the phone's monospace, at most given a weight or a style. */
+internal fun Method.isMonospaceMaker(): Boolean {
+    if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != TYPEFACE || fontParameters() != listOf("I", "Z")) return false
+    val code = fontCode()
+    val typefaces = code.filter { it.opcode == Opcode.SGET_OBJECT && (it as ReferenceInstruction).reference.toString().endsWith(":$TYPEFACE") }
+    return typefaces.isNotEmpty() && typefaces.all { (it as ReferenceInstruction).reference.toString() == MONOSPACE } &&
+        code.mapNotNull { it.fontCall() }.all { it.toString() == CREATE_WEIGHTED || it.toString() == CREATE_STYLED || it.returnType == "V" }
+}
+
+/**
+ * 587's way out for a mono family whose file isn't there yet: the phone's monospace typeface, at most given the weight,
+ * returned before the cache. What only that return follows reads Typeface.MONOSPACE or asks a [monospaceMakers] helper,
+ * and calls nothing that makes another typeface, so the switch has nothing to swap there.
+ */
+private fun List<Instruction>.monospaceFallback(flow: List<List<Int>>, exit: Int, main: Int): Boolean {
+    val own = indices.filter { i -> flow.reach(i).let { exit in it && main !in it } }
+    val calls = own.mapNotNull { this[it].fontCall() }
+    val monospace = calls.any { it.toString() in monospaceMakers } ||
+        own.any { this[it].opcode == Opcode.SGET_OBJECT && (this[it] as ReferenceInstruction).reference.toString() == MONOSPACE }
+    return monospace && calls.all { it.toString() == CREATE_WEIGHTED || it.toString() in monospaceMakers || it.returnType == "V" }
 }
 
 /** TextLayoutBuilder.setTypeface, where every Litho text component's typeface goes before it's laid out. */
@@ -78,6 +145,25 @@ internal fun Method.isFontRepository() = AccessFlags.STATIC.isSet(accessFlags) &
 /** The Roboto builder: the phone's sans-serif at the weight a text style names. */
 internal fun Method.isFontRoboto() = AccessFlags.STATIC.isSet(accessFlags) && returnType == TYPEFACE &&
     fontParameters() == listOf(CONTEXT, "Ljava/lang/Integer;") && holds(FONT_ROBOTO_ANCHOR)
+
+/**
+ * Family B's copies of the builder for one weight each (Regular, Bold): an instance (Context)Typeface method that still
+ * logs under [builder]'s class, with one return.
+ */
+internal fun Method.isFontRobotoCopy(builder: String) = !AccessFlags.STATIC.isSet(accessFlags) && returnType == TYPEFACE &&
+    fontParameters() == listOf(CONTEXT) && holds(FONT_ROBOTO_ANCHOR) && definingClass != builder &&
+    fontCode().any { it.opcode == Opcode.CONST_CLASS && ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type == builder }
+
+/** The builder, then any copies of it. Nothing when another method holds the string. */
+private fun robotoBuilders(holders: Set<Method>): List<Method> {
+    val builder = holders.singleOrNull { it.isFontRoboto() } ?: return emptyList()
+    val copies = holders.filter { it !== builder }
+    return if (copies.all { it.isFontRobotoCopy(builder.definingClass) }) listOf(builder) + copies else emptyList()
+}
+
+/** A copy validates against the profile's own builder, the one static (Context, Integer) entry. */
+private fun Method.copiesProfiledRoboto() = activeProfile.hooks.getValue(FONT_ROBOTO)
+    .filter { it.endsWith("(${CONTEXT}Ljava/lang/Integer;)$TYPEFACE") }.any { isFontRobotoCopy(it.substringBefore("->")) }
 
 /** MIG's typeface by name: a repository family by its constant's name, else Android's family of that name. */
 internal fun Method.isFontByName() = AccessFlags.STATIC.isSet(accessFlags) && returnType == TYPEFACE &&
@@ -99,22 +185,36 @@ internal fun Method.isFontInput() = AccessFlags.STATIC.isSet(accessFlags) && ret
  * Each font hook by its kind. The layout, the repository and the Roboto builder count only as the one holder of their
  * string, and the by-name lookup only while it asks that repository.
  */
+private val FONT_ANCHORS = setOf(FONT_LAYOUT_ANCHOR, FONT_REPOSITORY_ANCHOR, FONT_ROBOTO_ANCHOR)
+
+/** The methods the loop in [findCustomFont] adds anywhere: an anchor's holders, the by-name lookups, the inputs and the monospace makers. */
+internal val fontSites = MethodCheck {
+    val anchors = FONT_ANCHORS.map(::StringMatch)
+    val test: MethodTest = { _, method ->
+        anchors.any { it.inCode(method) } || method.isFontByName() || method.isFontInput() || method.isMonospaceMaker()
+    }
+    test
+}
+
 internal fun findCustomFont(classes: Iterable<ClassDef>): Map<String, List<Method>> {
     val holders = listOf(FONT_LAYOUT_ANCHOR, FONT_REPOSITORY_ANCHOR, FONT_ROBOTO_ANCHOR).associateWith { linkedSetOf<Method>() }
     val byName = mutableListOf<Method>()
     val inputs = mutableListOf<Method>()
-    for (method in classes.flatMap { it.methods }) {
+    val makers = mutableSetOf<String>()
+    for (method in fontSites.methods(classes)) {
         val code = method.implementation?.instructions ?: continue
         for (insn in code) insn.fontString()?.let { holders[it]?.add(method) }
         if (method.isFontByName()) byName.add(method)
         if (method.isFontInput()) inputs.add(method)
+        if (method.isMonospaceMaker()) makers.add(method.hookId())
     }
+    monospaceMakers = makers
     fun only(anchor: String, shape: Method.() -> Boolean) = holders.getValue(anchor).singleOrNull()?.takeIf { it.shape() }
     val repository = only(FONT_REPOSITORY_ANCHOR) { isFontRepository() }
     return mapOf(
         FONT_LAYOUT to listOfNotNull(only(FONT_LAYOUT_ANCHOR) { isFontLayout() }),
         FONT_REPOSITORY to listOfNotNull(repository),
-        FONT_ROBOTO to listOfNotNull(only(FONT_ROBOTO_ANCHOR) { isFontRoboto() }),
+        FONT_ROBOTO to robotoBuilders(holders.getValue(FONT_ROBOTO_ANCHOR)),
         FONT_BY_NAME to repository?.let { found -> byName.filter { it.asksRepository(found) } }.orEmpty(),
         FONT_INPUT to inputs,
     )
@@ -142,25 +242,40 @@ internal fun Method.fontLayoutSite(): Int {
 }
 
 /**
- * The resolver's one return, which hands its typeface, the family constant and the weight asked for to the extension:
+ * The resolver's return, which hands its typeface, the family constant and the weight asked for to the extension:
  *
  *     check-cast vResult, Landroid/graphics/Typeface;
  *     return-object vResult                <- returned
+ *
+ * From 587 the resolver can also return the phone's monospace typeface early. That return stays as it is, since the
+ * switch passes monospace through anyway.
  */
 internal fun Method.fontRepositorySite(): Int {
     if (!isFontRepository()) fontChanged("typeface repository")
-    val at = fontReturn("typeface repository")
-    val result = (fontCode()[at] as OneRegisterInstruction).registerA
+    val code = fontCode()
+    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+    // 587 adds the monospace fallback's return before the cache's, which still hands back the typeface it cast.
+    val at = returns.singleOrNull() ?: returns.singleOrNull { r ->
+        val cast = code.getOrNull(r - 1)
+        cast?.opcode == Opcode.CHECK_CAST && (cast as OneRegisterInstruction).registerA == (code[r] as OneRegisterInstruction).registerA &&
+            ((cast as ReferenceInstruction).reference as? TypeReference)?.type == TYPEFACE
+    } ?: fontChanged("${returns.size} returns in the typeface repository")
+    val flow = code.flow()
+    if ((returns - at).any { !code.monospaceFallback(flow, it, at) }) fontChanged("a typeface repository return that isn't the monospace fallback")
+    val result = (code[at] as OneRegisterInstruction).registerA
     val family = implementation!!.registerCount - 4
     val weight = implementation!!.registerCount - 1
-    if (writes(family) || writes(weight)) fontChanged("repository parameter reused")
+    // Only a write on the way to the hooked return matters. 587's fallback sets the weight on its own way out.
+    if (code.indices.any { i -> (code[i].writesRegister(family) || code[i].writesRegister(weight)) && at in flow.reach(i) }) {
+        fontChanged("repository parameter reused")
+    }
     if (result > 15 || weight > 15) fontChanged("repository registers out of range")
     return at
 }
 
-/** The Roboto builder's one return, a branch target, so the return itself becomes the call. */
+/** The Roboto builder's one return, a branch target, so the return itself becomes the call. A copy's return too. */
 internal fun Method.fontRobotoSite(): Int {
-    if (!isFontRoboto()) fontChanged("Roboto builder")
+    if (!isFontRoboto() && !copiesProfiledRoboto()) fontChanged("Roboto builder")
     return fontReturn("Roboto builder")
 }
 

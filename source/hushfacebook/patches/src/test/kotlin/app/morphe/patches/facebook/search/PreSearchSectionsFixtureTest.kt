@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import org.junit.Assert.assertEquals
@@ -47,6 +48,13 @@ class PreSearchSectionsFixtureTest {
     private fun Method.code(): List<Instruction> = implementation!!.instructions.toList()
 
     private fun Instruction.call() = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+    /** The registers a call reads, written as a range or not. */
+    private fun Instruction.argumentRegisters(): List<Int> = when (this) {
+        is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+        is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+        else -> emptyList()
+    }
 
     private fun List<Instruction>.opcodes() = map { it.opcode }.filter { it != Opcode.NOP }
 
@@ -186,7 +194,7 @@ class PreSearchSectionsFixtureTest {
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
-        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), abis)
+        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), Fixtures.abisOf(abis))
     }
 
     /** Runs [check] on every declared build's bundles, then asserts each build and ABI was seen. */
@@ -208,7 +216,7 @@ class PreSearchSectionsFixtureTest {
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
-        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), abis)
+        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), Fixtures.abisOf(abis))
     }
 
     /** [method] of [type] once [context] patched it. */
@@ -216,6 +224,16 @@ class PreSearchSectionsFixtureTest {
         context.mutableClassDefBy(type).methods.single {
             it.name == method.name && it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
         }.code()
+
+    /**
+     * Per build, the places the null-state query reads an entry's node, counted per method. Up to 586
+     * that was one static loop body. 587's arm64 inlines the loop into the callbacks taking the query's
+     * result, and one reads the node once and another twice (LX/0A6l;->HRJ and LX/0U4t;->HRJ). 587's
+     * v7 keeps the one static body (LX/0fHm;->A00).
+     */
+    private val querySites = mapOf(
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf("arm64-v8a" to listOf(1, 2), "armeabi-v7a" to listOf(1)),
+    )
 
     /** Asserts [patched] is [code] with [hook]'s three instructions at [at], keeping [kept] cast back to [type]. */
     private fun assertHanded(name: String, code: List<Instruction>, patched: List<Instruction>, at: Int, hook: String, kept: Int, type: String) {
@@ -261,23 +279,52 @@ class PreSearchSectionsFixtureTest {
         }
         val holderClasses = FixtureDex.classes(bundle, holders.map { it.definingClass }.toSet()).values.toList()
         val owners = holderClasses.filter { it.type != entry }.flatMap { it.interfaces + it.type }.toSet()
+        // Up to 586 the loop body was one static (Builder, Iterator) method; 587 inlines it into each
+        // instance callback taking the query's result (arm64 LX/0A6l;->HRJ once, LX/0U4t;->HRJ twice).
         val callers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in owners } }) { method ->
-            AccessFlags.STATIC.isSet(method.accessFlags) &&
-                method.implementation?.instructions?.any { it.call()?.definingClass in owners } == true
+            method.implementation?.instructions?.any { it.call()?.definingClass in owners } == true
         }
         val callerClasses = FixtureDex.classes(bundle, callers.map { it.definingClass }.toSet()).values.toList()
         val context = PatchContexts.of((classes + holderClasses + callerClasses).distinctBy { it.type })
         val sites = context.preSearchQuerySites(entry)
-        assertEquals("$name: places the query reads an entry's node", 1, sites.size)
-        val site = sites.single()
-        val code = site.method.code()
-        // Positive control: the loop body adds what it reads off the node to the list it's handed.
-        assertTrue("$name: the query adds nothing to its list", code.subList(site.test, code.size).any {
-            it.call()?.let { call -> call.definingClass == "Lcom/google/common/collect/ImmutableList\$Builder;" && call.name == "add" } == true
-        })
-        assertTrue("$name: a jump lands on the null test", site.test !in branchTargets(code))
+        val byMethod = sites.groupBy { it.method }
+        val version = querySites.keys.firstOrNull { name.contains("-$it-") } ?: throw AssertionError("$name has no pin")
+        val pinned = querySites.getValue(version)[name.substringAfter("-$version-").substringBefore(".apkm")]
+            ?: throw AssertionError("$name has no pin")
+        assertEquals("$name: places the query reads an entry's node, per method ${byMethod.map { "${it.key}=${it.value.size}" }}",
+            pinned, byMethod.values.map { it.size }.sorted())
+        val stock = byMethod.keys.associateWith { it.code() }
+        for (site in sites) {
+            val code = stock.getValue(site.method)
+            // Positive control: the loop body adds what it reads off the node to a list builder.
+            assertTrue("$name: the query adds nothing to its list", code.subList(site.test, code.size).any {
+                it.call()?.let { call -> call.definingClass == "Lcom/google/common/collect/ImmutableList\$Builder;" && call.name == "add" } == true
+            })
+            assertTrue("$name: a jump lands on the null test", site.test !in branchTargets(code))
+        }
         context.hookPreSearchQuery()
-        assertHanded(name, code, patched(context, site.method.definingClass, site.method), site.test, PRE_SEARCH_QUERY_NODE, site.node, site.type)
+        for ((method, inMethod) in byMethod) {
+            val code = stock.getValue(method)
+            val ordered = inMethod.sortedBy { it.test }
+            val patched = patched(context, method.definingClass, method)
+            assertEquals("$name: three instructions added per site", code.opcodes().size + 3 * ordered.size, patched.opcodes().size)
+            // Each earlier site's hook moves a later one down by three.
+            val hooks = ordered.mapIndexed { index, site -> site.test + 3 * index }
+            for ((index, site) in ordered.withIndex()) {
+                val at = hooks[index]
+                val hand = patched[at] as FiveRegisterInstruction
+                assertEquals("$name: the extension handed the node",
+                    listOf(Opcode.INVOKE_STATIC, PRE_SEARCH_QUERY_NODE, 1, site.node),
+                    listOf(hand.opcode, hand.call().toString(), hand.registerCount, hand.registerC))
+                assertEquals("$name: the answer is kept where the node was",
+                    listOf(Opcode.MOVE_RESULT_OBJECT, site.node), listOf(patched[at + 1].opcode, (patched[at + 1] as OneRegisterInstruction).registerA))
+                val cast = patched[at + 2]
+                assertEquals("$name: the answer is cast back", listOf(Opcode.CHECK_CAST, site.node, site.type),
+                    listOf(cast.opcode, (cast as OneRegisterInstruction).registerA, ((cast as ReferenceInstruction).reference as TypeReference).type))
+            }
+            val added = hooks.flatMap { it..it + 2 }.toSet()
+            assertEquals("$name: the rest is Facebook's", code.opcodes(), patched.filterIndexed { index, _ -> index !in added }.opcodes())
+        }
     }
 
     @Test
@@ -289,10 +336,13 @@ class PreSearchSectionsFixtureTest {
         assertEquals("$name: places the section keeps its paginated list", 1, sites.size)
         val site = sites.single()
         val code = site.method.code()
-        // Positive control: the list is then handed to the section builder.
+        // Positive control: the list is then handed to the section builder. 586 narrowed the
+        // builder's parameter to the concrete list class (LX/09gi;->A06(LX/0mew;)V), so the list's
+        // register going into a call counts as well as a call taking the interface.
         assertEquals("$name: the list read", PRE_SEARCH_PAGINABLE, code[site.read - 1].call()?.returnType)
         assertTrue("$name: the list isn't handed on", code.subList(site.read + 1, minOf(code.size, site.read + 30)).any {
-            it.call()?.parameterTypes?.map(CharSequence::toString)?.contains(PRE_SEARCH_PAGINABLE) == true
+            it.call()?.parameterTypes?.map(CharSequence::toString)?.contains(PRE_SEARCH_PAGINABLE) == true ||
+                it.call() != null && site.list in it.argumentRegisters()
         })
         // The register the hook borrows is written again right after, on every path.
         assertTrue("$name: the borrowed register is written next", code[site.read + 1] is OneRegisterInstruction &&

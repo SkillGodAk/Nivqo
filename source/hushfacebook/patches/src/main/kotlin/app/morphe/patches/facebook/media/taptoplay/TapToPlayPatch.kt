@@ -28,6 +28,7 @@ import app.morphe.patches.facebook.misc.extension.parameterRegister
 import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.reels.feedVideoOpeningPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.findMutableMethodOf
@@ -55,7 +56,8 @@ val tapToPlayPatch = bytecodePatch(
         "The switches start off in Hushfacebook settings > Video and audio.",
 ) {
     category("Playback")
-    dependsOn(settingsPatch)
+    // A tapped feed video's player can start well after the tap; these hooks say one is opening (#393).
+    dependsOn(settingsPatch, feedVideoOpeningPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
@@ -82,7 +84,12 @@ val tapToPlayPatch = bytecodePatch(
         val checker = hookAutoplaySetting()
         hookReelPlayButton(checker)
         hookReelPlayback()
-        hookTouches()
+        try {
+            hookReelAutoplayDisabled()
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The patch goes on, and a reel's play button can come back while it plays.")
+        }
+        hookTouches(PATCH, doubleTap = true)
         enableStatus("tapToPlay")
     }
 }
@@ -285,18 +292,30 @@ private fun BytecodePatchContext.hookReelPlayButton(checker: String) {
     )
 }
 
-/** Every touch on a Facebook screen goes to the tap clock before Facebook sees it. */
-private fun BytecodePatchContext.hookTouches() {
+/**
+ * Every touch on a Facebook screen goes to the feed video double tap, then to the tap clock, before
+ * Facebook sees it. The double tap turns a held side tap into a cancel first, so the clock sees what
+ * Facebook sees (#432). Tap to play and Keep playing in the background both read the clock, so each
+ * asks for this hook and the clock's call goes in once; [doubleTap] is Tap to play's, which adds the
+ * double tap in front of it. [patch] names the patch asking.
+ */
+internal fun BytecodePatchContext.hookTouches(patch: String, doubleTap: Boolean) {
     val activity = classDefByOrNull(FRAGMENT_ACTIVITY)
-        ?: throw PatchException("$PATCH: this build has no $FRAGMENT_ACTIVITY")
+        ?: throw PatchException("$patch: this build has no $FRAGMENT_ACTIVITY")
     val dispatches = touchDispatches(activity)
     val dispatch = dispatches.singleOrNull() ?: throw PatchException(
-        "$PATCH: expected $FRAGMENT_ACTIVITY to declare one dispatchTouchEvent($MOTION_EVENT)Z, found ${dispatches.size}",
+        "$patch: expected $FRAGMENT_ACTIVITY to declare one dispatchTouchEvent($MOTION_EVENT)Z, found ${dispatches.size}",
     )
+    val mutable = mutableClassDefBy(FRAGMENT_ACTIVITY).findMutableMethodOf(dispatch)
+    val hooked = touchHooksAtStart(mutable)
     // The screen and the event are p0 and p1, next to each other, so the range form passes both
     // without borrowing a register.
-    mutableClassDefBy(FRAGMENT_ACTIVITY).findMutableMethodOf(dispatch)
-        .addInstruction(0, "invoke-static/range { p0 .. p1 }, $TOUCH")
+    val calls = listOfNotNull(
+        DOUBLE_TAP_TOUCH.takeIf { doubleTap && it !in hooked },
+        TOUCH.takeIf { it !in hooked },
+    )
+    if (calls.isEmpty()) return
+    mutable.addInstructions(0, calls.joinToString("\n") { "invoke-static/range { p0 .. p1 }, $it" })
 }
 
 private fun BytecodePatchContext.requireTriggerEnum(type: String) {

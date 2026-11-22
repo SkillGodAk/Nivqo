@@ -5,6 +5,11 @@
 
 package app.morphe.manager.util
 
+import android.content.ContentResolver
+import android.content.Context
+import android.net.Uri
+import android.util.Log
+import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,6 +86,19 @@ fun File.wipeContents() {
 }
 
 /**
+ * Deletes the files in this directory last modified more than [unusedMillis] ago, for a cache
+ * that dates each file by when it was last used.
+ */
+fun File.deleteFilesUnusedFor(unusedMillis: Long) {
+    val oldest = System.currentTimeMillis() - unusedMillis
+    listFiles()?.forEach { file ->
+        if (file.isFile && file.lastModified() < oldest && !file.delete()) {
+            Log.w(LOG_TAG, "Could not delete the unused cache file $file")
+        }
+    }
+}
+
+/**
  * Writes this file through a sibling that is moved over it once complete, so a process killed
  * midway leaves the previous file whole rather than a half written one.
  */
@@ -97,3 +115,22 @@ fun File.writeAtomically(write: (OutputStream) -> Unit) {
 }
 
 fun File.writeTextAtomically(text: String) = writeAtomically { it.write(text.toByteArray()) }
+
+/**
+ * The folder at [uri], whether the system picker granted it or Morphe's own picker named it by
+ * path, which needs no grant once storage access is given.
+ */
+fun Context.pickedFolder(uri: Uri): DocumentFile? =
+    if (uri.scheme == ContentResolver.SCHEME_FILE) {
+        uri.path?.let { DocumentFile.fromFile(File(it)) }
+    } else {
+        DocumentFile.fromTreeUri(this, uri)
+    }
+
+fun DocumentFile.getOrCreateFile(mimeType: String, name: String): DocumentFile? =
+    findFile(name) ?: if (uri.scheme == ContentResolver.SCHEME_FILE) {
+        // A plain file keeps its name as given, where createFile would add an extension for the type
+        uri.path?.let { File(it, name) }?.takeIf { it.createNewFile() }?.let(DocumentFile::fromFile)
+    } else {
+        createFile(mimeType, name)
+    }

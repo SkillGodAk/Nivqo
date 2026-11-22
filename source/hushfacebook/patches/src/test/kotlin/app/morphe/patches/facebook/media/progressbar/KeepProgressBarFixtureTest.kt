@@ -85,7 +85,8 @@ class KeepProgressBarFixtureTest {
         FixtureDex.forEach(bundle) { dex ->
             dex.classes.filter { it.superclass == scrubber.type }.mapTo(subclasses) { ImmutableClassDef.of(it) }
         }
-        val held = FixtureDex.classes(bundle, subclasses.flatMap { it.fields.map { field -> field.type } }.toSet())
+        // 585's Android 9 build keeps the reset on a class the scrubber's own field holds.
+        val held = FixtureDex.classes(bundle, (subclasses + scrubber).flatMap { it.fields.map { field -> field.type } }.toSet())
         val reset = chapterReset(scrubber, looks, subclasses) { held[it] }
         return reset to (held[reset.method.definingClass] ?: scrubber)
     }
@@ -143,12 +144,13 @@ class KeepProgressBarFixtureTest {
         val name = bundle.name
         val holders = FixtureDex.classesHolding(bundle, SCRUBBER_PASSIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
         assertTrue("$name: nothing traces \"$SCRUBBER_PASSIVE\"", holders.isNotEmpty())
-        val looks = vddScrubber(holders)
+        val looks = vddScrubber(holders, FixtureDex.classesHolding(bundle, SCRUBBER_ACTIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) })
         assertNotEquals("$name: the active and passive looks are one method", looks.active.name, looks.passive.name)
         assertTrue("$name: the active look doesn't load 255 for the thumb",
             looks.active.code().any { (it as? WideLiteralInstruction)?.wideLiteral == 255L })
         assertTrue("$name: the passive look doesn't set the bar's max height",
-            looks.passive.code().any { it.reference()?.endsWith("ProgressBar;->setMaxHeight(I)V") == true })
+            // 585's Android 9 build calls it through SeekBar.
+            looks.passive.code().any { it.reference() in setOf("Landroid/widget/ProgressBar;->setMaxHeight(I)V", "Landroid/widget/SeekBar;->setMaxHeight(I)V") })
         val registers = looks.passive.implementation!!.registerCount
         // The hook borrows v0 and v1: p0 is the one parameter register.
         assertTrue("$name: ${looks.type}->${looks.passive.name} has no two local registers for the hook", registers - 1 >= 2)
@@ -232,7 +234,7 @@ class KeepProgressBarFixtureTest {
     fun `each declared build clears the last reel's graph and chapter marks as the scrubber takes another video`() = bundles { bundle ->
         val name = bundle.name
         val holders = FixtureDex.classesHolding(bundle, SCRUBBER_PASSIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
-        val looks = vddScrubber(holders)
+        val looks = vddScrubber(holders, FixtureDex.classesHolding(bundle, SCRUBBER_ACTIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) })
         val scrubber = holders.single { it.type == looks.type }
         val graph = graphHide(looks) { type -> FixtureDex.classes(bundle, setOf(type))[type] }
         val (chapters, resets) = chapters(bundle, scrubber, looks)
@@ -243,7 +245,7 @@ class KeepProgressBarFixtureTest {
             } == true
         })
         val base = FixtureDex.classes(bundle, setOf(scrubberBase(looks))).values.single()
-        val info = barInfo(base, scrubberLengthChecks(scrubber)?.minimum)
+        val info = barInfo(base, scrubberLengthChecks(lengthCheckOwner(scrubber, base))?.minimum)
         val (another, owner) = lightMount(bundle, base, info.builder.returnType)
         val mountCode = another.mount.code()
         // A match skips the reset of the bar's state, and both videos get the bar info's rebuild: 582 runs
@@ -307,12 +309,12 @@ class KeepProgressBarFixtureTest {
     fun `each declared build starts the next reel's bar and time over as the scrubber takes another video`() = bundles { bundle ->
         val name = bundle.name
         val holders = FixtureDex.classesHolding(bundle, SCRUBBER_PASSIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
-        val looks = vddScrubber(holders)
+        val looks = vddScrubber(holders, FixtureDex.classesHolding(bundle, SCRUBBER_ACTIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) })
         val scrubber = holders.single { it.type == looks.type }
         val graph = graphHide(looks) { type -> FixtureDex.classes(bundle, setOf(type))[type] }
         val (chapters, _) = chapters(bundle, scrubber, looks)
         val base = FixtureDex.classes(bundle, setOf(scrubberBase(looks))).values.single()
-        val (another, owner) = lightMount(bundle, base, barInfo(base, scrubberLengthChecks(scrubber)?.minimum).builder.returnType)
+        val (another, owner) = lightMount(bundle, base, barInfo(base, scrubberLengthChecks(lengthCheckOwner(scrubber, base))?.minimum).builder.returnType)
         assertTrue("$name: the views holder isn't ${base.type}'s, so the base can't read it", looks.viewsField.startsWith("${base.type}->"))
 
         val context = PatchContexts.of(listOf(owner))
@@ -359,7 +361,7 @@ class KeepProgressBarFixtureTest {
     fun `each declared build hides the most replayed graph the way the passive look does`() = bundles { bundle ->
         val name = bundle.name
         val holders = FixtureDex.classesHolding(bundle, SCRUBBER_PASSIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
-        val looks = vddScrubber(holders)
+        val looks = vddScrubber(holders, FixtureDex.classesHolding(bundle, SCRUBBER_ACTIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) })
         val classOf = { type: String -> FixtureDex.classes(bundle, setOf(type))[type] }
         val graph = graphHide(looks, classOf)
         val owner = graph.hiddenField.substringBefore("->")
@@ -385,7 +387,7 @@ class KeepProgressBarFixtureTest {
     fun `each declared build hides the time label where the passive look does`() = bundles { bundle ->
         val name = bundle.name
         val holders = FixtureDex.classesHolding(bundle, SCRUBBER_PASSIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
-        val looks = vddScrubber(holders)
+        val looks = vddScrubber(holders, FixtureDex.classesHolding(bundle, SCRUBBER_ACTIVE).filterNot { it.type.startsWith(EXTENSION_CLASSES) })
         // The passive look sets the label INVISIBLE (4) through the same fields the hook reads.
         val code = looks.passive.code()
         val read = code.indexOfFirst { it.reference() == looks.labelField }
@@ -410,6 +412,9 @@ class KeepProgressBarFixtureTest {
         // The hook borrows v0: this is the one parameter register.
         assertTrue("$name: ${controls.type}->${timer.name} has no local register for the hook",
             timer.implementation!!.registerCount - 1 >= 1)
+        // The hook returns at the top, so a timer Redex merged with other methods would stop them all (#447).
+        assertTrue("$name: ${controls.type}->${timer.name} picks among merged methods",
+            timer.code().none { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH })
 
         val context = PatchContexts.of(listOf(controls))
         val method = context.mutableClassDefBy(controls.type).methods.single { it.sameAs(timer) }
@@ -435,18 +440,51 @@ class KeepProgressBarFixtureTest {
         val (extension, hide) = extensionFadeTimer(holders)
         val where = "$name: ${extension.type}->${hide.name}"
         assertTrue("$where posts no 3 second hide", hide.code().any { (it as? WideLiteralInstruction)?.wideLiteral == 3000L })
-        // The hook borrows v0, so the method needs a register below its parameters.
-        assertTrue("$where has no local register for the hook",
-            hide.implementation!!.registerCount - hide.parameterTypes.size - 1 >= 1)
 
         val context = PatchContexts.of(listOf(extension))
         val method = context.mutableClassDefBy(extension.type).methods.single { it.sameAs(hide) }
+        val original = method.code()
+        val post = original.indexOfFirst { it.reference() == POST_DELAYED }
+        method.noHidePostWhileKept()
+        val patched = method.code()
+        assertEquals("$where: the hook adds or drops instructions", original.size, patched.size)
+        assertEquals("$where: the post doesn't go through the extension", POSTS_CONTROLS_HIDE, patched[post].reference())
+        assertEquals("$where: the extension isn't called statically", Opcode.INVOKE_STATIC, patched[post].opcode)
+        assertEquals("$where: the extension gets other registers than the post",
+            (original[post] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF) },
+            (patched[post] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF) })
+        val others = original.indices.filter { it != post }
+        assertEquals("$where: Facebook's other code changed", others.map { original[it].opcode }, others.map { patched[it].opcode })
+        assertEquals("$where: Facebook's other calls changed", others.map { original[it].reference() }, others.map { patched[it].reference() })
+    }
+
+    @Test
+    fun `each declared build runs no hide the newer player's controls posted as they mount while kept`() = bundles { bundle ->
+        val name = bundle.name
+        fun classOf(type: String) = FixtureDex.classes(bundle, setOf(type)).values.singleOrNull()
+        val holders = FixtureDex.classesHolding(bundle, CONTROLS_EXTENSION).filterNot { it.type.startsWith(EXTENSION_CLASSES) }
+        val (extension, hide) = extensionFadeTimer(holders)
+        val (runnable, run) = extensionFadeRunnable(hide, ::classOf)
+        val where = "$name: ${runnable.type}->run"
+        // The portrait viewer's hide: the extension's render builds the same runnable for the callback that posts it
+        // as the controls mount, so a hook in the hide's post alone never reaches it.
+        val builders = extension.methods.filter { method ->
+            method.implementation?.instructions?.any { it.opcode == Opcode.NEW_INSTANCE && it.reference() == runnable.type } == true
+        }
+        assertTrue("$where: no method of ${extension.type} but ${hide.name} builds it", builders.any { !it.sameAs(hide) })
+        assertTrue("$where sends the controls nothing", run.code().any { it.opcode == Opcode.INVOKE_INTERFACE })
+        assertTrue("$where has no local register for the hook", run.implementation!!.registerCount - 1 >= 1)
+
+        val context = PatchContexts.of(listOf(runnable))
+        val method = context.mutableClassDefBy(runnable.type).methods.single { it.sameAs(run) }
         val original = method.code()
         method.noTimerWhileKept()
         val patched = method.code()
         assertEquals("$where gains four instructions", original.size + 4, patched.size)
         assertEquals("$where: the extension is asked first", KEEPS_CONTROLS, patched[0].reference())
-        assertEquals("$where: a yes posts no hide", Opcode.RETURN_VOID, patched[3].opcode)
+        val register = (patched[1] as OneRegisterInstruction).registerA
+        assertTrue("$where: the hook writes v$register, which isn't a local", register < method.localRegisterCount())
+        assertEquals("$where: a yes hides nothing", Opcode.RETURN_VOID, patched[3].opcode)
         assertEquals("$where: Facebook's code stays", original.map { it.opcode }, patched.drop(4).map { it.opcode })
         assertEquals("$where: a no lands on Facebook's first instruction", setOf(3, 4), ControlFlow.of(method).normal[2].toSet())
     }
@@ -473,6 +511,8 @@ class KeepProgressBarFixtureTest {
             hide.code().any { it.opcode == (if (updater.folded) Opcode.INVOKE_STATIC else if (updater.virtual) Opcode.INVOKE_VIRTUAL else Opcode.INVOKE_INTERFACE) &&
                 it.reference() == updater.update })
         assertTrue("$where has no local register for the hook", run.implementation!!.registerCount - 1 >= 1)
+        // The hook returns at the top, so a run() Redex merged with other runnables' would stop them all (#447).
+        assertTrue("$where picks among merged runnables", run.code().none { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH })
 
         val context = PatchContexts.of(listOf(runnable))
         val method = context.mutableClassDefBy(runnable.type).methods.single { it.sameAs(run) }

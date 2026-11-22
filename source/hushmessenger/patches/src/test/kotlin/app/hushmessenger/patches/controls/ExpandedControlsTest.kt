@@ -39,7 +39,7 @@ class ExpandedControlsTest {
         val shared = patches.map { it.dependencies.filterIsInstance<BytecodePatch>().single() }.toSet()
         assertEquals(1, shared.size)
         assertNull(shared.single().name)
-        fun descendants(patch: Patch<*>): Set<Patch<*>> = patch.dependencies.flatMap { setOf(it) + descendants(it) }.toSet()
+        fun descendants(patch: Patch): Set<Patch> = patch.dependencies.flatMap { setOf(it) + descendants(it) }.toSet()
         for (patch in patches) {
             assertTrue(descendants(patch).all { it.name == null }, "${patch.name} implicitly selects a visible feature")
         }
@@ -487,6 +487,16 @@ class ExpandedControlsTest {
             DECODE_BITMAP_BODY.replace("Landroid/graphics/Bitmap;->createScaledBitmap", "LX/UKC;->A0G"), 22)
         customScale.injectOriginalPhoto()
         assertTrue(customScale.implementation!!.instructions.any {
+            (it as? ReferenceInstruction)?.reference?.toString() ==
+                "Lapp/hushmessenger/extension/OriginalPhoto;->decodeFile(Ljava/lang/String;)Landroid/graphics/Bitmap;"
+        })
+
+        // 587's helper always filters, so it drops createScaledBitmap's flag.
+        val noFlag = fixtureMethod(DECODE_BITMAP, DECODE_BITMAP_BODY.replace(
+            "invoke-static {v1, v2, v4, v5}, Landroid/graphics/Bitmap;->createScaledBitmap(Landroid/graphics/Bitmap;IIZ)Landroid/graphics/Bitmap;",
+            "invoke-static {v1, v2, v4}, LX/Yut;->A0G(Landroid/graphics/Bitmap;II)Landroid/graphics/Bitmap;"), 22)
+        noFlag.injectOriginalPhoto()
+        assertTrue(noFlag.implementation!!.instructions.any {
             (it as? ReferenceInstruction)?.reference?.toString() ==
                 "Lapp/hushmessenger/extension/OriginalPhoto;->decodeFile(Ljava/lang/String;)Landroid/graphics/Bitmap;"
         })

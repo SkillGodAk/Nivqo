@@ -10,7 +10,6 @@
 
 package app.morphe.manager.patcher.worker
 
-import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.PowerManager
@@ -32,6 +31,7 @@ import app.morphe.manager.domain.repository.OriginalApkRepository
 import app.morphe.manager.domain.repository.PatchBundleRepository
 import app.morphe.manager.domain.worker.Worker
 import app.morphe.manager.domain.worker.WorkerRepository
+import app.morphe.manager.notification.OngoingContent
 import app.morphe.manager.notification.PatchingNotifications
 import app.morphe.manager.patcher.logger.Logger
 import app.morphe.manager.patcher.patch.ApkArchitectureResolver
@@ -44,6 +44,7 @@ import app.morphe.manager.patcher.runtime.PatcherProcesses
 import app.morphe.manager.patcher.runtime.Runtime
 import app.morphe.manager.patcher.runtime.PatcherVm
 import app.morphe.manager.patcher.split.SplitApkPreparer
+import app.morphe.manager.service.ForegroundWork
 import app.morphe.manager.ui.model.SelectedApp
 import app.morphe.manager.ui.model.State
 import app.morphe.manager.util.*
@@ -76,7 +77,8 @@ class PatcherWorker(
     private val rootInstaller: RootInstaller,
     private val installerManager: InstallerManager,
     private val patchBundleRepository: PatchBundleRepository,
-    private val patcherProcesses: PatcherProcesses
+    private val patcherProcesses: PatcherProcesses,
+    private val foregroundWork: ForegroundWork
 ) : Worker<PatcherWorker.Args>(context, parameters) {
     private fun runtime(vm: PatcherVm) =
         Runtime(applicationContext, fs, patchBundleRepository, patcherProcesses, vm, ::getForegroundInfo)
@@ -116,21 +118,28 @@ class PatcherWorker(
     /** Queue position shown in the ongoing notification, set once the args are claimed. */
     private var queueLabel: String? = null
 
-    private val notificationManager = applicationContext.getSystemService(NotificationManager::class.java)
+    // What the ongoing notification shows for the run, which a foreground taken for it starts from
+    @Volatile
+    private var progress = progressContent()
 
-    override suspend fun getForegroundInfo() =
-        ForegroundInfo(PatchingNotifications.ONGOING_ID, createNotification(), PatchingNotifications.foregroundServiceType)
+    // The run's place among the work holding the foreground, which shows its progress while it lasts
+    @Volatile
+    private var ongoing: ForegroundWork.Hold? = null
 
-    private fun createNotification(
+    override suspend fun getForegroundInfo() = ForegroundInfo(
+        PatchingNotifications.ONGOING_ID,
+        PatchingNotifications.ongoing(applicationContext, progress),
+        PatchingNotifications.foregroundServiceType
+    )
+
+    private fun progressContent(
         stepName: String? = null,
         patchProgress: Pair<Int, Int>? = null, // Completed to total patches
-        contentText: String? = null,
-        live: Boolean = true,
-    ) = PatchingNotifications.ongoing(
-        applicationContext,
+        contentText: String? = null
+    ) = OngoingContent(
         title = stepName ?: applicationContext.getString(R.string.patcher_notification_title),
         text = contentText ?: queueLabel ?: applicationContext.getText(R.string.patcher_notification_text),
-        live = live,
+        live = true,
         patchProgress = patchProgress
     )
 
@@ -139,10 +148,9 @@ class PatcherWorker(
         patchProgress: Pair<Int, Int>? = null,
         contentText: String? = null,
     ) {
-        // Android won't visually switch from indeterminate → determinate on the same notification
-        // ID unless we first post a brief non-indeterminate update. Post the real notification
-        // directly - the determinate bar replaces the spinning one cleanly this way
-        notificationManager.notify(PatchingNotifications.ONGOING_ID, createNotification(stepName, patchProgress, contentText))
+        val content = progressContent(stepName, patchProgress, contentText)
+        progress = content
+        ongoing?.update(content)
     }
 
     private fun showCompletionNotification(
@@ -169,7 +177,7 @@ class PatcherWorker(
 
     override suspend fun doWork(): Result {
         if (runAttemptCount > 0) {
-            Log.d(tag, "Android requested retrying but retrying is disabled.".logFmt())
+            Log.d(LOG_TAG, "Android requested retrying but retrying is disabled.".logFmt())
             return Result.failure()
         }
 
@@ -179,22 +187,24 @@ class PatcherWorker(
         } catch (e: Exception) {
             // Foreground promotion can fail on some devices or when notification permission is
             // denied. Log it but continue - patching still works, just with less OS protection
-            Log.w(tag, "Failed to promote worker to foreground service:".logFmt(), e)
+            Log.w(LOG_TAG, "Failed to promote worker to foreground service:".logFmt(), e)
         }
 
         val wakeLock: PowerManager.WakeLock =
             (applicationContext.getSystemService(Context.POWER_SERVICE) as PowerManager)
-                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$tag::Patcher")
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$LOG_TAG::Patcher")
                 .apply {
                     // No timeout: the finally block below always releases this lock, so a cap
                     // would only risk the CPU sleeping mid-patch on large or slow devices
                     @Suppress("WakelockTimeout")
                     acquire()
-                    Log.d(tag, "Acquired wakelock.")
+                    Log.d(LOG_TAG, "Acquired wakelock.")
                 }
 
         lateinit var args: Args
         var patchingSucceeded = false
+        // Shown over the work the run is part of, which gets the notification back once it is done
+        val hold = foregroundWork.hold(progress).also { ongoing = it }
         val result = try {
             args = workerRepository.claimInput(this)
             queueLabel = args.queuePosition?.let { (position, total) ->
@@ -207,9 +217,9 @@ class PatcherWorker(
             runPatcher(args).also { if (it == Result.success()) patchingSucceeded = true }
         } finally {
             wakeLock.release()
-            // Patching is over, so its Live Update ends here instead of being left to the foreground
-            // to take down, and a run denied a foreground leaves nothing it posted directly behind
-            PatchingNotifications.endOngoing(applicationContext, createNotification(live = false))
+            // Patching is over, so its Live Update ends here: the notification goes back to the work
+            // around the run, or away with the last of it
+            hold.close()
         }
 
         // A mount can still restore the stock app from it, the install flow deletes it after mounting
@@ -371,7 +381,8 @@ class PatcherWorker(
             // directly to originalApksDir so it is used for repatching instead of the archive.
             // The runtime is done with the file by then, so it is moved rather than copied.
             // A mount keeps the archive instead: the stock app it restores has to carry the
-            // original signatures, which no longer verify on the merged APK
+            // original signatures, which no longer verify on the merged APK. An archive with OBB
+            // files is kept too, as the runtime does not hand over a merged APK that lacks them
             val onMergedApkReady: suspend (File) -> Unit = { mergedFile ->
                 val version = pm.getPackageInfo(mergedFile)?.versionName
                     ?.takeUnless { it.isBlank() }
@@ -407,7 +418,7 @@ class PatcherWorker(
                 // Nothing was patched yet, and ART can still take the run
                 // The cause tells a JVM that crashed on start from one the device had no room for
                 args.logger.warn("${e.message} (${e.cause?.javaClass?.simpleName}), patching on ART instead")
-                Log.w(tag, "Patcher JVM unavailable".logFmt(), e)
+                Log.w(LOG_TAG, "Patcher JVM unavailable".logFmt(), e)
                 onRestart()
                 args.logger.logRuntime(PatcherVm.ART)
                 runtime(PatcherVm.ART).patchInput()
@@ -429,13 +440,13 @@ class PatcherWorker(
                         "$LOG_WORKER_FIELD_ELAPSED=${elapsed.inWholeMilliseconds}ms"
             )
 
-            Log.i(tag, "Patching succeeded".logFmt())
+            Log.i(LOG_TAG, "Patching succeeded".logFmt())
             val outputPackageName = pm.getPackageInfo(File(args.output))?.packageName ?: args.packageName
             autoInstallPending = installerManager.autoInstallAllowed(outputPackageName, mount = args.useMount)
             succeeded = true
             Result.success()
         } catch (e: PatcherKilledException) {
-            Log.e(tag, "Patcher process ended: ${e.reason}".logFmt(), e)
+            Log.e(LOG_TAG, "Patcher process ended: ${e.reason}".logFmt(), e)
             args.logger.error("Patcher process ended: ${e.reason}")
             val message = if (e.crashed) {
                 applicationContext.getString(
@@ -451,7 +462,7 @@ class PatcherWorker(
             )
         } catch (e: HeapExhaustedException) {
             Log.e(
-                tag,
+                LOG_TAG,
                 "Patcher exhausted its ${e.heapLimitMb}MB heap. ${e.originalStackTrace}".logFmt()
             )
             // The stack trace is already in the log; the failure itself says what the user can
@@ -466,7 +477,7 @@ class PatcherWorker(
             )
         } catch (e: PatcherFailureException) {
             Log.e(
-                tag,
+                LOG_TAG,
                 "An exception occurred in the patcher process while patching. ${e.originalStackTrace}".logFmt()
             )
             updateProgress(state = State.FAILED, message = e.originalStackTrace)
@@ -475,10 +486,10 @@ class PatcherWorker(
             )
         } catch (e: Exception) {
             if (isStopped || e is CancellationException) {
-                Log.i(tag, "Patching was cancelled".logFmt())
+                Log.i(LOG_TAG, "Patching was cancelled".logFmt())
                 throw e
             }
-            Log.e(tag, "An exception occurred while patching".logFmt(), e)
+            Log.e(LOG_TAG, "An exception occurred while patching".logFmt(), e)
             updateProgress(state = State.FAILED, message = e.stackTraceToString())
             Result.failure(
                 workDataOf(FAILURE_MESSAGE_KEY to e.stackTraceToString().truncateForWorkData())
@@ -487,10 +498,10 @@ class PatcherWorker(
             // Unmounted only to read the stock APK, so a run that produced nothing puts the patched one back
             if (unmounted && !succeeded) withContext(NonCancellable) {
                 runCatching { rootInstaller.mount(args.packageName) }
-                    .onFailure { Log.w(tag, "Failed to mount ${args.packageName} again".logFmt(), it) }
+                    .onFailure { Log.w(LOG_TAG, "Failed to mount ${args.packageName} again".logFmt(), it) }
             }
             if (!patchedApk.delete() && patchedApk.exists()) {
-                Log.w(tag, "Failed to delete temporary patched APK: ${patchedApk.absolutePath}".logFmt())
+                Log.w(LOG_TAG, "Failed to delete temporary patched APK: ${patchedApk.absolutePath}".logFmt())
             }
             if (!isStopped && args.announceCompletion) showCompletionNotification(
                 succeeded,

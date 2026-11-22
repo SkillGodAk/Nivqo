@@ -7,6 +7,7 @@ package app.morphe.patcher.apk
 
 import com.android.apksig.DefaultApkSignerEngine
 import com.android.apksig.KeyConfig
+import com.android.apksig.apk.ApkFormatException
 import com.android.apksig.apk.ApkSigningBlockNotFoundException
 import com.android.apksig.util.DataSources
 import org.bouncycastle.asn1.ASN1Encoding
@@ -32,8 +33,6 @@ import java.io.OutputStream
 import java.io.RandomAccessFile
 import java.math.BigInteger
 import java.nio.ByteBuffer
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 import java.security.KeyPairGenerator
 import java.security.KeyStore
 import java.security.PrivateKey
@@ -43,7 +42,9 @@ import java.security.UnrecoverableKeyException
 import java.security.cert.X509Certificate
 import java.util.Date
 import java.util.Locale
+import java.util.logging.Level
 import java.util.logging.Logger
+import java.util.zip.ZipFile
 import com.android.apksig.apk.ApkUtils as ApkSigUtils
 
 /**
@@ -298,46 +299,64 @@ object ApkSigner {
         /**
          * Signs [inputApkFile] into [outputApkFile], which may be the same file.
          *
-         * An APK every target device verifies with v2 is signed in place with v2 alone:
-         * its entries are hashed once and never rewritten. Older targets also need v1,
-         * which rewrites every entry into a new file.
+         * The APK is signed in place with v2 alone, which every Android version Morphe supports
+         * verifies, whatever minimum the APK declares: its entries are hashed once and never rewritten.
+         * If the patcher handed over the v2 signature of the input APK, as it does for a patch that called
+         * [app.morphe.patcher.patch.retainOriginalV2Signature], that signature takes the v2 slot and the
+         * APK is signed with v3 alone, which Android 9 and later verify instead.
          *
-         * @param minSdkVersion The lowest API level the APK will be installed on,
-         *   if higher than the minimum it declares.
+         * @param minSdkVersion The lowest API level the APK will be installed on, if higher than the
+         *   minimum it declares and [MIN_SDK_VERSION].
          */
         @JvmOverloads
         fun signApk(inputApkFile: File, outputApkFile: File, minSdkVersion: Int = 0) {
-            logger.info("Signing APK")
+            // Kept by a patch that called retainOriginalV1Signature, as signing leaves every entry as it is.
+            val preservesV1Signature = ZipFile(inputApkFile).use { zip ->
+                zip.entries().asSequence().any { it.name.matches(ApkUtils.v1SignatureEntryName) }
+            }
+            // Handed over by the patcher for a patch that called retainOriginalV2Signature. A v2 signature the
+            // APK already has is replaced as before, so re-signing a signed APK keeps nothing of it.
+            val retainedV2Signature = try {
+                ApkSigningBlock.valueOf(inputApkFile, ApkSigningBlock.RETAINED_V2_SIGNATURE_ID)
+            } catch (ex: ApkFormatException) {
+                // The block is replaced when signing, so a malformed one only means there is nothing to keep.
+                logger.log(Level.WARNING, "Could not read the APK Signing Block, no v2 signature is kept", ex)
+                null
+            }
+            val preserved = listOfNotNull(
+                "v1".takeIf { preservesV1Signature },
+                "v2".takeIf { retainedV2Signature != null },
+            )
+            logger.info(
+                when (preserved.size) {
+                    0 -> "Signing APK"
+                    1 -> "Signing APK (preserving ${preserved.single()} signature)"
+                    else -> "Signing APK (preserving ${preserved.joinToString(" and ")} signatures)"
+                },
+            )
 
-            val inPlace = inputApkFile.canonicalFile == outputApkFile.canonicalFile
             val lowestSdkVersion = RandomAccessFile(inputApkFile, "r").use { file ->
                 ApkSigUtils.getMinSdkVersionFromBinaryAndroidManifest(
                     ApkSigUtils.getAndroidManifest(DataSources.asDataSource(file)),
                 )
-            }.coerceAtLeast(minSdkVersion)
-
-            if (lowestSdkVersion < V2_ONLY_MIN_SDK_VERSION) {
-                val target = if (inPlace) {
-                    File.createTempFile("signing", ".apk", outputApkFile.absoluteFile.parentFile)
-                } else {
-                    outputApkFile
-                }
-                try {
-                    com.android.apksig.ApkSigner.Builder(
-                        listOf(com.android.apksig.ApkSigner.SignerConfig.Builder(name, keyConfig, certificates).build()),
-                    ).setInputApk(inputApkFile).setOutputApk(target).build().sign()
-                    if (inPlace) Files.move(target.toPath(), outputApkFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                } finally {
-                    if (inPlace) target.delete()
-                }
-                return
+            }.coerceAtLeast(maxOf(minSdkVersion, MIN_SDK_VERSION))
+            if (retainedV2Signature != null && lowestSdkVersion < V3_MIN_SDK_VERSION) {
+                logger.warning(
+                    "The APK is signed with v3 to keep its original v2 signature, so it installs only on " +
+                        "Android 9 (API $V3_MIN_SDK_VERSION) and later: Android 8 verifies the v2 signature, " +
+                        "which no longer matches the patched files",
+                )
             }
 
-            if (!inPlace) ApkUtils.copyApk(inputApkFile, outputApkFile)
-            signInPlace(outputApkFile, lowestSdkVersion)
+            if (inputApkFile.canonicalFile != outputApkFile.canonicalFile) ApkUtils.copyApk(inputApkFile, outputApkFile)
+            signInPlace(outputApkFile, lowestSdkVersion, retainedV2Signature)
         }
 
-        private fun signInPlace(apkFile: File, minSdkVersion: Int) = RandomAccessFile(apkFile, "rw").use { file ->
+        private fun signInPlace(
+            apkFile: File,
+            minSdkVersion: Int,
+            retainedV2Signature: ByteArray?,
+        ) = RandomAccessFile(apkFile, "rw").use { file ->
             val apk = DataSources.asDataSource(file)
             val sections = ApkSigUtils.findZipSections(apk)
             val contentsEnd = try {
@@ -350,18 +369,25 @@ object ApkSigner {
                 sections.zipCentralDirectorySizeBytes.toInt(),
             )
             val endOfCentralDirectory = sections.zipEndOfCentralDirectory
+            // A retained v2 signature takes the v2 slot, so the APK is signed with v3 alone in its place.
+            val v3Only = retainedV2Signature != null
 
             DefaultApkSignerEngine.Builder(
                 listOf(DefaultApkSignerEngine.SignerConfig.Builder(name, keyConfig, certificates).build()),
                 minSdkVersion,
-            ).setV1SigningEnabled(false).setV3SigningEnabled(false).build().use { engine ->
+            ).setV1SigningEnabled(false).setV2SigningEnabled(!v3Only).setV3SigningEnabled(v3Only)
+                .build().use { engine ->
                 val request = engine.outputZipSections2(
                     apk.slice(0, contentsEnd),
                     DataSources.asDataSource(centralDirectory.duplicate()),
                     DataSources.asDataSource(endOfCentralDirectory.duplicate()),
                 )
                 val padding = ByteBuffer.wrap(ByteArray(request.paddingSizeBeforeApkSigningBlock))
-                val block = ByteBuffer.wrap(request.apkSigningBlock)
+                // The digests leave the block out, so adding the v2 signature to it keeps the v3 signature valid.
+                val block = ByteBuffer.wrap(
+                    retainedV2Signature?.let { ApkSigningBlock.withV2Signature(request.apkSigningBlock, it) }
+                        ?: request.apkSigningBlock,
+                )
                 request.done()
 
                 val centralDirectoryOffset = contentsEnd + padding.remaining() + block.remaining()
@@ -378,8 +404,11 @@ object ApkSigner {
         }
 
         private companion object {
-            // Android 7.0, the first release to verify APK Signature Scheme v2
-            private const val V2_ONLY_MIN_SDK_VERSION = 24
+            // Android 8.0, the oldest release Morphe supports, which verifies APK Signature Scheme v2
+            private const val MIN_SDK_VERSION = 26
+
+            // Android 9, the first release that verifies APK Signature Scheme v3
+            private const val V3_MIN_SDK_VERSION = 28
         }
     }
 }

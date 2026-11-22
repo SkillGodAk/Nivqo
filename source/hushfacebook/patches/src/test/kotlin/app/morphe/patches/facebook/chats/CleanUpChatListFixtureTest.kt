@@ -15,6 +15,7 @@ import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.RegisterLiveness
+import app.morphe.util.writersReaching
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
@@ -92,6 +93,15 @@ class CleanUpChatListFixtureTest {
             if (it.toString() == "J" || it.toString() == "D") 2 else 1
         }
     }
+
+    /** How often the picker row writes its Meta AI flag's register before the button's test, by build and ABI. */
+    private val flagWrites = mapOf(
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
+            "arm64-v8a" to 3,
+            "armeabi-v7a" to 3,
+            "arm64-v8a-minapi28-storeless" to 2,
+        ),
+    )
 
     private fun patched(context: BytecodePatchContext, method: Method): Method =
         context.mutableClassDefBy(method.definingClass).methods.single {
@@ -204,15 +214,21 @@ class CleanUpChatListFixtureTest {
                 }
                 assertEquals("$name: the flag gives the search box its end margin, then builds the button", 2, tests.size)
                 assertEquals("$name: the gate is the button's test", gate.test, tests.last())
-                // Up to the button's test, the flag is written twice: 0 at the start and Facebook's 1. So the
-                // hook before that test only ever sees a 0 or a 1. Inside the button block Facebook reuses the
-                // register for other values, which the hook never touches.
+                // Up to the button's test, the flag's register is written twice on 586 (0 at the start and
+                // Facebook's 1) and three times on 587's phone builds, whose extra write is a move in the
+                // search branch, which returns before the test. Only the 0 and Facebook's 1 reach the
+                // test, so the hook before it only ever sees a 0 or a 1. Inside the button block Facebook
+                // reuses the register for other values, which the hook never touches.
                 val writes = (0 until tests.last()).filter {
                     pickerStock[it].opcode.setsRegister() && (pickerStock[it] as? OneRegisterInstruction)?.registerA == flag
                 }
-                assertEquals("$name: writes to the flag before the button's test", 2, writes.size)
+                val abi = name.substringAfter("-$version-").substringBefore(".apkm")
+                assertEquals("$name: writes to the flag before the button's test",
+                    flagWrites.getValue(version)[abi] ?: throw AssertionError("$name has no pin for the flag's writes"), writes.size)
                 assertEquals("$name: the first puts 0", 0, (pickerStock[writes[0]] as NarrowLiteralInstruction).narrowLiteral)
-                assertEquals("$name: the second is Facebook's 1", gate.set, writes[1])
+                assertTrue("$name: Facebook's 1 is among them", gate.set in writes)
+                assertEquals("$name: the writes reaching the button's test", listOf(writes[0], gate.set).sorted(),
+                    gate.method.writersReaching(tests.last(), flag).sorted())
 
                 // The patch on those classes.
                 val context = PatchContexts.of(
@@ -250,22 +266,36 @@ class CleanUpChatListFixtureTest {
                 val renderHooked = patched(context, section.method).body()
                 val drawn = "$name ${section.method.definingClass}->${section.method.name}"
                 val shape = { code: List<Instruction> -> code.map { it.opcode to it.target() } }
-                assertEquals("$drawn: three instructions in", renderStock.size + 3, renderHooked.size)
-                assertEquals("$drawn: the hook call", Opcode.INVOKE_STATIC, renderHooked[0].opcode)
-                assertEquals("$drawn: the hook", HIDES_NOTES_ROW, renderHooked[0].target())
-                assertEquals("$drawn: no arguments", 0, (renderHooked[0] as FiveRegisterInstruction).registerCount)
-                assertEquals("$drawn: the answer", Opcode.MOVE_RESULT, renderHooked[1].opcode)
-                assertEquals("$drawn: lands in v0", 0, (renderHooked[1] as OneRegisterInstruction).registerA)
-                assertEquals("$drawn: a yes jumps", Opcode.IF_NEZ, renderHooked[2].opcode)
-                assertEquals("$drawn: tests v0", 0, (renderHooked[2] as OneRegisterInstruction).registerA)
-                assertEquals("$drawn: to the render's own empty way out", section.exit + 3,
-                    (renderHooked[2] as BuilderOffsetInstruction).target.location.index)
+                // Dating's Matches screen draws its new matches with this section (#337): the render compares
+                // its inbox's style to Dating's, and the hook hands that inbox over so the row stays there.
+                val owner = sectionOwners.single { it.type == section.method.definingClass }
+                val inbox = notesSectionInbox(owner)
+                assertTrue("$name: the section keeps one ThreadListParams", inbox != null)
+                assertTrue("$drawn: the render tells Dating's inbox by its style",
+                    holdsString(section.method, "mib_style_gemstone"))
+                assertEquals("$drawn: five instructions in", renderStock.size + 5, renderHooked.size)
+                assertEquals("$drawn: this copied down", Opcode.MOVE_OBJECT_FROM16, renderHooked[0].opcode)
+                assertEquals("$drawn: into v0", 0, (renderHooked[0] as TwoRegisterInstruction).registerA)
+                assertEquals("$drawn: from p0", locals(section.method), (renderHooked[0] as TwoRegisterInstruction).registerB)
+                assertEquals("$drawn: the inbox read", Opcode.IGET_OBJECT, renderHooked[1].opcode)
+                assertEquals("$drawn: the section's params", "${inbox!!.definingClass}->${inbox.name}:${inbox.type}", renderHooked[1].target())
+                assertEquals("$drawn: the hook call", Opcode.INVOKE_STATIC, renderHooked[2].opcode)
+                assertEquals("$drawn: the hook", HIDES_NOTES_ROW, renderHooked[2].target())
+                val call = renderHooked[2] as FiveRegisterInstruction
+                assertEquals("$drawn: the params handed over", 1, call.registerCount)
+                assertEquals("$drawn: from v0", 0, call.registerC)
+                assertEquals("$drawn: the answer", Opcode.MOVE_RESULT, renderHooked[3].opcode)
+                assertEquals("$drawn: lands in v0", 0, (renderHooked[3] as OneRegisterInstruction).registerA)
+                assertEquals("$drawn: a yes jumps", Opcode.IF_NEZ, renderHooked[4].opcode)
+                assertEquals("$drawn: tests v0", 0, (renderHooked[4] as OneRegisterInstruction).registerA)
+                assertEquals("$drawn: to the render's own empty way out", section.exit + 5,
+                    (renderHooked[4] as BuilderOffsetInstruction).target.location.index)
                 assertTrue("$drawn: which builds an object, reads its result and returns it",
-                    emptyExit(renderHooked, section.exit + 3))
-                assertEquals("$drawn: a no runs the stock render from its first instruction", shape(renderStock), shape(renderHooked.drop(3)))
+                    emptyExit(renderHooked, section.exit + 5))
+                assertEquals("$drawn: a no runs the stock render from its first instruction", shape(renderStock), shape(renderHooked.drop(5)))
                 assertEquals(
                     "$drawn: Facebook's branches land where they did",
-                    branches(renderStock).map { (from, to) -> from + 3 to to + 3 },
+                    branches(renderStock).map { (from, to) -> from + 5 to to + 5 },
                     branches(renderHooked).drop(1),
                 )
 

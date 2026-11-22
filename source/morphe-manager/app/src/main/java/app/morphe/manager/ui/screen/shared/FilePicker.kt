@@ -41,7 +41,21 @@ import androidx.compose.ui.unit.dp
 import app.morphe.manager.R
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.util.APK_EXTENSIONS
+import app.morphe.manager.util.APK_MIMETYPE
+import app.morphe.manager.util.APPLICATION_MIMETYPE
+import app.morphe.manager.util.BIN_MIMETYPE
+import app.morphe.manager.util.BKS_MIMETYPE
+import app.morphe.manager.util.IMAGE_MIMETYPE
+import app.morphe.manager.util.JKS_MIMETYPE
+import app.morphe.manager.util.JSON_EXTENSION
+import app.morphe.manager.util.JSON_MIMETYPE
+import app.morphe.manager.util.KEYSTORE_MIMETYPE
+import app.morphe.manager.util.KEYSTORE_MIME_TYPES
+import app.morphe.manager.util.MPP_EXTENSION
+import app.morphe.manager.util.MPP_MIMETYPE
 import app.morphe.manager.util.PM
+import app.morphe.manager.util.TEXT_MIMETYPE
+import app.morphe.manager.util.WILDCARD_MIMETYPE
 import app.morphe.manager.util.enumByNameOrNull
 import app.morphe.manager.util.externalStorageVolumes
 import app.morphe.manager.util.formatBytes
@@ -63,13 +77,13 @@ import kotlin.time.Duration.Companion.milliseconds
 
 // Exact MIME type → extensions
 private val MIME_EXTENSION_MAP: Map<String, Set<String>> = mapOf(
-    "application/vnd.android.package-archive" to setOf("apk", "apks", "xapk", "apkm"),
-    "application/json" to setOf("json"),
-    "text/plain" to setOf("txt", "log"),
-    "application/vnd.ms-project" to setOf("mpp"), // Morphe patch bundle format
-    "application/x-pkcs12" to setOf("p12", "pfx"),
-    "application/x-java-keystore" to setOf("jks"),
-    "application/vnd.morphe.keystore" to setOf("keystore", "bks"), // BKS keystores, no standard MIME
+    APK_MIMETYPE to APK_EXTENSIONS,
+    JSON_MIMETYPE to setOf(JSON_EXTENSION),
+    TEXT_MIMETYPE to setOf("txt", "log"),
+    MPP_MIMETYPE to setOf(MPP_EXTENSION), // Morphe patch bundle format
+    KEYSTORE_MIMETYPE to setOf("p12", "pfx"),
+    JKS_MIMETYPE to setOf("jks"),
+    BKS_MIMETYPE to setOf("keystore", "bks"),
     "image/png" to setOf("png"),
     "image/jpeg" to setOf("jpg", "jpeg"),
     "image/gif" to setOf("gif"),
@@ -78,7 +92,7 @@ private val MIME_EXTENSION_MAP: Map<String, Set<String>> = mapOf(
 
 // Category wildcard MIME type → extensions
 private val MIME_WILDCARD_MAP: Map<String, Set<String>> = mapOf(
-    "image/*" to setOf("png", "jpg", "jpeg", "gif", "webp", "bmp", "heic", "heif", "svg", "ico"),
+    IMAGE_MIMETYPE to setOf("png", "jpg", "jpeg", "gif", "webp", "bmp", "heic", "heif", "svg", "ico"),
     "video/*" to setOf("mp4", "mkv", "avi", "mov", "webm", "3gp", "ts", "flv"),
     "audio/*" to setOf("mp3", "wav", "ogg", "flac", "aac", "m4a", "opus", "wma"),
     "text/*" to setOf("txt", "log", "csv", "xml", "html", "htm", "md", "json"),
@@ -87,9 +101,9 @@ private val MIME_WILDCARD_MAP: Map<String, Set<String>> = mapOf(
 // Broad/generic MIME types added as system-picker fallbacks - skipped during resolution
 // so they don't suppress filtering when specific types are also present in the array
 private val MIME_PASSTHROUGH: Set<String> = setOf(
-    "*/*",
-    "application/octet-stream",
-    "application/*",
+    WILDCARD_MIMETYPE,
+    BIN_MIMETYPE,
+    APPLICATION_MIMETYPE,
 )
 
 // Skips passthrough types; returns null only when no specific type could be resolved
@@ -133,7 +147,8 @@ private fun storageRootIcon(root: File): ImageVector {
 private val IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "gif", "webp", "bmp")
 private val AUDIO_EXTENSIONS = setOf("mp3", "wav", "ogg", "flac", "aac", "m4a", "opus", "wma", "mid", "midi")
 private val SPLIT_ICON_EXTENSIONS = setOf("apkm", "xapk")
-private val KEYSTORE_EXTENSIONS = setOf("jks", "keystore", "bks", "p12", "pfx")
+private val KEYSTORE_EXTENSIONS =
+    KEYSTORE_MIME_TYPES.flatMapTo(mutableSetOf()) { MIME_EXTENSION_MAP.getValue(it) }
 
 private val iconLoadDispatcher = Dispatchers.IO.limitedParallelism(2)
 private val apkPackageInfoCache = LruCache<String, PackageInfo>(100)
@@ -167,8 +182,8 @@ private enum class SortMode {
     NAME_ASC, NAME_DESC, SIZE_DESC, SIZE_ASC, DATE_DESC, DATE_ASC;
 
     fun labelRes() = when (this) {
-        NAME_ASC  -> R.string.file_picker_sort_name_asc
-        NAME_DESC -> R.string.file_picker_sort_name_desc
+        NAME_ASC  -> R.string.list_sort_name_asc
+        NAME_DESC -> R.string.list_sort_name_desc
         SIZE_DESC -> R.string.file_picker_sort_size_desc
         SIZE_ASC  -> R.string.file_picker_sort_size_asc
         DATE_DESC -> R.string.file_picker_sort_date_desc
@@ -209,6 +224,7 @@ private fun modDateFormat(context: Context): SimpleDateFormat {
  *
  * [onPicked] gets the open folder with [allowFolderSelection], the tapped file by default, and
  * with [multiple] the files checked across every folder visited, in the order they were checked.
+ * Picking a folder can also make a new one, named [suggestedFolderName] until the user types another.
  */
 @Composable
 fun DialogHostScope.FilePicker(
@@ -216,7 +232,8 @@ fun DialogHostScope.FilePicker(
     onDismiss: () -> Unit,
     onPicked: (List<File>) -> Unit,
     multiple: Boolean = false,
-    allowFolderSelection: Boolean = false
+    allowFolderSelection: Boolean = false,
+    suggestedFolderName: String? = null
 ) {
     val prefs: PreferencesManager = koinInject()
     val pm: PM = koinInject()
@@ -240,6 +257,7 @@ fun DialogHostScope.FilePicker(
     }
     var showHiddenFiles by remember { mutableStateOf(prefs.filePickerShowHiddenFiles.getBlocking()) }
     var showViewMenu by remember { mutableStateOf(false) }
+    var showNewFolder by remember { mutableStateOf(false) }
     val search = rememberSearchFieldState(searchable = currentDir != null)
     val checkedFiles = remember { mutableStateListOf<File>() }
 
@@ -284,6 +302,20 @@ fun DialogHostScope.FilePicker(
         currentDir = if (atStorageRoot) null else currentDir?.parentFile
     }
 
+    DialogHost(target = currentDir.takeIf { showNewFolder }) { parent ->
+        NewFolderDialog(
+            parent = parent,
+            parentLabel = held(breadcrumbs.lastOrNull()?.first.orEmpty()),
+            suggestedName = suggestedFolderName,
+            onDismiss = { showNewFolder = false },
+            onCreated = { folder ->
+                showNewFolder = false
+                refresh()
+                currentDir = folder
+            }
+        )
+    }
+
     ListDialog(
         onDismissRequest = {
             when {
@@ -326,6 +358,7 @@ fun DialogHostScope.FilePicker(
             // With a single storage its list holds nothing the trail does not already lead to
             val showStorages = roots.size > 1
             ListDialogHeader(
+                decorativeIcon = true,
                 icon = { modifier ->
                     ListDialogHeaderIcon(
                         icon = if (allowFolderSelection) MaterialSymbols.Rounded.Folder else MaterialSymbols.Rounded.Draft.autoMirrored,
@@ -358,6 +391,15 @@ fun DialogHostScope.FilePicker(
                     }
                 } else null
             ) {
+                if (allowFolderSelection) {
+                    TitleAction(
+                        icon = MaterialSymbols.Rounded.Create_new_folder,
+                        contentDescription = stringResource(R.string.file_picker_new_folder),
+                        onClick = { showNewFolder = true },
+                        style = TitleActionStyle.Accent,
+                        enabled = currentDir != null
+                    )
+                }
                 Box {
                     TitleAction(
                         icon = MaterialSymbols.Rounded.Sort.autoMirrored,
@@ -467,6 +509,81 @@ fun DialogHostScope.FilePicker(
             }
         }
     }
+}
+
+// Characters a folder name cannot hold on every storage, FAT formatted SD cards being the strictest
+private const val FOLDER_NAME_FORBIDDEN_CHARS = "\"*/:<>?\\|"
+
+/** [name], or the first of "name (2)", "name (3)" and on that [dir] does not hold yet. */
+private fun freeChildName(dir: File, name: String): String {
+    if (!File(dir, name).exists()) return name
+    return generateSequence(2) { it + 1 }
+        .map { "$name ($it)" }
+        .first { !File(dir, it).exists() }
+}
+
+/**
+ * Asks for the name of a folder to make in [parent], shown as [parentLabel], led by [suggestedName]
+ * where there is one, numbered past the folders already called so. Hands the folder made to [onCreated].
+ */
+@Composable
+private fun DialogHostScope.NewFolderDialog(
+    parent: File,
+    parentLabel: String,
+    suggestedName: String?,
+    onDismiss: () -> Unit,
+    onCreated: (File) -> Unit
+) {
+    val messages: UserMessages = koinInject()
+    val coroutineScope = rememberCoroutineScope()
+    val failedMessage = stringResource(R.string.file_picker_new_folder_failed)
+    var name by remember { mutableStateOf("") }
+    var isCreating by remember { mutableStateOf(false) }
+    val trimmed = name.trim()
+
+    LaunchedEffect(parent, suggestedName) {
+        if (suggestedName == null) return@LaunchedEffect
+        val freeName = withContext(Dispatchers.IO) { freeChildName(parent, suggestedName) }
+        // A name the user has started typing stays
+        if (name.isEmpty()) name = freeName
+    }
+
+    // Also catches the entries for the folder itself and its parent, which every folder holds
+    val isTaken by produceState(false, parent, trimmed) {
+        value = trimmed.isNotEmpty() && withContext(Dispatchers.IO) { File(parent, trimmed).exists() }
+    }
+    val hasForbiddenChar = trimmed.any { it in FOLDER_NAME_FORBIDDEN_CHARS || it.isISOControl() }
+    val nameError = when {
+        hasForbiddenChar -> R.string.file_picker_folder_name_invalid
+        isTaken -> R.string.file_picker_folder_name_taken
+        else -> null
+    }
+    val canCreate = trimmed.isNotEmpty() && nameError == null && !isCreating
+
+    val create: () -> Unit = {
+        isCreating = true
+        coroutineScope.launch {
+            val folder = File(parent, trimmed)
+            val made = withContext(Dispatchers.IO) { folder.mkdir() }
+            isCreating = false
+            if (made) onCreated(folder) else messages.show(failedMessage)
+        }
+    }
+
+    TextInputDialog(
+        title = stringResource(R.string.file_picker_new_folder),
+        description = stringResource(R.string.file_picker_new_folder_description, parentLabel),
+        value = name,
+        onValueChange = { name = it },
+        label = stringResource(R.string.file_picker_folder_name),
+        leadingIcon = MaterialSymbols.Rounded.Folder,
+        isError = nameError != null,
+        confirmText = stringResource(R.string.create),
+        confirmEnabled = canCreate,
+        onConfirm = create,
+        onDismiss = onDismiss,
+        supporting = nameError?.let { { Footnote(text = stringResource(it), tone = SemanticTone.Error) } }
+    )
 }
 
 /**
@@ -706,13 +823,13 @@ private fun FileEntryRow(
         }
     }
 
-    val isMpp = ext == "mpp"
+    val isMpp = ext == MPP_EXTENSION
     // What the entry shows until its app icon or picture loads, or where it has none
     val icon = when {
         isDir -> MaterialSymbols.Rounded.Folder
         isApk -> MaterialSymbols.Rounded.Android
         ext in KEYSTORE_EXTENSIONS -> MaterialSymbols.Rounded.Key
-        ext == "json" -> MaterialSymbols.Rounded.Data_object
+        ext == JSON_EXTENSION -> MaterialSymbols.Rounded.Data_object
         isImage -> MaterialSymbols.Rounded.Image
         ext in AUDIO_EXTENSIONS -> MaterialSymbols.Rounded.Music_note
         else -> MaterialSymbols.Rounded.Draft.autoMirrored

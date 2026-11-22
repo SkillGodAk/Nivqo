@@ -12,12 +12,15 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.content.res.Resources;
+import android.graphics.Canvas;
+import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.StrikethroughSpan;
 import android.util.TypedValue;
 
 import org.junit.After;
@@ -28,6 +31,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -256,6 +261,227 @@ public class MarketplaceListingAgeTest {
         assertEquals("$150.00\nListed 3 days ago (" + date(listed) + ")", unsized.toString());
         AbsoluteSizeSpan[] sizes = unsized.getSpans(0, unsized.length(), AbsoluteSizeSpan.class);
         assertEquals(lineSize(), sizes[0].getSize());
+    }
+
+    /** [shown] drawn as React builds an old price: {@link #price} crossed out. */
+    private static SpannableString struck(String shown, int size) {
+        SpannableString old = price(shown, size);
+        old.setSpan(new StrikethroughSpan(), 0, shown.length(), Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+        return old;
+    }
+
+    @Test
+    public void anOldPriceBesideTheDatedPriceStaysLevelAndThePlaceLineGoesBackToFacebooks() {
+        long listed = System.currentTimeMillis() / 1000 - 21 * DAY;
+        String dated = MarketplaceAdFilterForTests.responseWhole(PAGE, priced(answer(listed, "Moncton, NB"), "17500"));
+        String date = "Listed 3 weeks ago (" + date(listed) + ")";
+        String place = "Moncton, NB" + MarketplaceListingAge.DOT + date;
+        assertTrue("the answer's place line has the date", dated.contains(place));
+
+        SpannableString early = new SpannableString(place);
+        assertSame("no price got the date yet", early, MarketplaceListingAge.priceLine(early));
+
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        assertEquals("$175\n" + date, MarketplaceListingAge.priceLine(price("$175", 60)).toString());
+
+        SpannableString plain = price("$200", 48);
+        assertSame("a price that isn't crossed out", plain, MarketplaceListingAge.priceLine(plain));
+        Spannable old = MarketplaceListingAge.priceLine(struck("$200", 48));
+        assertEquals("$200\n" + MarketplaceListingAge.BLANK, old.toString());
+        StrikethroughSpan[] lines = old.getSpans(0, old.length(), StrikethroughSpan.class);
+        assertEquals(1, lines.length);
+        assertEquals("the line through stops at the old price", 4, old.getSpanEnd(lines[0]));
+        int blankSizes = 0;
+        for (AbsoluteSizeSpan size : old.getSpans(0, old.length(), AbsoluteSizeSpan.class)) {
+            if (old.getSpanStart(size) == 5) {
+                assertEquals("the empty line is as tall as the date line", lineSize(), size.getSize());
+                assertEquals(old.length(), old.getSpanEnd(size));
+                blankSizes++;
+            } else {
+                assertEquals("the old price keeps its size", 48, size.getSize());
+                assertEquals(4, old.getSpanEnd(size));
+            }
+        }
+        assertEquals(1, blankSizes);
+        assertTrue(statusLine().contains(MarketplaceListingAge.OLD_PRICE_LEVEL));
+        SpannableString again = struck("$200", 48);
+        assertSame("one empty line per dated price", again, MarketplaceListingAge.priceLine(again));
+
+        SpannableString later = new SpannableString(place);
+        later.setSpan(new ForegroundColorSpan(0xFFB0B3B8), 0, place.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        Spannable undated = MarketplaceListingAge.priceLine(later);
+        assertEquals("the date shows once, under the price", "Moncton, NB", undated.toString());
+        ForegroundColorSpan[] colours = undated.getSpans(0, undated.length(), ForegroundColorSpan.class);
+        assertEquals("Facebook's colour stays", 1, colours.length);
+        assertEquals(undated.length(), undated.getSpanEnd(colours[0]));
+        assertTrue(statusLine().contains(MarketplaceListingAge.PLACE_UNDATED));
+    }
+
+    /** How 585's React crosses text out: a span that draws its own line, not Android's. */
+    abstract static class DrawnDecoration {
+        public abstract void draw(Canvas canvas, Layout layout, int start, int end);
+    }
+
+    static final class DrawnLineThrough extends DrawnDecoration {
+        @Override
+        public void draw(Canvas canvas, Layout layout, int start, int end) {
+        }
+    }
+
+    @Test
+    public void anOldPriceReactCrossesOutWithALineItDrawsGetsTheEmptyLineToo() {
+        long listed = System.currentTimeMillis() / 1000 - 21 * DAY;
+        MarketplaceAdFilterForTests.responseWhole(PAGE, priced(answer(listed, "Moncton, NB"), "17500"));
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        MarketplaceListingAge.priceLine(price("$175", 60));
+
+        assertFalse(MarketplaceListingAge.drawsLine(ForegroundColorSpan.class));
+        SpannableString old = price("$200", 48);
+        old.setSpan(new DrawnLineThrough(), 0, 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        Spannable level = MarketplaceListingAge.priceLine(old);
+        assertEquals("$200\n" + MarketplaceListingAge.BLANK, level.toString());
+        DrawnLineThrough[] lines = level.getSpans(0, level.length(), DrawnLineThrough.class);
+        assertEquals(1, lines.length);
+        assertEquals("the line through stops at the old price", 4, level.getSpanEnd(lines[0]));
+    }
+
+    @Test
+    public void aCrossedOutPriceAwayFromADatedPriceAndAPlaceLineWithoutOneStayAsTheyAre() {
+        long listed = System.currentTimeMillis() / 1000 - 21 * DAY;
+        String answer = priced(answer(listed, "Moncton, NB"), "17500");
+        MarketplaceAdFilterForTests.responseWhole(PAGE, answer);
+        String place = "Moncton, NB" + MarketplaceListingAge.DOT + "Listed 3 weeks ago (" + date(listed) + ")";
+
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        SpannableString lone = struck("$200", 48);
+        assertSame("no price got the date before it", lone, MarketplaceListingAge.priceLine(lone));
+        MarketplaceListingAge.priceLine(price("$175", 60));
+        for (int i = 0; i < MarketplaceListingAge.MAX_BETWEEN; i++) {
+            MarketplaceListingAge.priceLine(new SpannableString("Text " + i));
+        }
+        SpannableString far = struck("$200", 48);
+        assertSame("too far from the dated price", far, MarketplaceListingAge.priceLine(far));
+
+        MarketplaceListingAge.forgetPricesForTests();
+        MarketplaceAdFilterForTests.responseWhole(PAGE, answer);
+        SpannableString kept = new SpannableString(place);
+        assertSame("its price got no date, so the place line keeps it", kept, MarketplaceListingAge.priceLine(kept));
+    }
+
+    @Test
+    public void twoListingsOfOneNameDatedDifferentlyLeaveThePriceAloneAndThePlaceDated() {
+        long now = System.currentTimeMillis() / 1000;
+        long older = now - 35 * DAY;
+        String first = priced(answer(older, "Alnwick, NB"), "80000");
+        String second = priced(answer(now - 5 * DAY, "Alnwick, NB"), "80000").replace("\"1234\"", "\"5678\"");
+        String dated = MarketplaceAdFilterForTests.responseWhole(PAGE, first);
+        MarketplaceAdFilterForTests.responseWhole(PAGE, second);
+        String place = "Alnwick, NB" + MarketplaceListingAge.DOT + "Listed 1 month ago (" + date(older) + ")";
+        assertTrue(dated, dated.contains(place));
+
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        SpannableString shown = price("$800", 60);
+        assertSame("the name and price can't say which of the two this is", shown, MarketplaceListingAge.priceLine(shown));
+        SpannableString kept = new SpannableString(place);
+        assertSame("the place line keeps the listing's own date", kept, MarketplaceListingAge.priceLine(kept));
+
+        MarketplaceListingAge.forgetPricesForTests();
+        MarketplaceAdFilterForTests.responseWhole(PAGE, first);
+        MarketplaceAdFilterForTests.responseWhole(PAGE, first);
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        assertEquals("one listing answering twice is still one", "$800\nListed 1 month ago (" + date(older) + ")",
+                MarketplaceListingAge.priceLine(price("$800", 60)).toString());
+    }
+
+    /** A listing page's request for the listing [id], its variables percent-encoded as Relay sends them. */
+    private static String request(String id) {
+        try {
+            return "doc_id=5&variables=" + URLEncoder.encode("{\"targetId\":\"" + id + "\",\"scale\":3}",
+                    StandardCharsets.UTF_8.name()) + "&server_timestamps=true";
+        } catch (java.io.UnsupportedEncodingException impossible) {
+            throw new AssertionError(impossible);
+        }
+    }
+
+    @Test
+    public void aPageDrawnBeforeItsAnswerTakesNoDateFromAnotherListingOfItsName() {
+        long now = System.currentTimeMillis() / 1000;
+        long newer = now - 5 * DAY;
+        long older = now - 35 * DAY;
+        String relisted = priced(answer(newer, "Alnwick, NB"), "80000");
+        String first = priced(answer(older, "Alnwick, NB"), "80000").replace("\"1234\"", "\"5678\"");
+        String newerDate = "Listed 5 days ago (" + date(newer) + ")";
+
+        String asked = request("1234");
+        assertSame("the request goes out as it was", asked, MarketplaceAdFilterForTests.requestBody(PAGE, asked));
+        MarketplaceAdFilterForTests.responseWhole(PAGE, relisted);
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        assertEquals("$800\n" + newerDate, MarketplaceListingAge.priceLine(price("$800", 60)).toString());
+
+        MarketplaceAdFilterForTests.requestBody(PAGE, request("1234"));
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        assertEquals("the same listing again, before its answer", "$800\n" + newerDate,
+                MarketplaceListingAge.priceLine(price("$800", 60)).toString());
+        MarketplaceAdFilterForTests.responseWhole(PAGE, relisted);
+
+        MarketplaceAdFilterForTests.requestBody(PAGE, request("5678"));
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        SpannableString early = price("$800", 60);
+        assertSame("the other listing of that name, before its answer", early, MarketplaceListingAge.priceLine(early));
+        String dated = MarketplaceAdFilterForTests.responseWhole(PAGE, first);
+        String place = "Alnwick, NB" + MarketplaceListingAge.DOT + "Listed 1 month ago (" + date(older) + ")";
+        assertTrue(dated, dated.contains(place));
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        SpannableString after = price("$800", 60);
+        assertSame("after its answer the name can't say which it is", after, MarketplaceListingAge.priceLine(after));
+        SpannableString kept = new SpannableString(place);
+        assertSame("its place line keeps its own date", kept, MarketplaceListingAge.priceLine(kept));
+    }
+
+    @Test
+    public void aPlaceLineKeepsItsDateWhileThePriceAboveWaitsForItsAnswer() {
+        long listed = System.currentTimeMillis() / 1000 - 21 * DAY;
+        String one = priced(answer(listed, "Moncton, NB"), "15000");
+        String date = "Listed 3 weeks ago (" + date(listed) + ")";
+        String place = "Moncton, NB" + MarketplaceListingAge.DOT + date;
+        MarketplaceAdFilterForTests.responseWhole(PAGE, one);
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        MarketplaceListingAge.priceLine(price("$150", 60));
+        assertEquals("the date shows once, under the price", "Moncton, NB",
+                MarketplaceListingAge.priceLine(new SpannableString(place)).toString());
+
+        MarketplaceAdFilterForTests.requestBody(PAGE, request("5678"));
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        SpannableString waits = price("$150", 60);
+        assertSame("another listing's page, before its answer", waits, MarketplaceListingAge.priceLine(waits));
+        SpannableString kept = new SpannableString(place);
+        assertSame("so its place line keeps the date", kept, MarketplaceListingAge.priceLine(kept));
+
+        MarketplaceAdFilterForTests.responseWhole(PAGE, one.replace("\"1234\"", "\"5678\""));
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        assertEquals("its answer dates it the same, so the price gets it", "$150\n" + date,
+                MarketplaceListingAge.priceLine(price("$150", 60)).toString());
+    }
+
+    @Test
+    public void aRequestWhoseAnswerNeverCameStopsHoldingTheDateBack() {
+        assertTrue(MarketplaceListingAge.names("{\"targetId\":\"1234\"}", "1234"));
+        assertFalse("a longer number isn't the listing's", MarketplaceListingAge.names("{\"targetId\":\"12345\"}", "1234"));
+        assertFalse(MarketplaceListingAge.names("{\"targetId\":\"91234\"}", "1234"));
+
+        long listed = System.currentTimeMillis() / 1000 - 21 * DAY;
+        MarketplaceAdFilterForTests.responseWhole(PAGE, priced(answer(listed, "Moncton, NB"), "15000"));
+        MarketplaceListingAge.asked("{\"targetId\":\"5678\"}", System.currentTimeMillis() - MarketplaceListingAge.ASKED_MILLIS);
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        assertEquals("$150\nListed 3 weeks ago (" + date(listed) + ")",
+                MarketplaceListingAge.priceLine(price("$150", 60)).toString());
+
+        Settings.MARKETPLACE_LISTING_DATE.save(false);
+        MarketplaceAdFilterForTests.requestBody(PAGE, request("5678"));
+        Settings.MARKETPLACE_LISTING_DATE.resetToDefault();
+        MarketplaceListingAge.priceLine(new SpannableString("Polaroid Camera"));
+        assertEquals("a request sent with the date off doesn't wait", "$150\nListed 3 weeks ago (" + date(listed) + ")",
+                MarketplaceListingAge.priceLine(price("$150", 60)).toString());
     }
 
     /** [answer] with [fields] after data.listing's price. */

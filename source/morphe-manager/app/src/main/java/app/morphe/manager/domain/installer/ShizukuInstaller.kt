@@ -22,8 +22,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
-import android.os.Process
 import android.os.RemoteException
+import app.morphe.manager.util.SHELL_INSTALLER_PACKAGE
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -47,25 +47,14 @@ import kotlin.time.Duration.Companion.seconds
  */
 class ShizukuInstaller(private val app: Application) {
 
-    /** Result of a silent PackageInstaller operation. */
-    data class OperationResult(val status: Int, val message: String?)
-
     /**
-     * An [IntentSender] paired with the [OperationResult] the intent delivered to it completes,
+     * An [IntentSender] paired with the [InstallerStatus] the intent delivered to it completes,
      * which is the only way the system reports the outcome of a session.
      */
     private class PendingOperation {
-        val result = CompletableDeferred<OperationResult>()
+        val result = CompletableDeferred<InstallerStatus>()
         val intentSender: IntentSender = IntentSenderCompat.create { intent ->
-            result.complete(
-                OperationResult(
-                    status = intent.getIntExtra(
-                        PackageInstaller.EXTRA_STATUS,
-                        PackageInstaller.STATUS_FAILURE
-                    ),
-                    message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
-                )
-            )
+            result.complete(InstallerStatus.from(intent))
         }
     }
 
@@ -82,7 +71,7 @@ class ShizukuInstaller(private val app: Application) {
         sourceFile: File,
         expectedPackage: String,
         installerPackageNameOverride: String? = null
-    ): OperationResult = withContext(Dispatchers.IO) {
+    ): InstallerStatus = withContext(Dispatchers.IO) {
         val packageInstaller = obtainPackageInstaller()
         val packageInstallerWrapper = packageInstaller.asPackageInstaller(installerPackageNameOverride)
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
@@ -128,7 +117,7 @@ class ShizukuInstaller(private val app: Application) {
      *
      * @throws InstallerOperationException if the uninstall fails or is aborted.
      */
-    suspend fun uninstall(packageName: String): OperationResult = withContext(Dispatchers.IO) {
+    suspend fun uninstall(packageName: String): InstallerStatus = withContext(Dispatchers.IO) {
         val packageInstallerWrapper = obtainPackageInstaller().asPackageInstaller()
         val operation = PendingOperation()
 
@@ -137,7 +126,7 @@ class ShizukuInstaller(private val app: Application) {
     }
 
     /** Returns this result, or throws [InstallerOperationException] when the operation failed. */
-    private fun OperationResult.requireSuccess(): OperationResult {
+    private fun InstallerStatus.requireSuccess(): InstallerStatus {
         if (status != PackageInstaller.STATUS_SUCCESS) {
             throw InstallerOperationException(status, message)
         }
@@ -170,16 +159,13 @@ class ShizukuInstaller(private val app: Application) {
         )
     }
 
-    /** Returns the user ID derived from the current process UID. */
-    private fun currentUserId(): Int = Process.myUid() / 100000
-
     private fun installerIdentity(installerPackageNameOverride: String? = null): InstallerIdentity {
         val isRoot = runCatching { Shizuku.getUid() }.getOrDefault(-1) == 0
         return InstallerIdentity(
             packageName = installerPackageNameOverride
-                ?: if (isRoot) app.packageName else SHELL_PACKAGE,
+                ?: if (isRoot) app.packageName else SHELL_INSTALLER_PACKAGE,
             attributionTag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) app.attributionTag else null,
-            userId = if (isRoot) currentUserId() else 0
+            userId = if (isRoot) appUserId else 0
         )
     }
 
@@ -193,7 +179,6 @@ class ShizukuInstaller(private val app: Application) {
     class InstallerOperationException(val status: Int, override val message: String?) : Exception(message)
 
     companion object {
-        private const val SHELL_PACKAGE = "com.android.shell"
         private const val BASE_APK_NAME = "base.apk"
         private val INSTALL_RESULT_TIMEOUT = 5.minutes
         private val UNINSTALL_RESULT_TIMEOUT = 30.seconds

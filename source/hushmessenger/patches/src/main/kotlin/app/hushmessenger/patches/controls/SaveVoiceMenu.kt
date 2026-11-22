@@ -1,5 +1,6 @@
 package app.hushmessenger.patches.controls
 
+import app.hushmessenger.patches.coexist.poolString
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
@@ -101,6 +102,7 @@ internal class SaveVoiceMenuRecipe(
     val sheetClass: String,
     val sheetSession: String,
     val holdClass: String,
+    /** The held message's own interface getter for its row model. */
     val rowModel: String,
     val audioMessage: String,
     val audioMessageUri: String,
@@ -147,29 +149,61 @@ private fun Method.menuRowsSite(): MenuRowsSite? {
     return MenuRowsSite(copy, list, source, scratch, extra)
 }
 
-private class MenuTapSite(val start: Int, val scratch: Int, val first: Int, val tapHandler: String, val handler: String)
+/**
+ * The tap's start, scratch and first parameter registers, and its handler. [pooledRows] is empty when the tap names
+ * [MENU_ROW_MESSAGE] itself, or else holds each string pool lookup it reads a Message out of the Bundle by.
+ */
+private class MenuTapSite(val start: Int, val scratch: Int, val first: Int, val tapHandler: String, val handler: String,
+    val pooledRows: List<Pair<MethodReference, Int>>)
+
+private const val MENU_BUNDLE_READ = "Landroid/os/Bundle;->getParcelable(Ljava/lang/String;)Landroid/os/Parcelable;"
+private val MENU_POOL_KEYS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST, Opcode.CONST_HIGH16)
+
+/**
+ * Some builds take the Bundle's key from a Redex string pool: a constant key, the pool's static (I)String
+ * lookup, its answer at [at], then getParcelable by that answer cast straight to a Message. The pool and key, or null.
+ */
+private fun List<Instruction>.pooledMessageKey(at: Int): Pair<MethodReference, Int>? {
+    if (at < 2 || at + 3 >= size || this[at].opcode != Opcode.MOVE_RESULT_OBJECT) return null
+    val lookup = this[at - 1] as? FiveRegisterInstruction ?: return null
+    val pool = lookup.menuCall() ?: return null
+    if (lookup.opcode != Opcode.INVOKE_STATIC || lookup.registerCount != 1 || pool.returnType != "Ljava/lang/String;" || pool.menuParams() != listOf("I")) return null
+    val key = this[at - 2]
+    if (key.opcode !in MENU_POOL_KEYS || (key as OneRegisterInstruction).registerA != lookup.registerC) return null
+    val read = this[at + 1]
+    if (read.opcode != Opcode.INVOKE_VIRTUAL || read.menuRef()?.toString() != MENU_BUNDLE_READ ||
+        read.menuArgs().getOrNull(1) != (this[at] as OneRegisterInstruction).registerA) return null
+    val message = this[at + 2]
+    val cast = this[at + 3]
+    if (message.opcode != Opcode.MOVE_RESULT_OBJECT || cast.opcode != Opcode.CHECK_CAST || cast.menuRef()?.toString() != MESSAGE ||
+        (cast as OneRegisterInstruction).registerA != (message as OneRegisterInstruction).registerA) return null
+    return pool to (key as NarrowLiteralInstruction).narrowLiteral
+}
 
 /**
  * The chat menu's tap method: an instance (item, extra) method that names [MENU_TAP_NAME] and reads the Bundle's message.
  * The name's const-string comes before any of its work, and its register is free since the const-string writes it. The
- * parameters must still hold what they came with there, and the next thing the method reads off itself is its handler.
+ * parameters must still hold what they came with there, and the next thing the method reads off itself is its handler,
+ * from a field of the handler's own type. 586 kept the handler in an Object field and cast it after the read.
  */
 private fun Method.menuTapSite(): MenuTapSite? {
     if (returnType != "Z" || AccessFlags.STATIC.isSet(accessFlags) || menuParams() != listOf(MENU_ITEM, OBJECT)) return null
     val code = menuCode()
     val start = code.indices.singleOrNull { code[it].menuString() == MENU_TAP_NAME } ?: return null
-    if (code.none { it.menuString() == MENU_ROW_MESSAGE }) return null
+    val named = code.any { it.menuString() == MENU_ROW_MESSAGE }
+    val pooledRows = if (named) emptyList() else code.indices.mapNotNull { code.pooledMessageKey(it) }
+    if (!named && pooledRows.isEmpty()) return null
     val scratch = (code[start] as? OneRegisterInstruction)?.registerA ?: return null
     val first = implementation!!.registerCount - 3
     if (first < 0 || scratch >= first || scratch > 15) return null
     val written = code.take(start).any { it.opcode.setsRegister() && it is OneRegisterInstruction && it.registerA in first..first + 2 }
     if (written) return null
     val read = (start until code.size).firstOrNull {
-        code[it].opcode == Opcode.IGET_OBJECT && code[it].menuField()?.definingClass == definingClass && code[it].menuField()?.type == OBJECT
+        code[it].opcode == Opcode.IGET_OBJECT && code[it].menuField()?.definingClass == definingClass
     } ?: return null
-    val cast = code.getOrNull(read + 1) ?: return null
-    if (cast.opcode != Opcode.CHECK_CAST || (cast as OneRegisterInstruction).registerA != (code[read] as TwoRegisterInstruction).registerA) return null
-    return MenuTapSite(start, scratch, first, code[read].menuRef().toString(), cast.menuRef().toString())
+    val handler = code[read].menuField()!!.type
+    if (!handler.startsWith("L") || handler == OBJECT) return null
+    return MenuTapSite(start, scratch, first, code[read].menuRef().toString(), handler, pooledRows)
 }
 
 private class MoreSheetSite(val at: Int, val builder: Int, val hold: Int, val builderType: String)
@@ -234,7 +268,11 @@ internal fun resolveSaveVoiceMenu(classes: Iterable<ClassDef>): SaveVoiceMenuRec
         ?.any { it.name == "<init>" && it.menuParams() == params.toList() && isPublic(it.accessFlags) } == true
 
     val rows = byType[MENU_PARAMS]?.methods?.singleOrNull { it.menuRowsSite() != null } ?: return null
-    val taps = classes.flatMap { cls -> cls.methods.filter { it.returnType == "Z" && it.menuTapSite() != null } }
+    // A pooled Bundle key only counts when its pool answers the key the extension reads the message by.
+    fun readsRowMessage(site: MenuTapSite) = site.pooledRows.isEmpty() || site.pooledRows.any { (pool, key) ->
+        byType[pool.definingClass]?.methods?.singleOrNull { it.hookId() == pool.toString() }?.let { poolString(it, key) } == MENU_ROW_MESSAGE
+    }
+    val taps = menuTaps.methods(classes).filter { it.menuTapSite()?.let(::readsRowMessage) == true }
     val tap = taps.singleOrNull() ?: return null
     val tapSite = tap.menuTapSite()!!
 
@@ -263,7 +301,7 @@ internal fun resolveSaveVoiceMenu(classes: Iterable<ClassDef>): SaveVoiceMenuRec
     if (listOf(builderId, builderIcon, builderTitle, builderTag).any { !openField(it, write = true) } || !openField(idStore.menuField()!!)) return null
 
     // The icon is the constant Save video's row stores in the builder's icon field.
-    val saveRow = classes.flatMap { cls -> cls.methods.filter { it.returnType == MENU_ITEM && it.menuCode().any { i -> i.menuString() == MENU_SAVE_VIDEO } } }.singleOrNull() ?: return null
+    val saveRow = saveVideoRows.methods(classes).singleOrNull() ?: return null
     val saveCode = saveRow.menuCode()
     val iconStore = saveCode.indexOfFirst { it.opcode == Opcode.IPUT && it.menuRef()?.toString() == builderIcon.toString() }
     if (iconStore < 1) return null
@@ -310,7 +348,7 @@ internal fun resolveSaveVoiceMenu(classes: Iterable<ClassDef>): SaveVoiceMenuRec
     if (!openClass(MESSAGE) || !openClass(kind)) return null
 
     // The More sheet, the builder it adds rows to, and the account it was given.
-    val sheet = classes.flatMap { cls -> cls.methods.filter { it.moreSheetSite() != null } }.singleOrNull() ?: return null
+    val sheet = moreSheets.methods(classes).singleOrNull() ?: return null
     val sheetSite = sheet.moreSheetSite()!!
     val sheetClass = byType[sheet.definingClass] ?: return null
     val sheetSession = sheetClass.fields.singleOrNull { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == FB_USER_SESSION } ?: return null
@@ -339,13 +377,17 @@ internal fun resolveSaveVoiceMenu(classes: Iterable<ClassDef>): SaveVoiceMenuRec
     if (!openField(sheetField) || !openField(heldField)) return null
 
     // The one place that takes a held message as a voice message says which row model that is, and the model's Uri is the sound.
-    val caster = classes.flatMap { cls -> cls.methods.filter { m -> m.returnType == "V" && m.menuCode().any { it.menuString() == AUDIO_MESSAGE_CAST } } }.singleOrNull()?.menuCode() ?: return null
+    val caster = audioCasters.methods(classes).singleOrNull()?.menuCode() ?: return null
     val named = caster.indexOfFirst { it.menuString() == AUDIO_MESSAGE_CAST }
-    val rowModel = caster.getOrNull(named - 1)?.takeIf { it.opcode == Opcode.IGET_OBJECT }?.menuField() ?: return null
-    if (sheetCode.none { it.opcode == Opcode.IGET_OBJECT && it.menuRef()?.toString() == rowModel.toString() }) return null
+    // It asks the held message's own interface getter for the model. 586 read a field of the row type instead.
+    val rowModel = caster.getOrNull(named - 2)?.takeIf {
+        caster[named - 1].opcode == Opcode.MOVE_RESULT_OBJECT && (it.opcode == Opcode.INVOKE_INTERFACE || it.opcode == Opcode.INVOKE_INTERFACE_RANGE)
+    }?.menuCall()?.takeIf { it.menuParams().isEmpty() && it.returnType.startsWith("L") } ?: return null
+    val modelCalls = setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
+    if (sheetCode.none { it.opcode in modelCalls && it.menuRef()?.toString() == rowModel.toString() }) return null
     val audioMessage = caster.drop(named + 1).take(4).firstOrNull { it.opcode == Opcode.CHECK_CAST }?.menuRef()?.toString() ?: return null
     val audioMessageUri = byType[audioMessage]?.fields?.singleOrNull { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == MENU_URI } ?: return null
-    if (!openField(rowModel) || !openClass(audioMessage) || !isPublic(audioMessageUri.accessFlags)) return null
+    if (!openMethod(rowModel, static = false) || !openClass(audioMessage) || !isPublic(audioMessageUri.accessFlags)) return null
 
     return SaveVoiceMenuRecipe(
         rows = rows, tap = tap,
@@ -382,6 +424,15 @@ private fun Method.isAudioPrefetch(): Boolean {
         read.definingClass == reader && read.returnType == MENU_AUDIO_DATA && read.menuParams() == listOf(MESSAGE, "Ljava/lang/String;") &&
         code[8].menuField()?.definingClass == MENU_AUDIO_DATA && code[8].menuField()?.type == MENU_URI
 }
+
+/** The older menu's taps, before the pool each one reads its row's message from is looked at. */
+internal val menuTaps = methodCheck { _, m -> m.returnType == "Z" && m.menuTapSite() != null }
+
+internal val saveVideoRows = methodCheck { _, m -> m.returnType == MENU_ITEM && m.menuCode().any { it.menuString() == MENU_SAVE_VIDEO } }
+
+internal val moreSheets = methodCheck { _, m -> m.moreSheetSite() != null }
+
+internal val audioCasters = methodCheck { _, m -> m.returnType == "V" && m.menuCode().any { it.menuString() == AUDIO_MESSAGE_CAST } }
 
 /** The older menu's constructor and tap, then the More sheet and its tap, or none when any piece of the recipe doesn't resolve. */
 internal fun findSaveVoiceMenu(classes: Iterable<ClassDef>): List<Method> {
@@ -543,7 +594,8 @@ internal fun saveVoiceMenuBuilder(stub: MutableMethod, recipe: SaveVoiceMenuReci
             instance-of v0, p0, ${recipe.holdClass}
             if-eqz v0, :none
             check-cast p0, ${recipe.holdClass}
-            iget-object v0, p0, ${recipe.rowModel}
+            invoke-interface {p0}, ${recipe.rowModel}
+            move-result-object v0
             instance-of v1, v0, ${recipe.audioMessage}
             if-eqz v1, :none
             check-cast v0, ${recipe.audioMessage}

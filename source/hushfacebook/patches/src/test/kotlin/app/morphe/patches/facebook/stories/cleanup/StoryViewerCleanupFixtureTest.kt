@@ -9,7 +9,11 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.isStringTable
+import app.morphe.patches.facebook.feed.namesString
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -22,8 +26,10 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -43,8 +49,14 @@ class StoryViewerCleanupFixtureTest {
     private fun Method.code() = implementation!!.instructions.toList()
     private fun Instruction.reference() = (this as ReferenceInstruction).reference.toString()
 
-    /** Opcodes past the NOP that pads a switch payload, which moves when the code above it grows. */
-    private fun List<Instruction>.unpadded() = map { it.opcode }.filter { it != Opcode.NOP }
+    /**
+     * Opcodes past the NOP that pads a switch payload, which moves when the code above it grows. A
+     * goto reads as GOTO whatever its width: the hook can push a branch past a plain goto's reach, and
+     * dexlib2 widens it (585's Android 9 build, LX/0CA6;->IP3).
+     */
+    private fun List<Instruction>.unpadded() = map { it.opcode }.filter { it != Opcode.NOP }.map {
+        if (it == Opcode.GOTO_16 || it == Opcode.GOTO_32) Opcode.GOTO else it
+    }
 
     private fun component(bundle: File, name: String): ClassDef {
         val found = FixtureDex.classesHolding(bundle, name).filterNot { it.type.startsWith(EXTENSION_PACKAGE) }
@@ -68,6 +80,22 @@ class StoryViewerCleanupFixtureTest {
     private fun answersNull(code: List<Instruction>) = code.zipWithNext().any { (load, ret) ->
         load.opcode == Opcode.CONST_4 && (load as NarrowLiteralInstruction).narrowLiteral == 0 &&
             ret.opcode == Opcode.RETURN_OBJECT && (ret as OneRegisterInstruction).registerA == (load as OneRegisterInstruction).registerA
+    }
+
+    /**
+     * Whether some return-object in [code] answers a register whose last write above it is a zero
+     * from `const/4` or `const/16`, with checks and calls that don't touch it in between (585's
+     * Subscribe pill loads null, tests two things, then returns it; 587's song pill returns v42).
+     */
+    private fun returnsNull(code: List<Instruction>) = code.indices.any { at ->
+        val ret = code[at]
+        if (ret.opcode != Opcode.RETURN_OBJECT) return@any false
+        val register = (ret as OneRegisterInstruction).registerA
+        val write = (at - 1 downTo 0).firstOrNull { j ->
+            code[j].opcode.setsRegister() && (code[j] as? OneRegisterInstruction)?.registerA == register
+        } ?: return@any false
+        (code[write].opcode == Opcode.CONST_4 || code[write].opcode == Opcode.CONST_16) &&
+            (code[write] as NarrowLiteralInstruction).narrowLiteral == 0
     }
 
     @Test
@@ -151,14 +179,23 @@ class StoryViewerCleanupFixtureTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
                 val name = bundle.name
-                val listeners = FixtureDex.classesHolding(bundle, PROGRESS_TRACE)
+                // 585's Android 9 build moves the trace into a string table one listener asks, so the
+                // table's callers count too, and the table itself never does.
+                val holders = FixtureDex.classesHolding(bundle, PROGRESS_TRACE)
                     .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
+                val tables = holders.associateBy { it.type }
+                val resolve: (MethodReference) -> Method? = { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
+                val asking = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.definingClass in tables } }) {
+                    !holdsString(it, PROGRESS_TRACE) && namesString(it, PROGRESS_TRACE, resolve)
+                }
+                val listeners = (holders + FixtureDex.classes(bundle, asking.map { it.definingClass }.toSet()).values)
+                    .distinctBy { it.type }
                 val looked = mutableMapOf<String, ClassDef?>()
                 val lookup = { type: String ->
                     if (type in looked) looked[type] else FixtureDex.classes(bundle, setOf(type))[type].also { looked[type] = it }
                 }
                 val methods = listeners.flatMap { listener ->
-                    listener.methods.filter { holdsString(it, PROGRESS_TRACE) }.map { listener to it }
+                    listener.methods.filter { !isStringTable(it) && namesString(it, PROGRESS_TRACE, resolve) }.map { listener to it }
                 }
                 val moves = methods.associate { (_, method) -> method to segmentsMove(method, lookup) }
 
@@ -170,8 +207,18 @@ class StoryViewerCleanupFixtureTest {
                 assertEquals("$name: listeners moving a view of segments", 1, moves.values.count { it!!.drawable == null })
                 assertEquals("$name: listeners moving a holder of the segments drawable", 1,
                     moves.values.count { it!!.drawable != null })
-                assertTrue("$name: a listener writes over its progress",
-                    methods.all { (_, method) -> keeps(method, lastArgument(method)) })
+                assertTrue("$name: a listener writes over its progress before moving its segments",
+                    methods.all { (_, method) -> keeps(method, lastArgument(method), moves.getValue(method)!!.index + 1) })
+                // Negative control: right after any write of the progress register (586's LX/0efg; reuses it
+                // on the trace's branch), the check says the argument is gone.
+                for ((_, method) in methods) {
+                    val progress = lastArgument(method)
+                    method.implementation!!.instructions.forEachIndexed { at, it ->
+                        if (it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == progress) {
+                            assertFalse("$name: ${method.definingClass} wrote its progress at $at", keeps(method, progress, at + 1))
+                        }
+                    }
+                }
 
                 val context = PatchContexts.of((listeners + looked.values.filterNotNull()).distinctBy { it.type })
                 context.followStoryProgress()
@@ -229,9 +276,179 @@ class StoryViewerCleanupFixtureTest {
         assertEquals("a declared build has no fixture", versions, checked)
     }
 
+    /**
+     * #380: the song and effect pills under the poster's name come from a chip row that walks the
+     * story's links and switches on each one's type, and the sheet a tap on one opens lists them
+     * with a column that does the same. In each, the extension hears the type right before the
+     * ordinal and, on a yes, the loop steps to the next link.
+     */
+    @Test
+    fun `each declared build's pill row and links column ask the extension about each pill's type`() {
+        assertTrue("the bundle declares no Facebook build", versions.isNotEmpty())
+        assertEquals("the pill row comes first", listOf(CHIP_GROUP, LINKS_COLUMN), CREDIT_WALKERS)
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) for (walker in CREDIT_WALKERS) {
+                val name = "${bundle.name} $walker"
+                val column = component(bundle, walker)
+                val original = renderOf(column)!!.code()
+                val site = pillSwitch(renderOf(column)!!)
+                assertNotNull("$name: switches on no pill type inside its loop", site)
+                site!!
+                val enum = FixtureDex.classes(bundle, setOf(site.typeClass))[site.typeClass]
+                assertNotNull("$name: the pill type ${site.typeClass} isn't in the app", enum)
+                assertEquals("$name: the pill type isn't an enum", "Ljava/lang/Enum;", enum!!.superclass)
+                val names = enum.methods.single { it.name == "<clinit>" }
+                for (pill in PILL_TYPE_NAMES + listOf("SPOTIFY", "SOUND_SYNC", "CLOSE_FRIEND")) {
+                    assertTrue("$name: the pill type names no $pill", holdsString(names, pill))
+                }
+
+                val context = PatchContexts.of(listOf(column, enum))
+                context.dropCredits(walker)
+                val code = context.mutableClassDefBy(column.type).methods.single {
+                    it.name == "render" && it.parameterTypes.size == 1
+                }.code()
+                val at = site.ordinal
+                assertEquals("$name: Facebook's code up to the ordinal is kept",
+                    original.take(at).unpadded(), code.take(at).unpadded())
+                assertEquals("$name: asks about the type, then the ordinal",
+                    listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.IF_NEZ),
+                    code.subList(at, at + 3).map { it.opcode })
+                // 585 arm64 calls the ordinal with invoke-virtual/range, the other builds without.
+                assertTrue("$name: the ordinal follows the question",
+                    code[at + 3].opcode in setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE))
+                assertEquals("$name: the ordinal follows the question", "Ljava/lang/Enum;->ordinal()I", code[at + 3].reference())
+                assertEquals("$name: to the extension", DROP_CREDIT, code[at].reference())
+                assertEquals("$name: with the pill's type", site.type,
+                    (code[at] as com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction).startRegister)
+                assertEquals("$name: into the switch's register", site.scratch, (code[at + 1] as OneRegisterInstruction).registerA)
+                assertEquals("$name: a yes takes the loop's step", site.next + 3,
+                    (code[at + 2] as com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction).target.location.index)
+                assertEquals("$name: the rest is Facebook's", original.drop(at).unpadded(), code.drop(at + 3).unpadded())
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** #380: the pill with "Try it" that a story whose first credit is a song gets answers null on a yes. */
+    @Test
+    fun `each declared build's song pill asks the extension first`() {
+        assertTrue("the bundle declares no Facebook build", versions.isNotEmpty())
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                val name = bundle.name
+                val holders = FixtureDex.classesHolding(bundle, SONG_PILL_BUTTON)
+                    .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
+                val pills = holders.filter(::isSongPill)
+                assertEquals("$name: song pills keying their button $SONG_PILL_BUTTON", 1, pills.size)
+                val pill = pills.single()
+                val original = renderOf(pill)!!.code()
+                // Positive controls: Facebook's own render answers null for a song with no title, and
+                // the pill is the same kind of component as the chip row built in its place otherwise.
+                assertTrue("$name: the song pill never answers null itself", returnsNull(original))
+                assertEquals("$name: the song pill isn't the chip row's kind of component",
+                    component(bundle, CHIP_GROUP).superclass, pill.superclass)
+
+                val context = PatchContexts.of(holders)
+                context.hideSongPill()
+                val code = context.mutableClassDefBy(pill.type).methods.single {
+                    it.name == "render" && it.parameterTypes.size == 1
+                }.code()
+                assertEquals("$name: answers null on a yes",
+                    listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN_OBJECT),
+                    code.take(5).map { it.opcode })
+                assertEquals("$name: asks the song pill's hook", HIDE_SONG_PILL, code[0].reference())
+                assertTrue("$name: the early answer isn't null", answersNull(code.subList(3, 5)))
+                assertTrue("$name: a no doesn't go to Facebook's render", branchesPast(code, 5))
+                assertEquals("$name: the rest is Facebook's", original.unpadded(), code.drop(5).unpadded())
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun `each declared build's Subscribe pill asks the extension first`() {
+        assertTrue("the bundle declares no Facebook build", versions.isNotEmpty())
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                val name = bundle.name
+                val holders = FixtureDex.classesHolding(bundle, SUBSCRIBE_CLICK)
+                    .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
+                val looked = mutableMapOf<String, ClassDef?>()
+                val lookup = { type: String ->
+                    if (type in looked) looked[type] else FixtureDex.classes(bundle, setOf(type))[type].also { looked[type] = it }
+                }
+                val pills = holders.flatMap { subscribePills(it, lookup) }.toSet()
+                assertEquals("$name: Subscribe pills cast before $SUBSCRIBE_CLICK", 1, pills.size)
+                val pill = lookup(pills.single())!!
+                val original = renderOf(pill)!!.code()
+                // Positive control: Facebook's own render answers null for a card it skips.
+                assertTrue("$name: the Subscribe pill never answers null itself", returnsNull(original))
+
+                val context = PatchContexts.of((holders + looked.values.filterNotNull()).distinctBy { it.type })
+                context.hideSubscribePill()
+                val code = context.mutableClassDefBy(pill.type).methods.single {
+                    it.name == "render" && it.parameterTypes.size == 1
+                }.code()
+                assertEquals("$name: answers null on a yes",
+                    listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN_OBJECT),
+                    code.take(5).map { it.opcode })
+                assertEquals("$name: asks its own switch", HIDE_SUBSCRIBE, code[0].reference())
+                assertTrue("$name: a no doesn't go to Facebook's render", branchesPast(code, 5))
+                assertEquals("$name: the rest is Facebook's", original.unpadded(), code.drop(5).unpadded())
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** #439: the "Add to story" card's source hands back the list it was given on a yes. */
+    @Test
+    fun `each declared build's create story card source passes its list through on a yes`() {
+        assertTrue("the bundle declares no Facebook build", versions.isNotEmpty())
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                val name = bundle.name
+                val classes = FixtureDex.classesHolding(bundle, CREATE_CARD_SOURCES[0])
+                    .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
+                val source = createCardSource(classes)
+                assertNotNull("$name: no one story list source tags its card $CREATE_CARD_SOURCES", source)
+                val list = source!!.parameterRegisterNumber(source.parameterTypes.size - 1)
+                val original = source.code()
+                // Positive control: Facebook's own answer when it has no card to add is the list as it came.
+                assertTrue("$name: the source never hands back its list unchanged", original.any {
+                    it.opcode == Opcode.RETURN_OBJECT && (it as OneRegisterInstruction).registerA == list
+                })
+
+                val context = PatchContexts.of(classes)
+                context.hideCreateStoryCards()
+                val code = context.mutableClassDefBy(source.definingClass).methods.single {
+                    it.name == source.name && it.parameterTypes.map(CharSequence::toString) ==
+                        source.parameterTypes.map(CharSequence::toString)
+                }.code()
+                assertEquals("$name: hands back the list on a yes",
+                    listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_OBJECT),
+                    code.take(4).map { it.opcode })
+                assertEquals("$name: asks its own switch", HIDE_CREATE_STORY_CARD, code[0].reference())
+                assertEquals("$name: answers the list it was given", list, (code[3] as OneRegisterInstruction).registerA)
+                assertTrue("$name: a no doesn't go to Facebook's code", branchesPast(code, 4))
+                assertEquals("$name: the rest is Facebook's", original.unpadded(), code.drop(4).unpadded())
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
     @Test
     fun `the extension has every hook`() {
         for ((owner, hook) in listOf(STORY_VIEWER_CLEANUP to HIDE_CREDITS, STORY_VIEWER_CLEANUP to HIDE_REPLY_SUGGESTIONS,
+            STORY_VIEWER_CLEANUP to DROP_CREDIT, STORY_VIEWER_CLEANUP to HIDE_SUBSCRIBE,
+            STORY_VIEWER_CLEANUP to HIDE_CREATE_STORY_CARD, STORY_VIEWER_CLEANUP to HIDE_SONG_PILL,
             STORY_PROGRESS_BAR to SEGMENTS_MOVED)) {
             val method = ExtensionDex.classDef(owner).methods.singleOrNull {
                 "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook

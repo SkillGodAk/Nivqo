@@ -187,14 +187,15 @@ private fun Method.galleryHandlerKind(): String? {
 
 /**
  * A chat composer event handler that opens Messenger's own gallery on ActivateGalleryEvent and Messenger's editor on
- * EditGalleryItemEvent, by the event's class name or by checking its class.
+ * EditGalleryItemEvent, by the event's class name or by checking its class. 587's armv7 build looks some names up in
+ * a string table.
  */
-internal fun Method.isGalleryHandler(): Boolean {
+internal fun Method.isGalleryHandler(tables: Map<String, Map<Int, String>> = activeStringTables): Boolean {
     if (AccessFlags.STATIC.isSet(accessFlags) || returnType != "V") return false
     val code = implementation?.instructions ?: return false
     val events = listOf(ACTIVATE_GALLERY, EDIT_GALLERY_ITEM)
     val handles = when (galleryHandlerKind()) {
-        "by name" -> galleryStrings().let { strings -> events.all { dotted(it) in strings } }
+        "by name" -> (galleryStrings() + tableStrings(tables)).let { strings -> events.all { dotted(it) in strings } }
         "plugin" -> events.all { event -> code.any { it.opcode == Opcode.INSTANCE_OF && it.galleryType() == event } }
         else -> false
     }
@@ -321,18 +322,17 @@ internal fun Method.galleryItemsIntent(byType: Map<String, ClassDef>): FieldRefe
  * one way each handler's Edit branch reaches it, and both reachable from that handler. There's at most one handler of
  * each kind, and every one found must route, or a gallery button would still open Messenger's gallery with the switch on.
  */
-internal fun findExternalGallery(classes: Iterable<ClassDef>): List<Method> {
+internal fun findExternalGallery(classes: Iterable<ClassDef>, tables: Map<String, Map<Int, String>> = activeStringTables): List<Method> {
     galleryRoute = null
     val all = classes.toList()
-    val methods = all.flatMap { it.methods }
     val byType = all.associateBy { it.type }
-    val readers = methods.filter { it.isComposerResult() }
+    val readers = composerResults.methods(classes)
     val reader = readers.singleOrNull() ?: return emptyList()
     if (AccessFlags.STATIC.isSet(reader.accessFlags) ||
         reader.implementation!!.instructions.none { (it as? NarrowLiteralInstruction)?.narrowLiteral == CHAT_CAMERA_REQUEST }) return emptyList()
-    val (items, itemsIntent) = methods.mapNotNull { method -> method.galleryItemsIntent(byType)?.let { method to it } }.singleOrNull()
-        ?: return emptyList()
-    val factory = methods.filter { it.isChatCameraFactory() }.singleOrNull() ?: return emptyList()
+    val (items, itemsIntent) = galleryItemsShapes.methods(classes).mapNotNull { method -> method.galleryItemsIntent(byType)?.let { method to it } }
+        .singleOrNull() ?: return emptyList()
+    val factory = chatCameraFactories.methods(classes).singleOrNull() ?: return emptyList()
     val launcher = factory.chatCameraLauncherType() ?: return emptyList()
     val launcherClass = byType[launcher] ?: return emptyList()
     if (!launcherClass.galleryImplements(factory.returnType, byType)) return emptyList()
@@ -340,7 +340,7 @@ internal fun findExternalGallery(classes: Iterable<ClassDef>): List<Method> {
     // The hook has no host to hand the start, so it passes null, which only works while the start never reads it.
     if (start.implementation!!.instructions.any { start.implementation!!.registerCount - 1 in it.galleryReads() }) return emptyList()
     val target = all.galleryTarget(launcherClass, start, byType) ?: return emptyList()
-    val handlers = methods.filter { it.isGalleryHandler() }
+    val handlers = galleryHandlerShapes.methods(classes).filter { it.isGalleryHandler(tables) }
     if (handlers.isEmpty() || handlers.groupingBy { it.galleryHandlerKind() }.eachCount().values.any { it > 1 }) return emptyList()
     val routed = handlers.map { handler ->
         val provider = handler.galleryProvider(factory.returnType, start, byType) ?: return emptyList()
@@ -354,6 +354,19 @@ internal fun findExternalGallery(classes: Iterable<ClassDef>): List<Method> {
     }
     galleryRoute = GalleryRoute(routed.sortedBy { it.id }, target.type, start.hookId(), reader.hookId(), items.hookId(), itemsIntent.toString())
     return handlers + listOf(start, reader, items)
+}
+
+/** The photo handlers before the event class's own field is checked, which takes every class by type. */
+internal val galleryItemsShapes = methodCheck { _, method ->
+    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.onlyParameter(THREAD_KEY_TYPE) != null &&
+        method.onlyParameter(ACTIVITY_RESULT_EVENT) != null &&
+        method.implementation?.instructions?.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == EXTERNAL_MEDIA_REQUEST } == true
+}
+
+/** The gallery handlers before their event names are read, since 587's armv7 build looks some up in string tables known later. */
+internal val galleryHandlerShapes = methodCheck { _, method ->
+    !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+        method.implementation?.instructions?.count { it.opcode == Opcode.CHECK_CAST && it.galleryType() == ACTIVATE_GALLERY } == 1
 }
 
 /**
@@ -494,11 +507,13 @@ private fun Method.tempFolderCheck(): TempFolderCheck? {
 
 /** Both or neither, since moving the copy doesn't help a folder that dies in the check before the copy starts. */
 internal fun findGalleryTempFile(classes: Iterable<ClassDef>): List<Method> {
-    val methods = classes.flatMap { it.methods }
-    val copy = methods.filter { it.inboundCopyCall() != null }.singleOrNull() ?: return emptyList()
-    val check = methods.filter { it.tempFolderCheck() != null }.singleOrNull() ?: return emptyList()
+    val copy = inboundCopies.methods(classes).singleOrNull() ?: return emptyList()
+    val check = tempFolderChecks.methods(classes).singleOrNull() ?: return emptyList()
     return listOf(check, copy)
 }
+
+internal val inboundCopies = methodCheck { _, method -> method.inboundCopyCall() != null }
+internal val tempFolderChecks = methodCheck { _, method -> method.tempFolderCheck() != null }
 
 internal fun MutableMethod.validateGalleryTempFile() {
     if (tempFolderCheck() == null && inboundCopyCall() == null) galleryChanged("the copy of a picked item")

@@ -45,6 +45,10 @@ internal fun Method.isPhoneIdBroadcast() =
     !AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" && parameterTypes.map { it.toString() } == listOf("Ljava/lang/String;") &&
         GET_PHONE_ID in strings() && calls().any { it.name == "sendOrderedBroadcast" }
 
+internal val phoneIdRequesters = ClassCheck(loadsString(PHONE_ID_PROVIDER))
+
+internal val phoneIdSenders = MethodCheck(loadsString(GET_PHONE_ID))
+
 /**
  * The requester's app list and its sync, but only while they're the whole exchange. One class holds the phoneid
  * provider queries, the sync is the app's only sender of GET_PHONE_ID and takes its apps from the list, and every other
@@ -53,14 +57,9 @@ internal fun Method.isPhoneIdBroadcast() =
  * switch never claims more than it stops.
  */
 internal fun findPhoneIdSync(classes: Iterable<ClassDef>): List<Method> {
-    val all = classes.toList()
-    val requesters = mutableSetOf<ClassDef>()
-    val senders = mutableListOf<Method>()
-    for (cls in all) for (method in cls.methods) {
-        val strings = method.strings()
-        if (PHONE_ID_PROVIDER in strings) requesters.add(cls)
-        if (GET_PHONE_ID in strings) senders.add(method)
-    }
+    // A set, as before: a class two dex files both carry counts once.
+    val requesters = phoneIdRequesters.classes(classes).distinct()
+    val senders = phoneIdSenders.methods(classes)
     val requester = requesters.singleOrNull() ?: return emptyList()
     val list = requester.methods.singleOrNull { it.isPhoneIdAppList() } ?: return emptyList()
     val sync = requester.methods.singleOrNull { it.isPhoneIdBroadcast() } ?: return emptyList()
@@ -68,10 +67,15 @@ internal fun findPhoneIdSync(classes: Iterable<ClassDef>): List<Method> {
     if (sync.calls().none { it.toString() == listId }) return emptyList()
     if (senders.singleOrNull()?.hookId() != sync.hookId()) return emptyList()
     val queries = requester.methods.filter { PHONE_ID_PROVIDER in it.strings() }.map { it.hookId() }.toSet()
-    for (cls in all) for (method in cls.methods) {
-        val called = method.calls().map { it.toString() }
-        if (method.hookId() in queries || called.none { it in queries }) continue
-        if (method.hookId() != sync.hookId() && listId !in called) return emptyList()
+    val queryCalls = queries.map(::MemberMatch)
+    val listCall = MemberMatch(listId)
+    val syncId = sync.hookId()
+    for ((_, method) in codeReferrers(classes, methods = queries)) {
+        val called = method.calls()
+        if (called.none { ref -> queryCalls.any { it.matches(ref) } }) continue
+        val id = method.hookId()
+        if (id in queries) continue
+        if (id != syncId && called.none { listCall.matches(it) }) return emptyList()
     }
     return listOf(list, sync)
 }

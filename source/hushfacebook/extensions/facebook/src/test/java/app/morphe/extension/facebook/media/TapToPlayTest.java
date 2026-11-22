@@ -16,6 +16,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.MotionEvent;
+import android.widget.FrameLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -86,7 +87,34 @@ public class TapToPlayTest {
         return TapToPlay.decide(player, Trigger.BY_AUTOPLAY.name(), true, SystemClock.uptimeMillis(), "");
     }
 
+    @Test
+    public void facebooksBackgroundPlayerGoesAheadOnlyForAVideoKeepPlayingCarriesOn() {
+        assertFalse("with nothing carried on", decide(new Object(), "BY_BACKGROUND_PLAY", SystemClock.uptimeMillis()));
+        BackgroundPlay.carrying = true;
+        try {
+            assertTrue("Facebook's background player", decide(new Object(), "BY_BACKGROUND_PLAY", SystemClock.uptimeMillis()));
+            assertFalse("another trigger", decide(new Object(), "BY_AUTOPLAY", SystemClock.uptimeMillis()));
+        } finally {
+            BackgroundPlay.forget();
+        }
+        BackgroundPlay.session = true;
+        try {
+            assertTrue("its notification's play", decide(new Object(), "BY_BACKGROUND_PLAY", SystemClock.uptimeMillis()));
+        } finally {
+            BackgroundPlay.forget();
+        }
+    }
+
+    private static boolean decide(Object player, String trigger, long now) {
+        return TapToPlay.decide(player, trigger, false, now, "");
+    }
+
     private enum ReelControl { AUTOPLAY_OFF_INIT_STATE, PLAYING, PAUSED, PLAYBACK_COMPLETE, UNKNOWN }
+
+    private enum PlayerState {
+        UNINITIALIZED, UNPREPARED, PREPARED, ATTEMPT_TO_PLAY, PLAYING, SEEKING, ATTEMPT_TO_PAUSE, PAUSED,
+        FINISH_ONE_LOOP, PLAYBACK_COMPLETE, ERROR
+    }
 
     @Test
     public void aStartInAPictureInPictureWindowGoesAheadAndKeepsItsPlayerArmed() {
@@ -171,6 +199,59 @@ public class TapToPlayTest {
     }
 
     @Test
+    public void theWindowsButtonLeavesThePageInFrontAndTheReelInTheWindowStillPlays() {
+        WindowScreen page = Robolectric.buildActivity(WindowScreen.class).setup().get();
+        WindowScreen viewer = Robolectric.buildActivity(WindowScreen.class).setup().get();
+        Object reel = new Object();
+        Object pageVideo = new Object();
+        FrameLayout reelView = new FrameLayout(viewer);
+        FrameLayout pageView = new FrameLayout(page);
+        TapToPlay.views = player -> player == reel ? reelView : player == pageVideo ? pageView : null;
+        TapToPlay.activityResumed(viewer);
+        // The button opens the window with Facebook on screen: Android brings the page under the viewer
+        // to the front, and Facebook pauses the reel and starts it again in the window.
+        viewer.inWindow = true;
+        TapToPlay.activityResumed(page);
+        TapToPlay.paused(reel);
+        assertTrue("the reel starting again in the window (#495)",
+                TapToPlay.allowStart(reel, Trigger.BY_SHORT_FORM_VIDEO_FULLY_VISIBLE));
+        TapToPlay.paused(reel);
+        assertTrue("the window's own play after its pause, with no tap in Facebook (#495)",
+                TapToPlay.allowStart(reel, Trigger.BY_USER));
+        assertFalse("a video on the page beside the window still waits for a tap",
+                TapToPlay.allowStart(pageVideo, Trigger.BY_SHORT_FORM_VIDEO_FULLY_VISIBLE));
+
+        // Home stops the page in front, not the window's screen. The window then opens back out and
+        // Facebook pauses the reel and starts it again: it carries on, as from Home (#90).
+        TapToPlay.activityStopped(page);
+        viewer.inWindow = false;
+        TapToPlay.activityResumed(viewer);
+        TapToPlay.paused(reel);
+        assertTrue("the window's reel going on as the window opens back out",
+                TapToPlay.allowStart(reel, Trigger.BY_SHORT_FORM_VIDEO_FULLY_VISIBLE));
+
+        // Closed with its X instead, the window's screen stops and its reel waits.
+        viewer.inWindow = true;
+        TapToPlay.paused(reel);
+        TapToPlay.allowStart(reel, Trigger.BY_USER);
+        viewer.inWindow = false;
+        TapToPlay.paused(reel);
+        TapToPlay.activityStopped(viewer);
+        TapToPlay.activityResumed(viewer);
+        assertFalse("a window closed with its X leaves its reel waiting",
+                TapToPlay.allowStart(reel, Trigger.BY_SHORT_FORM_VIDEO_FULLY_VISIBLE));
+
+        // Leaving Facebook instead leaves the viewer in front, and it reads the same.
+        TapToPlayForTests.forget();
+        TapToPlay.views = player -> player == reel ? reelView : null;
+        viewer.inWindow = true;
+        TapToPlay.activityResumed(viewer);
+        TapToPlay.paused(reel);
+        assertTrue("the reel in the window after leaving Facebook",
+                TapToPlay.allowStart(reel, Trigger.BY_SHORT_FORM_VIDEO_FULLY_VISIBLE));
+    }
+
+    @Test
     public void playingClearsTheHeldStartButtonEvenWhenFacebooksViewerFlagIsOff() {
         assertTrue(TapToPlay.showReelPlayButton(false));
         assertTrue("PLAYING must clear the forced initial overlay regardless of the viewer's flag",
@@ -201,6 +282,23 @@ public class TapToPlayTest {
                 assertFalse(TapToPlay.clearReelPlayButton(false, ReelControl.AUTOPLAY_OFF_INIT_STATE)));
         SettingsContextRule.beforeThePauseIsDecided(() ->
                 assertTrue(TapToPlay.clearReelPlayButton(true, ReelControl.AUTOPLAY_OFF_INIT_STATE)));
+    }
+
+    @Test
+    public void aLateAutoplayDisabledEventLeavesAPlayingReelWithoutItsButton() {
+        assertTrue("a playing reel keeps its button off (#91)", TapToPlay.keepReelPlaying(PlayerState.PLAYING));
+        for (PlayerState state : PlayerState.values()) {
+            if (state == PlayerState.PLAYING) continue;
+            assertFalse("a reel that isn't playing gets its button: " + state, TapToPlay.keepReelPlaying(state));
+        }
+        assertFalse(TapToPlay.keepReelPlaying(null));
+        assertFalse(TapToPlay.keepReelPlaying("PLAYING"));
+        Settings.TAP_TO_PLAY.save(false);
+        assertFalse("with the switch off Facebook's event goes through", TapToPlay.keepReelPlaying(PlayerState.PLAYING));
+        Settings.TAP_TO_PLAY.save(true);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse(TapToPlay.keepReelPlaying(PlayerState.PLAYING));
+        PauseForTests.resume();
     }
 
     @Test
@@ -1131,9 +1229,13 @@ public class TapToPlayTest {
         assertTrue("a fresh screen a tap opened", autoplayedReel(new Object()));
     }
 
-    /** With Only the first reel waits on, the reel a tile opened counts as the played one. */
+    /**
+     * #91: with Only the first reel waits on, the reel a tile opens is the first reel, so it waits
+     * for its own tap, whether the tile's screen or the feed's player rule would have played it.
+     * Once that tap plays it, the reels swiped to after it play.
+     */
     @Test
-    public void aTilesReelStartsARun() {
+    public void withOnlyTheFirstReelWaitingATilesReelWaitsThenStartsTheRun() {
         Settings.TAP_TO_PLAY_REELS_AFTER_FIRST.save(true);
         try {
             long now = 100_000;
@@ -1141,10 +1243,20 @@ public class TapToPlayTest {
             Activity viewer = Robolectric.buildActivity(Activity.class).setup().get();
             TapToPlay.screenCreated(viewer, now - 100);
             TapToPlay.activityResumed(viewer);
-            assertTrue("the reel the tile opened", reelAt(new Object(), now + 800));
+            Object first = new Object();
+            assertFalse("the reel the tile opened", reelAt(first, now + 800));
+            assertFalse("Facebook's restart of it", reelAt(first, now + 900));
+            tapAt(now + 2_000);
+            assertTrue("a tap on the waiting first reel", decide(first, Trigger.BY_USER, now + 2_050));
             TapToPlay.nonTapGesture();
             TapClock.forget();
-            assertTrue("the reel swiped to next", reelAt(new Object(), now + 3_000));
+            assertTrue("the reel swiped to next", decide(new Object(), Trigger.BY_SHORT_FORM_VIDEO_FULLY_VISIBLE, now + 3_000));
+
+            TapToPlayForTests.forget();
+            tapAt(now + 20_000);
+            TapToPlay.feedVideoOpened(now + 20_100);
+            assertFalse("a reel a tap opened through the feed's player", reelAt(new Object(), now + 21_500));
+            assertFalse("which leaves nothing for a plain video after it", plainVideoAt(new Object(), now + 21_600));
         } finally {
             Settings.TAP_TO_PLAY_REELS_AFTER_FIRST.resetToDefault();
         }

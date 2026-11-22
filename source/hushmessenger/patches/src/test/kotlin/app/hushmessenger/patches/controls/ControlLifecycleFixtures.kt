@@ -1,7 +1,7 @@
 package app.hushmessenger.patches.controls
 
 import app.morphe.patcher.Patcher
-import app.morphe.patcher.patch.BytecodePatch
+import app.morphe.patcher.patch.Patch
 import app.morphe.patcher.patch.PatchResult
 import com.android.tools.smali.dexlib2.Opcodes
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -86,7 +86,7 @@ private fun fixtureCall(target: Any, name: String, vararg arguments: Any): Any? 
 }.invoke(target, *arguments)
 
 /** The supported build number the lifecycle manifest claims. Its classes follow the synthetic mapping instead. */
-internal const val LIFECYCLE_VERSION_CODE = 347215348
+internal const val LIFECYCLE_VERSION_CODE = 347415354
 
 internal fun lifecycleApk(directory: Path, classes: List<ClassDef>, manifestExtra: String = "", applicationExtra: String = ""): File {
     // Patching reads the profile by the manifest's version code, and these classes carry the synthetic names.
@@ -113,7 +113,7 @@ internal fun lifecycleApk(directory: Path, classes: List<ClassDef>, manifestExtr
         fixtureCall(manifest, "setPackageBlock", pkg)
         fixtureCall(manifest, "parse", parser.invoke(null, StringReader("""
             <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.facebook.orca"
-                android:versionCode="$LIFECYCLE_VERSION_CODE" android:versionName="586.0.0.55.92">
+                android:versionCode="$LIFECYCLE_VERSION_CODE" android:versionName="587.0.0.54.96">
               <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="36"/>
               $manifestExtra
               <application android:appComponentFactory="$APP_COMPONENT_FACTORY">
@@ -187,7 +187,8 @@ internal fun lifecycleManifest(apk: File): Document {
 
 /** Count the real extension stream, restoring the singleton provider even when an assertion fails. */
 internal fun <T> withLifecycleExtension(bytes: ByteArray, action: (() -> Int) -> T): T {
-    val field = BytecodePatch::class.java.getDeclaredField("extensionStreamProviders").apply { isAccessible = true }
+    // Patcher 2.3.0 moved the providers from BytecodePatch up to Patch, and getDeclaredField skips superclasses.
+    val field = Patch::class.java.getDeclaredField("extensionStreamProviders").apply { isAccessible = true }
     val original = field.get(settingsExtension)
     var reads = 0
     val provider = Supplier { listOf(Supplier { reads++; ByteArrayInputStream(bytes) }) }

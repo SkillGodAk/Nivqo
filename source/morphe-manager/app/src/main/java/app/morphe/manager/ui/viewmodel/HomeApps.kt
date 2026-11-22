@@ -547,7 +547,7 @@ class HomeApps(
             val installedApp = slot.installedApp
             val bundleMeta = metadata[packageName]
             val knownApp = KnownApps.fromPackage(packageName)
-            val gradientColors = bundleMeta?.gradientColors ?: KnownApps.DEFAULT_COLORS
+            val gradientColors = bundleMeta?.gradientColors ?: AppCardColorDefaults.defaultGradientColors
             // Package manager data only, saved APKs are left to inspection and on-screen icons
             val installedData = (installedApp?.currentPackageName ?: slot.id)
                 .takeIf { it in installedPackages }
@@ -606,7 +606,7 @@ class HomeApps(
                 installedApp = installedApp,
                 packageInfo = packageInfo,
                 version = packageInfo?.versionName ?: installedApp?.version.orEmpty(),
-                isPinnedByDefault = knownApp?.isPinnedByDefault == true,
+                isPinnedByDefault = knownApp != null,
                 isInstalledOnDevice = (trackedPresentation?.showsInstalledPackage == true) ||
                         isUninspectedInstall ||
                         (installedApp == null && installedData != null),
@@ -627,7 +627,8 @@ class HomeApps(
                     ignoredVersion = ignoredVersions[packageName]
                 ),
                 patchCount = 0,
-                isClone = slot.isClone
+                isClone = slot.isClone,
+                formFactor = bundleMeta?.formFactor
             )
         }
 
@@ -779,7 +780,8 @@ class HomeApps(
                     .reversed()
             )
             HomeAppSortMode.UPDATES_FIRST -> items.sortedWith(
-                compareByDescending<HomeAppItem> { it.showsUpdateBadge }
+                // Every card offering a rebuild, newer patches and a newer app version alike
+                compareByDescending<HomeAppItem> { it.status.offersRebuild }
                     .then(morpheComparator)
             )
             HomeAppSortMode.RECENTLY_PATCHED -> items.sortedWith(

@@ -11,8 +11,10 @@ import androidx.compose.ui.graphics.toArgb
 import app.morphe.manager.data.room.apps.installed.InstalledApp
 import app.morphe.manager.domain.bundles.AppVersionStatus
 import app.morphe.manager.ui.model.HomeAppItem
-import app.morphe.manager.util.tag
+import app.morphe.manager.util.LOG_TAG
+import app.morphe.manager.util.enumByNameOrNull
 import app.morphe.manager.util.writeTextAtomically
+import app.morphe.patcher.patch.FormFactor
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -36,7 +38,7 @@ internal class HomeCardCache(private val file: File) {
         json.decodeFromString<CachedHome>(file.readText())
             .takeIf { it.format == CACHE_FORMAT }
             ?.also { lastWritten = it }
-    }.onFailure { if (file.exists()) Log.w(tag, "Discarding unreadable home card cache", it) }
+    }.onFailure { if (file.exists()) Log.w(LOG_TAG, "Discarding unreadable home card cache", it) }
         .getOrNull()
 
     /**
@@ -52,7 +54,7 @@ internal class HomeCardCache(private val file: File) {
         runCatching {
             file.writeTextAtomically(json.encodeToString(CachedHome.serializer(), cached))
             lastWritten = cached
-        }.onFailure { Log.w(tag, "Could not keep the home cards", it) }
+        }.onFailure { Log.w(LOG_TAG, "Could not keep the home cards", it) }
     }
 }
 
@@ -104,7 +106,9 @@ internal data class CachedCard(
     val hasUpdate: Boolean,
     val versionStatus: CachedVersionStatus?,
     val isClone: Boolean,
-    val nameSuffix: String?
+    val nameSuffix: String?,
+    // By name, as the enum belongs to the patcher and a file from an older build has none
+    val formFactor: String? = null
 ) {
     constructor(item: HomeAppItem) : this(
         id = item.id,
@@ -122,7 +126,8 @@ internal data class CachedCard(
         hasUpdate = item.hasUpdate,
         versionStatus = item.versionStatus?.let(::CachedVersionStatus),
         isClone = item.isClone,
-        nameSuffix = item.nameSuffix
+        nameSuffix = item.nameSuffix,
+        formFactor = item.formFactor?.name
     )
 
     fun toItem(records: Map<String, InstalledApp>) = HomeAppItem(
@@ -146,7 +151,8 @@ internal data class CachedCard(
         versionStatus = versionStatus?.toStatus(),
         patchCount = 0,
         isClone = isClone,
-        nameSuffix = nameSuffix
+        nameSuffix = nameSuffix,
+        formFactor = enumByNameOrNull<FormFactor>(formFactor)
     )
 }
 

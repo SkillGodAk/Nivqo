@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Under the title of the contributors, how many are listed for the period picked -->
+    <plurals name="contributor_count">
+        <item quantity="one">%s käyttäjä</item>
+        <item quantity="other">%s käyttäjää</item>
+    </plurals>
     <plurals name="patch_count">
         <item quantity="one">%s lisäosa</item>
         <item quantity="other">%s lisäosaa</item>
@@ -39,10 +44,6 @@
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s lähde piilotettu. Napauta näyttääksesi</item>
         <item quantity="other">%s lähdettä piilotettu. Napauta näyttääksesi</item>
-    </plurals>
-    <plurals name="sources_search_patch_matches">
-        <item quantity="one">%s vastaava korjaus</item>
-        <item quantity="other">%s vastaavaa korjausta</item>
     </plurals>
     <plurals name="source_count">
         <item quantity="one">%s lähde</item>

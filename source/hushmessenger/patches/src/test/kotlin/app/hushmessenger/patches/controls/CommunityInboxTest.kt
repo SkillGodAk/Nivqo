@@ -91,7 +91,7 @@ class CommunityInboxTest {
         val contract = assertNotNull(findCommunityInbox(communityInboxFixture()))
         val render = contract.render as MutableMethod
         val at = render.communityReadSite(contract.capturedScope)
-        assertEquals(60, at)
+        assertEquals(63, at)
         injectCommunityInbox(contract, render, communityStub(JOINED_COMMUNITY_ROW), communityStub(MAIN_INBOX_SCOPE))
         val code = body(render)
         val filter = code[at + 3] as FiveRegisterInstruction
@@ -105,16 +105,63 @@ class CommunityInboxTest {
         // v0 is scratch only because the closure writes it again before the sink reads it.
         val live = communityInboxFixture()
         val liveRender = assertNotNull(findCommunityInbox(live)).render as MutableMethod
-        liveRender.replaceInstruction(66, "nop")
+        liveRender.replaceInstruction(69, "nop")
         assertNull(findCommunityInbox(live))
     }
 
-    @Test fun theSecondListReadIsTakenOnlyAt60() {
-        assertNotNull(findCommunityInbox(communityInboxFixture(secondRead = 60)))
-        // 585 read the list at 63 (inline search icon check). Every recorded build refuses a read elsewhere, and discovery fails before anything changes.
-        for (profile in listOf(SYNTHETIC_PROFILE) + controlProfiles.values.toSet()) {
+    /**
+     * 280's profile in 586's family B shape, which no 587 build has: the scope getter moves from the loader to the
+     * loader's coordinator (347215273 named `LX/1zk;->A01()`), and the three key test IDs go.
+     */
+    private fun familyBProfile() = controlProfileFor("347415280").run {
+        val parts = nativeCommunityInbox.split('|')
+        val coordinatorGetter = "${parts[13].substringAfter(':')}->A01()${parts[2].substringAfter(')')}"
+        val inlined = (parts.take(2) + coordinatorGetter + parts.subList(3, 6) + parts.drop(9)).joinToString("|")
+        ControlProfile(hooks, pluginSentinel, preferenceGetter, peopleKey, peopleFlagCheck, subtabsSupplier, browserPreferenceKey,
+            browserPreferenceIndex, bubbleCapabilityGetter, bubbleRolloutGetter, nativeBubbleRoutes, inlined)
+    }
+
+    @Test fun familyBFiltersTheListInV2AndKeepsTheSectionBuilderInV3() {
+        // 586's family B inlined the section builder's helpers, the switch's loader getter and the joined key test. A later build may again.
+        activeProfile = familyBProfile()
+        val classes = communityInboxFixture()
+        val contract = assertNotNull(findCommunityInbox(classes))
+        assertEquals(15, contract.identity.split('|').size)
+        assertEquals(activeProfile.nativeCommunityInbox, contract.identity)
+        validateControls(mirroredControls(classes), setOf(COMMUNITY_INBOX))
+        val render = contract.render as MutableMethod
+        val at = render.communityReadSite(contract.capturedScope)
+        assertEquals(76, at)
+        val helpers = injectCommunityInbox(contract, render, communityStub(JOINED_COMMUNITY_ROW), communityStub(MAIN_INBOX_SCOPE))
+        val code = body(render)
+        val filter = code[at + 3] as FiveRegisterInstruction
+        assertEquals(listOf(2, 0, 1), listOf(filter.registerC, filter.registerD, filter.registerE))
+        assertEquals(Opcode.CHECK_CAST, code[at + 9].opcode)
+        assertEquals(2, (code[at + 9] as OneRegisterInstruction).registerA)
+        // The renderer still takes the filtered v2 as its list, and the builder in v3 is never written.
+        assertEquals(listOf(18, 2), (code[at + 20] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertTrue(code.subList(at + 1, at + 10).none { (it as? OneRegisterInstruction)?.registerA == 3 })
+        exerciseTypedHelpers(classes.flatMap { it.methods } + helpers, contract)
+        exerciseNativeListProjection(render, at)
+
+        // v1 is scratch only because the closure writes the viewport callback into it before the sink reads it.
+        val live = communityInboxFixture()
+        (assertNotNull(findCommunityInbox(live)).render as MutableMethod).replaceInstruction(83, "nop")
+        assertNull(findCommunityInbox(live))
+        // The inlined key test has to compare both community types, not one of them twice.
+        val twice = communityInboxFixture()
+        twice.flatMap { it.methods }.single { it.hookId() == contract.joined }.replaceInstruction(5, "sget-object v0, LX/KeyKind;->channel:LX/KeyKind;")
+        assertNull(findCommunityInbox(twice))
+        assertFailsWith<PatchException> { validateControls(mirroredControls(twice), setOf(COMMUNITY_INBOX)) }
+    }
+
+    @Test fun theSecondListReadIsTakenOnlyAt63() {
+        assertNotNull(findCommunityInbox(communityInboxFixture(secondRead = 63)))
+        // 586 read the list at 60 (a getter call for the search icon flag). Every recorded build refuses a read elsewhere, and discovery fails before anything changes.
+        // A family B fixture moves its read at 76 by the same amount, so it lands at 75, 77 and 73.
+        for (profile in listOf(SYNTHETIC_PROFILE, familyBProfile()) + controlProfiles.values.toSet()) {
             activeProfile = profile
-            for (secondRead in listOf(59, 61, 63)) {
+            for (secondRead in listOf(62, 64, 60)) {
                 val classes = communityInboxFixture(secondRead = secondRead)
                 val before = classes.flatMap { it.methods }.associate { it.hookId() to body(it).map(::structural) }
                 assertNull(findCommunityInbox(classes), "read at $secondRead")
@@ -469,20 +516,31 @@ class CommunityInboxTest {
     private fun exerciseTypedHelpers(all: List<Method>, contract: CommunityInboxContract) {
         val methods = all.associateBy { it.hookId() }
         val ids = contract.identity.split('|')
-        // The community check asks the key's channel test, then compares the key type with the announcement channel.
-        val any = body(methods.getValue(ids[7]))
-        val kindField = reference(any[3]) as FieldReference
-        val channelField = reference(body(methods.getValue(ids[8]))[1]).toString()
-        val announcementField = reference(any[4]).toString()
+        val pred = body(methods.getValue(contract.joined))
+        // Family B inlines the key test: the key's kind, both community types, then the subscribed flag, in 16 instructions.
+        val inline = pred.size == 16
+        val kindField: FieldReference
+        val channelField: String
+        val announcementField: String
+        if (inline) {
+            kindField = reference(pred[2]) as FieldReference
+            channelField = reference(pred[3]).toString()
+            announcementField = reference(pred[5]).toString()
+        } else {
+            // The community check asks the key's channel test, then compares the key type with the announcement channel.
+            val any = body(methods.getValue(ids[7]))
+            kindField = reference(any[3]) as FieldReference
+            channelField = reference(body(methods.getValue(ids[8]))[1]).toString()
+            announcementField = reference(any[4]).toString()
+        }
         val scopeType = contract.requests.substringBefore("->")
         val request = NativeValue(scopeType, mapOf("kind" to "requests"))
         val ordinaryScope = NativeValue(scopeType, mapOf("kind" to "all"))
         val channelValue = NativeValue(kindField.type, mapOf("kind" to "channel"))
         val announcementValue = NativeValue(kindField.type, mapOf("kind" to "announcement"))
         val statics = mutableMapOf<String, Any?>(contract.requests to request, channelField to channelValue, announcementField to announcementValue)
-        val pred = body(methods.getValue(contract.joined))
         val keyField = reference(pred[0]) as FieldReference
-        val subscribedField = reference(pred[5]) as FieldReference
+        val subscribedField = reference(pred[if (inline) 10 else 5]) as FieldReference
         fun row(kind: Any?, subscribed: Boolean, key: Boolean = true) = NativeValue(contract.rowSummary.substringBefore("->"),
             mapOf(contract.rowSummary.substringAfter("->").substringBefore(':') to NativeValue(keyField.definingClass,
                 mapOf(keyField.name to if (key) NativeValue(kindField.definingClass, mapOf(kindField.name to kind)) else null,

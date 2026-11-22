@@ -6,18 +6,30 @@ package app.morphe.patches.facebook.feed.posttext
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.facebook.media.taptoplay.MOTION_EVENT
 import app.morphe.patches.facebook.media.taptoplay.touchDispatches
 import app.morphe.patches.facebook.misc.extension.enableStatus
+import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.classDefForEachReferencing
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.util.MethodUtil
 
 private const val TRANSLATE_PATCH = "Translate posts"
 
@@ -32,6 +44,10 @@ internal const val TRANSLATION_TOUCH = "$POST_TRANSLATION->touch($MOTION_EVENT)V
  * text and nothing else, so comments stay Facebook's: the post's text goes through the extension on
  * the way in, and what the post shows goes through it again at every return, which also puts the
  * line under a cut text's See more.
+ *
+ * A post opened to its whole text skips that method. Facebook builds the whole text and runs it
+ * through the step the method uses before its cut ([wholeTextStep]), so each call of that step outside the
+ * method takes the text through the extension on the way in and the answer on the way out too.
  *
  * Litho's text takes a press near the line and calls the line when the finger lifts, held or not,
  * so the extension also reads every touch first thing in FbFragmentActivity.dispatchTouchEvent and
@@ -78,6 +94,115 @@ val translatePostsPatch = bytecodePatch(
                 move-result-object p1
             """,
         )
+        val step = wholeTextStep(builder)
+        val hooked = if (step == null) 0 else wholeTextCallers(builder, step).sumOf { caller ->
+            hookWholeText(mutableClassDefBy(caller.definingClass).findMutableMethodOf(caller), step)
+        }
+        if (hooked == 0) {
+            patchLog.warning(
+                "$TRANSLATE_PATCH: found no place a post's whole text is built outside ${builder.definingClass}->" +
+                    "${builder.name}. The patch goes on, and a post opened to its whole text stays in its own language.",
+            )
+        }
         enableStatus("translatePosts")
     }
+}
+
+private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
+
+private val VIRTUAL_CALLS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE)
+
+private fun callsStep(instruction: Instruction, step: MethodReference) =
+    (instruction.opcode in STATIC_CALLS || instruction.opcode in VIRTUAL_CALLS) &&
+        (instruction as ReferenceInstruction).reference.toString() == step.toString()
+
+/** The register [call] hands the step its text in: its first argument, after `this` on a virtual call. */
+private fun stepText(call: Instruction): Int? {
+    val skip = if (call.opcode in VIRTUAL_CALLS) 1 else 0
+    return when (call) {
+        is RegisterRangeInstruction -> call.startRegister + skip
+        is FiveRegisterInstruction -> listOf(call.registerC, call.registerD).take(call.registerCount).getOrNull(skip)
+        else -> null
+    }
+}
+
+/**
+ * The step the builder runs a post's text through before its cut (585 `LX/03Bn;->A00(Spannable,
+ * FbUserSession, 02YE, 03Bn)Spannable`, which adds what a shared link's title brings): a Spannable
+ * back with the text first, either a static of the builder's class taking that class last, or, since
+ * 587 (`LX/03GO;->A07(Spannable, FbUserSession, 02cx)Spannable`), a virtual method of the builder's class.
+ */
+internal fun wholeTextStep(builder: Method): MethodReference? = builder.implementation!!.instructions
+    .filter { it.opcode in STATIC_CALLS || it.opcode in VIRTUAL_CALLS }
+    .mapNotNull { call ->
+        val step = (call as ReferenceInstruction).reference as? MethodReference ?: return@mapNotNull null
+        val parameters = step.parameterTypes.map { it.toString() }
+        step.takeIf {
+            step.definingClass == builder.definingClass && step.returnType == SPANNABLE && parameters.size >= 2 &&
+                parameters.first() == SPANNABLE &&
+                (call.opcode in VIRTUAL_CALLS || parameters.last() == builder.definingClass)
+        }
+    }
+    .distinctBy { it.toString() }
+    .singleOrNull()
+
+/** What a method answers when it only measures a post's text for the cut: a yes/no or a number, never the text. */
+private val MEASURES = setOf("Z", "B", "S", "C", "I", "J", "F", "D") +
+    listOf("Boolean", "Byte", "Short", "Character", "Integer", "Long", "Float", "Double").map { "Ljava/lang/$it;" }
+
+/**
+ * Every method besides [builder] that calls [step] and shows what comes back: where a post shows its
+ * whole text without the builder. A tap that opens a cut post takes 585's `LX/03Bf;->A00` past the
+ * builder, and the feed's `LX/0cQv;->render` builds the whole text through `LX/03Bn;->A07` next to
+ * the cut one (#332).
+ *
+ * 587 also runs the text through the step to measure it: `LX/0HxX;->A00(FbUserSession, 02cx)Z` asks
+ * whether it runs past its lines and `LX/02z2;->A09(...)Integer` picks how the post opens. Those
+ * stay as they are. Nothing they build is shown, and the builder itself reaches the first one
+ * (through `LX/02xx;->A01`), so its hooks would take what the builder's own noted at its top and the
+ * post would come out with no Translate line.
+ */
+internal fun BytecodePatchContext.wholeTextCallers(builder: Method, step: MethodReference): List<Method> {
+    val found = mutableListOf<Method>()
+    classDefForEachReferencing(types = listOf(step.definingClass)) { classDef ->
+        if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEachReferencing
+        classDef.methods.filterTo(found) { method ->
+            // Signatures, not the parameter lists: a mutable class's parameters aren't Strings, so `==` misses.
+            val isBuilder = method.definingClass == builder.definingClass && MethodUtil.methodSignaturesMatch(method, builder)
+            !isBuilder && method.returnType !in MEASURES && method.implementation?.instructions?.any { callsStep(it, step) } == true
+        }
+    }
+    return found
+}
+
+/**
+ * Runs the text [step] is handed through the extension first, and what it answers through it after,
+ * as the builder's own text and returns are. Answers how many calls it hooked.
+ */
+private fun hookWholeText(method: MutableMethod, step: MethodReference): Int {
+    val code = method.implementation!!.instructions.toList()
+    var hooked = 0
+    // From the last one up, so each index still holds when its turn comes.
+    for ((index, call) in code.withIndex().filter { callsStep(it.value, step) }.reversed()) {
+        val answer = code.getOrNull(index + 1)
+        if (answer?.opcode != Opcode.MOVE_RESULT_OBJECT) continue
+        val result = (answer as OneRegisterInstruction).registerA
+        val text = stepText(call) ?: continue
+        method.addInstructions(
+            index + 2,
+            """
+                invoke-static/range { v$result .. v$result }, $TRANSLATION_SHOWN
+                move-result-object v$result
+            """,
+        )
+        method.addInstructionsAtControlFlowLabel(
+            index,
+            """
+                invoke-static/range { v$text .. v$text }, $TRANSLATION_TEXT
+                move-result-object v$text
+            """,
+        )
+        hooked++
+    }
+    return hooked
 }

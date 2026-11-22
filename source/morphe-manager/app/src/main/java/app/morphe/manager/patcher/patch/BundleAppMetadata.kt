@@ -6,8 +6,10 @@
 package app.morphe.manager.patcher.patch
 
 import androidx.compose.ui.graphics.Color
+import app.morphe.manager.util.AppCardColorDefaults
 import app.morphe.manager.util.KnownApps
 import app.morphe.patcher.patch.ApkFileType
+import app.morphe.patcher.patch.FormFactor
 
 /**
  * Color of a bundle's `appIconColor`. The value is 0xRRGGBB with a zero alpha per the
@@ -29,6 +31,7 @@ fun Sequence<PatchInfo>.appColorFor(packageName: String): Color? =
  * @param apkFileType  Preferred/required APK input format. Null if not declared.
  * @param signatures   Union of all valid SHA-256 signing fingerprints across all bundles.
  *                     Null means no bundle declared signatures → skip verification.
+ * @param formFactor   Device the app is built for. Null if not declared, which runs anywhere.
  */
 data class BundleAppMetadata(
     val packageName: String,
@@ -36,10 +39,11 @@ data class BundleAppMetadata(
     val appIconColor: Int?,
     val apkFileType: ApkFileType?,
     val signatures: Set<String>?,
+    val formFactor: FormFactor? = null,
 ) {
     /** Derived gradient color list for home screen buttons. Null means use fallback. */
     val gradientColors: List<Color>? = appIconColor?.let { rgb ->
-        listOf(appIconColorOf(rgb), KnownApps.GRADIENT_MID, KnownApps.GRADIENT_END)
+        AppCardColorDefaults.brandGradient(appIconColorOf(rgb))
     }
 
     /** Derived download button color. Null means use fallback. */
@@ -69,6 +73,7 @@ data class BundleAppMetadata(
             val iconColors = mutableMapOf<String, Int>()
             val apkFileTypes = mutableMapOf<String, ApkFileType>()
             val signaturesMap = mutableMapOf<String, MutableSet<String>>()
+            val formFactors = mutableMapOf<String, FormFactor>()
 
             bundleInfoMap.values
                 .flatMap { it.patches }
@@ -93,6 +98,9 @@ data class BundleAppMetadata(
                         pkg.signatures?.let {
                             signaturesMap.getOrPut(pkgName) { mutableSetOf() }.addAll(it)
                         }
+                        if (pkg.formFactor != null && pkgName !in formFactors) {
+                            formFactors[pkgName] = pkg.formFactor
+                        }
                     }
                 }
 
@@ -103,6 +111,7 @@ data class BundleAppMetadata(
                     appIconColor = iconColors[pkgName],
                     apkFileType = apkFileTypes[pkgName],
                     signatures = signaturesMap[pkgName]?.toSet(),
+                    formFactor = formFactors[pkgName],
                 )
             }
         }

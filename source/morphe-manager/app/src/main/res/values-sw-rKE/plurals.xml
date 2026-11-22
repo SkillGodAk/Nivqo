@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Under the title of the contributors, how many are listed for the period picked -->
+    <plurals name="contributor_count">
+        <item quantity="one">mtumiaji %s</item>
+        <item quantity="other">watumiaji %s</item>
+    </plurals>
     <plurals name="patch_count">
         <item quantity="one">patch %s</item>
         <item quantity="other">patch %s</item>
@@ -39,10 +44,6 @@
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">Chanzo %s kimefichwa. Gusa ili kuonyesha</item>
         <item quantity="other">Vyanzo %s vimefichwa. Gusa ili kuonyesha</item>
-    </plurals>
-    <plurals name="sources_search_patch_matches">
-        <item quantity="one">patch %s inayolingana</item>
-        <item quantity="other">patch %s zinazolingana</item>
     </plurals>
     <plurals name="source_count">
         <item quantity="one">chanzo %s</item>

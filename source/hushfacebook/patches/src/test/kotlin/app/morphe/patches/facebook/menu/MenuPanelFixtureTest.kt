@@ -32,9 +32,15 @@ import org.junit.Test
  * bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it.
  */
 class MenuPanelFixtureTest {
-    /** The MobileConfig flag the panel asks per build, read from 583's arm64 and armv7 dex and 584's arm64. */
+    /**
+     * The MobileConfig flag the panel asks per build, read from 583's arm64 and armv7 dex and 584's arm64.
+     * 586's was read from both of its bundles, in the panel setup and the bookmarks fragment factory.
+     * 587's from its arm64 panel setup (`LX/020D;->A02`).
+     */
     private val bloksPanelFlags = mapOf(
         "585.0.0.47.54" to 0x101019f0058167fL,
+        "586.0.0.52.53" to 0x101019f005816c8L,
+        "587.0.0.39.55" to 0x101019f00581702L,
     )
 
     /** The flag [bundle]'s build asks, by the version in its name. */
@@ -53,7 +59,8 @@ class MenuPanelFixtureTest {
         val checked = mutableMapOf<String, String>()
         for (bundle in bundles) {
             val name = bundle.name
-            val classes = FixtureDex.classesHolding(bundle, PANEL_SETUP)
+            // The panel key's holders too: 586's Android 9 build asks a string table for it.
+            val classes = (FixtureDex.classesHolding(bundle, PANEL_SETUP) + FixtureDex.classesHolding(bundle, PANEL_KEY))
                 .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
             val context = PatchContexts.of(classes)
             val setups = context.menuPanelSetups()

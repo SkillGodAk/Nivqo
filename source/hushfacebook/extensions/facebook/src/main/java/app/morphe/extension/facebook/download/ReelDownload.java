@@ -12,6 +12,7 @@ import android.os.SystemClock;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 
+import app.morphe.extension.facebook.reels.ReelCleanMode;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.L10n;
@@ -47,6 +48,8 @@ import kotlin.jvm.functions.Function1;
  *
  * <p>The same class sits behind the Cast button the patch adds under it (#182). A cast handler's
  * tap hands the reel's file to a casting app ({@link OpenInAnotherApp#castReel}) instead of saving.
+ * A Clean mode handler's tap (#391) puts the viewer in Facebook's Clean mode
+ * ({@link ReelCleanMode#enterClean}).
  */
 public final class ReelDownload implements Function1<Object, Object> {
 
@@ -85,8 +88,13 @@ public final class ReelDownload implements Function1<Object, Object> {
      */
     private final Object story;
 
-    /** Whether this is a handler of the Cast button, whose tap casts rather than saves. */
-    private final boolean cast;
+    /** The button kinds the patch builds, each with its own tap. */
+    static final int SAVE = 0;
+    static final int CAST = 1;
+    static final int CLEAN = 2;
+
+    /** Which button this handler belongs to: the Download button, Cast (#182) or Clean mode (#391). */
+    private final int kind;
 
     /** A handler with no story of the reel: the name then has no poster and no post day. */
     public ReelDownload(
@@ -125,6 +133,21 @@ public final class ReelDownload implements Function1<Object, Object> {
         Object story,
         boolean cast
     ) {
+        this(playerParams, context, hdField, sdField, manifestField, slot, saves, story, cast ? CAST : SAVE);
+    }
+
+    /** The patch's handler, [kind] naming its button: {@link #SAVE}, {@link #CAST} or {@link #CLEAN}. */
+    public ReelDownload(
+        Object playerParams,
+        Context context,
+        String hdField,
+        String sdField,
+        String manifestField,
+        int slot,
+        boolean saves,
+        Object story,
+        int kind
+    ) {
         this.playerParams = playerParams;
         this.context = context;
         this.hdField = hdField;
@@ -133,7 +156,39 @@ public final class ReelDownload implements Function1<Object, Object> {
         this.slot = slot;
         this.saves = saves;
         this.story = story;
-        this.cast = cast;
+        this.kind = kind;
+        // A batch of reels takes each reel from the tap handler its sidebar builds (#449).
+        if (kind == SAVE && saves) ReelBatch.built(this);
+    }
+
+    /** This reel's player params, which tell one reel's handlers from another's. */
+    Object playerParams() {
+        return playerParams;
+    }
+
+    /** This reel's id on Facebook, or null. */
+    @androidx.annotation.Nullable
+    String videoId() {
+        return videoIdOf(playerParams);
+    }
+
+    /**
+     * Puts this reel in the reel queue for a batch (#449), at [quality] or Download quality, without
+     * a toast of its own. Answers whether it joined. Never throws.
+     */
+    boolean queueForBatch(@androidx.annotation.Nullable DownloadQuality quality) {
+        try {
+            Object source = sourceOf(playerParams);
+            if (source == null) return false;
+            String videoId = videoIdOf(playerParams);
+            PostDetails details = PostDetails.read(videoId, story);
+            QualityChooser.Save queue = () -> ReelQueue.add(context, videoId,
+                    MediaDownload.takeReel(source, hdField, sdField, manifestField, details), true);
+            return quality == null ? queue.start() : MediaDownload.withQuality(quality, queue);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel batch", t);
+            return false;
+        }
     }
 
     /*
@@ -147,6 +202,7 @@ public final class ReelDownload implements Function1<Object, Object> {
     static final String SIDEBAR_PAUSED = "UDD sidebar without Download, paused";
     static final String SIDEBAR_NOT_READY = "UDD sidebar without Download, settings not ready";
     static final String SIDEBAR_WITH_CAST = "UDD sidebar with Cast";
+    static final String SIDEBAR_WITH_CLEAN = "UDD sidebar with Clean mode";
     static final String OTHER_SIDEBAR = "FbShorts sidebar, which gets no Download";
     static final String LAYOUT_NEWER = "newer reel button layout from Facebook";
     static final String LAYOUT_SWITCHED = "older reel button layout switched for Download";
@@ -168,9 +224,11 @@ public final class ReelDownload implements Function1<Object, Object> {
                 HookStatus.counted(FamilyNames.REEL_DOWNLOAD, LAYOUT_NEWER);
                 return true;
             }
-            // The Cast button goes in the same sidebar, so it wants the newer layout too (#182).
+            // The Cast (#182) and Clean mode (#391) buttons go in the same sidebar, so they want
+            // the newer layout too.
             boolean shows = Utils.settingsReady() && (Settings.DOWNLOAD_REELS.get()
-                    && Settings.SHOW_REEL_DOWNLOAD_BUTTON.get() || Settings.REEL_CAST_BUTTON.get());
+                    && Settings.SHOW_REEL_DOWNLOAD_BUTTON.get() || Settings.REEL_CAST_BUTTON.get()
+                    || ReelCleanMode.cleanButton());
             HookStatus.counted(FamilyNames.REEL_DOWNLOAD, shows ? LAYOUT_SWITCHED : LAYOUT_OLDER);
             return shows;
         } catch (Throwable t) {
@@ -183,9 +241,10 @@ public final class ReelDownload implements Function1<Object, Object> {
 
     /**
      * Whether the sidebar Facebook is building for a reel gets the Download button, the Cast button
-     * (#182) or both. The patch asks before it builds either, so with both off, paused, or before the
-     * settings are ready, the reel has only Facebook's own buttons; the helper then asks
-     * {@link #downloadButton} and {@link #castButton} for each one. Hiding the Download button leaves
+     * (#182), the Clean mode button (#391) or more than one. The patch asks before it builds any, so
+     * with all of them off, paused, or before the settings are ready, the reel has only Facebook's
+     * own buttons; the helper then asks {@link #downloadButton}, {@link #castButton} and
+     * {@link ReelCleanMode#cleanButton} for each one. Hiding the Download button leaves
      * the More menu's download alone. Each answer and its reason are counted in Hook status. Never
      * throws: false is Facebook's own path.
      */
@@ -203,7 +262,9 @@ public final class ReelDownload implements Function1<Object, Object> {
                     : enabled ? SIDEBAR_HIDDEN : SIDEBAR_SWITCH_OFF);
             boolean casts = Settings.REEL_CAST_BUTTON.get();
             if (casts) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SIDEBAR_WITH_CAST);
-            return shows || casts;
+            boolean cleans = ReelCleanMode.cleanButton();
+            if (cleans) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SIDEBAR_WITH_CLEAN);
+            return shows || casts || cleans;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "button switch", t);
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE,
@@ -259,6 +320,15 @@ public final class ReelDownload implements Function1<Object, Object> {
         }
     }
 
+    /** Whether a tap adds the reel to the reel queue rather than saving it at once (#449). Never throws. */
+    static boolean queueing() {
+        try {
+            return Utils.settingsReady() && Settings.QUEUE_REEL_SAVES.get();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
     /** Whether the helper builds the Cast button, asked the same way. Never throws. */
     public static boolean castButton() {
         try {
@@ -276,10 +346,15 @@ public final class ReelDownload implements Function1<Object, Object> {
     @Override
     public Object invoke(Object argument) {
         try {
-            // A Cast button's tap slot casts and its other slots stay silent. A long press copies
-            // nothing there, since that's the Download button's.
-            if (cast) {
+            // A Cast button's tap slot casts, a Clean mode button's hides the sidebar, and their
+            // other slots stay silent. A long press copies nothing there, since that's the Download
+            // button's.
+            if (kind == CAST) {
                 if (saves) castTap();
+                return null;
+            }
+            if (kind == CLEAN) {
+                if (saves) ReelCleanMode.enterClean();
                 return null;
             }
             // Only the tap slot saves. The others get the same object, so that no parameter of
@@ -288,6 +363,7 @@ public final class ReelDownload implements Function1<Object, Object> {
             // are sent, the touch slot's lift after a long press copies the link (#41).
             if (!saves) {
                 if (SendLink.sending()) copyOnLongPress(argument);
+                else if (queueing()) batchOnLongPress(argument);
                 return null;
             }
             // The same lift ends in a tap too, which mustn't send the link the press just copied.
@@ -333,8 +409,23 @@ public final class ReelDownload implements Function1<Object, Object> {
             return;
         }
 
-        MediaDownload.saveVideo(context, source, hdField, sdField, manifestField,
-            PostDetails.read(videoIdOf(playerParams), story));
+        String videoId = videoIdOf(playerParams);
+        PostDetails details = PostDetails.read(videoId, story);
+        // With Queue reel saves on, the tap adds the reel to the queue, which saves it in its turn
+        // (#449). The reel is taken down here, inside the quality list's pick when it asks, so the
+        // turn saves this reel at the quality picked for it.
+        if (queueing()) {
+            QualityChooser.Save queue = () -> ReelQueue.add(context, videoId,
+                MediaDownload.takeReel(source, hdField, sdField, manifestField, details));
+            if (!QualityChooser.ask(context, queue)) queue.start();
+            return;
+        }
+        // With Choose quality on each save on, the list asks first and its pick starts the save (#448).
+        if (QualityChooser.ask(context,
+                () -> MediaDownload.saveVideo(context, source, hdField, sdField, manifestField, details))) {
+            return;
+        }
+        MediaDownload.saveVideo(context, source, hdField, sdField, manifestField, details);
     }
 
     /**
@@ -372,6 +463,19 @@ public final class ReelDownload implements Function1<Object, Object> {
         String link = SendLink.reelLink(videoIdOf(playerParams));
         if (link == null) noLink();
         else SendLink.copy(context, link);
+    }
+
+    /**
+     * The touch slot's event while Queue reel saves is on: a finger lifted at least the phone's
+     * long-press time after it went down asks how many reels to save from this one on, or stops the
+     * batch that runs (#449). The tap Android sends for the same lift is let go, as after a copy.
+     */
+    private void batchOnLongPress(Object argument) {
+        MotionEvent event = motionEventOf(argument);
+        if (event == null || event.getActionMasked() != MotionEvent.ACTION_UP) return;
+        if (event.getEventTime() - event.getDownTime() < ViewConfiguration.getLongPressTimeout()) return;
+        copied = new Copied(playerParams, SystemClock.uptimeMillis() + TAP_AFTER_COPY_MS);
+        ReelBatch.ask(context, this);
     }
 
     /**

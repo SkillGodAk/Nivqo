@@ -259,8 +259,8 @@ public class PreSearchSectionsTest {
         assertSame(recent, PreSearchSections.queryNode(recent));
         QueryNode longer = new QueryNode(template("module_name", PreSearchSections.FOR_YOU_MODULE + "_V2"));
         assertSame(longer, PreSearchSections.queryNode(longer));
-        QueryNode elsewhere = new QueryNode(template("result_type", PreSearchSections.FOR_YOU_MODULE));
-        assertSame("only a module_name counts", elsewhere, PreSearchSections.queryNode(elsewhere));
+        QueryNode keyed = new QueryNode(template("module_name", "RECENT_SEARCH"), template("result_type", PreSearchSections.FOR_YOU_MODULE));
+        assertSame("a template that names its module is taken at its word", keyed, PreSearchSections.queryNode(keyed));
         QueryNode bare = new QueryNode();
         assertSame(bare, PreSearchSections.queryNode(bare));
         // A node that names its modules is taken at its word, and its template isn't read.
@@ -279,6 +279,144 @@ public class PreSearchSectionsTest {
         String line = statusLine();
         assertTrue(line, line.contains(PreSearchSections.HIDDEN + " 3"));
         assertTrue(line, line.contains(PreSearchSections.HIDDEN_PEOPLE + " 1"));
+    }
+
+    /**
+     * A template row as the S22's Visited entities row held it on 585: the row's kind is a value in
+     * the tree, with no module_name key anywhere, next to style constants and colors.
+     */
+    private static String row(String kind) {
+        return "{\"\\\"\":\"\\uc432\",\" \":[{\"p\":[{\"&\":\"" + kind + "\",\"*\":\"ns_recent_search\"}],"
+                + "\"8\":\"HEADLINE3_DEEMPHASIZED\",\"+\":\"FF080809\",\"0\":\"LEFT\"}]}";
+    }
+
+    @Test
+    public void withNoModuleNameTheModulesNameAnywhereInTheTemplateCounts() {
+        // #80: a reporter's 0.21.0 log had RECENT_SEARCH and one unnamed query row, and both rows stayed.
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        assertNull(PreSearchSections.queryNode(new QueryNode(row(PreSearchSections.FOR_YOU_MODULE))));
+        assertNull("one of the bundles is enough", PreSearchSections.queryNode(
+                new QueryNode(row("VISITED_ENTITIES"), template("result_type", PreSearchSections.FOR_YOU_MODULE))));
+        QueryNode people = new QueryNode(row(PreSearchSections.PEOPLE_YOU_MAY_KNOW_MODULE));
+        assertSame("People you may know leaves only with its own switch", people, PreSearchSections.queryNode(people));
+        Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW.save(true);
+        assertNull(PreSearchSections.queryNode(people));
+        // The S22's own unnamed rows, Visited entities and the Recent searches header, stay.
+        QueryNode visited = new QueryNode(row("VISITED_ENTITIES"));
+        assertSame(visited, PreSearchSections.queryNode(visited));
+        QueryNode recent = new QueryNode("{\"cds\":\"{\\\"SEARCH_NULL_STATE_RECENT_SEARCHES_MODULE_CDS\\\":\\\"nc66hi:0\\\"}\",\"v\":\"VISIBLE\"}");
+        assertSame(recent, PreSearchSections.queryNode(recent));
+        // Only the whole name counts, in capitals.
+        for (String near : new String[] {PreSearchSections.FOR_YOU_MODULE + "_V2", "OLD_" + PreSearchSections.FOR_YOU_MODULE,
+                PreSearchSections.FOR_YOU_MODULE.toLowerCase(java.util.Locale.ROOT), PreSearchSections.PEOPLE_YOU_MAY_KNOW_MODULE + "2"}) {
+            QueryNode node = new QueryNode(row(near));
+            assertSame(near, node, PreSearchSections.queryNode(node));
+        }
+        String line = statusLine();
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN + " 2"));
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN_PEOPLE + " 1"));
+    }
+
+    /** The debug text of a For you row's node as Facebook spells a tree out, the module named inside its logging data. */
+    private static String spelled(String key, String module) {
+        return "SearchNullStateNativeTemplatesResult {native_templates_view: {view: {logging: \"{\\\"" + key + "\\\":\\\""
+                + module + "\\\",\\\"position_in_module\\\":0}\"}, style: \"HEADLINE3_DEEMPHASIZED\"}}";
+    }
+
+    @Test
+    public void aRowWithNoTemplateToReadIsMatchedByItsDebugText() {
+        // #80: on a reporter's 586, For you and People you may know came as a query row with no template the patch could read.
+        BaseSettings.DEBUG.save(false);
+        QueryNode off = new QueryNode();
+        off.debugString(spelled("module_name", PreSearchSections.FOR_YOU_MODULE));
+        assertSame("both off keeps it", off, PreSearchSections.queryNode(off));
+        assertEquals("both off reads nothing", 0, off.debugReads);
+        BaseSettings.DEBUG.save(true);
+        Settings.HIDE_SEARCH_FOR_YOU.save(true);
+        QueryNode forYou = new QueryNode();
+        forYou.debugString(spelled("module_name", PreSearchSections.FOR_YOU_MODULE));
+        assertNull(PreSearchSections.queryNode(forYou));
+        QueryNode loose = new QueryNode();
+        loose.debugString(spelled("result_type", PreSearchSections.FOR_YOU_MODULE));
+        assertNull("the whole name anywhere counts when nothing is keyed", PreSearchSections.queryNode(loose));
+        QueryNode people = new QueryNode();
+        people.debugString(spelled("module_name", PreSearchSections.PEOPLE_YOU_MAY_KNOW_MODULE));
+        assertSame("People you may know leaves only with its own switch", people, PreSearchSections.queryNode(people));
+        Settings.HIDE_SEARCH_PEOPLE_YOU_MAY_KNOW.save(true);
+        assertNull(PreSearchSections.queryNode(people));
+        // A keyed name is taken at its word, so a stray constant elsewhere doesn't count.
+        QueryNode recent = new QueryNode();
+        recent.debugString(spelled("module_name", "RECENT_SEARCH") + " " + PreSearchSections.FOR_YOU_MODULE);
+        assertSame(recent, PreSearchSections.queryNode(recent));
+        // A row whose template reads isn't asked for its debug text, whatever that holds.
+        QueryNode visited = new QueryNode(row("VISITED_ENTITIES"));
+        visited.debugString(spelled("module_name", PreSearchSections.FOR_YOU_MODULE));
+        assertSame(visited, PreSearchSections.queryNode(visited));
+        assertEquals(0, visited.debugReads);
+        // Only the whole name counts, and a node with no debug text is Facebook's.
+        QueryNode longer = new QueryNode();
+        longer.debugString(spelled("result_type", PreSearchSections.FOR_YOU_MODULE + "_V2"));
+        assertSame(longer, PreSearchSections.queryNode(longer));
+        QueryNode silent = new QueryNode();
+        assertSame(silent, PreSearchSections.queryNode(silent));
+        // A released node's debug text is never asked for.
+        QueryNode gone = new QueryNode();
+        gone.debugString(spelled("module_name", PreSearchSections.FOR_YOU_MODULE));
+        TreeJNI released = gone.releasedTree();
+        assertSame(released, PreSearchSections.queryNode(released));
+        assertFalse(released.readAfterRelease);
+        String line = statusLine();
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN + " 2"));
+        assertTrue(line, line.contains(PreSearchSections.HIDDEN_PEOPLE + " 1"));
+    }
+
+    @Test
+    public void aRowWithNoTemplateLogsWhatItsDebugTextNames() {
+        QueryNode forYou = new QueryNode();
+        forYou.debugString(spelled("module_name", PreSearchSections.FOR_YOU_MODULE));
+        PreSearchSections.queryNode(forYou);
+        QueryNode blank = new QueryNode();
+        blank.debugString("SearchNullStateNativeTemplatesResult {title: \"Ann 1000123456789\"}");
+        PreSearchSections.queryNode(blank);
+        String log = log();
+        String node = PreSearchSections.PREFIX + "node=" + PreSearchSections.NULL_STATE_NODE + " rendered_modules=none template_modules=none";
+        assertTrue(log, log.contains(node + " debug_names=" + PreSearchSections.FOR_YOU_MODULE + " from=" + PreSearchSections.FROM_QUERY));
+        assertTrue(log, log.contains(node + " debug_names=none from=" + PreSearchSections.FROM_QUERY));
+        assertFalse(log, log.contains("1000123456789"));
+        assertFalse(log, log.contains("Ann"));
+    }
+
+    @Test
+    public void anUnnamedRowsLineListsTheConstantsItsTemplateCarries() {
+        PreSearchSections.queryNode(new QueryNode(row("VISITED_ENTITIES")));
+        PreSearchSections.queryNode(new QueryNode(row("SUGGESTED_SEARCHES")));
+        PreSearchSections.queryNode(new QueryNode(row("ROW_1000123456789")));
+        String log = log();
+        String node = PreSearchSections.PREFIX + "node=" + PreSearchSections.NULL_STATE_NODE + " rendered_modules=none template_modules=none";
+        // Two unnamed rows are two lines, where both used to log as one.
+        assertTrue(log, log.contains(node + " template_names=VISITED_ENTITIES,HEADLINE3_DEEMPHASIZED from=" + PreSearchSections.FROM_QUERY));
+        assertTrue(log, log.contains(node + " template_names=SUGGESTED_SEARCHES,HEADLINE3_DEEMPHASIZED from=" + PreSearchSections.FROM_QUERY));
+        // Colors aren't constants, and a name with an id in it never gets out.
+        assertTrue(log, log.contains(node + " template_names=HEADLINE3_DEEMPHASIZED from=" + PreSearchSections.FROM_QUERY));
+        assertFalse(log, log.contains("1000123456789"));
+        assertFalse(log, log.contains("FF080809"));
+    }
+
+    @Test
+    public void aRowLoggedBeforeADiagnosticClearLogsAgainAfterIt() {
+        // Facebook builds the search screen once at start; a report taken after a clear had no line for it.
+        PreSearchSections.queryNode(new QueryNode(row("VISITED_ENTITIES")));
+        String line = PreSearchSections.PREFIX + "node=" + PreSearchSections.NULL_STATE_NODE
+                + " rendered_modules=none template_modules=none template_names=VISITED_ENTITIES";
+        assertTrue(log(), log().contains(line));
+        LogBufferManager.clearLogBuffer();
+        assertFalse(log(), log().contains(line));
+        PreSearchSections.queryNode(new QueryNode(row("VISITED_ENTITIES")));
+        assertTrue(log(), log().contains(line));
+        // Without a clear it's still one line a run.
+        PreSearchSections.queryNode(new QueryNode(row("VISITED_ENTITIES")));
+        String log = log();
+        assertEquals(log, log.indexOf(line), log.lastIndexOf(line));
     }
 
     @Test

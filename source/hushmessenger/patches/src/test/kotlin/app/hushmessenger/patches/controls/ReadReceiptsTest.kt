@@ -34,7 +34,7 @@ private val FINAL = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
 private val SEEN_BODY = "const-string v0, \"$CHAT_SEEN_JOB\"\nconst-string v1, \"$CHAT_SEEN_TRACE\"\nreturn-void"
 private const val DISPATCH = "LX/Dispatch;->send(${FB_USER_SESSION}LX/Enum;LX/Message;Ljava/lang/String;Ljava/lang/String;)V"
 
-/** Keep the native instruction positions while omitting unrelated composer logic. The default is 586's arm64 body. */
+/** Keep the native instruction positions while omitting unrelated composer logic. The default is 587's body. */
 private fun sendBody(changes: Map<Int, String> = emptyMap(), shape: ReplyReadShape = REPLY_READ_SHAPE, size: Int = shape.sizes.max()): String {
     val c = MutableList(size) { "nop" }
     val n = shape.nullThread
@@ -157,6 +157,25 @@ class ReadReceiptsTest {
             val before = method.code()
             assertFailsWith<PatchException>(label) { method.injectReplyRead() }
             assertStockCode(before, method.code(), emptySet(), label)
+        }
+    }
+
+    /**
+     * 586's dispatcher held its inbox tag as a plain const-string where 587 reads it from the string pool, so its seam sat
+     * two sooner, and its family B read the thread's id String in one call, two sooner again. Neither body is patched,
+     * and 587's seam in a 586-sized body is refused too.
+     */
+    @Test fun a586DispatcherIsRefused() {
+        val shape586 = ReplyReadShape(sizes = setOf(397), composer = 10, session = 20, nullThread = 26, absent = 71, dispatch = 236, composerReg = 20, stage = 4)
+        val shape586B = ReplyReadShape(sizes = setOf(395), composer = 10, session = 20, nullThread = 26, absent = 71, dispatch = 234, composerReg = 20, stage = 4)
+        for ((label, bad) in listOf(
+            "586 send dispatcher" to send(shape = shape586),
+            "586 family B send dispatcher" to send(shape = shape586B),
+            "587's seam in a 586 body" to fixtureMethod(SYNTHETIC_SEND_EVENT, sendBody(size = 397), REPLY_READ_SHAPE.registers, STATIC),
+        )) {
+            val stock = bad.code()
+            assertFailsWith<PatchException>(label) { bad.injectReplyRead() }
+            assertStockCode(stock, bad.code(), emptySet(), label)
         }
     }
 

@@ -1,3 +1,149 @@
+# [2.5.0](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0...v2.5.0) (2026-11-21)
+
+
+### Features
+
+* Add `replaceStrings()` to replace const-string instructions with a single search ([1f626de](https://github.com/MorpheApp/morphe-patcher/commit/1f626de5d8cc13ac7d268fbae0a6c22864da0c55))
+* Add `retainOriginalV1Signature()` function to allow keeping the original v1 signature ([#288](https://github.com/MorpheApp/morphe-patcher/issues/288)) ([850c5cc](https://github.com/MorpheApp/morphe-patcher/commit/850c5cc09386cb0600e4b3a85a9fb30dc747a32b))
+* Retain the original signature v2 block ([#293](https://github.com/MorpheApp/morphe-patcher/issues/293)) ([007b77a](https://github.com/MorpheApp/morphe-patcher/commit/007b77a415fca1ca4b474ce42d8cd4c38b4055c5))
+
+
+### Performance Improvements
+
+* Use the instruction indexes for fingerprints with a defining class prefix ([b63a438](https://github.com/MorpheApp/morphe-patcher/commit/b63a4381805f91a6ab0b02306b8d717341d9e5de))
+* Write the methods patches left alone from their own instructions ([#292](https://github.com/MorpheApp/morphe-patcher/issues/292)) ([7b23e2a](https://github.com/MorpheApp/morphe-patcher/commit/7b23e2ad437ca0b6f7ef261555e4a09908f66f0a))
+
+# [2.5.0-dev.5](https://github.com/MorpheApp/morphe-patcher/compare/v2.5.0-dev.4...v2.5.0-dev.5) (2026-11-21)
+
+
+### Features
+
+* Retain the original signature v2 block ([#293](https://github.com/MorpheApp/morphe-patcher/issues/293)) ([007b77a](https://github.com/MorpheApp/morphe-patcher/commit/007b77a415fca1ca4b474ce42d8cd4c38b4055c5))
+
+# [2.5.0-dev.4](https://github.com/MorpheApp/morphe-patcher/compare/v2.5.0-dev.3...v2.5.0-dev.4) (2026-11-18)
+
+
+### Performance Improvements
+
+* Write the methods patches left alone from their own instructions ([#292](https://github.com/MorpheApp/morphe-patcher/issues/292)) ([7b23e2a](https://github.com/MorpheApp/morphe-patcher/commit/7b23e2ad437ca0b6f7ef261555e4a09908f66f0a))
+
+# [2.5.0-dev.3](https://github.com/MorpheApp/morphe-patcher/compare/v2.5.0-dev.2...v2.5.0-dev.3) (2026-11-18)
+
+
+### Features
+
+* Add `replaceStrings()` to replace const-string instructions with a single search ([1f626de](https://github.com/MorpheApp/morphe-patcher/commit/1f626de5d8cc13ac7d268fbae0a6c22864da0c55))
+
+# [2.5.0-dev.2](https://github.com/MorpheApp/morphe-patcher/compare/v2.5.0-dev.1...v2.5.0-dev.2) (2026-11-17)
+
+
+### Performance Improvements
+
+* Use the instruction indexes for fingerprints with a defining class prefix ([b63a438](https://github.com/MorpheApp/morphe-patcher/commit/b63a4381805f91a6ab0b02306b8d717341d9e5de))
+
+# [2.5.0-dev.1](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0...v2.5.0-dev.1) (2026-11-16)
+
+
+### Features
+
+* Add `retainOriginalV1Signature()` function to allow keeping the original v1 signature ([#288](https://github.com/MorpheApp/morphe-patcher/issues/288)) ([850c5cc](https://github.com/MorpheApp/morphe-patcher/commit/850c5cc09386cb0600e4b3a85a9fb30dc747a32b))
+
+# [2.4.0](https://github.com/MorpheApp/morphe-patcher/compare/v2.3.0...v2.4.0) (2026-11-15)
+
+
+### Bug Fixes
+
+* Allow Fingerprint fields to reference other Fingerprints ([87bdb41](https://github.com/MorpheApp/morphe-patcher/commit/87bdb41788fb044c8056087a1d39a04380cf0307))
+* Compress the DEX files unless the app runs them from the APK ([#284](https://github.com/MorpheApp/morphe-patcher/issues/284)) ([d4fa42b](https://github.com/MorpheApp/morphe-patcher/commit/d4fa42bfe5cece23176424621bdf6c502845acd0))
+* Internally process resource XML files with ARCSLib ([#279](https://github.com/MorpheApp/morphe-patcher/issues/279)) ([1e27114](https://github.com/MorpheApp/morphe-patcher/commit/1e27114f5f07f80250ec67b33c20ab2ba8a3b012))
+* Rename `addPatchInterfaceMethod` to `addPatchInterface` ([bd6e902](https://github.com/MorpheApp/morphe-patcher/commit/bd6e902c38d65358637b5227cf5696c00b235b67))
+* Update ARSCLib dependency ([64d572a](https://github.com/MorpheApp/morphe-patcher/commit/64d572a1d08ca4e924ae7c16d8f8a1d24acc16c6))
+* Update ARSCLib dependency ([97ca1a0](https://github.com/MorpheApp/morphe-patcher/commit/97ca1a075de5a658c0c40b94d2602c80f8a59fcf))
+* Update smali dependency ([487e02d](https://github.com/MorpheApp/morphe-patcher/commit/487e02d83141fa872970bda0c3984def652f0b3c))
+
+
+### Features
+
+* Add `addPatchInterfaceMethod` to add extension interface methods to a class ([#283](https://github.com/MorpheApp/morphe-patcher/issues/283)) ([6b13459](https://github.com/MorpheApp/morphe-patcher/commit/6b13459cdb4db22dcf4b32f5ffa33703182c3b22))
+* Let patches read the OBB of a bundle ([#281](https://github.com/MorpheApp/morphe-patcher/issues/281)) ([67464b0](https://github.com/MorpheApp/morphe-patcher/commit/67464b0438cfc5f613111b05140192601712d5a0))
+
+
+### Performance Improvements
+
+* Read, strip and compress DEX files in parallel, and keep them in memory ([e694e89](https://github.com/MorpheApp/morphe-patcher/commit/e694e89ac264ba6309e997089f1e701805d97554))
+* Sign every APK with v2 alone, in place ([3d4c3f3](https://github.com/MorpheApp/morphe-patcher/commit/3d4c3f37f3728bb22d3d8852287b16112ff517e1))
+
+# [2.4.0-dev.8](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0-dev.7...v2.4.0-dev.8) (2026-11-15)
+
+
+### Performance Improvements
+
+* Read, strip and compress DEX files in parallel, and keep them in memory ([e694e89](https://github.com/MorpheApp/morphe-patcher/commit/e694e89ac264ba6309e997089f1e701805d97554))
+* Sign every APK with v2 alone, in place ([3d4c3f3](https://github.com/MorpheApp/morphe-patcher/commit/3d4c3f37f3728bb22d3d8852287b16112ff517e1))
+
+# [2.4.0-dev.7](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0-dev.6...v2.4.0-dev.7) (2026-11-14)
+
+
+### Bug Fixes
+
+* Compress the DEX files unless the app runs them from the APK ([#284](https://github.com/MorpheApp/morphe-patcher/issues/284)) ([d4fa42b](https://github.com/MorpheApp/morphe-patcher/commit/d4fa42bfe5cece23176424621bdf6c502845acd0))
+
+# [2.4.0-dev.6](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0-dev.5...v2.4.0-dev.6) (2026-11-14)
+
+
+### Bug Fixes
+
+* Rename `addPatchInterfaceMethod` to `addPatchInterface` ([bd6e902](https://github.com/MorpheApp/morphe-patcher/commit/bd6e902c38d65358637b5227cf5696c00b235b67))
+
+# [2.4.0-dev.5](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0-dev.4...v2.4.0-dev.5) (2026-11-14)
+
+
+### Features
+
+* Add `addPatchInterfaceMethod` to add extension interface methods to a class ([#283](https://github.com/MorpheApp/morphe-patcher/issues/283)) ([6b13459](https://github.com/MorpheApp/morphe-patcher/commit/6b13459cdb4db22dcf4b32f5ffa33703182c3b22))
+
+# [2.4.0-dev.4](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0-dev.3...v2.4.0-dev.4) (2026-11-13)
+
+
+### Bug Fixes
+
+* Update ARSCLib dependency ([64d572a](https://github.com/MorpheApp/morphe-patcher/commit/64d572a1d08ca4e924ae7c16d8f8a1d24acc16c6))
+
+# [2.4.0-dev.3](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0-dev.2...v2.4.0-dev.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* Update ARSCLib dependency ([97ca1a0](https://github.com/MorpheApp/morphe-patcher/commit/97ca1a075de5a658c0c40b94d2602c80f8a59fcf))
+
+# [2.4.0-dev.2](https://github.com/MorpheApp/morphe-patcher/compare/v2.4.0-dev.1...v2.4.0-dev.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* Update smali dependency ([487e02d](https://github.com/MorpheApp/morphe-patcher/commit/487e02d83141fa872970bda0c3984def652f0b3c))
+
+# [2.4.0-dev.1](https://github.com/MorpheApp/morphe-patcher/compare/v2.3.1-dev.2...v2.4.0-dev.1) (2026-11-08)
+
+
+### Features
+
+* Let patches read the OBB of a bundle ([#281](https://github.com/MorpheApp/morphe-patcher/issues/281)) ([67464b0](https://github.com/MorpheApp/morphe-patcher/commit/67464b0438cfc5f613111b05140192601712d5a0))
+
+## [2.3.1-dev.2](https://github.com/MorpheApp/morphe-patcher/compare/v2.3.1-dev.1...v2.3.1-dev.2) (2026-11-08)
+
+
+### Bug Fixes
+
+* Allow Fingerprint fields to reference other Fingerprints ([87bdb41](https://github.com/MorpheApp/morphe-patcher/commit/87bdb41788fb044c8056087a1d39a04380cf0307))
+
+## [2.3.1-dev.1](https://github.com/MorpheApp/morphe-patcher/compare/v2.3.0...v2.3.1-dev.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* Internally process resource XML files with ARCSLib ([#279](https://github.com/MorpheApp/morphe-patcher/issues/279)) ([1e27114](https://github.com/MorpheApp/morphe-patcher/commit/1e27114f5f07f80250ec67b33c20ab2ba8a3b012))
+
 # [2.3.0](https://github.com/MorpheApp/morphe-patcher/compare/v2.2.0...v2.3.0) (2026-11-06)
 
 

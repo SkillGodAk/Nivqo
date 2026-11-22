@@ -13,11 +13,12 @@ import android.hardware.SensorManager
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import app.morphe.manager.ui.screen.shared.FullscreenDialogs
-import app.morphe.manager.ui.screen.shared.isInDialogWindow
+import app.morphe.manager.ui.screen.shared.isInDialog
+import app.morphe.manager.ui.screen.shared.opaqueModalOpen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
@@ -44,7 +45,7 @@ internal const val BACKGROUND_STEP_INTERVAL_MS = 16f
 fun AnimationFrameEffect(frameLoop: suspend CoroutineScope.() -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
     // A dialog's own backdrop, such as the background picker's preview, is what the dialog shows
-    val covered = FullscreenDialogs.anyOpen && !isInDialogWindow()
+    val covered = opaqueModalOpen() && !isInDialog()
 
     LaunchedEffect(lifecycleOwner, covered) {
         if (covered) return@LaunchedEffect
@@ -173,8 +174,7 @@ data class ParallaxState(
 @Composable
 fun rememberParallaxState(
     enableParallax: Boolean,
-    sensitivity: Float = 0.3f,
-    context: Context
+    sensitivity: Float = 0.3f
 ): ParallaxState {
     val smoothTiltX = remember { Animatable(0f) }
     val smoothTiltY = remember { Animatable(0f) }
@@ -217,6 +217,7 @@ fun rememberParallaxState(
     // Registered only while resumed: the background outlives a stopped activity, and a listener
     // left running would keep the accelerometer awake for an app nobody is looking at
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
     LaunchedEffect(enableParallax, lifecycleOwner) {
         if (!enableParallax) return@LaunchedEffect
 

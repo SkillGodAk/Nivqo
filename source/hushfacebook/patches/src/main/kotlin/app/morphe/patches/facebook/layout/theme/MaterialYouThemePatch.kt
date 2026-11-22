@@ -96,6 +96,9 @@ internal const val STATUS_BAR_YOU = "$MATERIAL_YOU->statusBar(IZ)I"
 /** The same for the navigation bar. */
 internal const val NAVIGATION_BAR_YOU = "$MATERIAL_YOU->navigationBar(IZ)I"
 
+/** A Bloks box's fill, on the builder Accent color and AMOLED hook ([hookBloksFills]). */
+internal const val MATERIAL_YOU_BLOKS_FILL = "$MATERIAL_YOU->bloksFill(I)I"
+
 /**
  * Sends the status bar's colour through the extension, first thing in the method that paints it,
  * with [darkCheck]'s answer for the window, like AMOLED's hook. With AMOLED in the build its call
@@ -505,6 +508,15 @@ val materialYouThemePatch = bytecodePatch(
             patchLog.warning("${moved.message}. The theme goes on without Bloks sheets' backgrounds.")
         }
 
+        // The fill of each Bloks box, like the Settings search field (#141) and in dark mode the place
+        // box under a check-in post (#37): one hex string the server sends, which parseColor leaves in
+        // light mode as text can be that grey too, and which in dark mode skips route four.
+        try {
+            hookBloksFills(MATERIAL_YOU_BLOKS_FILL)
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. The theme goes on without Bloks boxes' fills.")
+        }
+
         // The colour resource behind a token, which FDS's token lookup answers and the code then reads
         // with getColor or as a drawable, like the Menu's Log out row (issue #37). Route two's reads
         // above go by the token once the extension knows it.
@@ -570,8 +582,14 @@ val materialYouThemePatch = bytecodePatch(
  * which 583 had as `A0C`). 585 has it at the id below on both ABIs, read 2026-10-30 by nine methods
  * that each parse its string: eight renders (arm64 `LX/08d5;->render`, `LX/0Iqd;->render`,
  * `LX/0N8x;->A17` and five more) and the attachment footer's `LX/05X5;->A0B(FbUserSession, LX/01PR, Z)I`.
+ * 586 had it at `0x1030731000203a8`, read 2026-11-08 by the same nine methods (arm64
+ * `LX/099J;->render`, `LX/0OCK;->render`, `LX/0TJY;->A1E` and five more renders, and the footer's
+ * `LX/09Ce;->A00`), each reading it through `MobileConfigUnsafeContext.A0H`. 587 moved it to the id
+ * below, the same on both ABIs, read 2026-11-12 by nine methods again (arm64 `LX/0Hgy;->render`,
+ * `LX/0HFH;->render`, `LX/0Pb1;->A19` and five more renders, and the footer's `LX/094a;->A00`; v7's
+ * footer is `LX/094N;->A00`), found as the one config whose string seven `Color.parseColor` calls parse.
  */
-internal const val LINK_BOX_COLOUR_CONFIG = 0x1030736000203aaL
+internal const val LINK_BOX_COLOUR_CONFIG = 0x1030725000203a4L
 
 /**
  * Every id the declared builds give the link box's colour config. Only declared builds' ids belong
@@ -628,7 +646,7 @@ internal fun BytecodePatchContext.hookLinkBoxColour(darkCheck: String): Int {
             check(asksDarkCheck(method, darkCheck)) {
                 "${method.definingClass}->${method.name} reads the link box's colour without asking $darkCheck"
             }
-            method.sendOneParse(parser, PARSE_LINK_BOX, "the link box's colour")
+            method.sendOneParse(setOf(parser), PARSE_LINK_BOX, "the link box's colour")
             changed++
         }
     }
@@ -636,13 +654,13 @@ internal fun BytecodePatchContext.hookLinkBoxColour(darkCheck: String): Int {
 }
 
 /**
- * Sends this method's one call to route four's [parser] to [target] on the same register. A method
- * with no such call, or more than one, is refused: the parse to change would be a guess. [what] names
- * the colour for the refusal.
+ * Sends this method's one call to any of [parsers] to [target] on the same register. A method with
+ * no such call, or more than one, is refused: the parse to change would be a guess. [what] names the
+ * colour for the refusal.
  */
-private fun MutableMethod.sendOneParse(parser: String, target: String, what: String) {
-    val parses = implementation!!.instructions.withIndex().filter { it.value.referenceText() == parser }
-    check(parses.size == 1) { "$definingClass->$name reads $what with ${parses.size} calls to $parser" }
+private fun MutableMethod.sendOneParse(parsers: Set<String>, target: String, what: String) {
+    val parses = implementation!!.instructions.withIndex().filter { it.value.referenceText() in parsers }
+    check(parses.size == 1) { "$definingClass->$name reads $what with ${parses.size} calls to $parsers" }
     val (index, call) = parses.single()
     val text = when (call) {
         is RegisterRangeInstruction -> call.startRegister
@@ -690,13 +708,31 @@ internal fun answersFallbackOnly(method: Method): Boolean {
 }
 
 /**
+ * Whether a colour pair reader parses nothing and hands its pair to another model's reader, as 586's
+ * arm64 `LX/0va1;->CTK` does: it maps both keys through a SparseIntArray and asks the logging model
+ * (`LX/01IP`) it holds, so that model's own parse is the one changed. Parsing is any (String)I call,
+ * route four's parser and its stand-ins alike.
+ */
+internal fun handsColourPairOn(method: Method, anchor: Method): Boolean {
+    val calls = method.implementation?.instructions
+        ?.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }.orEmpty()
+    val parses = calls.any { it.returnType == "I" && it.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/String;") }
+    return !parses && calls.any {
+        it.name == anchor.name && it.returnType == anchor.returnType &&
+            it.parameterTypes.map(CharSequence::toString) == anchor.parameterTypes.map(CharSequence::toString)
+    }
+}
+
+/**
  * Bloks' colour pairs (issue #37). A Bloks screen gets each colour from the server as a light and a
  * dark hex string, and the screen's model answers one through an interface method (582
  * `LX/fra;->BAJ`, in the models `LX/1Vp` and `LX/4TS`). Each model asks Bloks' theme whether it's
  * dark, takes that key's string, or the light one when there is no dark one, and parses it. The
  * Menu's profile card at the top is #333334 this way, a grey light mode draws too, so route four's
- * parser leaves it. In each model the one call to that parser goes to [PARSE_BLOKS] on the same
- * register. Runs after route four, so the call is already Material You's stand-in, AMOLED's included.
+ * parser leaves it. In each model the one call to one of [parsers] goes to [target] on the same
+ * register. Runs after route four, so the call is already Material You's stand-in, AMOLED's included,
+ * or AMOLED's own Bloks parse ([AMOLED_PARSE_BLOKS]), which AMOLED sends its secondary text greys
+ * through (issue #34). Material You takes either. AMOLED passes its stand-in and its own target.
  * The model that logs a pair it can't parse ([isLoggingBloksColourPair]) names the interface, and the
  * interface names the other models. One that parses more than once or never is refused, and so is
  * one that doesn't ask the theme, unless it only answers its fallback ([answersFallbackOnly]).
@@ -704,9 +740,13 @@ internal fun answersFallbackOnly(method: Method): Boolean {
  *
  * 585, read 2026-10-30: the interface is arm64 `LX/062H;->CPv(LX/0i13;III)I`, the logging model
  * `LX/01JW`, the sparse one `LX/05CD`, and two more (`LX/07Dt`, `LX/07Du`) only `return p4`.
+ * 586, read 2026-11-09: the logging model is arm64 `LX/01IP;->CTK`, and `LX/0va1` hands its pair to
+ * it ([handsColourPairOn]), so it's left alone like the ones that only answer their fallback.
  */
-internal fun BytecodePatchContext.hookBloksColourPairs(): Int {
-    val parser = standIn(MATERIAL_YOU, PARSE_COLOR)
+internal fun BytecodePatchContext.hookBloksColourPairs(
+    parsers: Set<String> = setOf(standIn(MATERIAL_YOU, PARSE_COLOR), AMOLED_PARSE_BLOKS),
+    target: String = PARSE_BLOKS,
+): Int {
     val logging = mutableListOf<Method>()
     classDefForEachReferencing(strings = listOf(BLOKS_PAIR_LIGHT_KEY)) { classDef ->
         if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEachReferencing
@@ -728,10 +768,12 @@ internal fun BytecodePatchContext.hookBloksColourPairs(): Int {
         val method = model.methods.singleOrNull { it.sameAs(anchor) && it.implementation != null } ?: return@classDefForEachReferencing
         // Why: 585 adds models with no colours of their own, whose reader only answers the fallback.
         if (answersFallbackOnly(method)) return@classDefForEachReferencing
+        // Why: 586 adds a model that hands its pair to the logging model, which is changed itself.
+        if (handsColourPairOn(method, anchor)) return@classDefForEachReferencing
         check(method.implementation!!.instructions.any { it.asksDark(theme) }) {
             "${method.definingClass}->${method.name} picks a Bloks colour without asking $theme whether it's dark"
         }
-        method.sendOneParse(parser, PARSE_BLOKS, "a Bloks colour pair")
+        method.sendOneParse(parsers, target, "a Bloks colour pair")
         changed++
     }
     return changed

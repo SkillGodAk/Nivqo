@@ -29,10 +29,12 @@ public final class FamilyNames {
     public static final String AI_DETECTED_REELS = "Hide AI-detected posts (Reels and Watch)";
     public static final String POST_WORDS = "Hide posts by words";
     public static final String POST_PROMPTS = "Hide post prompts";
+    public static final String PROFILE_PICTURES = "Hide profile pictures";
     public static final String SEEN_POSTS = "Hide seen posts";
     public static final String META_AI_QUESTIONS = "Hide Meta AI questions under posts";
     public static final String POST_DATES = "Keep post dates";
     public static final String FULL_POST_TEXT = "Show full post text";
+    public static final String FOLD_LONG_TEXT = "Fold long text";
     public static final String TRANSLATE_POSTS = "Translate posts";
     public static final String WHO_SHARED = "See who shared";
     public static final String PHOTO_CAROUSEL = "Photo carousel";
@@ -50,6 +52,7 @@ public final class FamilyNames {
     public static final String STORIES_TRAY_CIRCLES = "Round stories tray";
     public static final String STORY_TAPS = "Story viewer taps";
     public static final String STORY_VIEWER_CLEANUP = "Clean up the story viewer";
+    public static final String STORY_RINGS = "Hide story rings";
     public static final String SPONSORED_REELS = "Hide sponsored reels";
     public static final String SPONSORED_SEARCH = "Hide sponsored search results";
     public static final String SPONSORED_PROFILE_POSTS = "Hide sponsored profile posts";
@@ -63,6 +66,7 @@ public final class FamilyNames {
     public static final String REEL_WATCH_HISTORY = "Don't send reel watch history";
     public static final String NEWEST_REELS_FIRST = "Newest reels first";
     public static final String DOUBLE_TAP_LIKE = "Turn off double tap to like";
+    public static final String ASK_BEFORE_LIKE = "Ask before a like";
     public static final String DOUBLE_TAP_SKIP = "Double tap to skip";
     public static final String TAP_SHOWS_CONTROLS = "Tap shows the controls";
     public static final String REEL_GESTURES = "Open comments with a gesture";
@@ -79,6 +83,7 @@ public final class FamilyNames {
     public static final String PINCH_TO_ZOOM = "Pinch to zoom";
     public static final String PLAYBACK_QUALITY = "Default playback quality";
     public static final String PICTURE_IN_PICTURE = "Picture-in-picture";
+    public static final String BACKGROUND_PLAY = "Keep playing in the background";
     public static final String HDR_BRIGHTNESS = "Turn off HDR brightness";
     public static final String SKIP_SILENCE = "Skip silent parts";
     public static final String KEEP_FEED_VIDEOS_MUTED = "Keep feed videos muted";
@@ -114,16 +119,19 @@ public final class FamilyNames {
     public static final String MENU_PROMOTIONS = "Hide Menu promotions";
     public static final String META_UPSELLS = "Hide Meta upsells";
     public static final String SHARE_SHEET_ITEMS = "Share sheet items";
+    public static final String POST_MENU_ITEMS = "Post menu items";
     public static final String META_AI_SEARCH = "Hide Meta AI in search";
     public static final String SEARCH_HISTORY = "Don't save search history";
     public static final String SEARCH_DATE_RANGE = "Search date range";
     public static final String SEARCH_POSTS_TAB = "Search posts tab";
+    public static final String SEARCH_SAVED_BUTTON = "Saved button in search";
     public static final String PROMO_NOTIFICATIONS = "Block promotional notifications";
     public static final String AD_PREFETCH = "Block background ad prefetch";
     public static final String AD_TELEMETRY = "Block ad telemetry";
     public static final String ANALYTICS_UPLOADS = "Hold back analytics uploads";
     public static final String SCREENSHOTS = "Allow screenshots";
     public static final String SCREENSHOT_DETECTION = "Block screenshot detection";
+    public static final String LOCATION_PROMPTS = "Skip location prompts";
     public static final String TYPING_INDICATOR = "Hide typing indicator";
     public static final String READ_RECEIPTS = "Hide read receipts";
     public static final String ORIGINAL_CHAT_MEDIA = "Send chat photos and videos at original quality";
@@ -138,6 +146,7 @@ public final class FamilyNames {
     public static final String INSTALL_BESIDE_META_APPS = "Install beside Meta's apps";
     public static final String PLAY_STORE_UPDATES = "Disable Play Store updates";
     public static final String GMS_CORE = "GmsCore support";
+    public static final String CLONE_INSTALL = "Clone install under another package name";
     public static final String OPEN_IN_FACEBOOK = "Open in Facebook from the share menu";
     public static final String MENU_SETTINGS_ROW = "Hushfacebook in the Menu";
 

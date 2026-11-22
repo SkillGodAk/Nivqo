@@ -6,15 +6,25 @@ package app.morphe.patches.facebook.reels
 
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.feed.methodsHolding
+import app.morphe.patches.facebook.layout.theme.branchTargets
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.facebook.misc.extension.freeLocalsAt
 import app.morphe.patches.facebook.search.branchTarget
+import app.morphe.util.ControlFlow
+import app.morphe.util.RegisterLiveness
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -53,6 +63,12 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  *   transition list (A1A), which builds all the keys unconditionally. With no gate to find, the
  *   patch hooks the builder's answer the way the footer's is hooked, matching the call by what the
  *   builder is (it holds the key and news up the toggle), not by its name or shape.
+ * - 585's Android 9 build (minapi28, read 2026-11-07) has neither. The controls' render (LX/092D;->A15)
+ *   news up the toggle (LX/05oc;) right there, wraps it with the key and adds it to the column with
+ *   AbstractCollection.add, dropping the answer, and the info chip's block starts after the add.
+ *   The patch asks the extension in front of the toggle's new-instance and jumps past the add on
+ *   false. Facebook's own flag between them (a MobileConfig Z) only picks sizes, so nothing else
+ *   in the column depends on the speaker being there.
  *
  * The footer:
  * - The methods loading exactly "FbShortsViewerFooterComponent" (arm64 LX/AOL;'s constructor, A1C,
@@ -65,6 +81,16 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  * - The hook goes between the move-result-object and the if-eqz: the extension is handed what was
  *   built and answers it or null in the same register, cast back to the builder's return type for
  *   the verifier.
+ * - 586 (read 2026-11-09) made that builder an instance method of a singleton, as 585 did the
+ *   controls' (arm64 LX/0Cii;->A01, called with invoke-virtual/range from LX/0C5I;->render, a piece
+ *   the footer's LX/0C3N;->A1E news up), so the footer takes a virtual call as well as a static one.
+ * - 587 (read 2026-11-13, both ABIs) drops the null check. The corner's render (arm64 LX/0CNe;, armv7
+ *   LX/0CN6;, newed up by the footer's A19) moves the builder's answer (arm64 LX/0DnE;->A02, armv7
+ *   LX/0DnT;->A02) and hands it straight to the column's add (arm64 LX/01PG;->A00, armv7
+ *   LX/01PL;->A00), which takes null:
+ *   the builder answers null itself (const/4 0, return-object) and render passes a null to the same
+ *   add on other ways. The hook goes in the same place, between the move-result-object and the add,
+ *   and is taken only when the builder can answer null itself.
  */
 
 internal const val REEL_SOUND_BUTTON = "$EXTENSION_PACKAGE/reels/ReelDeclutter;->showsSoundButton(Z)Z"
@@ -131,7 +157,10 @@ internal fun BytecodePatchContext.hideReelSoundButton(): SpeakerSite? {
     return null
 }
 
-/** A static call at [call] whose answer of [type] goes by move-result-object into [register], null-checked by the if-eqz at [call] + 2. */
+/**
+ * A call at [call] whose answer of [type] goes by move-result-object into [register], null-checked by
+ * the if-eqz at [call] + 2 (or, in 587's footer, handed to the column's add there).
+ */
 internal data class SpeakerBuild(val call: Int, val register: Int, val type: String)
 
 /** The [build] in [method] of [owner] whose answer goes through the extension. */
@@ -156,16 +185,66 @@ private val STATIC_OR_VIRTUAL_CALLS = STATIC_CALLS + setOf(Opcode.INVOKE_VIRTUAL
  * move-result-object straight into an if-eqz on the same register: built, or nothing to add.
  */
 internal fun speakerBuilds(method: Method, buildsSpeaker: (MethodReference) -> Boolean): List<SpeakerBuild> =
-    buildsIn(method, STATIC_CALLS, buildsSpeaker)
+    buildsIn(method, STATIC_CALLS, buildsSpeaker) { next, register, _ -> isNullCheck(next, register) }
 
 /**
  * [speakerBuilds] for the video controls, whose builder on 585 is an instance method of a singleton,
- * so a virtual call counts as well as a static one.
+ * so a virtual call counts as well as a static one. The footer's builder is one too from 586.
  */
 internal fun controlSpeakerBuilds(method: Method, buildsSpeaker: (MethodReference) -> Boolean): List<SpeakerBuild> =
-    buildsIn(method, STATIC_OR_VIRTUAL_CALLS, buildsSpeaker)
+    buildsIn(method, STATIC_OR_VIRTUAL_CALLS, buildsSpeaker) { next, register, _ -> isNullCheck(next, register) }
 
-private fun buildsIn(method: Method, opcodes: Set<Opcode>, buildsSpeaker: (MethodReference) -> Boolean): List<SpeakerBuild> {
+/**
+ * [controlSpeakerBuilds] for the footer, which from 587 hands the answer straight to the column's add
+ * with no null check of its own (arm64 LX/0CNe;->render into LX/01PG;->A00). The add takes null: the
+ * builder answers null itself when the flag or a player part says so, and Facebook passes a null to the
+ * same add on other ways. So a call followed by such an add counts only when [answersNull] says the
+ * builder can answer null itself, and the hook's null is then one Facebook already copes with.
+ */
+internal fun footerSpeakerBuilds(
+    method: Method,
+    buildsSpeaker: (MethodReference) -> Boolean,
+    answersNull: (MethodReference) -> Boolean,
+): List<SpeakerBuild> = buildsIn(method, STATIC_OR_VIRTUAL_CALLS, buildsSpeaker) { next, register, call ->
+    isNullCheck(next, register) || (handsOn(next, register) && answersNull(call))
+}
+
+/** Whether [next] is an if-eqz on [register]. */
+private fun isNullCheck(next: Instruction, register: Int) =
+    next.opcode == Opcode.IF_EQZ && (next as OneRegisterInstruction).registerA == register
+
+/**
+ * Whether [next] hands [register] on as the one argument of a virtual or interface call answering
+ * nothing, on another object: the column's add of what was built.
+ */
+private fun handsOn(next: Instruction, register: Int): Boolean {
+    if (next.opcode != Opcode.INVOKE_VIRTUAL && next.opcode != Opcode.INVOKE_INTERFACE) return false
+    val call = next as FiveRegisterInstruction
+    val reference = (next as ReferenceInstruction).reference as MethodReference
+    return reference.returnType == "V" && reference.parameterTypes.size == 1 && reference.parameterTypes[0].first() == 'L' &&
+        call.registerCount == 2 && call.registerD == register && call.registerC != register
+}
+
+/** Whether [method] can answer null: a const/4 of 0 moved straight into its return-object. */
+internal fun builderAnswersNull(method: Method): Boolean {
+    val code = method.implementation?.instructions?.toList() ?: return false
+    return code.indices.any { returnsNullAt(code, it) }
+}
+
+/** Whether [code] at [at] puts 0 in a register with const/4 and returns that register straight after. */
+internal fun returnsNullAt(code: List<Instruction>, at: Int): Boolean {
+    val zero = code.getOrNull(at) ?: return false
+    val leaves = code.getOrNull(at + 1) ?: return false
+    return zero.opcode == Opcode.CONST_4 && (zero as NarrowLiteralInstruction).narrowLiteral == 0 &&
+        leaves.opcode == Opcode.RETURN_OBJECT && (leaves as OneRegisterInstruction).registerA == (zero as OneRegisterInstruction).registerA
+}
+
+private fun buildsIn(
+    method: Method,
+    opcodes: Set<Opcode>,
+    buildsSpeaker: (MethodReference) -> Boolean,
+    takesAnswer: (Instruction, Int, MethodReference) -> Boolean,
+): List<SpeakerBuild> {
     val code = method.implementation?.instructions?.toList() ?: return emptyList()
     return (0 until code.size - 2).mapNotNull { at ->
         val call = code[at]
@@ -175,8 +254,7 @@ private fun buildsIn(method: Method, opcodes: Set<Opcode>, buildsSpeaker: (Metho
         val result = code[at + 1]
         if (result.opcode != Opcode.MOVE_RESULT_OBJECT) return@mapNotNull null
         val register = (result as OneRegisterInstruction).registerA
-        val check = code[at + 2]
-        if (check.opcode != Opcode.IF_EQZ || (check as OneRegisterInstruction).registerA != register) return@mapNotNull null
+        if (!takesAnswer(code[at + 2], register, reference)) return@mapNotNull null
         if (!buildsSpeaker(reference)) return@mapNotNull null
         SpeakerBuild(at, register, reference.returnType)
     }
@@ -198,35 +276,141 @@ internal fun BytecodePatchContext.hideReelFooterSoundButton(): SpeakerSite {
     val buildsSpeaker = { call: MethodReference ->
         classDefByOrNull(call.definingClass)?.methods?.any { isCalledBy(it, call) && newInstanceTypes(it).any(toggles::contains) } == true
     }
+    val answersNull = { call: MethodReference ->
+        classDefByOrNull(call.definingClass)?.methods?.any { isCalledBy(it, call) && builderAnswersNull(it) } == true
+    }
+    // 586 calls the builder virtually, on a singleton (arm64 LX/0Cii;->A01 from LX/0C5I;->render), and
+    // 587 hands its answer straight to the column's add (arm64 LX/0DnE;->A02 from LX/0CNe;->render).
     val found = pieces.filter(::outsideExtension).mapNotNull { classDefByOrNull(it) }
-        .flatMap { piece -> piece.methods.filter { speakerBuilds(it, buildsSpeaker).isNotEmpty() }.map { piece.type to it } }
+        .flatMap { piece -> piece.methods.filter { footerSpeakerBuilds(it, buildsSpeaker, answersNull).isNotEmpty() }.map { piece.type to it } }
     return hookSpeakerBuild(
         found, "expected one piece of \"$FOOTER_COMPONENT\" to build the speaker button, found ${found.size}",
-    ) { speakerBuilds(it, buildsSpeaker) }
+    ) { footerSpeakerBuilds(it, buildsSpeaker, answersNull) }
 }
 
 /**
  * Hands the speaker button the reel controls build to the extension before their null check. On 585
  * the controls have no check in front of the speaker: a builder on a singleton (called virtually)
  * news up the sound toggle under [SOUND_BUTTON_KEY] and answers it wrapped, or null, and render adds
- * what comes back. Refuses unless exactly one method of [SPEAKER_CONTROLS] calls such a builder that way.
+ * what comes back. Refuses unless exactly one method of [SPEAKER_CONTROLS] calls such a builder that
+ * way. With no such call at all (585's Android 9 build), the controls build the speaker inline, and
+ * [hideInlineSpeaker] asks the extension in front of it, answering null like the gate does.
  */
-private fun BytecodePatchContext.hideControlsSpeakerBuild(): SpeakerSite {
+private fun BytecodePatchContext.hideControlsSpeakerBuild(): SpeakerSite? {
     val toggles = classDefByStrings(SOUND_TOGGLE_STRING, StringComparisonType.EQUALS)
         .map { it.type }.filterNot { it.startsWith(EXTENSION_PACKAGE) }.toSet()
     if (toggles.isEmpty()) throw PatchException("$PATCH: no class loads \"$SOUND_TOGGLE_STRING\"")
     val buildsSpeaker = { call: MethodReference ->
         classDefByOrNull(call.definingClass)?.methods?.any { buildsControlsSpeaker(it, call, toggles) } == true
     }
-    val found = classDefByStrings(SPEAKER_CONTROLS, StringComparisonType.EQUALS)
+    val controls = classDefByStrings(SPEAKER_CONTROLS, StringComparisonType.EQUALS)
         .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
         .flatMap { owner -> methodsHolding(owner, SPEAKER_CONTROLS).map { owner.type to it } }
-        .filter { (_, method) -> controlSpeakerBuilds(method, buildsSpeaker).isNotEmpty() }
+    val found = controls.filter { (_, method) -> controlSpeakerBuilds(method, buildsSpeaker).isNotEmpty() }
+    if (found.isEmpty()) {
+        hideInlineSpeaker(controls, toggles)
+        return null
+    }
     return hookSpeakerBuild(
         found,
         "expected one static check whose false skips \"$SOUND_BUTTON_KEY\", or one method of \"$SPEAKER_CONTROLS\" " +
             "building the speaker button, found ${found.size}",
     ) { controlSpeakerBuilds(it, buildsSpeaker) }
+}
+
+/** An inline build of the speaker: the sound toggle newed up at [start], and the column's add at [add] of what's built from it. */
+internal data class InlineSpeaker(val start: Int, val add: Int)
+
+private val COLUMN_ADDS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
+
+/**
+ * The places in [method] that build the speaker with no check or builder in front of it: the last
+ * new-instance of one of the sound [toggles] before a load of [SOUND_BUTTON_KEY], and the first
+ * add(Object)Z after the key whose answer is dropped. Jumping from the one to just past the other
+ * has to leave the rest of the method as it was, so a place counts only when no other toggle or
+ * transition key sits between them, nothing branches to the toggle, every way on from it reaches
+ * the instruction after the add with no return or throw on the way, no other way comes in part
+ * way, and nothing written on those ways is read after the add.
+ */
+internal fun inlineSpeakers(method: Method, toggles: Set<String>): List<InlineSpeaker> {
+    val code = method.implementation?.instructions?.toList() ?: return emptyList()
+    val strings = code.map { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+    val keys = strings.indices.filter { strings[it] == SOUND_BUTTON_KEY }
+    if (keys.isEmpty()) return emptyList()
+    fun isToggle(at: Int) = code[at].opcode == Opcode.NEW_INSTANCE &&
+        ((code[at] as ReferenceInstruction).reference as TypeReference).type in toggles
+    fun isDroppedAdd(at: Int): Boolean {
+        if (code[at].opcode !in COLUMN_ADDS) return false
+        val reference = (code[at] as ReferenceInstruction).reference as MethodReference
+        return reference.name == "add" && reference.returnType == "Z" &&
+            reference.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Object;") &&
+            code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT
+    }
+    val flow by lazy { ControlFlow.of(method) }
+    val liveness by lazy { RegisterLiveness.of(method) }
+    val targets by lazy { branchTargets(code) }
+    return keys.mapNotNull { key ->
+        val start = (key - 1 downTo 0).firstOrNull(::isToggle) ?: return@mapNotNull null
+        val add = (key + 1 until code.size - 1).firstOrNull(::isDroppedAdd) ?: return@mapNotNull null
+        if ((start + 1 until add).any(::isToggle)) return@mapNotNull null
+        if (strings.subList(start, add + 1).any { it != null && it != SOUND_BUTTON_KEY && it.endsWith(TRANSITION_KEY) }) {
+            return@mapNotNull null
+        }
+        if (start in targets) return@mapNotNull null
+        val after = add + 1
+        // Every instruction some way from the toggle runs before it reaches the one after the add.
+        val skipped = sortedSetOf<Int>()
+        val pending = ArrayDeque(listOf(start))
+        while (pending.isNotEmpty()) {
+            val at = pending.removeFirst()
+            if (at == after || !skipped.add(at)) continue
+            if (flow.normal[at].isEmpty()) return@mapNotNull null
+            pending += flow.normal[at]
+        }
+        val comesInPartWay = code.indices.any { from ->
+            from !in skipped && (flow.normal[from] + flow.exceptional[from]).any { it in skipped && it != start }
+        }
+        if (comesInPartWay) return@mapNotNull null
+        val written = skipped.flatMapTo(mutableSetOf()) { at ->
+            val instruction = code[at]
+            when {
+                !instruction.opcode.setsRegister() || instruction !is OneRegisterInstruction -> emptyList()
+                instruction.opcode.setsWideRegister() -> listOf(instruction.registerA, instruction.registerA + 1)
+                else -> listOf(instruction.registerA)
+            }
+        }
+        if (liveness.liveInto(after).any { it in written }) return@mapNotNull null
+        InlineSpeaker(start, add)
+    }
+}
+
+/**
+ * Asks the extension, with Facebook's yes, whether the speaker the [controls] build inline gets
+ * built, and on no jumps past the column's add of it. Refuses unless exactly one of [controls]
+ * builds it inline, once.
+ */
+private fun BytecodePatchContext.hideInlineSpeaker(controls: List<Pair<String, Method>>, toggles: Set<String>) {
+    val found = controls.filter { (_, method) -> inlineSpeakers(method, toggles).isNotEmpty() }
+    val (owner, holder) = found.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one static check whose false skips \"$SOUND_BUTTON_KEY\", or one method of \"$SPEAKER_CONTROLS\" " +
+            "building the speaker button through a builder or inline, found ${found.size}",
+    )
+    val method = mutableClassDefBy(owner).methods.single {
+        it.name == holder.name && it.parameterTypes.map(CharSequence::toString) == holder.parameterTypes.map(CharSequence::toString)
+    }
+    val speaker = inlineSpeakers(method, toggles).singleOrNull()
+        ?: throw PatchException("$PATCH: $owner->${holder.name} doesn't build the speaker button inline exactly once")
+    val answer = method.freeLocalsAt(PATCH, speaker.start, 1, targets = listOf(speaker.add + 1)).single()
+    method.addInstructionsWithLabels(
+        speaker.start,
+        """
+            const/4 v$answer, 0x1
+            invoke-static/range { v$answer .. v$answer }, $REEL_SOUND_BUTTON
+            move-result v$answer
+            if-eqz v$answer, :speaker_left_out
+        """,
+        ExternalLabel("speaker_left_out", method.getInstruction(speaker.add + 1)),
+    )
 }
 
 /** Whether [method] is the builder [call] names, holds [SOUND_BUTTON_KEY] and news up one of the sound [toggles]. */

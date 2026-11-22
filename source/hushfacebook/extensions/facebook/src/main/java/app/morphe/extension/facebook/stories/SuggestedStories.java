@@ -4,12 +4,18 @@
  */
 package app.morphe.extension.facebook.stories;
 
+import android.app.Activity;
+
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
@@ -52,7 +58,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * expiration_time ({@link StorySeen#trayWatchedHere}, #218), or when an earlier tray sent it as
  * watched with the same expiration_time, so no story came since (#340). Show only watched stories turns that
  * round: a story whose flag reads false and that wasn't watched here goes, and Hide seen stories
- * waits while it's on (#340). A bucket whose flag can't be read stays either way.
+ * waits while it's on (#340). A bucket whose flag can't be read stays either way. While a story
+ * viewer is open, a bucket a tray kept doesn't leave as seen, so the viewer keeps the one it's
+ * playing, and it leaves the first tray after the viewer closes (#438). Hide stories you scrolled
+ * past takes a story whose tile came into view on an earlier visit to Facebook, watched or not,
+ * until its person posts another ({@link PassedStories}, #463).
  *
  * <p>Nothing else counts, so a friend's story, a Page you follow, your own story, a friend
  * request and anything that isn't a bucket or whose type isn't one of those stay.
@@ -92,6 +102,14 @@ public final class SuggestedStories {
     static final String ADDITIONAL_PROFILE_PAGE_TYPE = "ADMINED_ADDITIONAL_PROFILE_STORY";
     static final String PROFILE_PLUS_PAGE_TYPE = "PROFILE_PLUS_STORY";
     static final String ADD_TO_STORY_TYPE = "ADD_TO_STORY";
+
+    /**
+     * The types a tray tile comes as when it holds a person's saved highlights, the tiles named
+     * Highlights, rather than a day of stories. Its expiration_time doesn't follow a story's day, and
+     * one with none reads 0, so watched here goes by the bucket alone (#165).
+     */
+    static final String FEATURED_HIGHLIGHTS_TYPE = "FEATURED_HIGHLIGHTS_STORY";
+    static final String HIGHLIGHTED_TYPE = "HIGHLIGHTED_STORY";
 
     /** The GraphQL fields of who posted a bucket and whether you've watched it, and a Page's type name. */
     static final String OWNER_FIELD = "story_bucket_owner";
@@ -133,6 +151,23 @@ public final class SuggestedStories {
      */
     @Nullable
     static volatile Boolean peopleYouMayKnowInBuildForTests;
+
+    /**
+     * How many story viewers are open, from the activity callbacks (#438). While one is, a bucket a
+     * tray kept doesn't leave as seen: watching it marks it seen on this phone, its tray answers
+     * again, and the viewer would lose the bucket it's playing and jump to the next one. Guarded by
+     * {@link #trayIds}.
+     */
+    private static int viewersOpen;
+
+    /** Ids of the buckets the trays kept with Hide seen stories on, oldest first, at most {@link #TRAY_IDS}. */
+    private static final LinkedHashSet<String> trayIds = new LinkedHashSet<>();
+
+    /** Ids kept only because a story viewer was open, which leave the first tray after it closes. Guarded by {@link #trayIds}. */
+    private static final Set<String> heldIds = new HashSet<>();
+
+    /** A tray holds a few dozen buckets, so this covers many trays without growing for the whole session. */
+    private static final int TRAY_IDS = 512;
 
     /** A tray's buckets, read through the stubs the patch filled in or through a test's stand-in. */
     interface Buckets {
@@ -237,7 +272,7 @@ public final class SuggestedStories {
     /** Which kinds leave the tray, read once for each tray. */
     static final class Switches {
         /** Before the settings are ready, or when they can't be read: every bucket stays. */
-        static final Switches NONE = new Switches(false, false, false, false, false, false, false);
+        static final Switches NONE = new Switches(false, false, false, false, false, false, false, false);
 
         final boolean suggested;
         /** Whether the People you may know switch is in this build at all. */
@@ -249,9 +284,26 @@ public final class SuggestedStories {
         final boolean seenStories;
         /** Show only watched stories (#340). */
         final boolean onlyWatched;
+        /** Hide stories you scrolled past (#463). */
+        final boolean passedStories;
+        /** Move seen stories to the end (#489). */
+        final boolean seenLast;
 
         Switches(boolean suggested, boolean peopleYouMayKnowInBuild, boolean peopleYouMayKnow, boolean contactImport,
                 boolean pageStories, boolean seenStories, boolean onlyWatched) {
+            this(suggested, peopleYouMayKnowInBuild, peopleYouMayKnow, contactImport, pageStories, seenStories,
+                    onlyWatched, false);
+        }
+
+        Switches(boolean suggested, boolean peopleYouMayKnowInBuild, boolean peopleYouMayKnow, boolean contactImport,
+                boolean pageStories, boolean seenStories, boolean onlyWatched, boolean passedStories) {
+            this(suggested, peopleYouMayKnowInBuild, peopleYouMayKnow, contactImport, pageStories, seenStories,
+                    onlyWatched, passedStories, false);
+        }
+
+        Switches(boolean suggested, boolean peopleYouMayKnowInBuild, boolean peopleYouMayKnow, boolean contactImport,
+                boolean pageStories, boolean seenStories, boolean onlyWatched, boolean passedStories,
+                boolean seenLast) {
             this.suggested = suggested;
             this.peopleYouMayKnowInBuild = peopleYouMayKnowInBuild;
             this.peopleYouMayKnow = peopleYouMayKnowInBuild && peopleYouMayKnow;
@@ -259,6 +311,9 @@ public final class SuggestedStories {
             this.pageStories = pageStories;
             this.seenStories = seenStories && !onlyWatched;
             this.onlyWatched = onlyWatched;
+            this.passedStories = passedStories;
+            // Hide seen stories takes them out, and Show only watched stories keeps nothing else to pass.
+            this.seenLast = seenLast && !this.seenStories && !onlyWatched;
         }
 
         /** Whether a bucket of this kind leaves the tray. */
@@ -278,6 +333,24 @@ public final class SuggestedStories {
         /** Whether a bucket of this kind leaves while you haven't watched it, with Show only watched stories on. */
         boolean leavesUnwatched(String kind) {
             return onlyWatched && story(kind);
+        }
+
+        /** Whether a bucket of this kind leaves once its tile came into view on an earlier visit (#463). */
+        boolean leavesPassed(String kind) {
+            return passedStories && story(kind);
+        }
+
+        /** Whether a bucket of this kind moves to the end of the tray once you've watched it (#489). */
+        boolean movesSeen(String kind) {
+            return seenLast && story(kind);
+        }
+
+        /**
+         * Whether a bucket leaving as seen or scrolled past, or moving to the end, stays where it is while
+         * a story viewer is open (#438, #489).
+         */
+        boolean holdsForViewer() {
+            return seenStories || passedStories || seenLast;
         }
 
         private static boolean story(String kind) {
@@ -306,7 +379,8 @@ public final class SuggestedStories {
      * Injection point, first in the constructor of the tray data and first in the tray parser that
      * Home's tray and a story shown in the feed go through (#313, #317). Answers the list it was handed,
      * or an ImmutableList of the same buckets in the same order without the ones whose switch is
-     * on, which takes the list's place. Never throws.
+     * on, which takes the list's place. With Move seen stories to the end on, the watched ones follow
+     * the rest in the order they came (#489). Never throws.
      *
      * @param buckets the tray's bucket list, an ImmutableList.
      */
@@ -328,6 +402,8 @@ public final class SuggestedStories {
             List<String> kinds = new ArrayList<>(buckets.size());
             List<String> left = new ArrayList<>();
             ArrayList<Object> kept = null;
+            ArrayList<Object> last = null;
+            int held = 0;
             for (int index = 0; index < buckets.size(); index++) {
                 Object bucket = buckets.get(index);
                 String kind = kindOf(bucket, access, switches.pageStories);
@@ -335,15 +411,40 @@ public final class SuggestedStories {
                 FeedFilterCounters.sawKind(ROUTE, kind);
                 String leaving = switches.leaves(kind) ? kind
                         : switches.leavesSeen(kind) && watched(bucket, access) ? SEEN
-                        : switches.leavesUnwatched(kind) && unwatched(bucket, access) ? UNWATCHED : null;
-                if (leaving != null) {
+                        : switches.leavesUnwatched(kind) && unwatched(bucket, access) ? UNWATCHED
+                        : switches.leavesPassed(kind) && passed(bucket, access) ? PassedStories.PASSED : null;
+                boolean toEnd = leaving == null && switches.movesSeen(kind) && watched(bucket, access);
+                if (switches.holdsForViewer()
+                        && (leaving == null || SEEN.equals(leaving) || PassedStories.PASSED.equals(leaving))
+                        && keptForViewer(bucket, access, leaving != null || toEnd)) {
+                    leaving = null;
+                    toEnd = false;
+                    held++;
+                }
+                if (leaving != null || toEnd) {
                     if (kept == null) {
                         kept = new ArrayList<>(buckets.size());
                         kept.addAll(buckets.subList(0, index));
                     }
-                    left.add(leaving);
+                    if (leaving != null) {
+                        left.add(leaving);
+                    } else {
+                        if (last == null) last = new ArrayList<>();
+                        last.add(bucket);
+                    }
                 } else if (kept != null) {
                     kept.add(bucket);
+                }
+            }
+
+            int moved = 0;
+            if (last != null) {
+                kept.addAll(last);
+                // Watched ones that already came last leave Facebook's list as it was.
+                if (left.isEmpty() && sameOrder(kept, buckets)) {
+                    kept = null;
+                } else {
+                    moved = last.size();
                 }
             }
 
@@ -353,6 +454,7 @@ public final class SuggestedStories {
                 if (copy == null) {
                     HookStatus.missingMember(FamilyNames.SUGGESTED_STORIES, "method", "ImmutableList", "copyOf(Collection)");
                     left.clear();
+                    moved = 0;
                 } else {
                     answer = copy;
                     for (String kind : left) FeedFilterCounters.removed(ROUTE, 1, kind);
@@ -363,8 +465,11 @@ public final class SuggestedStories {
             final int shown = buckets.size() - left.size();
             StoriesTrayPaging.sawTray(shown, left.size());
             final String off = switches.offNote();
+            final String notes = (moved == 0 ? "" : ". " + moved + " seen moved to the end")
+                    + (held == 0 ? "" : ". " + held + " seen kept while a story plays")
+                    + (moved == 0 && held == 0 ? "" : ".");
             Logger.printDebug(() -> "Stories tray: " + buckets.size() + " buckets, " + shown + " kept. Kinds: "
-                    + summary(kinds) + off);
+                    + summary(kinds) + off + notes);
             // Observe the actual delivery, including a refused copy. Diagnostics must not undo a filter.
             final Object delivered = answer;
             try {
@@ -377,6 +482,99 @@ public final class SuggestedStories {
             HookStatus.threw(FamilyNames.SUGGESTED_STORIES, "tray bucket filter", failure);
             Logger.printException(() -> "Hide suggested stories: could not read the tray's buckets", failure);
             return buckets;
+        }
+    }
+
+    /** Whether two lists hold the very same buckets in the same order. */
+    private static boolean sameOrder(List<?> mine, List<?> theirs) {
+        if (mine.size() != theirs.size()) return false;
+        for (int index = 0; index < mine.size(); index++) {
+            if (mine.get(index) != theirs.get(index)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Notes what a tray did with a bucket for the story viewer (#438) and answers whether a bucket
+     * leaving as seen stays: one a tray kept stays while a viewer is open, and leaves the first tray
+     * after it closes. A bucket already seen when the viewer opened still leaves. Only Hide seen
+     * stories asks, and a bucket whose id can't be read goes by its flags. Never throws.
+     */
+    private static boolean keptForViewer(Object bucket, Buckets access, boolean leavingSeen) {
+        Object id;
+        try {
+            id = access.id(bucket);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SUGGESTED_STORIES, "bucket id and expiration", failure);
+            return false;
+        }
+        if (!(id instanceof String)) return false;
+        synchronized (trayIds) {
+            if (leavingSeen) {
+                if (viewersOpen > 0 && trayIds.contains(id)) {
+                    heldIds.add((String) id);
+                    return true;
+                }
+                trayIds.remove(id);
+                return false;
+            }
+            trayIds.remove(id);
+            trayIds.add((String) id);
+            if (trayIds.size() > TRAY_IDS) {
+                Iterator<String> oldest = trayIds.iterator();
+                oldest.next();
+                oldest.remove();
+            }
+            return false;
+        }
+    }
+
+    /** From the activity callbacks: a story viewer opened. Never throws. */
+    public static void activityCreated(Activity activity) {
+        try {
+            if (!StorySeenButton.isViewer(activity)) return;
+            synchronized (trayIds) {
+                viewersOpen++;
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SUGGESTED_STORIES, "story viewer opened", failure);
+        }
+    }
+
+    /**
+     * From the activity callbacks: a story viewer closed. Once none is open, the buckets kept only
+     * for one leave the next tray. A viewer rebuilt for a rotation keeps them. Never throws.
+     */
+    public static void activityDestroyed(Activity activity) {
+        try {
+            if (!StorySeenButton.isViewer(activity)) return;
+            synchronized (trayIds) {
+                if (viewersOpen > 0) viewersOpen--;
+                if (viewersOpen > 0 || activity.isChangingConfigurations()) return;
+                trayIds.removeAll(heldIds);
+                heldIds.clear();
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SUGGESTED_STORIES, "story viewer closed", failure);
+        }
+    }
+
+    /** From the activity callbacks: one of Facebook's screens started, for {@link PassedStories} (#463). */
+    public static void activityStarted(Activity activity) {
+        PassedStories.activityStarted(activity);
+    }
+
+    /** From the activity callbacks: one of Facebook's screens stopped, for {@link PassedStories} (#463). */
+    public static void activityStopped(Activity activity) {
+        PassedStories.activityStopped(activity);
+    }
+
+    /** Forgets the open viewers and the kept ids, as a fresh start of the app would. */
+    static void resetViewersForTests() {
+        synchronized (trayIds) {
+            viewersOpen = 0;
+            trayIds.clear();
+            heldIds.clear();
         }
     }
 
@@ -526,6 +724,33 @@ public final class SuggestedStories {
         return Boolean.FALSE.equals(watchedOrNot(bucket, access));
     }
 
+    /**
+     * Whether a story's tile came into view on an earlier visit, with no story posted since (#463),
+     * noting the bucket's id and expiration_time for a tile that comes into view later. The Add to
+     * story tile and a bucket whose id or time can't be read stay. Never throws.
+     */
+    static boolean passed(Object bucket, Buckets access) {
+        Object id;
+        Object expires;
+        try {
+            Object type = access.type(bucket);
+            if (type instanceof Enum && ((Enum<?>) type).name().startsWith(ADD_TO_STORY_TYPE)) return false;
+            id = access.id(bucket);
+            expires = access.expires(bucket);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SUGGESTED_STORIES, "bucket id and expiration", failure);
+            return false;
+        }
+        if (id == UNPATCHED || expires == UNPATCHED) {
+            HookStatus.missingMember(FamilyNames.SUGGESTED_STORIES, "method", "tray bucket",
+                    id == UNPATCHED ? ID_FIELD : EXPIRATION_FIELD);
+            return false;
+        }
+        if (!(id instanceof String) || !(expires instanceof Long)) return false;
+        HookStatus.bound(FamilyNames.SUGGESTED_STORIES, "tray bucket#" + EXPIRATION_FIELD);
+        return PassedStories.listed((String) id, (Long) expires);
+    }
+
     /** {@link #watched}'s answer, or null for the Add to story tile and a flag it can't read. */
     @Nullable
     private static Boolean watchedOrNot(Object bucket, Buckets access) {
@@ -562,6 +787,10 @@ public final class SuggestedStories {
         if (!StorySeen.holdsViewsBack()) return;
         try {
             Object id = access.id(bucket);
+            if (id instanceof String && highlights(bucket, access)) {
+                StorySeen.trayHighlightsReadWatched((String) id);
+                return;
+            }
             Object expires = access.expires(bucket);
             if (id instanceof String && expires instanceof Long) StorySeen.trayReadWatched((String) id, (Long) expires);
         } catch (Throwable failure) {
@@ -573,15 +802,16 @@ public final class SuggestedStories {
      * Whether a bucket the servers send as unwatched was watched to the end on this phone with View
      * stories anonymously on, which keeps them from hearing of it, so its flag stays false after
      * every refresh and restart (#218). Its id and expiration_time are read only when something is
-     * kept to look them up in. Never throws.
+     * kept to look them up in. A Highlights tile goes by its id alone (#165). Never throws.
      */
     static boolean watchedHere(Object bucket, Buckets access) {
         if (!StorySeen.keepsTrayWatched()) return false;
+        boolean highlights = highlights(bucket, access);
         Object id;
         Object expires;
         try {
             id = access.id(bucket);
-            expires = access.expires(bucket);
+            expires = highlights ? null : access.expires(bucket);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SUGGESTED_STORIES, "bucket id and expiration", failure);
             return false;
@@ -591,9 +821,23 @@ public final class SuggestedStories {
                     id == UNPATCHED ? ID_FIELD : EXPIRATION_FIELD);
             return false;
         }
-        if (!(id instanceof String) || !(expires instanceof Long)) return false;
+        if (!(id instanceof String)) return false;
+        if (highlights) return StorySeen.trayHighlightsWatchedHere((String) id);
+        if (!(expires instanceof Long)) return false;
         HookStatus.bound(FamilyNames.SUGGESTED_STORIES, "tray bucket#" + EXPIRATION_FIELD);
         return StorySeen.trayWatchedHere((String) id, (Long) expires);
+    }
+
+    /** Whether a bucket is a Highlights tile, by its story_bucket_type. Never throws. */
+    static boolean highlights(Object bucket, Buckets access) {
+        try {
+            Object type = access.type(bucket);
+            if (!(type instanceof Enum)) return false;
+            String name = ((Enum<?>) type).name();
+            return FEATURED_HIGHLIGHTS_TYPE.equals(name) || HIGHLIGHTED_TYPE.equals(name);
+        } catch (Throwable ignored) {
+            return false; // cardKind already reported this read.
+        }
     }
 
     /**
@@ -753,7 +997,8 @@ public final class SuggestedStories {
             return new Switches(Settings.HIDE_SUGGESTED_STORIES.get(), peopleYouMayKnowInBuild(),
                     Settings.HIDE_PEOPLE_YOU_MAY_KNOW.get(), Settings.HIDE_CONTACT_IMPORT_CARD.get(),
                     Settings.HIDE_PAGE_STORIES.get(), Settings.HIDE_SEEN_STORIES.get(),
-                    Settings.SHOW_ONLY_WATCHED_STORIES.get());
+                    Settings.SHOW_ONLY_WATCHED_STORIES.get(), Settings.HIDE_PASSED_STORIES.get(),
+                    Settings.SEEN_STORIES_LAST.get());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SUGGESTED_STORIES, "switch read", failure);
             return Switches.NONE;

@@ -19,7 +19,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** The thread check keeps its class and method name, so the synthetic label is the real hook id on every build. */
+/** The thread check's own class up to 586. */
+internal const val THREAD_LEVEL_RESULT =
+    "Lcom/facebook/messaging/msys/pushnotifications/protobufparsing/MsysNotificationParser\$getThreadLevelResult\$2;"
+
+/** 587's coroutine class the thread check is merged into. */
+internal const val MERGED_THREAD_CHECK = "LX/CxP;"
+
+/** The thread check under its 586 class name. */
 internal const val SYNTHETIC_RESTRICTED_NOTIFY = "$THREAD_LEVEL_RESULT->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;"
 
 private const val FOLDER = "LX/204;"
@@ -27,17 +34,24 @@ private const val NOTIFY_SETTING = "Lcom/facebook/messaging/model/threads/Notifi
 private const val FOLDER_READ = "iget-object v5, v2, $THREAD_SUMMARY->A10:$FOLDER"
 
 /** The folder enum's type in each stock build. */
-private val NATIVE_FOLDERS = mapOf(PROFILE_347215341 to "LX/20T;", PROFILE_347215348 to FOLDER)
+private val NATIVE_FOLDERS = mapOf(PROFILE_347415280 to "LX/19t;", PROFILE_347415262 to "LX/1AJ;", PROFILE_347415302 to "LX/19t;",
+    PROFILE_347415354 to "LX/19t;")
 
 /**
- * The thread check cut down from 586: Other, Spam and Restricted end it, a muted chat ends it, and only Inbox gets a
- * notification (the null at the end). The resumed path lands on the folder read itself.
+ * The thread check cut down from 586: a chat or sender it can't load fails it, Other, Spam and Restricted end it, a
+ * muted chat ends it, and only Inbox gets a notification (the null at the end). The resumed path lands on the folder
+ * read itself.
  */
-private val GATE_BODY = """
+internal val THREAD_CHECK_BODY = """
     iget-object v2, p0, $THREAD_LEVEL_RESULT->L${'$'}3:Ljava/lang/Object;
     check-cast v2, $THREAD_SUMMARY
     if-nez p1, :summary
     const/4 v1, 0x0
+    if-eqz v2, :no_sender
+    const-string v1, "thread_summary_fetch_failed"
+    return-object v1
+    :no_sender
+    const-string v1, "sender_user_fetch_failed"
     return-object v1
     :summary
     $FOLDER_READ
@@ -59,6 +73,7 @@ private val GATE_BODY = """
     const-string v0, "muted"
     return-object v0
     :inbox
+    iget-object v1, p0, $THREAD_LEVEL_RESULT->A01:$THREAD_KEY_TYPE
     sget-object v0, $FOLDER->A0K:$FOLDER
     if-eq v5, v0, :notify
     const-string v0, "not inbox"
@@ -82,13 +97,13 @@ private fun constant(name: String, ordinal: Int, field: String) = """
 private val FOLDER_INIT = listOf(constant("OTHER", 0, "A0V"), constant("INBOX", 1, "A0K"), constant("SPAM", 2, "A0c"),
     constant("RESTRICTED", 3, "A0b"), "return-void").joinToString("\n")
 
-private fun gate(body: String = GATE_BODY, owner: String = THREAD_LEVEL_RESULT) =
+internal fun threadCheck(body: String = THREAD_CHECK_BODY, owner: String = THREAD_LEVEL_RESULT) =
     fixtureMethod("$owner->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;", body, registers = 8, flags = 0x11)
 
 private fun folders(init: String = FOLDER_INIT, superclass: String = "Ljava/lang/Enum;") =
     fixtureClass(FOLDER, listOf(fixtureMethod("$FOLDER-><clinit>()V", init, registers = 6, flags = 0x10008)), superclass = superclass)
 
-internal fun restrictedNotifyFixture(method: MutableMethod = gate(), folderClass: MutableClass? = folders()): List<MutableClass> =
+internal fun restrictedNotifyFixture(method: MutableMethod = threadCheck(), folderClass: MutableClass? = folders()): List<MutableClass> =
     listOfNotNull(fixtureClass(method.definingClass, listOf(method)), folderClass)
 
 private fun Method.code() = implementation!!.instructions.toList()
@@ -106,16 +121,28 @@ class RestrictedNotifyTest {
     @Test fun findsTheThreadCheck() {
         assertEquals(listOf(SYNTHETIC_RESTRICTED_NOTIFY), found(restrictedNotifyFixture()))
         validateControls(mirroredControls(restrictedNotifyFixture()), setOf(RESTRICTED_NOTIFY))
-        assertEquals(setOf(SYNTHETIC_RESTRICTED_NOTIFY), BASE_PROFILE.hooks.getValue(RESTRICTED_NOTIFY))
+        assertEquals(setOf(SYNTHETIC_RESTRICTED_NOTIFY), SYNTHETIC_PROFILE.hooks.getValue(RESTRICTED_NOTIFY))
+        // 587 gives the parser's coroutine an obfuscated name.
+        assertEquals(setOf("LX/CxP;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;"), BASE_PROFILE.hooks.getValue(RESTRICTED_NOTIFY))
         assertEquals(mapOf("OTHER" to "A0V", "INBOX" to "A0K", "SPAM" to "A0c", "RESTRICTED" to "A0b"), folders().enumConstantFields())
+    }
+
+    // 587 has no getThreadLevelResult class: the check is merged into a coroutine class it shares with unrelated ones.
+    @Test fun the587MergedCheckIsFoundByWhatItFailsWith() {
+        val merged = threadCheck(THREAD_CHECK_BODY.replace(THREAD_LEVEL_RESULT, MERGED_THREAD_CHECK), MERGED_THREAD_CHECK)
+        assertEquals(listOf("$MERGED_THREAD_CHECK->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;"), found(restrictedNotifyFixture(merged)))
+        assertEquals(5, merged.folderRead()!!.register)
     }
 
     // A check that can't be shown to compare this one folder with Restricted and Inbox could turn a chat's folder into
     // the inbox somewhere it shouldn't, or miss a path, so the switch gets no hook at all.
     @Test fun aCheckOfAnotherShapeIsNotTaken() {
-        fun changed(vararg edits: Pair<String, String>) = restrictedNotifyFixture(gate(edited(GATE_BODY, *edits)))
+        fun changed(vararg edits: Pair<String, String>) = restrictedNotifyFixture(threadCheck(edited(THREAD_CHECK_BODY, *edits)))
         val cases = mapOf(
-            "another class" to restrictedNotifyFixture(gate(owner = "LX/Zt1;")),
+            "no sender fetch failure" to changed("\"sender_user_fetch_failed\"" to "\"sender_fetch_failed\""),
+            "no chat fetch failure" to changed("\"thread_summary_fetch_failed\"" to "\"thread_fetch_failed\""),
+            "a second check failing the same way" to restrictedNotifyFixture(threadCheck()) +
+                fixtureClass("LX/Zt1;", listOf(threadCheck(owner = "LX/Zt1;"))),
             "no folder class" to restrictedNotifyFixture(folderClass = null),
             "a folder class that isn't an enum" to restrictedNotifyFixture(folderClass = folders(superclass = "Ljava/lang/Object;")),
             "an enum with no Restricted constant" to restrictedNotifyFixture(folderClass = folders(edited(FOLDER_INIT, "\"RESTRICTED\"" to "\"LIMITED\""))),
@@ -136,7 +163,7 @@ class RestrictedNotifyTest {
     }
 
     @Test fun theFolderGoesThroughTheSwitchRightAfterItsRead() {
-        val method = gate()
+        val method = threadCheck()
         val before = method.code()
         val read = before.indexOfFirst { it.opcode == Opcode.IGET_OBJECT && (it as ReferenceInstruction).reference.toString().endsWith(":$FOLDER") }
         val resumed = before.indexOfFirst { it.opcode == Opcode.IF_NEZ }
@@ -158,7 +185,7 @@ class RestrictedNotifyTest {
     }
 
     @Test fun anUnusableMethodRefusesTheSwitchBeforeAnyEdit() {
-        val bad = gate(edited(GATE_BODY, ":inbox\n" to ":inbox\nconst/4 v5, 0x0\n"))
+        val bad = threadCheck(edited(THREAD_CHECK_BODY, ":inbox\n" to ":inbox\nconst/4 v5, 0x0\n"))
         val badBefore = bad.code()
         assertFailsWith<PatchException> { injectControl(RESTRICTED_NOTIFY, mapOf(RESTRICTED_NOTIFY to listOf(bad))) }
         assertEquals(badBefore, bad.code())

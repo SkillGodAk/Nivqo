@@ -304,6 +304,12 @@ public class SettingsNavigationTest {
         assertTrue(BaseSettings.PAUSED.savedValue());
         assertTrue(((Preference) list().getItemAtPosition(0)).getSummary().toString()
                 .contains("pauses when Facebook restarts"));
+        // The card showed "Hushfacebook pauses when Facebook restarts." twice, as its title and its line.
+        View card = list().getAdapter().getView(0, null, list());
+        TextView title = card.findViewById(android.R.id.title);
+        TextView line = card.findViewById(android.R.id.summary);
+        assertEquals("Hushfacebook is on", title.getText().toString());
+        assertTrue(line.getText().toString(), line.getText().toString().contains("pauses when Facebook restarts"));
         action = statusAction();
         assertEquals("Undo", action.getText().toString());
         action.performClick();
@@ -365,6 +371,59 @@ public class SettingsNavigationTest {
             held.delete();
             marker.delete();
         }
+    }
+
+    /**
+     * A header at the bottom edge opens onto the start of its first row. Until the top scrolls away
+     * the list runs past the bottom of the screen, so a section opened there showed every row it
+     * added out of sight and looked like the tap did nothing.
+     */
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aHeaderAtTheBottomEdgeOpensOntoItsFirstRow() {
+        HeaderColumn column = (HeaderColumn) dialog.getView();
+        layout(column);
+        assertEquals("the top started scrolled away", 0, column.getScrollY());
+        assertTrue("the list fit above the bottom edge", column.hiddenBelow() > 0);
+        int bottom = column.getHeight() - column.getPaddingBottom();
+        int child = Math.round(72 * column.getResources().getDisplayMetrics().density);
+        String lowest = null;
+        for (int i = 0; i < list().getChildCount(); i++) {
+            View row = list().getChildAt(i);
+            String key = ((Preference) list().getItemAtPosition(list().getFirstVisiblePosition() + i)).getKey();
+            if (key != null && key.startsWith("section_") && shownTop(row) + row.getHeight() / 2 < bottom) lowest = key;
+        }
+        assertNotNull("no section header on screen", lowest);
+        View header = shownRow(lowest);
+        assertTrue("the lowest header left room for its row anyway", shownTop(header) + header.getHeight() + child > bottom);
+
+        tap(lowest);
+        layout(column);
+        header = shownRow(lowest);
+        assertTrue(lowest + " didn't open", page.navigation.isExpanded(lowest.substring("section_".length())));
+        assertTrue(lowest + " went up under the bar", shownTop(header) >= column.pinnedBottom());
+        assertTrue(lowest + " opened with its first row out of sight",
+                shownTop(header) + header.getHeight() + child <= bottom + 1);
+    }
+
+    /** Where [view] starts on screen, from the top of the settings column, after the top's scroll. */
+    private int shownTop(View view) {
+        View column = dialog.getView();
+        int top = 0;
+        for (View at = view; at != column; ) {
+            top += at.getTop();
+            at = (View) at.getParent();
+            top -= at.getScrollY();
+        }
+        return top;
+    }
+
+    /** The laid-out row of the item [key], which has to be on the list's page. */
+    private View shownRow(String key) {
+        for (int i = 0; i < list().getChildCount(); i++) {
+            Object item = list().getItemAtPosition(list().getFirstVisiblePosition() + i);
+            if (key.equals(((Preference) item).getKey())) return list().getChildAt(i);
+        }
+        throw new AssertionError("No laid-out row " + key);
     }
 
     private static final String PAUSED_LINE = "Until you resume, every switch but Debug logging and Lock Facebook "
@@ -846,8 +905,9 @@ public class SettingsNavigationTest {
         assertTrue(decoded, decoded.contains("&versions=Hushfacebook "));
         assertTrue(decoded, decoded.contains(" on Facebook "));
         assertTrue(decoded, decoded.contains("&device="));
-        assertTrue(decoded, decoded.contains("What happened:"));
-        assertTrue(decoded, decoded.contains("What I expected:"));
+        // "What went wrong?" stays empty for the person to type in (#488).
+        assertFalse(decoded, decoded.contains("bug_description="));
+        assertFalse(decoded, decoded.contains("What happened:"));
         // Hide sponsored posts starts on, Marketplace only starts off.
         assertTrue(decoded, decoded.contains("Switches on: "));
         assertTrue(decoded, decoded.contains("Hide sponsored posts"));
@@ -1765,6 +1825,12 @@ public class SettingsNavigationTest {
         assertTrue(contains(Settings.TAP_TO_PLAY.key));
         assertTrue(contains(Settings.INLINE_FEED_VIDEO_CONTROLS.key));
         assertTrue(contains(Settings.FEED_VIDEO_SEEK_BAR.key));
+        assertTrue(contains(Settings.FEED_VIDEO_SEEK_BAR_FADE.key));
+        assertTrue(contains(Settings.FEED_VIDEO_SEEK_BAR_LOWER.key));
+        assertTrue(contains(Settings.FEED_VIDEO_SEEK_BAR_EDGE.key));
+        assertTrue(contains(Settings.FEED_VIDEO_SEEK_BAR_THIN.key));
+        assertTrue(contains(Settings.FEED_VIDEO_SEEK_BAR_LENGTH.key));
+        assertTrue(contains(Settings.FEED_VIDEO_FULL_PLAYER_CORNER.key));
         assertEquals(before, list().getCount());
         assertEquals(anchor, ((Preference) list().getItemAtPosition(list().getFirstVisiblePosition())).getKey());
         assertEquals(offset, list().getChildAt(0).getTop());
@@ -2087,8 +2153,12 @@ public class SettingsNavigationTest {
         page.importPreview.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
         page.navigation.navigate("");
         page.navigation.navigate("About");
-        Preference about = page.sections().get(page.sections().size() - 1);
-        Preference licenses = ((PreferenceCategory) about).getPreference(2);
+        PreferenceCategory about = (PreferenceCategory) page.sections().get(page.sections().size() - 1);
+        Preference licenses = null;
+        for (int i = 0; i < about.getPreferenceCount(); i++) {
+            if ("Licenses".contentEquals(about.getPreference(i).getTitle())) licenses = about.getPreference(i);
+        }
+        assertNotNull("About has no Licenses row", licenses);
         licenses.getOnPreferenceClickListener().onPreferenceClick(licenses);
         AlertDialog notice = (AlertDialog) org.robolectric.shadows.ShadowDialog.getLatestDialog();
         captureDialog(prefix + "dialog-licenses", notice);

@@ -35,21 +35,39 @@ import java.io.File
  */
 class HideFeedsHeaderFixtureTest {
     /**
-     * Each declared build's container type, the controller's type, and the controller's register,
-     * by ABI. 585's two builds share the container's type and the register, not the controller.
+     * Each declared build's container type, the controller's type, and the controller's and the
+     * container's registers, by ABI. 585 handed the container over in v0; 586 hands it over in v12,
+     * the last of a range call. Both of 586's builds share the container's type and the registers,
+     * not the controller, and its Android 9 build keeps the registers with types of its own. 587
+     * keeps the registers on both phone ABIs and names the container and the controller apart on
+     * each (read 2026-11-13).
      */
     private val expected = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to Triple("LX/0288;", "LX/0dI0;", 5),
-            "armeabi-v7a" to Triple("LX/0288;", "LX/0dHQ;", 5),
+            "arm64-v8a" to Triple("LX/0207;", "LX/0Vo1;", 7 to 12),
+            "armeabi-v7a" to Triple("LX/020C;", "LX/0I3Z;", 7 to 12),
+            "arm64-v8a-minapi28-storeless" to Triple("LX/03tJ;", "LX/0giD;", 7 to 12),
         ),
     )
 
     /** Each declared build's container controller and the runnable it posts with whether the filters show, by ABI. */
     private val room = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to ("LX/0X1Z;" to "LX/0XB6;"),
-            "armeabi-v7a" to ("LX/0X10;" to "LX/0XAU;"),
+            "arm64-v8a" to ("LX/0W6z;" to "LX/0WGR;"),
+            "armeabi-v7a" to ("LX/0eJA;" to "LX/0eZS;"),
+            "arm64-v8a-minapi28-storeless" to ("LX/0hLt;" to "LX/0hZb;"),
+        ),
+    )
+
+    /**
+     * Where each declared build's runnable reads whether the filters show, and the register it lands
+     * in, by ABI. 586 read it at 9; 587's run() reads it at 4 on both phone ABIs (read 2026-11-13).
+     */
+    private val roomReadAt = mapOf(
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
+            "arm64-v8a" to (4 to 0),
+            "armeabi-v7a" to (4 to 0),
+            "arm64-v8a-minapi28-storeless" to (9 to 0),
         ),
     )
 
@@ -87,16 +105,17 @@ class HideFeedsHeaderFixtureTest {
                 val classes = read + FixtureDex.classes(bundle, made)
                 val roomRead = filtersRoom(fragment) { classes[it] }
                 assertEquals("$name: the runnable", runnable, roomRead.runnable.type)
-                assertEquals("$name: the read of whether the filters show and its register", 9 to 0,
+                assertEquals("$name: the read of whether the filters show and its register", roomReadAt.getValue(version).getValue(abi),
                     roomRead.index to roomRead.register)
                 val answers = navBarAnswers(fragment)
                 assertEquals("$name: the question's returns", listOf(7 to 0, 9 to 0), answers.returns)
                 val handOver = filtersHandOver(fragment)
-                val (type, controller, register) = expected.getValue(version).getValue(abi)
+                val (type, controller, registers) = expected.getValue(version).getValue(abi)
+                val (register, container) = registers
                 val original = handOver.method.code()
                 assertEquals("$name: the container's type", type, handOver.type)
                 assertEquals("$name: the controller made", controller, original[handOver.index].reference)
-                assertEquals("$name: the controller's and the container's registers", register to 0,
+                assertEquals("$name: the controller's and the container's registers", registers,
                     handOver.controllerRegister to handOver.containerRegister)
                 assertEquals("$name: how the fragment builds its own container", frameInit, handOver.constructor.toString())
 
@@ -110,10 +129,10 @@ class HideFeedsHeaderFixtureTest {
                 val at = handOver.index
                 assertEquals("$name: seven instructions for the filters' hook", original.size + 7, view.size)
                 assertEquals("$name: the extension asked first", HIDES_FILTERS, view[at].reference)
-                assertEquals("$name: about the container", listOf(0), view[at].namedRegisters())
+                assertEquals("$name: about the container", listOf(container), view[at].namedRegisters())
                 assertEquals("$name: a new container of the field's type", type, view[at + 5].reference)
                 assertEquals("$name: built the way the fragment builds its own", frameInit, view[at + 6].reference)
-                assertEquals("$name: from the Context in the controller's register", listOf(0, register), view[at + 6].namedRegisters())
+                assertEquals("$name: from the Context in the controller's register", listOf(container, register), view[at + 6].namedRegisters())
                 assertEquals("$name: Facebook's controller after the hook", controller, view[at + 7].reference)
                 assertEquals("$name: its constructor next", original[at + 1].reference, view[at + 8].reference)
 

@@ -3,8 +3,9 @@
  * https://github.com/RookieEnough/De-Vanced/blob/9ac979883a6b6eeab5cefb4fc5d955073f2f2bc2/patches/src/main/kotlin/app/morphe/patches/shared/compat/AppCompatibilities.kt
  * (GPL-3.0), by way of
  * https://github.com/icysymmetra/tiktok-patches-for-morphe/blob/ebf6296845cb889608cdc6681348ccb2e550f2bc/patches/src/main/kotlin/app/morphe/patches/shared/compat/AppCompatibilities.kt
- * and Hushfeed. Those copies cite a ReVanced path that never held this file; `AppTarget` and
- * `ApkFileType` are Morphe's own API.
+ * and Hushfeed. The tiktok-patches-for-morphe copy, Hushfeed's until 7e3f278bd and this file's own
+ * header at c15d4f79 cite a ReVanced path that never held this file; De-Vanced's cites none.
+ * `AppTarget` and `ApkFileType` are Morphe's own API.
  *
  * Modified for Hushfacebook (Facebook), 2026. The Facebook target follows
  * https://github.com/andrewliang25/morphe-patches/blob/5db2e57e133aede5297c48b419168cf30fd89953/patches/src/main/kotlin/app/andrewliang/patches/shared/Constants.kt
@@ -46,16 +47,15 @@ internal object AppCompatibilities {
      * stable release. A newer stable build replaces it in the same release, and the one before
      * goes.
      */
-    const val FACEBOOK_TARGET_VERSION = "585.0.0.47.54"
+    const val FACEBOOK_TARGET_VERSION = "587.0.0.39.55"
 
     /**
      * The version code of the arm64-v8a build of [FACEBOOK_TARGET_VERSION] (APKMirror's
-     * 120-640dpi, Android 11+ bundle, the one 585 variant that serves every density; 585 has no
-     * 480-640dpi Android 11+ build the way 584 did). Each APKMirror variant of a Facebook release
-     * is its own build with different DEX, not a split of one bundle, so the code of the tested
-     * variant is pinned.
+     * 240-640dpi, Android 11+ bundle, the widest density range 587 has; 585 and 586 had a
+     * 120-640dpi one). Each APKMirror variant of a Facebook release is its own build with
+     * different DEX, not a split of one bundle, so the code of the tested variant is pinned.
      */
-    const val FACEBOOK_TARGET_VERSION_CODE = 476015655
+    const val FACEBOOK_TARGET_VERSION_CODE = 707414333
 
     /**
      * The version code of the armeabi-v7a build of [FACEBOOK_TARGET_VERSION] (APKMirror's 320dpi,
@@ -64,7 +64,7 @@ internal object AppCompatibilities {
      * patch is applied to it in full by verify-all-patches, and its bundle is signed with the same
      * two Meta certificates.
      */
-    const val FACEBOOK_V7A_TARGET_VERSION_CODE = 476015543
+    const val FACEBOOK_V7A_TARGET_VERSION_CODE = 707414338
 
     /** Facebook's own floor on every declared build, Android 11. */
     const val FACEBOOK_TARGET_MIN_SDK = 30

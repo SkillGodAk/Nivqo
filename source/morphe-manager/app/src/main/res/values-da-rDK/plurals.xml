@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Under the title of the contributors, how many are listed for the period picked -->
+    <plurals name="contributor_count">
+        <item quantity="one">%s bruger</item>
+        <item quantity="other">%s brugere</item>
+    </plurals>
     <plurals name="patch_count">
         <item quantity="one">%s patch</item>
         <item quantity="other">%s patches</item>
@@ -39,10 +44,6 @@
     <plurals name="expert_mode_hidden_sources_notice">
         <item quantity="one">%s skjult kilde. Tryk for at vise</item>
         <item quantity="other">%s skjulte kilder. Tryk for at vise</item>
-    </plurals>
-    <plurals name="sources_search_patch_matches">
-        <item quantity="one">%s matchende patch</item>
-        <item quantity="other">%s matchende patches</item>
     </plurals>
     <plurals name="source_count">
         <item quantity="one">%s kilde</item>

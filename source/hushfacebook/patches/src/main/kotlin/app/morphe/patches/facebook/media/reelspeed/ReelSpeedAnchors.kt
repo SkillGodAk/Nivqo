@@ -103,6 +103,10 @@ internal const val REEL_PARAMS_STUB = "playerParams"
 /** The VideoPlayerParams booleans the extension reads, by the name the params' debug dump reports each under, to the stub reading it. */
 internal val REEL_PARAM_STUBS = linkedMapOf("isFbShorts" to "fbShorts", "isSponsored" to "sponsored", "isLiveNow" to "liveNow")
 
+/** What the params' debug dump reports the video's id under, and the stub reading it for the post menu's speed row (#429). */
+internal const val VIDEO_ID_REPORTED = "videoId"
+internal const val VIDEO_ID_STUB = "videoId"
+
 internal const val SPEED_TOAST = "InlinePlaybackSpeedAttributeSelector"
 
 /** Kept literal. The gear menu's speed sheet logs its pick under it. */
@@ -213,7 +217,8 @@ internal fun gearMeets(method: Method): List<GearMeet> {
     return code.withIndex().mapNotNull { (index, instruction) ->
         if (instruction.opcode != Opcode.ARRAY_LENGTH) return@mapNotNull null
         val labels = (instruction as TwoRegisterInstruction).registerB
-        val ahead = code.subList(index + 1, minOf(code.size, index + 8))
+        // 586 reads the locale and makes the list between the length and the walk (0aoH.A01 on arm64).
+        val ahead = code.subList(index + 1, minOf(code.size, index + 16))
         val label = ahead.indexOfFirst { it.opcode == Opcode.AGET_OBJECT && (it as ThreeRegisterInstruction).registerB == labels }
         if (label < 0) return@mapNotNull null
         val check = ahead.getOrNull(label + 1)
@@ -233,10 +238,13 @@ internal fun gearMeets(method: Method): List<GearMeet> {
 internal class GearMiss(val index: Int, val speed: Int, val getter: MethodReference)
 
 /**
- * Where [method] looks up its player with a static call taking a PlayerOrigin and answering
- * [owner], and on finding it reads its speed with an [owner] ()F getter into a register: the
- * if-eqz on the lookup's answer lands on a const/high16 of 1f into that register, followed by a
- * goto to the instruction after the getter's move-result.
+ * Where [method] looks up its player and on finding it reads its speed with an [owner] ()F getter
+ * into a register: the if-eqz on the lookup's answer lands on a const/high16 of 1f into that
+ * register, followed by a goto to the instruction after the getter's move-result. The lookup is
+ * a static call taking a PlayerOrigin and answering [owner] (585 arm64's 0dTO), or, on 585's
+ * Android 9+ build (#102), a no-argument instance call answering [owner] on what a call taking a
+ * PlayerOrigin answered straight before it (0b6h: 05C1.A0H(PlayerOrigin, String), then
+ * 05Dl.A03()).
  */
 internal fun gearMisses(method: Method, owner: String): List<GearMiss> {
     val code = method.implementation?.instructions?.toList() ?: return emptyList()
@@ -244,10 +252,21 @@ internal fun gearMisses(method: Method, owner: String): List<GearMiss> {
     fun at(address: Int) = addresses.indexOf(address).takeIf { it in code.indices }
     fun target(index: Int) = at(addresses[index] + (code[index] as OffsetInstruction).codeOffset)
     fun called(index: Int) = (code.getOrNull(index) as? ReferenceInstruction)?.reference as? MethodReference
+    fun takesOrigin(call: MethodReference) = call.parameterTypes.any { it.toString() == PLAYER_ORIGIN }
+    fun findsPlayer(index: Int, lookup: MethodReference): Boolean {
+        if (lookup.returnType != owner) return false
+        val opcode = code[index].opcode
+        if (opcode in STATIC_CALLS) return takesOrigin(lookup)
+        if (opcode !in INSTANCE_CALLS || lookup.parameterTypes.isNotEmpty() || index < 2) return false
+        val held = code[index - 1]
+        val source = called(index - 2)
+        return held.opcode == Opcode.MOVE_RESULT_OBJECT && source != null && takesOrigin(source) &&
+            (code[index - 2].opcode in STATIC_CALLS || code[index - 2].opcode in INSTANCE_CALLS) &&
+            firstRegister(code[index]) == (held as OneRegisterInstruction).registerA
+    }
     return code.indices.mapNotNull { index ->
         val lookup = called(index) ?: return@mapNotNull null
-        if (code[index].opcode != Opcode.INVOKE_STATIC && code[index].opcode != Opcode.INVOKE_STATIC_RANGE) return@mapNotNull null
-        if (lookup.returnType != owner || lookup.parameterTypes.none { it.toString() == PLAYER_ORIGIN }) return@mapNotNull null
+        if (!findsPlayer(index, lookup)) return@mapNotNull null
         val found = code.getOrNull(index + 1)
         if (found?.opcode != Opcode.MOVE_RESULT_OBJECT) return@mapNotNull null
         val player = (found as OneRegisterInstruction).registerA
@@ -273,6 +292,16 @@ internal fun gearMisses(method: Method, owner: String): List<GearMiss> {
 
 private const val NORMAL_SPEED = 1f
 private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
+private val INSTANCE_CALLS =
+    setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
+
+/** The first register [call] passes, an instance call's receiver. Null for anything that passes none. */
+private fun firstRegister(call: Instruction): Int? = when (call) {
+    is FiveRegisterInstruction -> call.registerC.takeIf { call.registerCount > 0 }
+    is RegisterRangeInstruction -> call.startRegister.takeIf { call.registerCount > 0 }
+    else -> null
+}
 
 private fun Method.isStatic() = AccessFlags.STATIC.isSet(accessFlags)
 private fun Method.parameters() = parameterTypes.map(CharSequence::toString)

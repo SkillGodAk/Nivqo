@@ -36,6 +36,7 @@ import android.view.ViewConfiguration;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -51,8 +52,10 @@ import app.morphe.extension.facebook.ads.AudienceNetwork;
 import app.morphe.extension.facebook.download.ClipboardLink;
 import app.morphe.extension.facebook.download.SaveLeftovers;
 import app.morphe.extension.facebook.download.SavedFileActions;
+import app.morphe.extension.facebook.feed.HomeBack;
 import app.morphe.extension.facebook.feed.LinkedPost;
 import app.morphe.extension.facebook.feed.ReturnRefresh;
+import app.morphe.extension.facebook.media.FeedSound;
 import app.morphe.extension.facebook.media.ResumePlayback;
 import app.morphe.extension.facebook.menu.MenuLayoutDump;
 import app.morphe.extension.facebook.media.TapToPlay;
@@ -63,6 +66,7 @@ import app.morphe.extension.facebook.misc.BlockedListPictures;
 import app.morphe.extension.facebook.misc.CloseWhenLeft;
 import app.morphe.extension.facebook.misc.IconDensity;
 import app.morphe.extension.facebook.misc.OpeningPause;
+import app.morphe.extension.facebook.misc.RefreshRate;
 import app.morphe.extension.facebook.misc.ScreenTransitions;
 import app.morphe.extension.facebook.misc.TextSize;
 import app.morphe.extension.facebook.navigation.HiddenStatusBar;
@@ -73,9 +77,12 @@ import app.morphe.extension.facebook.notifications.PushDiagnostics;
 import app.morphe.extension.facebook.reels.BurnInGuard;
 import app.morphe.extension.facebook.reels.FeedVideoAlone;
 import app.morphe.extension.facebook.reels.GrayReels;
+import app.morphe.extension.facebook.reels.LandscapeFill;
+import app.morphe.extension.facebook.reels.SavedChain;
 import app.morphe.extension.facebook.reels.ViewerTopBar;
 import app.morphe.extension.facebook.stories.StorySeenButton;
 import app.morphe.extension.facebook.stories.StoryTaps;
+import app.morphe.extension.facebook.stories.SuggestedStories;
 import app.morphe.extension.facebook.theme.AccentResources;
 import app.morphe.extension.facebook.theme.AmoledResources;
 import app.morphe.extension.facebook.theme.MaterialYouTheme;
@@ -176,6 +183,10 @@ public final class SettingsEntry {
             // Take breaks (#248), after both, so a break waits for their covers.
             BreakTimer.watch(context);
             ReturnRefresh.register(context);
+            // The Back that closes comments over the feed, told apart by the focus coming back (#378).
+            if (SettingsStatus.returnRefresh()) HomeBack.watch(context);
+            // Keep feed videos muted: a sound left on goes off again when Facebook comes back (#465).
+            if (SettingsStatus.keepFeedVideosMuted()) FeedSound.watch(context);
             watchLauncherChanges(context);
             TextSize.application(context);
             // Only with the theme in the build, so its class and palette aren't loaded otherwise.
@@ -194,9 +205,13 @@ public final class SettingsEntry {
             // And Burn-in guard (#288): the activity in front, for a video filling the screen.
             // And Show Reels in gray: the same screen, grayed while it shows, when Turn off HDR
             // brightness can move its video into the window (its row shows only then too).
+            // And Play saved videos in a row (#404): the viewer a saved card opened, and Saved coming back.
             if (SettingsStatus.reelDeclutter()) {
                 FeedVideoAlone.watch(context);
+                SavedChain.watch(context);
                 ViewerTopBar.watch(context);
+                // And Fill the screen with reels for a landscape video opened full screen (#466).
+                LandscapeFill.watch(context);
                 BurnInGuard.install(context);
                 if (SettingsStatus.turnOffHdrBrightness()) GrayReels.install(context);
             }
@@ -328,7 +343,7 @@ public final class SettingsEntry {
                     && existing.getIntent() != null
                     && open.getComponent().equals(existing.getIntent().getComponent())) return;
             // Evicts the lowest-ranked dynamic shortcut when Facebook's own fill the limit.
-            manager.pushDynamicShortcut(shortcut(app, longLabel, open));
+            push(manager, shortcut(app, longLabel, open));
             Logger.printInfo(() -> "Settings entry: launcher shortcut published");
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not publish the shortcut", ex);
@@ -359,7 +374,7 @@ public final class SettingsEntry {
             final int rank = existing.getRank();
             if (rank == 0) return;
             CharSequence label = existing.getLongLabel();
-            manager.pushDynamicShortcut(shortcut(app, label != null ? label : L10n.t(app, "Hushfacebook settings"), openIntent(app)));
+            push(manager, shortcut(app, label != null ? label : L10n.t(app, "Hushfacebook settings"), openIntent(app)));
             Logger.printInfo(() -> "Settings entry: launcher shortcut moved back in front from rank " + rank);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not put the shortcut back in front", ex);
@@ -425,6 +440,30 @@ public final class SettingsEntry {
                 .build();
     }
 
+    /**
+     * Pushes [shortcut] in front. Android 9 and 10 have no push, so there it's added, or updated
+     * when it's already there, after the last-ranked dynamic shortcut makes room at the limit.
+     */
+    static void push(ShortcutManager manager, ShortcutInfo shortcut) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            manager.pushDynamicShortcut(shortcut);
+            return;
+        }
+        List<ShortcutInfo> dynamic = manager.getDynamicShortcuts();
+        ShortcutInfo last = null;
+        for (ShortcutInfo info : dynamic) {
+            if (info.getId().equals(shortcut.getId())) {
+                last = null;
+                break;
+            }
+            if (last == null || info.getRank() > last.getRank()) last = info;
+        }
+        if (last != null && dynamic.size() >= manager.getMaxShortcutCountPerActivity()) {
+            manager.removeDynamicShortcuts(Collections.singletonList(last.getId()));
+        }
+        manager.addDynamicShortcuts(Collections.singletonList(shortcut));
+    }
+
     // Facebook's own calls that change its dynamic shortcuts come here instead: the patch sends each
     // ShortcutManager call of these names to the method of the same name here, the manager first.
     // Facebook pushes its Notifications, Friends and Reels shortcuts, and one per Messenger chat it
@@ -435,7 +474,7 @@ public final class SettingsEntry {
     // Hide the Reels tab on, Facebook's Reels shortcut is left out of each call first (ReelsTab).
 
     public static void pushDynamicShortcut(ShortcutManager manager, ShortcutInfo shortcut) {
-        if (!ReelsTab.dropsShortcut(manager, shortcut)) manager.pushDynamicShortcut(shortcut);
+        if (!ReelsTab.dropsShortcut(manager, shortcut)) push(manager, shortcut);
         keepFirst();
     }
 
@@ -779,6 +818,7 @@ public final class SettingsEntry {
         public void onActivityResumed(Activity activity) {
             resumed = new WeakReference<>(activity);
             TextSize.activity(activity);
+            RefreshRate.activity(activity);
             ScreenLog.resumed(activity);
             SavedFileActions.onResumed(activity);
             ScreenTransitions.activityResumed(activity);
@@ -808,10 +848,14 @@ public final class SettingsEntry {
             LastScreen.read(activity);
         }
 
-        /** Before the activity's own onCreate, so its first layout is measured at the chosen text size. */
+        /**
+         * Before the activity's own onCreate, so its first layout is measured at the chosen text size
+         * and its first frame comes at the chosen refresh rate.
+         */
         @Override
         public void onActivityPreCreated(Activity activity, Bundle state) {
             TextSize.activity(activity);
+            RefreshRate.activity(activity);
         }
 
         @Override
@@ -820,12 +864,19 @@ public final class SettingsEntry {
             TapToPlay.activityCreated(activity, state);
             ScreenTransitions.activityCreated(activity);
             if (SettingsStatus.storySeen()) StorySeenButton.activityCreated(activity);
+            if (SettingsStatus.suggestedStories()) SuggestedStories.activityCreated(activity);
         }
 
-        @Override public void onActivityStarted(Activity activity) { }
+        @Override
+        public void onActivityStarted(Activity activity) {
+            // Hide stories you scrolled past waits for the next visit (#463).
+            if (SettingsStatus.suggestedStories()) SuggestedStories.activityStarted(activity);
+        }
+
         @Override
         public void onActivityStopped(Activity activity) {
             TapToPlay.activityStopped(activity);
+            if (SettingsStatus.suggestedStories()) SuggestedStories.activityStopped(activity);
         }
 
         @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
@@ -835,6 +886,7 @@ public final class SettingsEntry {
             TextSize.destroyed(activity);
             SavedFileActions.onPaused(activity);
             if (SettingsStatus.storySeen()) StorySeenButton.activityDestroyed(activity);
+            if (SettingsStatus.suggestedStories()) SuggestedStories.activityDestroyed(activity);
             // The screen can land on an activity just before it clears itself for the next one.
             // If its host goes away before the person closed it, ask again.
             WeakReference<Activity> shownOver = host;

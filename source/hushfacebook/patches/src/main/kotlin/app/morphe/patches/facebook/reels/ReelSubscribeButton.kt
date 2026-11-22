@@ -13,10 +13,15 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.isStringTable
+import app.morphe.patches.facebook.feed.methodsNaming
+import app.morphe.patches.facebook.feed.tableStringAt
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
+import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.firstHolding
 import app.morphe.util.namedRegisters
 import app.morphe.util.readsAfter
 import app.morphe.util.writersReaching
@@ -57,6 +62,17 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
  *   owner answer into 1, 0, or -1 for a Subscribe that goes, and -1 takes that way. The patch checks
  *   nothing on that way reads a register the row wrote since its own branch there, so the two ways
  *   in agree on every register it uses.
+ * - Some Pages get a fan-subscription pill instead, which says Subscribe whoever the owner is. A
+ *   builder in the shared builder's class (LX/09bY;->A09) loads its tag "fubs_video_subscribe_button"
+ *   and returns it without asking the owner check, and only the viewer row calls it, twice: once into
+ *   the row's own slot (LX/02y0;) and once, through a getter, into a LX/02zm; slot. Each of those
+ *   slots asks the extension whether to keep it. The patch checks that every way from the call ends
+ *   in that slot and that the row can't reach the slot any other way.
+ * - The Android 9+ build (585 minapi28, #102) has the same rows, but the viewer row (LX/0cLw;->A04) and
+ *   the row with a pill of its own (LX/0cNm;->render) ask string tables for their tags (LX/07kw;,
+ *   LX/0sT4;) instead of holding them, so a tag is found either way ([tagLoads]). Its viewer row also
+ *   keeps the pill flag in v22, set by `const/16`, so the hook copies it into a low register the row
+ *   doesn't read from there on and passes that.
  */
 
 internal const val SHOW_AUTHOR_PILL = "$EXTENSION_PACKAGE/reels/ReelDeclutter;->showAuthorPill(ZZ)Z"
@@ -64,6 +80,11 @@ internal const val NOTE_AUTHOR_PILL = "$EXTENSION_PACKAGE/reels/ReelDeclutter;->
 internal const val AUTHOR_PILL_SLOT =
     "$EXTENSION_PACKAGE/reels/ReelDeclutter;->authorPillSlot(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val AUTHOR_PILL_ANSWER = "$EXTENSION_PACKAGE/reels/ReelDeclutter;->authorPillAnswer(Z)I"
+internal const val FAN_PILL_SLOT =
+    "$EXTENSION_PACKAGE/reels/ReelDeclutter;->fanPillSlot(Ljava/lang/Object;)Ljava/lang/Object;"
+
+/** The test tag of the fan-subscription pill, which says Subscribe on every video it's built for. */
+internal const val FAN_PILL_TAG = "fubs_video_subscribe_button"
 
 /** The test tag both places that build the author's Follow or Subscribe pill load. */
 internal const val AUTHOR_PILL_TAG = "video_author_follow_button"
@@ -78,6 +99,10 @@ private const val PATCH = "Clean up Reels"
 private val STRINGS = setOf(Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO)
 private val INVOKE_STATIC = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 private val INVOKE_DIRECT = setOf(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE)
+private val RETURNS = setOf(Opcode.RETURN, Opcode.RETURN_VOID, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT)
+
+/** How a row sets its pill flag: `const/4`, or `const/16` once the flag sits past v15 (#102). */
+private val FLAG_SETS = setOf(Opcode.CONST_4, Opcode.CONST_16)
 
 /**
  * One method loading [AUTHOR_PILL_TAG]: where the tag is loaded, the register the owner answer is
@@ -129,17 +154,41 @@ internal fun isSubscribeOwnerCheck(method: Method): Boolean {
 }
 
 /**
- * [method]'s author pill, or null unless it loads [AUTHOR_PILL_TAG] once, hands it to one call whose
- * result a static call then takes first, and before the tag asks the owner check ([isOwnerCheck])
- * once and keeps its yes as `const/4 vS, 0x1` right behind its `if-eqz`.
+ * Where [code] loads [literal]: from [start], the `const-string` itself or the int constant before a
+ * string table call that [resolve] finds asking for it, to [end], where [register] gets the literal
+ * (the `const-string` or the table call's `move-result-object`).
  */
-internal fun authorPill(method: Method, isOwnerCheck: (MethodReference) -> Boolean): AuthorPill? {
+internal class TagLoad(val start: Int, val end: Int, val register: Int)
+
+/** Every place [code] loads [literal], held ([STRINGS]) or asked of a string table ([tableStringAt]). */
+internal fun tagLoads(code: List<Instruction>, literal: String, resolve: (MethodReference) -> Method?): List<TagLoad> =
+    code.indices.mapNotNull { at ->
+        val instruction = code[at]
+        if (instruction.opcode in STRINGS) {
+            val held = ((instruction as ReferenceInstruction).reference as StringReference).string
+            return@mapNotNull if (held == literal) TagLoad(at, at, (instruction as OneRegisterInstruction).registerA) else null
+        }
+        if (tableStringAt(code, at, resolve) != literal) return@mapNotNull null
+        val result = code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction
+            ?: return@mapNotNull null
+        TagLoad(at - 1, at + 1, result.registerA)
+    }
+
+/**
+ * [method]'s author pill, or null unless it loads [AUTHOR_PILL_TAG] once ([tagLoads], with string
+ * tables found by [resolve]), hands it to one call whose result a static call then takes first, and
+ * before the tag asks the owner check ([isOwnerCheck]) once and keeps its yes as `const/4 vS, 0x1`
+ * right behind its `if-eqz`.
+ */
+internal fun authorPill(
+    method: Method,
+    isOwnerCheck: (MethodReference) -> Boolean,
+    resolve: (MethodReference) -> Method?,
+): AuthorPill? {
     val code = method.implementation?.instructions?.toList() ?: return null
-    val tag = code.indices.singleOrNull {
-        code[it].opcode in STRINGS && ((code[it] as ReferenceInstruction).reference as StringReference).string == AUTHOR_PILL_TAG
-    } ?: return null
-    val tagRegister = (code[tag] as OneRegisterInstruction).registerA
-    val tagged = (tag + 1 until code.size).firstOrNull { tagRegister in arguments(code[it]) } ?: return null
+    val load = tagLoads(code, AUTHOR_PILL_TAG, resolve).singleOrNull() ?: return null
+    val tag = load.start
+    val tagged = (load.end + 1 until code.size).firstOrNull { load.register in arguments(code[it]) } ?: return null
     val component = code.getOrNull(tagged + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } ?: return null
     val componentRegister = (component as OneRegisterInstruction).registerA
     val pill = (tagged + 2 until code.size).firstOrNull {
@@ -159,16 +208,19 @@ internal fun authorPill(method: Method, isOwnerCheck: (MethodReference) -> Boole
 internal class FooterPill(val method: Method, val answerAt: Int, val answer: Int, val noPill: Int)
 
 /**
- * [method]'s own pill, or null unless it loads [FOOTER_PILL_TAG] once, asks the owner check
- * ([isOwnerCheck]) once before the tag and branches on the answer with an `if-eqz`, and has an
- * `if-eqz` before that check whose target lies past the tag. Null too if the answer is read after
- * that branch, or if the way for no pill reads a register written since the row's branch to it.
+ * [method]'s own pill, or null unless it loads [FOOTER_PILL_TAG] once ([tagLoads], with string tables
+ * found by [resolve]), asks the owner check ([isOwnerCheck]) once before the tag and branches on the
+ * answer with an `if-eqz`, and has an `if-eqz` before that check whose target lies past the tag. Null
+ * too if the answer is read after that branch, or if the way for no pill reads a register written
+ * since the row's branch to it.
  */
-internal fun footerPill(method: Method, isOwnerCheck: (MethodReference) -> Boolean): FooterPill? {
+internal fun footerPill(
+    method: Method,
+    isOwnerCheck: (MethodReference) -> Boolean,
+    resolve: (MethodReference) -> Method?,
+): FooterPill? {
     val code = method.implementation?.instructions?.toList() ?: return null
-    val tag = code.indices.singleOrNull {
-        code[it].opcode in STRINGS && ((code[it] as ReferenceInstruction).reference as StringReference).string == FOOTER_PILL_TAG
-    } ?: return null
+    val tag = tagLoads(code, FOOTER_PILL_TAG, resolve).singleOrNull()?.start ?: return null
     val check = (0 until tag).singleOrNull { at -> code[at].call?.takeIf { it.returnType == "Z" }?.let(isOwnerCheck) == true }
         ?: return null
     val answer = code.getOrNull(check + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction ?: return null
@@ -221,14 +273,22 @@ internal fun slotKey(row: AuthorPill): String? {
 internal data class PillSlot(val method: Method, val init: Int, val register: Int, val type: String)
 
 /**
- * Every row slot built from what [builder] returns, following callers that only pass it back. A slot
- * is the first two-argument constructor whose first parameter is [key] after the call, with no branch
- * between. A caller that reaches a `return-object` first is passed over for its own callers.
+ * Every row slot built from what [builder] returns, following callers that only pass it back. On
+ * every way on from a call while nothing throws, the first constructor of two arguments whose first
+ * is [key], return or throw met must be a slot, and the method must reach that slot only through
+ * the call, so a slot it hooks holds that pill. A caller whose every way returns an object first is
+ * passed over for its own callers. The Android 9+ build unwraps the pill and picks its padding on
+ * two branches that meet again before the slot (#102).
  */
 internal fun BytecodePatchContext.pillSlots(builder: Method, key: String): List<PillSlot> {
     val slots = mutableListOf<PillSlot>()
     val seen = mutableSetOf<String>()
     val pending = ArrayDeque(listOf(builder))
+    val isSlot = { instruction: Instruction ->
+        instruction.opcode in INVOKE_DIRECT &&
+            instruction.call?.let { it.name == "<init>" && it.signature().let { types -> types.size == 2 && types[0] == key } } == true
+    }
+    val stops = { instruction: Instruction -> isSlot(instruction) || instruction.opcode in RETURNS || instruction.opcode == Opcode.THROW }
     while (pending.isNotEmpty()) {
         val target = pending.removeFirst()
         if (!seen.add(target.key())) continue
@@ -242,97 +302,187 @@ internal fun BytecodePatchContext.pillSlots(builder: Method, key: String): List<
                     if (call.definingClass != target.definingClass || call.name != target.name ||
                         call.returnType != target.returnType || call.signature() != targetSignature
                     ) continue
-                    var branched = false
-                    var found = false
-                    for (at in site + 1 until code.size) {
-                        val next = code[at]
-                        val init = next.call
-                        if (next.opcode in INVOKE_DIRECT && init?.name == "<init>" && init.signature().let { it.size == 2 && it[0] == key }) {
-                            if (branched) {
-                                throw PatchException("$PATCH: ${method.definingClass}->${method.name} branches between its author pill and its slot")
+                    val where = "$PATCH: ${method.definingClass}->${method.name}"
+                    val ends = firstMet(method, site, stops)
+                    when {
+                        ends.isNotEmpty() && ends.all { code[it].opcode == Opcode.RETURN_OBJECT } -> pending += method
+                        ends.isNotEmpty() && ends.all { isSlot(code[it]) } -> for (init in ends) {
+                            if (reachableWithout(method, init, site)) {
+                                throw PatchException("$where reaches its author pill's slot without building the pill")
                             }
-                            slots += PillSlot(method, at, arguments(next).first(), init.definingClass)
-                            found = true
-                            break
+                            slots += PillSlot(method, init, arguments(code[init]).first(), code[init].call!!.definingClass)
                         }
-                        if (next.opcode == Opcode.RETURN_OBJECT) {
-                            pending += method
-                            found = true
-                            break
-                        }
-                        if (branches(next)) branched = true
+                        else -> throw PatchException("$where puts its author pill neither in a slot nor back")
                     }
-                    if (!found) throw PatchException("$PATCH: ${method.definingClass}->${method.name} puts its author pill neither in a slot nor back")
                 }
             }
         }
     }
-    return slots
+    return slots.distinctBy { it.method.key() to it.init }
+}
+
+/** On each way on from [site] in [method] while nothing throws, the first instruction [stops] takes. */
+private fun firstMet(method: Method, site: Int, stops: (Instruction) -> Boolean): List<Int> {
+    val flow = ControlFlow.of(method)
+    val found = sortedSetOf<Int>()
+    val seen = BooleanArray(flow.instructions.size)
+    val pending = ArrayDeque(flow.normal[site])
+    while (pending.isNotEmpty()) {
+        val at = pending.removeFirst()
+        if (seen[at]) continue
+        seen[at] = true
+        if (stops(flow.instructions[at])) found += at else pending += flow.normal[at]
+    }
+    return found.toList()
+}
+
+/** The methods loading [FAN_PILL_TAG] that return an object: the fan-subscription pill's builder. */
+internal fun fanPillBuilders(holders: List<Method>): List<Method> = holders.filter { it.returnType.startsWith("L") }
+
+/** Whether [method] can get from its start to [target] without passing [avoid], through handlers too. */
+private fun reachableWithout(method: Method, target: Int, avoid: Int): Boolean {
+    val flow = ControlFlow.of(method)
+    val seen = BooleanArray(flow.instructions.size)
+    val pending = ArrayDeque(listOf(0))
+    while (pending.isNotEmpty()) {
+        val at = pending.removeFirst()
+        if (at == avoid || seen[at]) continue
+        if (at == target) return true
+        seen[at] = true
+        pending += flow.normal[at]
+        pending += flow.exceptional[at]
+    }
+    return false
+}
+
+/**
+ * Every row slot built from what the fan-subscription pill's [builder] returns. On every way from
+ * each call, while its result is still held, the first constructor, return or throw met must be a
+ * two-argument constructor whose first parameter is [key], and the method must reach that
+ * constructor only through the call, so a slot it hooks never holds anything but that pill.
+ */
+internal fun BytecodePatchContext.fanPillSlots(builder: Method, key: String): List<PillSlot> {
+    val slots = mutableListOf<PillSlot>()
+    val builderSignature = builder.parameterTypes.map(CharSequence::toString)
+    val isSlot = { instruction: Instruction ->
+        instruction.opcode in INVOKE_DIRECT &&
+            instruction.call?.let { it.name == "<init>" && it.signature().let { types -> types.size == 2 && types[0] == key } } == true
+    }
+    val stops = { instruction: Instruction -> isSlot(instruction) || instruction.opcode in RETURNS || instruction.opcode == Opcode.THROW }
+    classDefForEachReferencing(types = listOf(builder.definingClass)) { classDef ->
+        if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEachReferencing
+        for (method in classDef.methods) {
+            val code = method.implementation?.instructions?.toList() ?: continue
+            for (site in code.indices) {
+                val call = code[site].call ?: continue
+                if (call.definingClass != builder.definingClass || call.name != builder.name ||
+                    call.returnType != builder.returnType || call.signature() != builderSignature
+                ) continue
+                val where = "$PATCH: ${method.definingClass}->${method.name}"
+                if (code.getOrNull(site + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) {
+                    throw PatchException("$where drops the fan-subscription pill it builds")
+                }
+                val ends = method.firstHolding(site + 1, stops, handlers = false)
+                if (ends.isEmpty() || !ends.all { isSlot(code[it]) }) {
+                    throw PatchException("$where puts the fan-subscription pill somewhere but a row slot")
+                }
+                for (init in ends) {
+                    if (reachableWithout(method, init, site)) {
+                        throw PatchException("$where reaches the fan-subscription pill's slot without building the pill")
+                    }
+                    slots += PillSlot(method, init, arguments(code[init]).first(), code[init].call!!.definingClass)
+                }
+            }
+        }
+    }
+    return slots.distinctBy { it.method.key() to it.init }
+}
+
+/** Puts [slot] through the extension's [descriptor] right after its constructor, cast back to its class. */
+private fun slotHook(slot: PillSlot, descriptor: String) = PillHook(slot.method, slot.init) {
+    addInstructions(
+        slot.init + 1,
+        """
+            invoke-static/range { v${slot.register} .. v${slot.register} }, $descriptor
+            move-result-object v${slot.register}
+            check-cast v${slot.register}, ${slot.type}
+        """,
+    )
 }
 
 /**
  * Hooks the Subscribe pill beside a full-screen video's author: the viewer row asks the extension
  * whether to build it, and every row slot holding the shared builder's pill asks whether to keep
- * it. Refuses unless the row and the shared builder are each found once with the owner check, and
- * the builder's pill lands in at least one slot.
+ * it, and so does every slot holding the fan-subscription pill. Refuses unless the row and the
+ * shared builder are each found once with the owner check, the fan builder is found once, and each
+ * builder's pill lands in at least one slot.
  */
 internal fun BytecodePatchContext.hideSubscribePill() {
     val ownerChecks = mutableMapOf<String, Boolean>()
     val isOwnerCheck = { call: MethodReference ->
         ownerChecks.getOrPut(call.toString()) { resolve(call)?.let(::isSubscribeOwnerCheck) == true }
     }
-    val holders = classDefByStrings(AUTHOR_PILL_TAG, StringComparisonType.EQUALS)
-        .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
-        .flatMap { owner -> owner.methods.filter { holdsString(it, AUTHOR_PILL_TAG) } }
-    val pills = holders.mapNotNull { authorPill(it, isOwnerCheck) }
-    val footers = classDefByStrings(FOOTER_PILL_TAG, StringComparisonType.EQUALS)
-        .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
-        .flatMap { owner -> owner.methods.filter { holdsString(it, FOOTER_PILL_TAG) } }
-        .mapNotNull { footerPill(it, isOwnerCheck) }
+    // The Android 9+ build asks string tables for both rows' tags (#102), so the methods naming a tag
+    // are its holders' and its tables' askers.
+    val resolveCall = { call: MethodReference -> resolve(call) }
+    val holders = methodsNaming(AUTHOR_PILL_TAG) { !isStringTable(it) }
+    val pills = holders.mapNotNull { authorPill(it, isOwnerCheck, resolveCall) }
+    val footers = methodsNaming(FOOTER_PILL_TAG) { !isStringTable(it) }.mapNotNull { footerPill(it, isOwnerCheck, resolveCall) }
     val footer = footers.singleOrNull() ?: throw PatchException(
         "$PATCH: expected one row building its own \"$FOOTER_PILL_TAG\" pill after the Subscribe owner check, found ${footers.size}",
     )
     val row = pills.singleOrNull { !it.returned } ?: throw PatchException(
         "$PATCH: expected one author row building the \"$AUTHOR_PILL_TAG\" pill after the Subscribe owner check, " +
-            "found ${pills.count { !it.returned }} among ${holders.size} methods loading the tag",
+            "found ${pills.count { !it.returned }} among ${holders.size} methods naming the tag",
     )
     val builder = pills.singleOrNull { it.returned } ?: throw PatchException(
         "$PATCH: expected one builder returning the \"$AUTHOR_PILL_TAG\" pill after the Subscribe owner check, " +
-            "found ${pills.count { it.returned }} among ${holders.size} methods loading the tag",
+            "found ${pills.count { it.returned }} among ${holders.size} methods naming the tag",
     )
     val flag = pillFlag(row) ?: throw PatchException("$PATCH: the author row builds its pill without a flag")
     val rowCode = row.method.implementation!!.instructions.toList()
     val set = (row.tag + 1 until row.pill).singleOrNull {
-        rowCode[it].opcode == Opcode.CONST_4 && (rowCode[it] as OneRegisterInstruction).registerA == flag &&
+        rowCode[it].opcode in FLAG_SETS && (rowCode[it] as OneRegisterInstruction).registerA == flag &&
             (rowCode[it] as NarrowLiteralInstruction).narrowLiteral == 1
     } ?: throw PatchException("$PATCH: the author row doesn't set its pill flag once")
-    if (flag > 15 || row.subscribe > 15 || !holdsConstantFlag(row.method, set + 1, row.subscribe)) {
+    if (!holdsConstantFlag(row.method, set + 1, row.subscribe)) {
         throw PatchException("$PATCH: the author row's owner answer isn't a 1 or a 0 where its pill flag is set")
     }
+    // The Android 9+ build keeps the flag past v15 (#102), where a plain invoke can't name it, so the
+    // hook hands it over in a low register the row doesn't read from there on.
+    val passed = if (flag <= 15) flag else {
+        val live = RegisterLiveness.of(row.method).liveInto(set + 1)
+        (0 until minOf(16, row.method.implementation!!.registerCount)).firstOrNull {
+            it !in live && it != row.subscribe
+        } ?: throw PatchException("$PATCH: the author row has no low register free where its pill flag is set")
+    }
+    val copy = if (passed == flag) "" else "move/from16 v$passed, v$flag\n"
     if (!holdsConstantFlag(builder.method, builder.tag, builder.subscribe)) {
         throw PatchException("$PATCH: the pill builder's owner answer isn't a 1 or a 0 at its tag")
     }
     val key = slotKey(row) ?: throw PatchException("$PATCH: the author row puts its pill in no slot")
     val slots = pillSlots(builder.method, key)
     if (slots.isEmpty()) throw PatchException("$PATCH: no row slot holds the pill builder's pill")
-    if (slots.any { it.register > 255 }) throw PatchException("$PATCH: a pill slot sits past v255")
+    val fanBuilders = fanPillBuilders(
+        classDefByStrings(FAN_PILL_TAG, StringComparisonType.EQUALS)
+            .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
+            .flatMap { owner -> owner.methods.filter { holdsString(it, FAN_PILL_TAG) } },
+    )
+    val fanBuilder = fanBuilders.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one builder returning the \"$FAN_PILL_TAG\" pill, found ${fanBuilders.size}",
+    )
+    val fanSlots = fanPillSlots(fanBuilder, key)
+    if (fanSlots.isEmpty()) throw PatchException("$PATCH: no row slot holds the fan-subscription pill")
+    if ((slots + fanSlots).any { it.register > 255 }) throw PatchException("$PATCH: a pill slot sits past v255")
+    if ((slots + fanSlots).distinctBy { it.method.key() to it.init }.size != slots.size + fanSlots.size) {
+        throw PatchException("$PATCH: a row slot holds both the shared pill and the fan-subscription pill")
+    }
 
-    val hooks = slots.map { slot ->
-        PillHook(slot.method, slot.init) {
-            addInstructions(
-                slot.init + 1,
-                """
-                    invoke-static/range { v${slot.register} .. v${slot.register} }, $AUTHOR_PILL_SLOT
-                    move-result-object v${slot.register}
-                    check-cast v${slot.register}, ${slot.type}
-                """,
-            )
-        }
-    } + PillHook(row.method, set) {
+    val hooks = slots.map { slotHook(it, AUTHOR_PILL_SLOT) } + fanSlots.map { slotHook(it, FAN_PILL_SLOT) } + PillHook(row.method, set) {
         addInstructions(
             set + 1,
             """
-                invoke-static { v${row.subscribe}, v$flag }, $SHOW_AUTHOR_PILL
+                ${copy}invoke-static { v${row.subscribe}, v$passed }, $SHOW_AUTHOR_PILL
                 move-result v$flag
             """,
         )

@@ -16,9 +16,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+
+import com.facebook.stories.viewer.activity.StoryViewerActivity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,16 +68,22 @@ public class SeenStoriesWatchedHereTest {
         final Object id;
         final Object expires;
         final boolean seen;
+        final Type type;
 
         Tree(Object id, Object expires, boolean seen) {
+            this(id, expires, seen, Type.STORY);
+        }
+
+        Tree(Object id, Object expires, boolean seen, Type type) {
             this.id = id;
             this.expires = expires;
             this.seen = seen;
+            this.type = type;
         }
 
         @Override
         public String toString() {
-            return "Tree(" + id + ", " + expires + ", " + seen + ")";
+            return "Tree(" + id + ", " + expires + ", " + seen + ", " + type + ")";
         }
     }
 
@@ -88,7 +98,7 @@ public class SeenStoriesWatchedHereTest {
     /** The tray's stubs as the patch fills them, a friend's story each, with the two new reads. */
     private static final SuggestedStories.Buckets TREES = new SuggestedStories.Buckets() {
         @Override public boolean isBucket(Object item) { return item instanceof Tree; }
-        @Override public Object type(Object bucket) { return Type.STORY; }
+        @Override public Object type(Object bucket) { return ((Tree) bucket).type; }
         @Override public Object suggested(Object bucket) { return false; }
         @Override public Object label(Object bucket) { return null; }
         @Override public Object copy(List<Object> kept) { return Collections.unmodifiableList(new ArrayList<>(kept)); }
@@ -119,12 +129,14 @@ public class SeenStoriesWatchedHereTest {
         StorySeen.useForTests(PLAYED);
         Settings.VIEW_STORIES_ANONYMOUSLY.save(true);
         Settings.HIDE_SEEN_STORIES.save(true);
+        SuggestedStories.resetViewersForTests();
         FeedFilterCounters.clear();
         HookStatus.clear();
     }
 
     @After
     public void restore() {
+        SuggestedStories.resetViewersForTests();
         StorySeen.useForTests(null);
         PauseForTests.resume();
         Settings.VIEW_STORIES_ANONYMOUSLY.resetToDefault();
@@ -171,6 +183,70 @@ public class SeenStoriesWatchedHereTest {
         assertTrue(status, status.contains(StorySeen.TRAY_WATCHED + " 2"));
         assertTrue(line(FamilyNames.SUGGESTED_STORIES, HookStatus.report()),
                 line(FamilyNames.SUGGESTED_STORIES, HookStatus.report()).endsWith(" 0 missing"));
+    }
+
+    /**
+     * #438: watching the story viewer's bucket marks it seen and its tray answers again. A bucket a
+     * tray kept stays while the viewer is open, whether it's watched here or sent with its flag true,
+     * and leaves the first tray after the viewer closes. One seen before the viewer opened still goes.
+     */
+    @Test
+    public void theBucketOnScreenStaysUntilTheViewerCloses() {
+        watch(new Played("b0", "s1"), "s1");
+        Tree before = postedHoursAgo("b0", 3);
+        Tree first = postedHoursAgo("b1", 3);
+        Tree next = postedHoursAgo("b2", 3);
+        assertEquals(Arrays.asList(first, next), kept(Arrays.asList(before, first, next)));
+
+        ActivityController<StoryViewerActivity> viewer = Robolectric.buildActivity(StoryViewerActivity.class).setup();
+        SuggestedStories.activityCreated(viewer.get());
+        watch(new Played("b1", "s1", "s2"), "s1", "s2");
+        Tree watched = postedHoursAgo("b1", 3);
+        assertEquals("the bucket on screen left", Arrays.asList(watched, next),
+                kept(Arrays.asList(before, watched, next)));
+        Tree flagged = new Tree("b1", first.expires, true);
+        assertEquals("the bucket on screen left with its flag", Arrays.asList(flagged, next),
+                kept(Arrays.asList(before, flagged, next)));
+
+        viewer.pause().stop().destroy();
+        SuggestedStories.activityDestroyed(viewer.get());
+        assertEquals("it stayed after the viewer closed", Collections.singletonList(next),
+                kept(Arrays.asList(before, postedHoursAgo("b1", 3), next)));
+    }
+
+    /**
+     * #489: with Move seen stories to the end on and Hide seen stories off, a bucket watched to the end
+     * here moves behind the ones you haven't watched. The bucket on screen keeps its place while the
+     * viewer is open, so the tray doesn't jump under it, and moves after the viewer closes.
+     */
+    @Test
+    public void aBucketWatchedHereMovesToTheEndOnceTheViewerCloses() {
+        Settings.HIDE_SEEN_STORIES.save(false);
+        Settings.SEEN_STORIES_LAST.save(true);
+        try {
+            watch(new Played("b0", "s1"), "s1");
+            Tree before = postedHoursAgo("b0", 3);
+            Tree first = postedHoursAgo("b1", 3);
+            Tree next = postedHoursAgo("b2", 3);
+            assertEquals(Arrays.asList(first, next, before), kept(Arrays.asList(before, first, next)));
+
+            ActivityController<StoryViewerActivity> viewer = Robolectric.buildActivity(StoryViewerActivity.class).setup();
+            SuggestedStories.activityCreated(viewer.get());
+            watch(new Played("b1", "s1", "s2"), "s1", "s2");
+            Tree watched = postedHoursAgo("b1", 3);
+            assertEquals("the bucket on screen moved", Arrays.asList(watched, next, before),
+                    kept(Arrays.asList(before, watched, next)));
+
+            viewer.pause().stop().destroy();
+            SuggestedStories.activityDestroyed(viewer.get());
+            Tree after = postedHoursAgo("b1", 3);
+            assertEquals("it kept its place after the viewer closed", Arrays.asList(next, before, after),
+                    kept(Arrays.asList(before, after, next)));
+            String counters = line(SuggestedStories.ROUTE, FeedFilterCounters.report());
+            assertFalse(counters, counters != null && counters.contains("Removed"));
+        } finally {
+            Settings.SEEN_STORIES_LAST.resetToDefault();
+        }
     }
 
     /** With Show only watched stories on (#340), a bucket watched to the end here is one it keeps. */
@@ -256,6 +332,40 @@ public class SeenStoriesWatchedHereTest {
         Tree zeroTime = new Tree("b1", 0L, false);
         List<Tree> tray = Arrays.asList(noId, noTime, zeroTime);
         assertSame(tray, kept(tray));
+    }
+
+    /**
+     * #165: a Highlights tile watched to the end here stayed in the tray with Hide seen stories on.
+     * Its expiration_time isn't a story's day, and one with none reads 0, which the expiration check
+     * turned away. It goes by its id now: one watched to the end leaves whatever its expiration
+     * reads, one sent as watched stays out after a refresh, and one watched partway stays. A day
+     * of stories with no expiration still stays, as before.
+     */
+    @Test
+    public void aHighlightsTileWatchedHereLeavesWhateverItsExpiration() {
+        watch(new Played("h1", "s1", "s2"), "s1", "s2");
+        watch(new Played("h2", "s1", "s2"), "s1");
+        Tree none = new Tree("h1", 0L, false, Type.FEATURED_HIGHLIGHTS_STORY);
+        Tree later = new Tree("h1", (System.currentTimeMillis() + 30 * HOUR_MS) / 1000, false, Type.HIGHLIGHTED_STORY);
+        Tree partway = new Tree("h2", 0L, false, Type.FEATURED_HIGHLIGHTS_STORY);
+        Tree story = new Tree("h1", 0L, false);
+
+        assertEquals("a watched Highlights tile stayed", Arrays.asList(partway, story),
+                kept(Arrays.asList(none, partway, story)));
+        assertEquals("one with a later expiration stayed", Collections.singletonList(partway),
+                kept(Arrays.asList(later, partway)));
+        String status = line(FamilyNames.STORY_SEEN, HookStatus.report());
+        assertTrue(status, status.contains(StorySeen.TRAY_HIGHLIGHTS_WATCHED + " 2"));
+
+        Tree sent = new Tree("h3", 0L, true, Type.FEATURED_HIGHLIGHTS_STORY);
+        Tree resent = new Tree("h3", 0L, false, Type.FEATURED_HIGHLIGHTS_STORY);
+        assertEquals(Collections.singletonList(partway), kept(Arrays.asList(sent, partway)));
+        assertEquals("one sent as watched came back on the refresh", Collections.singletonList(partway),
+                kept(Arrays.asList(resent, partway)));
+
+        Settings.VIEW_STORIES_ANONYMOUSLY.save(false);
+        List<Tree> sentViews = Arrays.asList(none, resent);
+        assertSame("with views sent, the phone's record took a Highlights tile out", sentViews, kept(sentViews));
     }
 
     @Test

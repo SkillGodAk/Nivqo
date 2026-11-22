@@ -5,12 +5,11 @@
 
 package app.morphe.manager.ui.screen.shared
 
-import android.content.ContentResolver
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.net.Uri
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
@@ -29,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -43,11 +43,12 @@ import androidx.compose.ui.unit.toSize
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.documentfile.provider.DocumentFile
+import app.morphe.manager.util.BIN_MIMETYPE
+import app.morphe.manager.util.getOrCreateFile
 import app.morphe.manager.util.rememberImagePicker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.io.IOException
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -158,6 +159,31 @@ fun Modifier.imageTransformGestures(
     }
 }
 
+/**
+ * What an image editor answers to: [imageTransformGestures] once it holds an image, and before
+ * that a tap within [shape] that picks one, announced as [selectLabel].
+ */
+@Composable
+fun Modifier.imageEditorInput(
+    hasImage: Boolean,
+    transform: ImageTransform,
+    scaleRange: ClosedFloatingPointRange<Float>,
+    shape: Shape,
+    selectLabel: String,
+    onTransformChange: (ImageTransform) -> Unit,
+    onGestureChange: (Boolean) -> Unit,
+    onSelectImage: () -> Unit
+): Modifier = if (hasImage) {
+    imageTransformGestures(transform, scaleRange, onTransformChange, onGestureChange)
+} else {
+    clickable(
+        interactionSource = null,
+        indication = shapedIndication(shape),
+        onClickLabel = selectLabel,
+        onClick = onSelectImage
+    )
+}
+
 /** Stroke of the dashed guides drawn over a creator's editor. */
 fun Density.dashedGuideStroke() = Stroke(
     width = 1.5.dp.toPx(),
@@ -184,17 +210,6 @@ fun DrawScope.drawPicture(image: ImageBitmap, bounds: Rect, tint: Color? = null)
     )
 }
 
-/**
- * The folder at [uri], whether the system picker granted it or Morphe's own picker named it by
- * path, which needs no grant once storage access is given.
- */
-fun Context.pickedFolder(uri: Uri): DocumentFile? =
-    if (uri.scheme == ContentResolver.SCHEME_FILE) {
-        uri.path?.let { DocumentFile.fromFile(File(it)) }
-    } else {
-        DocumentFile.fromTreeUri(this, uri)
-    }
-
 fun DocumentFile.getOrCreateDir(name: String): DocumentFile? =
     findFile(name) ?: createDirectory(name)
 
@@ -202,21 +217,13 @@ fun DocumentFile.getOrCreateDir(name: String): DocumentFile? =
 fun DocumentFile.requireDir(name: String): DocumentFile =
     getOrCreateDir(name) ?: throw IOException("Could not create $name")
 
-fun DocumentFile.getOrCreateFile(mimeType: String, name: String): DocumentFile? =
-    findFile(name) ?: if (uri.scheme == ContentResolver.SCHEME_FILE) {
-        // A plain file keeps its name as given, where createFile would add an extension for the type
-        uri.path?.let { File(it, name) }?.takeIf { it.createNewFile() }?.let(DocumentFile::fromFile)
-    } else {
-        createFile(mimeType, name)
-    }
-
 /**
  * The branding folder, kept out of the gallery. A picked folder already named so is used as it is,
  * since storage roots such as Download cannot be picked to hold one.
  */
 fun DocumentFile.brandingFolder(): DocumentFile? {
     val folder = if (name == BRANDING_FOLDER_NAME) this else getOrCreateDir(BRANDING_FOLDER_NAME)
-    folder?.getOrCreateFile("application/octet-stream", ".nomedia")
+    folder?.getOrCreateFile(BIN_MIMETYPE, ".nomedia")
     return folder
 }
 

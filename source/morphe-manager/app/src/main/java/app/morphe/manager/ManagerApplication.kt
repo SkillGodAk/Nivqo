@@ -26,6 +26,7 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.work.WorkManager
 import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.di.*
+import app.morphe.manager.domain.backup.AutoBackup
 import app.morphe.manager.domain.bundles.PatchBundleSource.Extensions.avatarUrls
 import app.morphe.manager.domain.manager.PreferencesManager
 import app.morphe.manager.domain.repository.BlocklistRepository
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
+import okhttp3.OkHttpClient
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
@@ -93,6 +95,8 @@ class ManagerApplication : Application() {
     private val blocklistRepository: BlocklistRepository by inject()
     private val fs: Filesystem by inject()
     private val installedAppRepository: InstalledAppRepository by inject()
+    private val autoBackup: AutoBackup by inject()
+    private val okHttpClient: OkHttpClient by inject()
 
     /** Locales the app's own strings resolve in, null until [observeLanguage] first reads them. */
     private val stringLocales = MutableStateFlow<LocaleList?>(null)
@@ -121,6 +125,8 @@ class ManagerApplication : Application() {
 
         // Set before anything can ask for an avatar, so the first one read already comes from disk
         AvatarCache.useDiskCache(fs.avatarCacheDir)
+        // The same for Play Store icons, which share the client so its HTTP cache decides when to ask again
+        PlayStoreIcons.init(fs.playStoreIconCacheDir, okHttpClient)
 
         // App icon loader (Coil)
         // Non-adaptive icons are drawn as they are rather than shrunk onto a white plate: icon
@@ -131,6 +137,9 @@ class ManagerApplication : Application() {
                 .components {
                     add(AppIconKeyer())
                     add(AppIconFetcher.Factory(AppIconPixels, shrinkNonAdaptiveIcons, this@ManagerApplication))
+                    // Apps with no icon on the device show theirs from the Play Store
+                    add(PlayStoreIconKeyer())
+                    add(PlayStoreIconFetcher.Factory())
                 }
                 .build()
         )
@@ -160,10 +169,12 @@ class ManagerApplication : Application() {
             prefs.preload()
 
             // A restored backup carries the token of the device it came from, and nothing here
-            // can tell whose it is, so this data starts without one and the user enters theirs
-            if (fs.isFirstRunForThisData) prefs.gitHubPat.update("")
-            // Nivqo intentionally does not use the upstream Morphe Firebase project. Background
-            // update notifications are delivered through WorkManager polling on all devices.
+// This device is a fresh app-data install: clear its old PAT and backup grant.
+            if (fs.isFirstRunForThisData) {
+                prefs.gitHubPat.update("")
+                autoBackup.disable()
+            }
+            // Nivqo uses its own WorkManager polling for updates, never upstream FCM.
             val notificationsEnabled = prefs.backgroundUpdateNotifications.get()
             if (notificationsEnabled) {
                 UpdateCheckWorker.schedule(this@ManagerApplication, prefs.updateCheckInterval.get())
@@ -188,9 +199,10 @@ class ManagerApplication : Application() {
             patchBundleRepository.logBlockedSources()
         }
 
-        // Fresh-start cleanup and the work that waits for a screen
+        // Fresh-start cleanup, the work that waits for a screen and the backup made on leaving
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
             private var firstActivityCreated = false
+            private var startedActivityCount = 0
 
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
                 if (firstActivityCreated) return
@@ -201,12 +213,12 @@ class ManagerApplication : Application() {
                 // We do not want to call onFreshProcessStart() if there is state to restore.
                 // This can happen on system-initiated process death
                 if (savedInstanceState == null) {
-                    Log.d(tag, "Fresh process created")
+                    Log.d(LOG_TAG, "Fresh process created")
                     onFreshProcessStart()
-                } else Log.d(tag, "System-initiated process death detected")
+                } else Log.d(LOG_TAG, "System-initiated process death detected")
             }
 
-            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityStarted(activity: Activity) { startedActivityCount++ }
             override fun onActivityResumed(activity: Activity) {
                 resumedActivityCount++
                 PatchingNotifications.cancelResults(this@ManagerApplication)
@@ -216,7 +228,13 @@ class ManagerApplication : Application() {
                 }
             }
             override fun onActivityPaused(activity: Activity) { resumedActivityCount-- }
-            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {
+                // Settings only change while a screen is open, so leaving the app is when there
+                // is something new to back up
+                if (--startedActivityCount == 0 && !activity.isChangingConfigurations) {
+                    scope.launch { autoBackup.scheduleNext() }
+                }
+            }
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
             override fun onActivityDestroyed(activity: Activity) {}
         })
@@ -305,7 +323,7 @@ class ManagerApplication : Application() {
 
         runCatching {
             ShortcutManagerCompat.setDynamicShortcuts(this, shortcuts)
-        }.onFailure { Log.w(tag, "Failed to publish launcher shortcuts", it) }
+        }.onFailure { Log.w(LOG_TAG, "Failed to publish launcher shortcuts", it) }
     }
 
     private fun shortcutIntent(action: String) = Intent(this, MainActivity::class.java).apply {

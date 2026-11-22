@@ -13,6 +13,7 @@ import app.morphe.patches.facebook.downloads.reel.VERTICAL_UFI_FLAG
 import app.morphe.patches.facebook.downloads.reel.hookSidebarLayout
 import app.morphe.patches.facebook.downloads.reel.isSidebarBuilder
 import app.morphe.patches.facebook.downloads.reel.sidebarAssemblyIndex
+import app.morphe.patches.facebook.downloads.reel.sidebarRender
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.methodsHolding
 import app.morphe.patches.facebook.layout.theme.branchTargets
@@ -21,15 +22,18 @@ import app.morphe.patches.facebook.search.branchTarget
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import java.io.File
@@ -52,8 +56,9 @@ class ReelSoundButtonFixtureTest {
 
     /**
      * The footer's speaker hook (#190) on every Facebook build the bundle declares (arm64 and
-     * armv7): one piece the footer news up calls a static builder of the sound toggle, moves its
-     * answer and null-checks it, and the patch hands that answer to the extension before the check.
+     * armv7): one piece the footer news up calls a builder of the sound toggle (static, or from 586
+     * a singleton's), moves its answer and null-checks it, and the patch hands that answer to the
+     * extension before the check.
      */
     @Test
     fun `each declared build's reel footer hands the extension the speaker it builds`() {
@@ -70,23 +75,34 @@ class ReelSoundButtonFixtureTest {
                 val footers = FixtureDex.classesHolding(bundle, FOOTER_COMPONENT).filter { outsideExtension(it.type) }.distinctBy { it.type }
                 val pieceTypes = footers.flatMap { methodsHolding(it, FOOTER_COMPONENT) }.flatMap(::newInstanceTypes).filter(::outsideExtension).toSet()
                 val pieces = FixtureDex.classes(bundle, pieceTypes).values.toList()
-                val callees = FixtureDex.classes(bundle, pieces.flatMap { it.methods }.flatMap(::staticCalls).map { it.definingClass }.toSet())
+                // 586 calls the builder virtually, on a singleton (arm64 LX/0Cii;->A01).
+                val callees = FixtureDex.classes(bundle, pieces.flatMap { it.methods }.flatMap(::staticOrVirtualCalls).map { it.definingClass }.toSet())
                 val buildsSpeaker = { call: MethodReference ->
                     callees[call.definingClass]?.methods?.any { isCalledBy(it, call) && newInstanceTypes(it).any(toggles::contains) } == true
                 }
-                val found = pieces.flatMap { piece -> piece.methods.flatMap { m -> speakerBuilds(m, buildsSpeaker).map { Triple(piece, m, it) } } }
+                val answersNull = { call: MethodReference ->
+                    callees[call.definingClass]?.methods?.any { isCalledBy(it, call) && builderAnswersNull(it) } == true
+                }
+                val found = pieces.flatMap { piece -> piece.methods.flatMap { m -> footerSpeakerBuilds(m, buildsSpeaker, answersNull).map { Triple(piece, m, it) } } }
                 assertEquals("$name: pieces of the footer that build the speaker", 1, found.size)
                 val (owner, method, build) = found.single()
                 val original = method.code()
                 // Negative control: the call-move-check shape alone matches more than the speaker, so
                 // the builder's toggle is what picks it.
-                val shapes = pieces.sumOf { piece -> piece.methods.sumOf { m -> speakerBuilds(m) { true }.size } }
+                val shapes = pieces.sumOf { piece -> piece.methods.sumOf { m -> footerSpeakerBuilds(m, { true }, { true }).size } }
                 assertTrue("$name: only the speaker's call has the shape, so the toggle check proves nothing", shapes > 1)
+                // What takes the builder's answer: 587 hands it straight to the column's add, with no null check.
+                val taker = FOOTER_TAKERS.getValue(version).getValue(abiOf(name, version))
+                assertEquals("$name: what takes the builder's answer", taker, original[build.call + 2].opcode)
+                // Negative control: an answer handed on counts only when the builder answers null itself.
+                assertEquals("$name: the speaker is found without the builder's own null", taker == Opcode.IF_EQZ,
+                    footerSpeakerBuilds(method, buildsSpeaker) { false }.isNotEmpty())
                 // No branch or switch case lands on the null check, so every path to it passes the hook.
                 assertTrue("$name: a branch lands on the null check", build.call + 2 !in branchTargets(original))
                 val builder = (original[build.call] as ReferenceInstruction).reference as MethodReference
-                assertTrue("$name: the builder isn't static", callees.getValue(builder.definingClass).methods.single { isCalledBy(it, builder) }
-                    .let { AccessFlags.STATIC.isSet(it.accessFlags) })
+                val static = original[build.call].opcode == Opcode.INVOKE_STATIC || original[build.call].opcode == Opcode.INVOKE_STATIC_RANGE
+                assertEquals("$name: the builder is static exactly when it's called that way", static,
+                    callees.getValue(builder.definingClass).methods.single { isCalledBy(it, builder) }.let { AccessFlags.STATIC.isSet(it.accessFlags) })
 
                 val context = PatchContexts.of((footers + pieces + callees.values + toggleClasses).distinctBy { it.type })
                 context.hideReelFooterSoundButton()
@@ -97,7 +113,7 @@ class ReelSoundButtonFixtureTest {
                 val at = build.call + 2
                 assertEquals("$name: three instructions added", original.size + 3, patched.size)
                 assertEquals("$name: shape of the hook",
-                    listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, Opcode.IF_EQZ),
+                    listOf(Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, taker),
                     patched.subList(at - 1, at + 4).map { it.opcode })
                 val call = patched[at] as RegisterRangeInstruction
                 assertEquals("$name: the extension is asked", REEL_FOOTER_SOUND_BUTTON,
@@ -108,18 +124,35 @@ class ReelSoundButtonFixtureTest {
                     (patched[at + 1] as OneRegisterInstruction).registerA)
                 assertEquals("$name: the answer is cast back to the builder's type", build.type,
                     ((patched[at + 2] as ReferenceInstruction).reference as TypeReference).type)
-                assertEquals("$name: the null check reads the extension's answer", build.register,
-                    (patched[at + 3] as OneRegisterInstruction).registerA)
+                // The null check's register, or the add's one argument behind the column it adds to.
+                val takes = patched[at + 3].let { if (taker == Opcode.IF_EQZ) (it as OneRegisterInstruction).registerA else (it as FiveRegisterInstruction).registerD }
+                assertEquals("$name: what takes the answer reads the extension's", build.register, takes)
                 assertEquals("$name: the rest is Facebook's", original.map { it.opcode },
                     patched.take(at).map { it.opcode } + patched.drop(at + 3).map { it.opcode })
 
                 checked += version
-                abis += name.substringAfter("-$version-").substringBefore(".apkm")
+                abis += abiOf(name, version)
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
-        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), abis)
+        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), Fixtures.abisOf(abis))
     }
+
+    /**
+     * What takes the footer builder's answer, per declared build and ABI. 587 arm64 (read 2026-11-12):
+     * LX/0CNe;->render hands LX/0DnE;->A02's answer straight to LX/01PG;->A00 with invoke-virtual.
+     * armeabi-v7a (read 2026-11-13): LX/0CN6;->render, instructions 267 to 269, hands LX/0DnT;->A02's
+     * answer to LX/01PL;->A00 with invoke-virtual.
+     */
+    private val FOOTER_TAKERS = mapOf(
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
+            "arm64-v8a" to Opcode.INVOKE_VIRTUAL,
+            "armeabi-v7a" to Opcode.INVOKE_VIRTUAL,
+        ),
+    )
+
+    /** The ABI a fixture named [name] is built for, the Android 9 build counting as its ABI's. */
+    private fun abiOf(name: String, version: String) = name.substringAfter("-$version-").substringBefore(".apkm").substringBefore("-minapi")
 
     private fun unpadded(code: List<Instruction>) = code.filter { it.opcode != Opcode.NOP }
 
@@ -141,6 +174,9 @@ class ReelSoundButtonFixtureTest {
         val found = controls.flatMap { control ->
             methodsHolding(control, SPEAKER_CONTROLS).flatMap { m -> controlSpeakerBuilds(m, buildsSpeaker).map { Triple(control, m, it) } }
         }
+        // The Android 9 build has no builder either: its controls build the speaker inline.
+        assertEquals("$name: whether the controls build the speaker inline", name.contains("-minapi"), found.isEmpty())
+        if (found.isEmpty()) return checkInlineSpeaker(name, controls, toggleClasses)
         assertEquals("$name: methods of the controls that build the speaker", 1, found.size)
         val (owner, method, build) = found.single()
         val original = method.code()
@@ -177,6 +213,54 @@ class ReelSoundButtonFixtureTest {
             unpadded(patched.take(at)).map { it.opcode } + unpadded(patched.drop(at + 3)).map { it.opcode })
     }
 
+    /**
+     * 585's Android 9 build: the controls' render news up the sound toggle, wraps it with the key and
+     * adds it to the column, all inline with no check, and the patch asks the extension in front of
+     * the toggle, jumping past the add on no.
+     */
+    private fun checkInlineSpeaker(name: String, controls: List<ClassDef>, toggleClasses: List<ClassDef>) {
+        val toggles = toggleClasses.map { it.type }.toSet()
+        val found = controls.flatMap { control ->
+            methodsHolding(control, SPEAKER_CONTROLS).flatMap { m -> inlineSpeakers(m, toggles).map { Triple(control, m, it) } }
+        }
+        assertEquals("$name: methods of the controls that build the speaker inline", 1, found.size)
+        val (owner, method, speaker) = found.single()
+        val original = method.code()
+        val strings = original.map { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+        // What's skipped is the toggle, its key and its add, and the next transition key comes after.
+        assertTrue("$name: the build doesn't start with a sound toggle", original[speaker.start].opcode == Opcode.NEW_INSTANCE &&
+            ((original[speaker.start] as ReferenceInstruction).reference as TypeReference).type in toggles)
+        assertEquals("$name: transition keys skipped", listOf(SOUND_BUTTON_KEY),
+            strings.subList(speaker.start, speaker.add + 1).filterNotNull().filter { it.endsWith("_transition_key") })
+        assertTrue("$name: no other component's key after the speaker's add", strings.drop(speaker.add + 1).any { it?.endsWith("_transition_key") == true })
+        assertEquals("$name: the add isn't the column's", "add",
+            ((original[speaker.add] as ReferenceInstruction).reference as MethodReference).name)
+        // Negative control: with no sound toggle to build, the same render picks nothing.
+        assertTrue("$name: the toggle doesn't pick the build", inlineSpeakers(method, emptySet()).isEmpty())
+
+        val context = PatchContexts.of((controls + toggleClasses).distinctBy { it.type })
+        assertEquals("$name: the controls' hook hands back a site", null, context.hideReelSoundButton())
+        val patched = context.mutableClassDefBy(owner.type).methods.single {
+            it.name == method.name &&
+                it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+        }.code()
+        val at = speaker.start
+        assertEquals("$name: four instructions added", original.size + 4, patched.size)
+        assertEquals("$name: shape of the hook", listOf(Opcode.CONST_4, Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.IF_EQZ),
+            patched.subList(at, at + 4).map { it.opcode })
+        val answer = (patched[at] as OneRegisterInstruction).registerA
+        assertEquals("$name: Facebook's yes goes in", 1, (patched[at] as NarrowLiteralInstruction).narrowLiteral)
+        val call = patched[at + 1] as RegisterRangeInstruction
+        assertEquals("$name: the extension is asked", REEL_SOUND_BUTTON,
+            ((call as ReferenceInstruction).reference as MethodReference).toString())
+        assertEquals("$name: the hook passes the yes", listOf(1, answer), listOf(call.registerCount, call.startRegister))
+        assertEquals("$name: the answer comes back and is branched on", listOf(answer, answer),
+            listOf((patched[at + 2] as OneRegisterInstruction).registerA, (patched[at + 3] as OneRegisterInstruction).registerA))
+        assertEquals("$name: no jumps past the column's add", speaker.add + 1 + 4, branchTarget(patched, at + 3))
+        assertEquals("$name: the rest is Facebook's", original.map { it.opcode },
+            patched.take(at).map { it.opcode } + patched.drop(at + 4).map { it.opcode })
+    }
+
     @Test
     fun `each declared build's reel viewer asks the extension before it builds the speaker`() {
         val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }.toSet()
@@ -194,7 +278,7 @@ class ReelSoundButtonFixtureTest {
                     // 585: no check in front of the speaker, the controls hook the builder's answer.
                     checkControlsBuild(bundle)
                     checked += version
-                    abis += name.substringAfter("-$version-").substringBefore(".apkm")
+                    abis += abiOf(name, version)
                     continue
                 }
                 assertEquals("$name: checks whose false skips the speaker", 1, gated.size)
@@ -236,12 +320,12 @@ class ReelSoundButtonFixtureTest {
                 assertEquals("$name: the rest is Facebook's", original.map { it.opcode },
                     patched.take(at).map { it.opcode } + patched.drop(at + 2).map { it.opcode })
                 checked += version
-                abis += name.substringAfter("-$version-").substringBefore(".apkm")
+                abis += abiOf(name, version)
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
         // Redex names the viewer's class separately per ABI, so every declared build has to resolve.
-        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), abis)
+        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), Fixtures.abisOf(abis))
     }
 
     private fun Instruction.called() = (this as? ReferenceInstruction)?.reference as? MethodReference
@@ -270,19 +354,27 @@ class ReelSoundButtonFixtureTest {
         val (sidebar, originalRender) = sidebars.flatMap { owner -> owner.methods.filter { isSidebarBuilder(it, owner.methods) }.map { owner to it } }.single()
         val originalAssembly = originalRender.code()[sidebarAssemblyIndex(originalRender.code())]
         val renderOf = { context.mutableClassDefBy(sidebar.type).methods.single { isCalledBy(it, originalRender) } }
+        // The layout's flag is read where the side column is rendered: the builder on 585, the method
+        // handing it the scoped context on the Android 9 build.
+        val (layoutOwner, layoutRender) = context.sidebarRender(originalRender, name)
+        val rendersItself = layoutRender === originalRender
+        assertEquals("$name: whether the builder renders itself", !name.contains("-minapi"), rendersItself)
+        val layoutBefore = unpadded(layoutRender.code()).size
+        val layoutOf = { context.mutableClassDefBy(layoutOwner).methods.single { isCalledBy(it, layoutRender) } }
 
         val controlsSite = context.hideReelSoundButton()
         val footerSite = context.hideReelFooterSoundButton()
-        if (downloadFirst) context.hookSidebarLayout(renderOf(), VERTICAL_UFI)
+        if (downloadFirst) context.hookSidebarLayout(layoutOf(), VERTICAL_UFI)
         context.moveReelSpeakerAboveMenu(footerSite, controlsSite)
-        if (!downloadFirst) context.hookSidebarLayout(renderOf(), VERTICAL_UFI)
+        if (!downloadFirst) context.hookSidebarLayout(layoutOf(), VERTICAL_UFI)
 
         // The layout's flag passes through both, back to back, and only through them.
-        val render = renderOf().code()
-        val layout = render.indices.filter { render[it].called()?.toString().let { call -> call == VERTICAL_UFI || call == REEL_SPEAKER_LAYOUT } }
+        val layoutCode = layoutOf().code()
+        val layout = layoutCode.indices.filter { layoutCode[it].called()?.toString().let { call -> call == VERTICAL_UFI || call == REEL_SPEAKER_LAYOUT } }
         assertEquals("$name: the layout's hooks", 2, layout.size)
         assertEquals("$name: the layout's hooks aren't back to back", layout[0] + 2, layout[1])
-        assertEquals("$name: the layout's hooks read different registers", render[layout[0]].firstRegister(), render[layout[1]].firstRegister())
+        assertEquals("$name: the layout's hooks read different registers", layoutCode[layout[0]].firstRegister(), layoutCode[layout[1]].firstRegister())
+        val render = renderOf().code()
 
         // The helper takes the assembly's own arguments, up to and including the button list.
         val assemblyAt = sidebarAssemblyIndex(render)
@@ -292,31 +384,64 @@ class ReelSoundButtonFixtureTest {
         assertEquals("$name: the helper's arguments start elsewhere", render[assemblyAt].firstRegister(), side.firstRegister())
         val taken = render[assemblyAt].called()!!.parameterTypes.map(CharSequence::toString)
         assertTrue("$name: the helper stops short of the button list", (side as RegisterRangeInstruction).registerCount > taken.indexOf("Ljava/util/List;"))
-        assertEquals("$name: the rest of the side column is Facebook's", unpadded(originalRender.code()).size + 5, unpadded(render).size)
+        // Two hooks of two instructions on the layout, one helper call in front of the assembly.
+        if (rendersItself) {
+            assertEquals("$name: the rest of the side column is Facebook's", unpadded(originalRender.code()).size + 5, unpadded(render).size)
+        } else {
+            assertEquals("$name: the rest of the side column is Facebook's", unpadded(originalRender.code()).size + 1, unpadded(render).size)
+            assertEquals("$name: the rest of the render is Facebook's", layoutBefore + 4, unpadded(layoutCode).size)
+        }
 
         val cornerType = side.called()!!.definingClass
         val corner = context.mutableClassDefBy(cornerType)
         val builder = footerSite.method.code()[footerSite.build.call].called()!!
-        val item = reelItemType(builder, sidebar, originalAssembly.called()!!)
+        // The component holding the reel is the render's class, which names the side column too.
+        val component = sidebars.single { it.type == layoutOwner }
+        val item = reelItemType(builder, component, originalAssembly.called()!!)
         assertTrue("$name: no reel type", item != null)
         // Negative control: without its fields the side column shares no reel with the builder.
         assertEquals("$name: the side column's fields don't pick the reel", null,
-            reelItemType(builder, ImmutableClassDef(sidebar.type, 0, "Ljava/lang/Object;", null, null, null, emptyList(), emptyList()), originalAssembly.called()!!))
+            reelItemType(builder, ImmutableClassDef(component.type, 0, "Ljava/lang/Object;", null, null, null, emptyList(), emptyList()), originalAssembly.called()!!))
+        // On the Android 9 build the builder's own class holds no reel.
+        if (!rendersItself) assertEquals("$name: the builder's class picks a reel", null, reelItemType(builder, sidebar, originalAssembly.called()!!))
 
         // The helper builds the speaker through Facebook's builder and the extension, then adds it.
         val helper = corner.methods.single { it.name == SIDE_SPEAKER }.code().mapNotNull { it.called()?.toString() }
         assertEquals("$name: what the helper calls",
             listOf(REEL_CORNER_FOR_SIDE, builder.toString(), REEL_SIDE_SPEAKER, "Ljava/util/List;->add(Ljava/lang/Object;)Z"), helper)
+        // It calls the builder the way the corner does: statically on 585, on the builder's one instance
+        // from 586 (arm64 LX/0Cii;->A00). A static call to that instance method shifts every argument one
+        // register early, and opening the Reels tab crashed on the reel landing where the 0c7s goes.
+        val sideCode = corner.methods.single { it.name == SIDE_SPEAKER }.code()
+        val builds = sideCode.indexOfFirst { it.called()?.toString() == builder.toString() }
+        val own = footerSite.method.code()[footerSite.build.call]
+        assertEquals("$name: the helper calls the builder another way", own.opcode, sideCode[builds].opcode)
+        assertEquals("$name: the helper passes the builder another number of registers",
+            (own as RegisterRangeInstruction).registerCount, (sideCode[builds] as RegisterRangeInstruction).registerCount)
+        if (own.opcode != Opcode.INVOKE_STATIC_RANGE) {
+            val receiver = sideCode[builds - 1]
+            assertEquals("$name: the builder's instance isn't read right before the call", Opcode.SGET_OBJECT, receiver.opcode)
+            val instance = (receiver as ReferenceInstruction).reference as FieldReference
+            assertEquals("$name: the builder is called on another instance", builder.definingClass, instance.definingClass)
+            assertEquals("$name: the builder is called on something else", builder.definingClass, instance.type)
+            assertEquals("$name: the instance lands elsewhere", sideCode[builds].firstRegister(), (receiver as OneRegisterInstruction).registerA)
+        }
 
         // The offer asks what makes the side column leave early, on a build where it can.
-        val leaves = earlyExitAsk(originalRender, sidebarAssemblyIndex(originalRender.code()), builder.parameterTypes.map(CharSequence::toString))
+        val builderParameters = builder.parameterTypes.map(CharSequence::toString)
+        val leaves = sideColumnExitAsk(originalRender, layoutRender, sidebarAssemblyIndex(originalRender.code()), builderParameters)
         assertTrue("$name: 585's side column has an early way out", leaves != null)
+        // On the Android 9 build it's the render that leaves, before it calls the builder (585's BV1, 586's BWe).
+        if (!rendersItself) {
+            assertEquals("$name: the builder leaves early itself", null, earlyExitAsk(originalRender, sidebarAssemblyIndex(originalRender.code()), builderParameters))
+            assertEquals("$name: the render's way out", "BWe", leaves!!.name)
+        }
         val offer = corner.methods.single { it.name == OFFER_SPEAKER }.code().mapNotNull { it.called()?.toString() }
         assertEquals("$name: what the offer calls", listOf(leaves.toString(), REEL_REMEMBER_CORNER), offer)
 
         // The reel's builder offers each corner as it's made and marks each reel it gives this side column.
         val (owner, holder) = footers.flatMap { o -> methodsHolding(o, FOOTER_COMPONENT).map { o to it } }
-            .single { (_, method) -> newInstanceTypes(method).containsAll(listOf(cornerType, sidebar.type)) }
+            .single { (_, method) -> newInstanceTypes(method).containsAll(listOf(cornerType, component.type)) }
         val reel = context.mutableClassDefBy(owner.type).methods.single { isCalledBy(it, holder) }.code()
         val made = reel.indices.single { reel[it].called()?.let { call -> call.definingClass == cornerType && call.name == "<init>" } == true }
         assertEquals("$name: the corner isn't offered as it's made", OFFER_SPEAKER, reel[made + 1].called()?.name)
@@ -325,7 +450,7 @@ class ReelSoundButtonFixtureTest {
         val written = reel[marked - 1]
         assertEquals("$name: the mark isn't after a field write", Opcode.IPUT_OBJECT, written.opcode)
         val field = (written as ReferenceInstruction).reference as FieldReference
-        assertEquals("$name: the mark isn't the side column's", sidebar.type, field.definingClass)
+        assertEquals("$name: the mark isn't the side column's", component.type, field.definingClass)
         assertEquals("$name: the mark isn't the reel's", item, field.type)
         assertEquals("$name: the mark reads another register", (written as TwoRegisterInstruction).registerA, reel[marked].firstRegister())
 
@@ -367,11 +492,11 @@ class ReelSoundButtonFixtureTest {
                 checkSideSpeaker(bundle, downloadFirst = true)
                 checkSideSpeaker(bundle, downloadFirst = false)
                 checked += version
-                abis += bundle.name.substringAfter("-$version-").substringBefore(".apkm")
+                abis += abiOf(bundle.name, version)
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
-        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), abis)
+        assertEquals("an ABI went unchecked", Fixtures.declaredAbis(), Fixtures.abisOf(abis))
     }
 
     @Test

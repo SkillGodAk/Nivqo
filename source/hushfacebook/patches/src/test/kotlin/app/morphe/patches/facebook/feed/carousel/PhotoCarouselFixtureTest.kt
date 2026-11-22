@@ -9,6 +9,8 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.addressed
+import app.morphe.patches.facebook.feed.namesString
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.feed.tableIndices
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
@@ -16,6 +18,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
@@ -23,8 +26,10 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.util.MethodUtil
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -50,7 +55,6 @@ class PhotoCarouselFixtureTest {
     @After
     fun forgetTheLastMatch() {
         AlbumLayoutNamesFingerprint.clearMatch()
-        CarouselPhotoFingerprint.clearMatch()
     }
 
     private fun Instruction.methodRef() = (this as? ReferenceInstruction)?.reference as? MethodReference
@@ -99,13 +103,36 @@ class PhotoCarouselFixtureTest {
                     assertEquals("$name: the table names the poster's layout $layout once", 1, strings.count { it.endsWith(layout) })
                 }
 
-                val photos = FixtureDex.methodsWhere(bundle, { dex -> dex.stringSection.any { it == CAROUSEL_PHOTO } }) {
-                    it.name == "render" && holds(it, CAROUSEL_PHOTO) && holds(it, "multi_media_photo")
+                // 586's Android 9 build asks a name table for the photo's name, so its render names it by that call.
+                // 587 asks a table for the key too, so the render's dex may hold neither string.
+                val photoHolders = FixtureDex.classesHolding(bundle, CAROUSEL_PHOTO).associateBy { it.type }
+                val keyHolders = FixtureDex.classesHolding(bundle, CAROUSEL_PHOTO_KEY).associateBy { it.type }
+                val resolve: (MethodReference) -> Method? = { call -> photoHolders[call.definingClass]?.let { resolveStatic(it, call) } }
+                val keyAsker = TableAsker(CAROUSEL_PHOTO_KEY, keyHolders.values)
+                val photos = FixtureDex.methodsWhere(bundle, { true }) {
+                    it.name == "render" && keyAsker.names(it) && namesString(it, CAROUSEL_PHOTO, resolve)
                 }
-                assertEquals("$name: the row's photo", 1, photos.size)
+                assertEquals("$name: the row's photo, among renders naming its key: ${photos.map { it.definingClass }}", 1, photos.size)
                 val photo = photos.single().definingClass
 
-                val classes = FixtureDex.classes(bundle, setOf(table.definingClass, photo, RECYCLER_VIEW))
+                // #484: the row's plugin and the classes it creates, one of them the component that takes the photos.
+                val plugin = FixtureDex.classes(bundle, setOf(CAROUSEL_PLUGIN_TYPE)).getValue(CAROUSEL_PLUGIN_TYPE)
+                val created = plugin.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }
+                    .filter { it.opcode == Opcode.NEW_INSTANCE }.map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
+                val classes = FixtureDex.classes(bundle,
+                    setOf(table.definingClass, photo, RECYCLER_VIEW, CAROUSEL_PLUGIN_TYPE) + created + photoHolders.keys + keyHolders.keys)
+                val (takeRender, take) = photoTake(plugin) { classes[it] }
+                val takeBefore = takeRender.code()
+                val takeCall = takeBefore[take] as FiveRegisterInstruction
+                val list = takeCall.registerC
+                val limit = takeCall.registerD
+                assertTrue("$name: the photos taken are the attachment's list",
+                    (0 until take).any { at ->
+                        takeBefore[at].methodRef()?.let { it.definingClass == STORY_ATTACHMENT && it.returnType == "Lcom/google/common/collect/ImmutableList;" } == true &&
+                            (takeBefore.getOrNull(at + 1) as? OneRegisterInstruction)?.registerA == list
+                    })
+                assertTrue("$name: the end card's count is worked out from the limit after the take",
+                    takeBefore.drop(take + 1).any { it.opcode == Opcode.SUB_INT_2ADDR && (it as TwoRegisterInstruction).registerB == limit })
                 val holder = classes.getValue(table.definingClass)
                 val rowDraw = classes.getValue(RECYCLER_VIEW).methods.single(::isRowDraw)
                 val drawBefore = rowDraw.code()
@@ -177,6 +204,18 @@ class PhotoCarouselFixtureTest {
                 }
                 assertEquals("$name: the rest of RecyclerView.draw is androidx's", withoutNops(drawBefore),
                     withoutNops(drawAfter.filterIndexed { index, _ -> index + 1 !in returns }))
+
+                // ---- #484: the limit to the extension right before the take, the answer in its place --
+                val takeAfter = context.mutableClassDefBy(takeRender.definingClass).methods
+                    .single { MethodUtil.methodSignaturesMatch(it, takeRender) }.code()
+                val hook = takeAfter[take] as FiveRegisterInstruction
+                assertEquals("$name: the extension gets the list and the limit", PHOTO_LIMIT, takeAfter[take].methodRef().toString())
+                assertEquals(listOf(2, list, limit), listOf(hook.registerCount, hook.registerC, hook.registerD))
+                assertEquals(Opcode.MOVE_RESULT, takeAfter[take + 1].opcode)
+                assertEquals("$name: and gives the limit back", limit, (takeAfter[take + 1] as OneRegisterInstruction).registerA)
+                assertTrue("$name: then Facebook takes", isTake(takeAfter[take + 2]))
+                assertEquals("$name: the rest of the render is Facebook's", withoutNops(takeBefore),
+                    withoutNops(takeAfter.filterIndexed { index, _ -> index != take && index != take + 1 }))
 
                 val status = context.mutableClassDefBy(SETTINGS_STATUS).methods.single { it.name == "photoCarousel" }
                 assertEquals("$name: SettingsStatus.photoCarousel() isn't switched on", 1,

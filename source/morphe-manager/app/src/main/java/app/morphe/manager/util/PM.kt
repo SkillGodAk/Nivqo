@@ -82,10 +82,13 @@ class PM(
             null
         }
 
-    /** [file] read as a package, its label and icon loadable. [flags] narrows what is parsed. */
+    /**
+     * [file] read as a package, its label and icon loadable. [flags] widens what is parsed, which
+     * leaves out components by default, as parsing them is the slow part of a large APK.
+     */
     fun getPackageInfo(
         file: File,
-        flags: Int = PackageManager.GET_META_DATA or PackageManager.GET_ACTIVITIES
+        flags: Int = PackageManager.GET_META_DATA
     ): PackageInfo? {
         val path = file.absolutePath
         val pkgInfo = app.packageManager.getPackageArchiveInfo(path, flags) ?: return null
@@ -98,6 +101,10 @@ class PM(
 
         return pkgInfo
     }
+
+    /** [getPackageInfo] of [file], failing when the archive cannot be read as an app. */
+    fun requirePackageInfo(file: File): PackageInfo =
+        checkNotNull(getPackageInfo(file)) { "Failed to load application info" }
 
     @Suppress("DEPRECATION", "QueryPermissionsNeeded")
     fun getInstalledPackages(flags: Int = 0): List<PackageInfo> =
@@ -132,13 +139,7 @@ class PM(
         } else {
             PackageManager.GET_SIGNATURES
         }
-        val info = getPackageInfo(packageName, flags) ?: return null
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            info.signingInfo?.apkContentsSigners?.firstOrNull()
-                ?: info.signatures?.firstOrNull()
-        } else {
-            info.signatures?.firstOrNull()
-        }
+        return getPackageInfo(packageName, flags)?.firstSigner()
     }
 
     /**
@@ -151,14 +152,17 @@ class PM(
         } else {
             PackageManager.GET_SIGNATURES
         }
-        val info = app.packageManager.getPackageArchiveInfo(file.absolutePath, flags) ?: return null
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            info.signingInfo?.apkContentsSigners?.firstOrNull()
-                ?: info.signatures?.firstOrNull()
-        } else {
-            info.signatures?.firstOrNull()
-        }
+        return app.packageManager.getPackageArchiveInfo(file.absolutePath, flags)?.firstSigner()
     }
+
+    /** The first certificate the package is signed with, from the signing info where there is one. */
+    @Suppress("DEPRECATION")
+    private fun PackageInfo.firstSigner(): Signature? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            signingInfo?.apkContentsSigners?.firstOrNull() ?: signatures?.firstOrNull()
+        } else {
+            signatures?.firstOrNull()
+        }
 
     /**
      * Returns true if the signing certificate of [file] differs from the installed package.

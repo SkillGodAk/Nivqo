@@ -54,6 +54,17 @@ private val FILTER_PARAMS = listOf(CLIENT_FILTER, IMMUTABLE_LIST, STRING)
 private fun hiddenChatChanged(): Nothing =
     throw PatchException("Messenger controls: the hidden chat route no longer matches the tested build")
 
+/** Hide chosen chats and Special contacts share the chat list and menu hooks: whichever patches first puts them in, and the other finds them there. */
+internal fun Method.hiddenChatHooked(hook: String): Boolean {
+    val call = when (hook) {
+        HIDDEN_CHAT_LIST -> HIDDEN_ROWS_CALL
+        HIDDEN_CHAT_ROW -> HIDE_ROW_CALL
+        HIDDEN_CHAT_TAP -> HIDE_TAP_CALL
+        else -> return false
+    }
+    return implementation?.instructions?.any { (it as? ReferenceInstruction)?.reference?.toString() == call } == true
+}
+
 private fun Method.isStatic() = AccessFlags.STATIC.isSet(accessFlags)
 
 private fun Method.types() = parameterTypes.map { it.toString() }
@@ -127,6 +138,7 @@ private fun List<Instruction>.hiddenListSiteAt(at: Int, self: Int): HiddenListSi
 
 /** The extension takes the supplier and the filtered list, and the walk goes over whatever list comes back. */
 internal fun MutableMethod.injectHiddenChatList() {
+    if (hiddenChatHooked(HIDDEN_CHAT_LIST)) return
     val site = hiddenListSite() ?: hiddenChatChanged()
     // A branch into the walk keeps landing on its first replacement instruction.
     replaceInstruction(site.at, "move-object/from16 v${site.iterator}, p0")
@@ -166,14 +178,17 @@ private fun List<Instruction>.rowBuilder(): HiddenRowBuilder? {
     }.distinctBy { it.toString() }.singleOrNull() ?: return null
     val owner = built.definingClass
     val icon = filter { it.opcode == Opcode.INVOKE_VIRTUAL }.mapNotNull { it.methodRef() }.filter { m ->
-        m.definingClass == owner && m.returnType == "V" && m.parameterTypes.size == 1 && m.parameterTypes[0].toString().let { it.startsWith("L") && it != CHAR_SEQUENCE }
+        m.definingClass == owner && m.returnType == "V" && m.parameterTypes.size == 1 && m.parameterTypes[0].toString().let { it.startsWith("L") && it != CHAR_SEQUENCE && it != STRING }
     }.distinctBy { it.toString() }.singleOrNull() ?: return null
     return HiddenRowBuilder(
         calls(Opcode.INVOKE_STATIC) { it.definingClass == owner && it.parameterTypes.isEmpty() && it.returnType == owner } ?: return null,
         writes(Opcode.IPUT, owner, "I") ?: return null,
         icon.toString(), icon.parameterTypes[0].toString(),
         calls(Opcode.INVOKE_VIRTUAL) { it.definingClass == owner && it.returnType == "V" && it.parameterTypes.map { p -> p.toString() } == listOf(CHAR_SEQUENCE) } ?: return null,
-        writes(Opcode.IPUT_OBJECT, owner, STRING) ?: return null,
+        // 587 fills the description through a setter instead of writing the field, and the extension calls that.
+        writes(Opcode.IPUT_OBJECT, owner, STRING)
+            ?: calls(Opcode.INVOKE_VIRTUAL) { it.definingClass == owner && it.returnType == "V" && it.parameterTypes.map { p -> p.toString() } == listOf(STRING) }
+            ?: return null,
         built.toString())
 }
 
@@ -187,6 +202,7 @@ internal fun Method.hiddenRowBuilder(classOf: (String) -> ClassDef?): HiddenRowB
 
 /** The extension adds its row to the finished list just before the menu hands it back. */
 internal fun MutableMethod.injectHiddenChatRow() {
+    if (hiddenChatHooked(HIDDEN_CHAT_ROW)) return
     val site = hiddenRowSite() ?: hiddenChatChanged()
     replaceInstruction(site.at, "move-object/from16 v${site.menu}, p0")
     addInstructions(site.at + 1, "invoke-static {v${site.menu}, v${site.rows}}, $HIDE_ROW_CALL\nreturn-object v${site.rows}")
@@ -202,6 +218,7 @@ internal fun Method.hiddenTapSummary(): String? {
 
 /** A tap on the extension's own row stops there. Every other row goes on to Messenger. */
 internal fun MutableMethod.injectHiddenChatTap() {
+    if (hiddenChatHooked(HIDDEN_CHAT_TAP)) return
     hiddenTapSummary() ?: hiddenChatChanged()
     addInstructionsWithLabels(0, """
         move-object/from16 v0, p0
@@ -217,9 +234,14 @@ internal fun MutableMethod.injectHiddenChatTap() {
  * The menu's class for the chat list's long press: the class its plugin builds once the plugin's name is "MenuItems",
  * with one row list and one tap. Empty when there isn't exactly one such class.
  */
+internal val menuItemsBuilders = methodCheck { _, method ->
+    val code = method.implementation?.instructions?.toList().orEmpty()
+    code.indices.any { code.menuBuiltAt(it) != null }
+}
+
 internal fun findHiddenChats(classes: Iterable<ClassDef>): Map<String, List<Method>> {
     val byType = classes.associateBy { it.type }
-    val menus = classes.flatMap { it.methods }.flatMap { method ->
+    val menus = menuItemsBuilders.methods(classes).flatMap { method ->
         val code = method.implementation?.instructions?.toList().orEmpty()
         code.indices.mapNotNull { i -> code.menuBuiltAt(i) }
     }.distinct().mapNotNull { byType[it] }.filter { menu ->
@@ -295,11 +317,19 @@ internal fun BytecodePatchContext.hiddenChatStub(): MutableMethod {
         if (call == null || !AccessFlags.STATIC.isSet(call.accessFlags) || !AccessFlags.PUBLIC.isSet(call.accessFlags)) hiddenChatChanged()
     }
     val stub = mutableClassDefBy(HOST_SCREENS).methods.singleOrNull { it.hookId() == HIDDEN_CHAT_ROUTE } ?: hiddenChatChanged()
-    stub.validateRouteStub(HIDDEN_CHAT_ROUTE)
+    if (stub.routeWritten() == null) stub.validateRouteStub(HIDDEN_CHAT_ROUTE)
     return stub
 }
 
+/** The route a patch that shares these hooks already wrote, or null while the stub still answers "". */
+private fun Method.routeWritten(): String? {
+    val code = implementation?.instructions?.toList() ?: return null
+    if (code.size != 2 || code[1].opcode != Opcode.RETURN_OBJECT) return null
+    return code[0].string()?.takeIf { it.isNotEmpty() }
+}
+
 internal fun MutableMethod.writeHiddenChatRoute(route: HiddenChatRoute) {
+    routeWritten()?.let { if (it == route.toString()) return else hiddenChatChanged() }
     validateRouteStub(HIDDEN_CHAT_ROUTE)
     val register = (implementation!!.instructions.first() as OneRegisterInstruction).registerA
     replaceInstruction(0, "const-string v$register, \"$route\"")

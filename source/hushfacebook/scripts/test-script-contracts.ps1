@@ -641,13 +641,18 @@ $unchanged = Get-ManifestDelta -Stock $facts -Patched $facts
 Assert-True (@(ConvertTo-ManifestDeltaEntries -Delta $unchanged).Count -eq 0) `
     'An unchanged manifest produced a delta.'
 
-# The checked-in allowlist approves three reviewed changes and nothing else. Install beside Meta's
+# The checked-in allowlist approves four reviewed changes and nothing else. Install beside Meta's
 # apps renames the two permissions Facebook shares with Messenger, Lite, Business Suite and
 # Workplace, which the receipt reads as the two new names asked for and the two old ones no longer
-# asked for. Open in Facebook exports its share target, and GmsCore support swaps Google's push
-# RECEIVE permission for microG-RE's.
+# asked for. Open in Facebook exports its share target, GmsCore support swaps Google's push
+# RECEIVE permission for microG-RE's, and Clone install (#417) moves Facebook's own five
+# permissions to the copy's package.
 $checkedInAllowlist = @(Read-ManifestDeltaAllowlist -Path (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt') |
     Where-Object { $_ })
+$clonePermissionNames = @('DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION', 'permission.CREATE_SHORTCUT',
+    'permission.CROSS_PROCESS_BROADCAST_MANAGER', 'permission.RECEIVE_ADM_MESSAGE', 'provider.ACCESS')
+$clonePermissionsAdded = @($clonePermissionNames | ForEach-Object { "com.facebook.katana.hush.$_" })
+$clonePermissionsRemoved = @($clonePermissionNames | ForEach-Object { "com.facebook.katana.$_" })
 $reviewedEntries = @(
     'permission-added app.hushfacebook.permission.prod.FB_APP_COMMUNICATION',
     'permission-added app.hushfacebook.receiver.permission.ACCESS',
@@ -655,10 +660,13 @@ $reviewedEntries = @(
     'permission-removed com.facebook.receiver.permission.ACCESS',
     'exported-added activity:app.morphe.extension.facebook.misc.OpenInFacebook',
     'permission-added app.revanced.android.c2dm.permission.RECEIVE',
-    'permission-removed com.google.android.c2dm.permission.RECEIVE')
+    'permission-removed com.google.android.c2dm.permission.RECEIVE') +
+    @($clonePermissionsAdded | ForEach-Object { "permission-added $_" }) +
+    @($clonePermissionsRemoved | ForEach-Object { "permission-removed $_" })
+Assert-True ($reviewedEntries.Count -eq 17) "The reviewed allowlist entries number $($reviewedEntries.Count), not 17."
 Assert-True ((@($checkedInAllowlist | Sort-Object -CaseSensitive) -join "`n") -ceq
         (@($reviewedEntries | Sort-Object -CaseSensitive) -join "`n")) `
-    ('The checked-in manifest delta allowlist approves something besides the three reviewed changes, or ' +
+    ('The checked-in manifest delta allowlist approves something besides the four reviewed changes, or ' +
      "less than all of them: $($checkedInAllowlist -join ', ')")
 
 $allowlistRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("receipt-" + [guid]::NewGuid().ToString('N'))
@@ -1197,17 +1205,19 @@ try {
     Assert-True ($stale.Reason -like '*any more*') `
         "The stale allowlist entry was refused for the wrong reason: $($stale.Reason)"
 
-    # The checked-in allowlist, against receipts that carry its three reviewed changes on both
-    # builds: the permission rename, the share target export and the microG push permission. They
-    # pass. They plus any other change are refused, naming only the other, and a rename that
-    # stopped halfway is refused for the half no patch makes any more.
+    # The checked-in allowlist, against receipts that carry its four reviewed changes on both
+    # builds: the permission rename, the share target export, the microG push permission and Clone
+    # install's moved permissions. They pass. They plus any other change are refused, naming only
+    # the other, and a rename that stopped halfway is refused for the half no patch makes any more.
     $withRename = {
         param($r)
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsAdded = @('app.hushfacebook.permission.prod.FB_APP_COMMUNICATION',
-                'app.hushfacebook.receiver.permission.ACCESS', 'app.revanced.android.c2dm.permission.RECEIVE')
+                'app.hushfacebook.receiver.permission.ACCESS', 'app.revanced.android.c2dm.permission.RECEIVE') +
+                $clonePermissionsAdded
             $target.manifestDelta.permissionsRemoved = @('com.facebook.permission.prod.FB_APP_COMMUNICATION',
-                'com.facebook.receiver.permission.ACCESS', 'com.google.android.c2dm.permission.RECEIVE')
+                'com.facebook.receiver.permission.ACCESS', 'com.google.android.c2dm.permission.RECEIVE') +
+                $clonePermissionsRemoved
             $target.manifestDelta.exportedComponentsAdded = @('activity:app.morphe.extension.facebook.misc.OpenInFacebook')
         }
     }
@@ -1238,14 +1248,15 @@ try {
         & $withRename $r
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsAdded = @('app.hushfacebook.permission.prod.FB_APP_COMMUNICATION',
-                'app.revanced.android.c2dm.permission.RECEIVE')
+                'app.revanced.android.c2dm.permission.RECEIVE') + $clonePermissionsAdded
             $target.manifestDelta.permissionsRemoved = @('com.facebook.permission.prod.FB_APP_COMMUNICATION',
-                'com.google.android.c2dm.permission.RECEIVE')
+                'com.google.android.c2dm.permission.RECEIVE') + $clonePermissionsRemoved
         }
     }
     $half = Test-TestReceipt -Receipt $halfway -Approved $checkedInAllowlist
     Assert-True (-not $half.Valid -and $half.Reason -like '*any more*receiver.permission.ACCESS*' -and
-            $half.Reason -notlike '*c2dm*' -and $half.Reason -notlike '*OpenInFacebook*') `
+            $half.Reason -notlike '*c2dm*' -and $half.Reason -notlike '*OpenInFacebook*' -and
+            $half.Reason -notlike '*katana.hush*') `
         "A rename of one permission of the two passed the allowlist of both: $($half.Reason)"
 
     # The SBOM a receipt names. Each refusal has to name the SBOM fact that failed rather than trip
@@ -1497,6 +1508,19 @@ try {
     $result = Test-Staged
     Assert-True ($result.Reason -like '*staged receipt names the bundle patches-9.9.8.mpp, not patches-9.9.9.mpp*') `
         "A staged receipt naming another bundle file was not refused for it: $($result.Reason)"
+    # Hush Unpacker's APK, which the bundle stage stages and lists too, is held by its line alone.
+    New-StagedRelease
+    $stagedHelper = Join-Path $stagedRoot 'hush-unpacker-9.9.9.apk'
+    Set-Content -LiteralPath $stagedHelper -Value 'apk' -Encoding ASCII
+    Write-StagedSums (@(Get-StagedSums) + ('{0}  hush-unpacker-9.9.9.apk' -f (Get-Sha256Hex -Path $stagedHelper).ToLowerInvariant()))
+    $result = Test-Staged
+    Assert-True $result.Valid "A staged release listing Hush Unpacker's APK was refused: $($result.Reason)"
+    Add-Content -LiteralPath $stagedHelper -Value 'changed'
+    $result = Test-Staged
+    Assert-True ($result.Reason -like '*lists * for hush-unpacker-9.9.9.apk, but the staged*') "A changed Hush Unpacker APK was not refused: $($result.Reason)"
+    Remove-Item -LiteralPath $stagedHelper -Force
+    $result = Test-Staged
+    Assert-True ($result.Reason -like '*staged release has no hush-unpacker-9.9.9.apk*') "A listed Hush Unpacker APK that isn't staged was not refused: $($result.Reason)"
 } finally {
     Remove-Item -LiteralPath $allowlistRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -4375,13 +4399,13 @@ try {
         $applySaved = @{ Fixtures = $env:HUSHFACEBOOK_FIXTURE_DIR; Jar = $env:HUSHFACEBOOK_DESKTOP_JAR }
         try {
             New-Item -ItemType Directory -Path $applyFixtures -Force | Out-Null
-            foreach ($name in @('facebook-585.0.0.47.54-arm64.apkm', 'facebook-585.0.0.47.54-armv7.apkm', 'facebook-580.0.0.51.74.apkm')) {
+            foreach ($name in @('facebook-587.0.0.39.55-arm64.apkm', 'facebook-587.0.0.39.55-armv7.apkm', 'facebook-580.0.0.51.74.apkm')) {
                 Set-Content -LiteralPath (Join-Path $applyFixtures $name) -Value 'fixture' -Encoding ASCII
             }
             Set-Content -LiteralPath $applyJar -Value 'cli' -Encoding ASCII
             Set-Content -LiteralPath $applyFiles[0] -Value 'version = 9.9.9' -Encoding ASCII
             Set-Content -LiteralPath $applyFiles[1] -Encoding UTF8 -Value ('{"patches":[{"name":"A","compatibility":' +
-                '[{"packageName":"com.facebook.katana","targets":[{"version":"585.0.0.47.54"}]}]}]}')
+                '[{"packageName":"com.facebook.katana","targets":[{"version":"587.0.0.39.55"}]}]}]}')
             Set-Content -LiteralPath $applyFiles[2] -Encoding UTF8 -Value @(
                 'param([string]$Apk, [string]$DesktopJar, [string]$WorkDir, [string]$Bundle, [string]$KeepIn)',
                 "Add-Content -LiteralPath '$applyLog' -Value (""apk="" + (Split-Path -Leaf `$Apk) + "" bundle=`$Bundle keep=`$KeepIn"")",
@@ -4410,7 +4434,7 @@ try {
                     $builds[1] -like '* :patches:buildAndroid *') `
                     "A push of $moved did not build the release bundle in the full pass alone: $($builds -join ' | ')"
                 $applied = @(Get-Content -LiteralPath $applyLog -ErrorAction SilentlyContinue | Sort-Object)
-                $declared = @('facebook-585.0.0.47.54-arm64.apkm', 'facebook-585.0.0.47.54-armv7.apkm')
+                $declared = @('facebook-587.0.0.39.55-arm64.apkm', 'facebook-587.0.0.39.55-armv7.apkm')
                 $rightRuns = @(for ($at = 0; $at -lt $applied.Count; $at++) {
                     $run = [regex]::Match($applied[$at], '^apk=(?<apk>\S+) bundle=(?<bundle>.+) keep=(?<keep>.+)$')
                     if ($run.Success -and $at -lt $declared.Count -and $run.Groups['apk'].Value -eq $declared[$at] -and
@@ -5397,16 +5421,26 @@ try {
         New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
         Copy-Item -LiteralPath (Join-Path $Root $relative) -Destination $destination
     }
-    # The ledger, dated today and listed on every index, so the census a release is held to passes
-    # and each published-asset case below is refused for its own fact. The checked-in ledger's date
-    # moves with every audit and its listings wait on submissions, and neither is what those cases
-    # are about. The census cases further down move one fact at a time.
+    # The ledger, dated today, listed on every index and with every adopted source proved on the
+    # copied catalog's declared builds, so the census a release is held to passes and each
+    # published-asset case below is refused for its own fact. The checked-in ledger's date moves with
+    # every audit, its listings wait on submissions and its fixture evidence waits on the release
+    # after a retarget, and none of that is what those cases are about. The census cases further down
+    # move one fact at a time.
     $releaseLedgerPath = Join-Path $releaseRepo 'sources/facebook-sources.json'
     $releaseLedgerSource = [System.IO.File]::ReadAllText($releaseLedgerPath)
+    $ledgerTarget = Get-PatchTarget -PatchList (Get-Content -LiteralPath (Join-Path $releaseRepo 'patches-list.json') -Raw |
+        ConvertFrom-Json)
+    $ledgerFixtures = [string[]]@(foreach ($version in $ledgerTarget.PackageVersions) {
+        foreach ($code in $ledgerTarget.PackageVersionCodes[$version]) { "$version ($code)" } })
     function Save-ReleaseLedger([int]$AgeDays = 0, [switch]$Pending) {
         $document = $releaseLedgerSource | ConvertFrom-Json
         $checked = [datetime]::UtcNow.Date.AddDays(-$AgeDays).ToString('yyyy-MM-dd')
         $document.census.checkedAt = $checked
+        foreach ($entry in @($document.entries)) {
+            $adopted = if ($entry) { $entry.PSObject.Properties['adopted'] }
+            if ($adopted -and $adopted.Value) { $adopted.Value.fixtures.builds = $ledgerFixtures }
+        }
         foreach ($index in $document.indexes) {
             $index.hushfacebook = if ($Pending) { [pscustomobject]@{ status = 'not-listed'; checked = $checked } } else {
                 [pscustomobject]@{ status = 'listed'; url = 'https://example.com/listing'; checked = $checked } }
@@ -5765,14 +5799,19 @@ try {
 
     $androidName = 'http://schemas.android.com/apk/res/android:name(0x01010003)='
     $androidExported = '          A: http://schemas.android.com/apk/res/android:exported(0x01010010)=true'
-    # Facebook asks for the two permissions it shares with Meta's other apps and for Google's push,
-    # and the patched build asks for the two under the names Install beside Meta's apps gives them
-    # and for microG-RE's push in place of Google's, and exports Open in Facebook's share target: the
-    # changes the checked-in allowlist approves, and the only ones the patches make here.
+    # Facebook asks for the two permissions it shares with Meta's other apps, for Google's push and
+    # for five of its own, and the patched build asks for the two under the names Install beside
+    # Meta's apps gives them, for microG-RE's push in place of Google's and for its own five under
+    # the copy's package (Clone install), and exports Open in Facebook's share target: the changes
+    # the checked-in allowlist approves, and the only ones the patches make here.
     function Get-FixtureManifest([string]$Build, [string]$Code, [switch]$WithSplit, [switch]$Renamed,
             [string]$Package = $releaseTarget.PackageName) {
         $prefix = if ($Renamed) { 'app.hushfacebook.' } else { 'com.facebook.' }
         $push = if ($Renamed) { 'app.revanced.android.c2dm.' } else { 'com.google.android.c2dm.' }
+        $own = if ($Renamed) { 'com.facebook.katana.hush.' } else { 'com.facebook.katana.' }
+        $ownLines = @($clonePermissionNames | ForEach-Object {
+            '      E: uses-permission (line=14)'
+            "        A: $androidName`"$own$_`" (Raw: `"$own$_`")" })
         $lines = @(
             'N: android=http://schemas.android.com/apk/res/android (line=1)',
             '  E: manifest (line=1)',
@@ -5786,7 +5825,7 @@ try {
             '      E: uses-permission (line=12)',
             "        A: $androidName`"${prefix}receiver.permission.ACCESS`" (Raw: `"${prefix}receiver.permission.ACCESS`")",
             '      E: uses-permission (line=13)',
-            "        A: $androidName`"${push}permission.RECEIVE`" (Raw: `"${push}permission.RECEIVE`")",
+            "        A: $androidName`"${push}permission.RECEIVE`" (Raw: `"${push}permission.RECEIVE`")") + $ownLines + @(
             '      E: application (line=20)',
             '        E: activity (line=21)',
             "          A: $androidName`"com.facebook.katana.LoginActivity`" (Raw: `"com.facebook.katana.LoginActivity`")",
@@ -8077,8 +8116,8 @@ try {
     Set-Content -LiteralPath (Join-Path $flowRepo 'CHANGELOG.md') -Value '# Changelog' -Encoding ASCII
     Set-Content -LiteralPath (Join-Path $flowRepo '.gitignore') -Value @('build/', 'patches/build/', 'extensions/facebook/build/',
         'release-receipt-*.json') -Encoding ASCII
-    $flowTarget = '"compatiblePackages":{"com.facebook.katana":["585.0.0.47.54"]},' +
-        '"compatibility":[{"packageName":"com.facebook.katana","targets":[{"version":"585.0.0.47.54"}]}]'
+    $flowTarget = '"compatiblePackages":{"com.facebook.katana":["587.0.0.39.55"]},' +
+        '"compatibility":[{"packageName":"com.facebook.katana","targets":[{"version":"587.0.0.39.55"}]}]'
     Set-Content -LiteralPath (Join-Path $flowRepo 'patches-list.json') -Encoding ASCII -Value (
         '{"patches":[{"name":"A",' + $flowTarget + '},{"name":"B",' + $flowTarget + '}]}')
     $logLiteral = $flowLog.Replace("'", "''")
@@ -8153,6 +8192,7 @@ try {
         '    $out = Join-Path $ProjectDir ''patches/build/release''',
         '    New-Item -ItemType Directory -Force -Path $out | Out-Null',
         '    foreach ($kind in ''mpp'', ''cdx.json'', ''tooling.json'') { Set-Content -LiteralPath (Join-Path $out "patches-1.2.3.$kind") -Value "built $kind" -Encoding ASCII }',
+        '    Set-Content -LiteralPath (Join-Path $out ''hush-unpacker-1.2.3.apk'') -Value ''built apk'' -Encoding ASCII',
         '}',
         'exit 0')
     # py and gh log their arguments and fail when fail.txt names their subcommand. release_text's
@@ -8184,7 +8224,7 @@ try {
             foreach ($argument in $call) {
                 if (-not (Test-Path -LiteralPath $argument -PathType Leaf)) { continue }
                 $name = Split-Path -Leaf $argument
-                if ($name -notlike 'patches-*' -and $name -notlike 'release-receipt-*' -and $name -cne 'SHA256SUMS.txt') { continue }
+                if ($name -notlike 'patches-*' -and $name -notlike 'release-receipt-*' -and $name -notlike 'hush-unpacker-*' -and $name -cne 'SHA256SUMS.txt') { continue }
                 Copy-Item -LiteralPath $argument -Destination $flowGitHub.PublishedAssets
             }
             $flowGitHub.Release = [pscustomobject]@{
@@ -8327,23 +8367,23 @@ try {
     $flowFixtures = Join-Path $releaseFlow 'fixtures'
     New-Item -ItemType Directory -Force -Path $flowFixtures | Out-Null
     $env:HUSHFACEBOOK_FIXTURE_DIR = $flowFixtures
-    Assert-Throws { & $flowScript -Stage bundle -Version 1.2.3 6> $null 3> $null } '*no fixture of Facebook 585.0.0.47.54*' `
+    Assert-Throws { & $flowScript -Stage bundle -Version 1.2.3 6> $null 3> $null } '*no fixture of Facebook 587.0.0.39.55*' `
         'The bundle stage cut a receipt without a fixture of the declared build.'
     Assert-True (@(Read-FlowLog).Count -eq 1) 'The bundle stage went past a declared build with no fixture.'
-    foreach ($abi in 'arm64-v8a', 'armeabi-v7a') { Set-Content -LiteralPath (Join-Path $flowFixtures "facebook-585.0.0.47.54-$abi.apkm") -Value $abi }
+    foreach ($abi in 'arm64-v8a', 'armeabi-v7a') { Set-Content -LiteralPath (Join-Path $flowFixtures "facebook-587.0.0.39.55-$abi.apkm") -Value $abi }
     Set-Content -LiteralPath (Join-Path $flowFixtures 'facebook-580.0.0.51.74-arm64-v8a.apkm') -Value 'undeclared'
 
     # Bundle builds once, hands the receipt every declared build's fixtures and the gate's kept
-    # runs, and lists the five assets' hashes in SHA256SUMS.txt.
+    # runs, and lists the six assets' hashes in SHA256SUMS.txt.
     & $flowScript -Stage bundle -Version 1.2.3 6> $null 3> $null
     $flow = @(Read-FlowLog)
     Assert-True ($flow.Count -eq 2 -and $flow[0] -like 'gradle * tasks= :patches:buildAndroid ' -and
-        $flow[1] -like ('receipt fixtures=facebook-585.0.0.47.54-arm64-v8a.apkm,facebook-585.0.0.47.54-armeabi-v7a.apkm ' +
+        $flow[1] -like ('receipt fixtures=facebook-587.0.0.39.55-arm64-v8a.apkm,facebook-587.0.0.39.55-armeabi-v7a.apkm ' +
             'bundle=patches-1.2.3.mpp applied=*/repo/patches/build/fixture-apply')) `
         "The bundle stage did not build and cut the receipt over the declared fixtures: $($flow -join ' | ')"
     $sums = @(Get-Content -LiteralPath (Join-Path $flowAssets 'SHA256SUMS.txt'))
     $listed = @($sums | ForEach-Object { ($_ -split '  ', 2)[1] })
-    Assert-True (($listed -join ',') -eq 'patches-1.2.3.mpp,patches-1.2.3.cdx.json,patches-1.2.3.tooling.json,release-receipt-1.2.3.json') `
+    Assert-True (($listed -join ',') -eq 'patches-1.2.3.mpp,patches-1.2.3.cdx.json,patches-1.2.3.tooling.json,hush-unpacker-1.2.3.apk,release-receipt-1.2.3.json') `
         "SHA256SUMS.txt lists $($listed -join ', ')."
     foreach ($line in $sums) {
         $hash, $name = $line -split '  ', 2
@@ -8353,7 +8393,7 @@ try {
     Assert-True (Test-FlowClean) 'The bundle stage left the tree changed.'
 
     # Publish writes the notes with the checked paragraph, tags and pushes the commit, creates the
-    # release with the five assets and holds each downloaded copy to the local one.
+    # release with the six assets and holds each downloaded copy to the local one.
     Assert-Throws { & $flowScript -Stage publish -Version 1.2.3 6> $null } '*-Checked*' 'Publish ran without a checked paragraph.'
     $flowChecked = Join-Path $releaseFlow 'checked.txt'
     Set-Content -LiteralPath $flowChecked -Value 'Checked.' -Encoding ASCII
@@ -8366,7 +8406,7 @@ try {
     function Write-FlowWalk([hashtable]$Change = @{}) {
         $walkIdentity = 'sha256=' + (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $flowAssets 'patches-1.2.3.mpp')).Hash.ToLowerInvariant() +
             '; source=clean:' + ('1' * 40) + '; tree=' + ('2' * 40) + '; inputs=' + ('3' * 64)
-        $walkReceipt = New-WalkReceipt -Result PASS -Full $true -Serial 'TESTPHONE01' -Device 'SM-S908U1' -Facebook '585.0.0.47.54' `
+        $walkReceipt = New-WalkReceipt -Result PASS -Full $true -Serial 'TESTPHONE01' -Device 'SM-S908U1' -Facebook '587.0.0.39.55' `
             -PatchBuild $walkIdentity -InstalledApkSha256 ('4' * 64) -Started '2026-10-21T16:00:00Z' -Finished '2026-10-21T16:30:00Z' `
             -FamiliesRan 120 -Families 160 -Crashes 0
         foreach ($key in $Change.Keys) { $walkReceipt[$key] = $Change[$key] }
@@ -8385,7 +8425,7 @@ try {
             '; source=clean:' + ('1' * 40) + '; tree=' + ('2' * 40) + '; inputs=' + ('3' * 64)
         $patchedMessages = 0
         foreach ($delta in $Deltas) { $patchedMessages += $delta.Patched }
-        $verifierReceipt = New-VerifierReceipt -Serial 'TESTPHONE01' -Device 'SM-S908U1' -Facebook '585.0.0.47.54' `
+        $verifierReceipt = New-VerifierReceipt -Serial 'TESTPHONE01' -Device 'SM-S908U1' -Facebook '587.0.0.39.55' `
             -PatchBuild $verifierIdentity -PatchedApkSha256 ('4' * 64) -StaticPassed $StaticPassed `
             -Comparison ([pscustomobject]@{ Valid = $Deltas.Count -eq 0; CleanTotal = 0; PatchedTotal = $patchedMessages; Deltas = $Deltas }) `
             -Finished '2026-10-21T16:40:00Z'
@@ -8616,7 +8656,7 @@ try {
     Write-FlowWalk @{ serial = 'emulator-5554'; device = 'Hushfacebook_API36'; emulator = $true }
     & $flowScript -Stage publish -Version 1.2.3 -Checked $flowChecked -Walk $flowWalk -Verifier $flowVerifier 6> $null 3> $null
     $flow = @(Read-FlowLog | Where-Object { $_ -notlike 'gh release view *' })
-    Assert-True ($flow.Count -eq 4 -and $flow[0] -like ("staged version=1.2.3 commit=$flowHead swap=refused folder=* files=patches-1.2.3.cdx.json," +
+    Assert-True ($flow.Count -eq 4 -and $flow[0] -like ("staged version=1.2.3 commit=$flowHead swap=refused folder=* files=hush-unpacker-1.2.3.apk,patches-1.2.3.cdx.json," +
             'patches-1.2.3.mpp,patches-1.2.3.tooling.json,release-receipt-1.2.3.json,SHA256SUMS.txt') -and
         $flow[1] -like "py * github-notes --version 1.2.3 --checked $flowChecked --out *notes.md" -and
         $flow[2] -like 'gh release create v1.2.3 -R SysAdminDoc/HushFacebook --verify-tag --title v1.2.3 --notes-file *notes.md *' -and
@@ -8626,7 +8666,7 @@ try {
     $checkedCopy = [regex]::Match($flow[0], ' folder=(.+) files=').Groups[1].Value
     Assert-True ((Split-Path -Leaf $checkedCopy) -cmatch '\Ahushfacebook-publishing-1\.2\.3-[0-9a-f]{32}\z') `
         "Publish checked a copy in a folder whose name can be known ahead: $checkedCopy"
-    foreach ($name in 'patches-1.2.3.mpp', 'patches-1.2.3.cdx.json', 'patches-1.2.3.tooling.json', 'release-receipt-1.2.3.json', 'SHA256SUMS.txt') {
+    foreach ($name in 'patches-1.2.3.mpp', 'patches-1.2.3.cdx.json', 'patches-1.2.3.tooling.json', 'hush-unpacker-1.2.3.apk', 'release-receipt-1.2.3.json', 'SHA256SUMS.txt') {
         Assert-True ($flow[2].Contains((Join-Path $checkedCopy $name))) "Publish created the release without the checked $name."
     }
     Assert-True (-not (Test-Path -LiteralPath $checkedCopy)) 'Publish left the copy it checked behind.'
@@ -8705,7 +8745,7 @@ try {
     Assert-True ($flow.Count -eq 4 -and $flow[0] -eq 'gh release view v1.2.3 -R SysAdminDoc/HushFacebook --json publishedAt --jq .publishedAt' -and
         $flow[1] -like 'py * index --version 1.2.3 --created 2026-10-09T21:03:04 --bundle-summary * --readme-summary * --runtime 2 --patch 4' -and
         $flow[2] -like 'gh repo view *' -and
-        $flow[3] -eq 'gh repo edit SysAdminDoc/HushFacebook --description Hushfacebook v1.2.3: 2 patches for Facebook 585.0.0.47.54 with Morphe.') `
+        $flow[3] -eq 'gh repo edit SysAdminDoc/HushFacebook --description Hushfacebook v1.2.3: 2 patches for Facebook 587.0.0.39.55 with Morphe.') `
         "Index did not read the release, write the index and update the description: $($flow -join ' | ')"
     Assert-True (Test-Path -LiteralPath (Join-Path $flowRepo 'release-receipt-1.2.3.json') -PathType Leaf) `
         'Index did not put the receipt back where the facts check reads it.'

@@ -19,9 +19,9 @@ PERMISSION = "app.hushfacebook.receiver.permission.ACCESS"
 OWNERS = f"+ permission:android.permission.INTERNET\n  package:android\n+ permission:{PERMISSION}\n  package:com.facebook.katana\n"
 
 
-def apk(package="com.facebook.orca", signers=(A,), code=347215348):
+def apk(package="com.facebook.orca", signers=(A,), code=347415354):
     return checker.Apk(
-        package, code, "586.0.0.55.92", frozenset({PERMISSION}), frozenset(signers)
+        package, code, "587.0.0.54.96", frozenset({PERMISSION}), frozenset(signers)
     )
 
 
@@ -119,7 +119,7 @@ class CertificateChecks(unittest.TestCase):
 
     def test_the_three_refusals_are_named_apart(self):
         installed = {
-            "com.facebook.orca": apk(code=347215399, signers=(B,)),
+            "com.facebook.orca": apk(code=347415399, signers=(B,)),
             "com.facebook.katana": apk("com.facebook.katana", (B,)),
         }
         problems = checker.conflicts(
@@ -168,15 +168,15 @@ class CertificateChecks(unittest.TestCase):
     def test_downgrade_and_unreadable_owner_fail(self):
         self.assertIn(
             "downgrade",
-            checker.conflicts(apk(), {"com.facebook.orca": apk(code=347215399)}, {})[0],
+            checker.conflicts(apk(), {"com.facebook.orca": apk(code=347415399)}, {})[0],
         )
         with self.assertRaises(ValueError):
             checker.conflicts(apk(), {}, {PERMISSION: "com.facebook.katana"})
 
     def test_normal_downgrade_keeps_the_plain_message(self):
         self.assertEqual(
-            checker.conflicts(apk(), {"com.facebook.orca": apk(code=347215399)}, {}),
-            ["Version downgrade: installed 347215399, candidate 347215348."],
+            checker.conflicts(apk(), {"com.facebook.orca": apk(code=347415399)}, {}),
+            ["Version downgrade: installed 347415399, candidate 347415354."],
         )
 
     def test_spoofed_version_code_is_named_with_the_readme_fix(self):
@@ -202,10 +202,20 @@ class CertificateChecks(unittest.TestCase):
     def test_leftover_data_only_conflicts_when_newer(self):
         self.assertIn(
             "Android refuses anything lower",
-            checker.conflicts(apk(), {}, {}, leftover=347215399)[0],
+            checker.conflicts(apk(), {}, {}, leftover=347415399)[0],
         )
         self.assertEqual(checker.conflicts(apk(), {}, {}, leftover=346000000), [])
         self.assertEqual(checker.conflicts(apk(), {}, {}, leftover=None), [])
+
+    def test_a_kept_meta_build_points_at_clone_install_not_a_higher_code(self):
+        # #156: Messenger 347215347 was uninstalled with its data kept, so patched 347215257 failed with
+        # INSTALL_FAILED_VERSION_DOWNGRADE, and on a device another key failed even at a higher code.
+        problems = checker.conflicts(apk(code=347215257), {}, {}, leftover=347215347)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("kept at version code 347215347, candidate 347215257", problems[0])
+        self.assertIn("Clone install under another package name", problems[0])
+        self.assertIn("even at a higher version code", problems[0])
+        self.assertNotIn("Spoof package version", problems[0])
 
     def test_leftover_version_inventory_is_read_exactly(self):
         output = (
@@ -433,6 +443,7 @@ class CertificateChecks(unittest.TestCase):
             self.assertIn(
                 "NOTE: com.facebook.orca was uninstalled with its data kept", text
             )
+            self.assertIn("Android refuses a different key on install", text)
             self.assertIn("CONFLICT: Version downgrade", text)
             self.assertIn('"Spoof package version"', text)
             self.assertNotIn(
@@ -443,7 +454,7 @@ class CertificateChecks(unittest.TestCase):
 class ParserAndCliChecks(unittest.TestCase):
     def setUp(self):
         self.args = argparse.Namespace(build_tools=Path("tools"), java=Path("java"))
-        self.badging = "package: name='com.facebook.orca' versionCode='347215348' versionName='586.0.0.55.92'\n"
+        self.badging = "package: name='com.facebook.orca' versionCode='347415354' versionName='587.0.0.54.96'\n"
         self.permissions = f"package: com.facebook.orca\npermission: {PERMISSION}\n"
         self.certificates = (
             f"Number of signers: 1\nSigner #1 certificate SHA-256 digest: {A}\n"

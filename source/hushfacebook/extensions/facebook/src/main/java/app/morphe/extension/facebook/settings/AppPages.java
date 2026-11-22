@@ -15,6 +15,7 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Context;
+import android.os.Build;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
@@ -55,6 +56,12 @@ final class AppPages {
         return forced != null ? forced.contains(PatchFamily.MESSENGER_ICON) : MessengerHandoff.inBuild();
     }
 
+    /** Whether this build carries Open chats in Messenger's hook, counted in the same way for tests. */
+    static boolean chatsInBuild() {
+        Set<PatchFamily> forced = PatchFamily.inBuildForTests;
+        return forced != null ? forced.contains(PatchFamily.MESSENGER_ICON) : MessengerHandoff.chatsInBuild();
+    }
+
     /** Chats: the Get Messenger card, the chat list clean-up, the Messenger icon and leaving calls to Messenger. */
     static void chats(HushfacebookPreferenceFragment page, PreferenceScreen screen, Context context,
             Set<PatchFamily> build) {
@@ -89,6 +96,13 @@ final class AppPages {
                                 + "enabled. Restart Facebook after changing this switch, or after installing, removing, enabling "
                                 + "or disabling Messenger, so call routing updates. If you're signed out of Messenger, you'll "
                                 + "miss calls and messages.")));
+            }
+            // A build without Facebook's chats gate keeps the icon without this switch (#392).
+            if (build.contains(PatchFamily.MESSENGER_ICON) && chatsInBuild()) {
+                chats.addPreference(toggle(context, Settings.OPEN_CHATS_IN_MESSENGER,
+                        L10n.t("Opens chats in the Messenger app instead of inside Facebook, the Message button on a profile "
+                                + "included, while Messenger is installed and enabled. Without Messenger, chats stay in "
+                                + "Facebook. Restart Facebook after changing it.")));
             }
             if (build.contains(PatchFamily.ORIGINAL_CHAT_MEDIA)) {
                 chats.addPreference(toggle(context, Settings.ORIGINAL_CHAT_MEDIA,
@@ -175,6 +189,12 @@ final class AppPages {
             menu.addPreference(toggle(context, Settings.HIDE_MENU_HELP,
                     L10n.t("The Help and support section leaves Facebook's Menu, header and all. Settings and privacy "
                             + "stays.")));
+            menu.addPreference(toggle(context, Settings.HIDE_MENU_SHORTCUTS,
+                    L10n.t("The Your shortcuts row leaves Facebook's Menu, with the groups and Pages Facebook keeps "
+                            + "putting back in it. The Menu tiles under it stay.")));
+            menu.addPreference(toggle(context, Settings.HIDE_MENU_CREATE_PAGE,
+                    L10n.t("The Create Facebook Page row leaves the top of Facebook's Menu. Your profile above it "
+                            + "stays.")));
             menu.addPreference(toggle(context, Settings.KEEP_MENU_SETTINGS_EXPANDED,
                     L10n.t("Settings and privacy in Facebook's Menu stays open, so its rows show without a tap.")));
             menu.addPreference(toggle(context, Settings.HIDE_MENU_MUSE,
@@ -226,7 +246,8 @@ final class AppPages {
             Set<PatchFamily> build) {
         if (build.contains(PatchFamily.META_AI_SEARCH) || build.contains(PatchFamily.SPONSORED_SEARCH)
                 || build.contains(PatchFamily.SUGGESTED_POSTS) || build.contains(PatchFamily.SEARCH_HISTORY)
-                || build.contains(PatchFamily.SEARCH_DATE_RANGE) || build.contains(PatchFamily.SEARCH_POSTS_TAB)) {
+                || build.contains(PatchFamily.SEARCH_DATE_RANGE) || build.contains(PatchFamily.SEARCH_POSTS_TAB)
+                || build.contains(PatchFamily.SEARCH_SAVED_BUTTON)) {
             PreferenceCategory search = category(screen, L10n.t("Search"));
             if (build.contains(PatchFamily.META_AI_SEARCH)) {
                 search.addPreference(toggle(context, Settings.HIDE_META_AI_IN_SEARCH,
@@ -259,6 +280,11 @@ final class AppPages {
                 search.addPreference(toggle(context, Settings.SEARCH_POSTS_TAB,
                         L10n.t("Puts Posts back in the row over search results, after Reels, so you can see only posts "
                                 + "for what you searched.")));
+            }
+            if (build.contains(PatchFamily.SEARCH_SAVED_BUTTON)) {
+                search.addPreference(toggle(context, Settings.SEARCH_SAVED_BUTTON,
+                        L10n.t("Puts a Saved button at the end of the search bar, so your saved posts and videos are one "
+                                + "tap away. Restart Facebook to see the change.")));
             }
         }
     }
@@ -579,8 +605,10 @@ final class AppPages {
                         + "time below. Your phone needs a screen lock."));
         lock.setOnPreferenceChangeListener((preference, value) -> {
             if (Boolean.TRUE.equals(value) && !AppLock.canLock(context)) {
-                Utils.showToastLong(L10n.t("Set a screen lock in your phone's settings first, so Facebook has "
-                        + "something to ask for."));
+                Utils.showToastLong(Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+                        ? L10n.t("Lock Facebook needs Android 10 or newer.")
+                        : L10n.t("Set a screen lock in your phone's settings first, so Facebook has "
+                                + "something to ask for."));
                 return false;
             }
             return true;
@@ -615,6 +643,12 @@ final class AppPages {
         if (build.contains(PatchFamily.SCREENSHOT_DETECTION)) {
             privacy.addPreference(toggle(context, Settings.BLOCK_SCREENSHOT_DETECTION,
                     L10n.t("Facebook can't tell when you take a screenshot or record your screen, so it can't react.")));
+        }
+        if (build.contains(PatchFamily.LOCATION_PROMPTS)) {
+            // Asked each time Facebook checks whether its location page may show, so a change counts from the next check.
+            privacy.addPreference(toggle(context, Settings.SKIP_LOCATION_PROMPTS,
+                    L10n.t("Facebook's page asking you to allow Location Services, the one with Skip and Continue, "
+                            + "doesn't show. Location you turn on yourself still works.")));
         }
         if (build.contains(PatchFamily.SCREENSHOTS)) {
             privacy.addPreference(toggle(context, Settings.ALLOW_SCREENSHOTS,

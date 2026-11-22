@@ -77,8 +77,12 @@ class GenAiReelFixtureTest {
                     dexFilter = { dex -> dex.typeSection.contains(attributionType) && dex.typeSection.contains(modelType) },
                     wanted = { readsReelDetectedFlag(it, attributionType, modelType) },
                 )
-                assertEquals("${bundle.name}: the label decision reading $DETECTED_FLAG on $attributionType: " +
-                    decisions.map { "${it.definingClass}->${it.name}" }, 1, decisions.size)
+                // Up to 585 one method read it. 586 walks the model's attributions for the flag in
+                // two places, its Android 9 build in one again; the patch only needs one to know the
+                // flag is still where it reads it.
+                val android9 = bundle.name.substringAfter("-$version-").contains("-minapi")
+                assertEquals("${bundle.name}: the label decisions reading $DETECTED_FLAG on $attributionType: " +
+                    decisions.map { "${it.definingClass}->${it.name}" }, if (android9) 1 else 2, decisions.size)
 
                 val tree = FixtureDex.classes(bundle, setOf(TREE_JNI))[TREE_JNI]
                     ?: throw AssertionError("${bundle.name} has no $TREE_JNI")

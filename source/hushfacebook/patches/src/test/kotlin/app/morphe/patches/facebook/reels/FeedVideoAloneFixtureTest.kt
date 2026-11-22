@@ -7,9 +7,15 @@ package app.morphe.patches.facebook.reels
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.facebook.feed.FixtureDex
+import app.morphe.patches.facebook.media.taptoplay.tapToPlayPatch
 import app.morphe.patches.facebook.feed.holdsString
+import app.morphe.patches.facebook.feed.namesString
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
+import app.morphe.patches.facebook.search.branchTarget
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -20,18 +26,21 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Clean up Reels' Open feed videos on their own hooks (#161) on every Facebook build the bundle
- * declares (arm64 and armv7): one void method holds the Warion trace and tells the extension first,
+ * declares (arm64 and armv7): one void method taking the tap beside the Warion class's
+ * shouldOpenInChannelFeed tells the extension first,
  * the reels viewer's one entry tells it the origin it reads before its null check, and the data
  * controller's and the client-side ranking loader's fetch mores, one instance method
  * each holding its line, answer false before fetching when the extension says so. The Warion
@@ -58,10 +67,16 @@ class FeedVideoAloneFixtureTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
                 val name = bundle.name
-                val warionOwners = FixtureDex.classesHolding(bundle, WARION_CLICK)
-                    .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
-                val warions = warionOwners.flatMap { owner -> owner.methods.filter(::isWarionStep).map { owner to it } }
-                assertEquals("$name: void methods holding $WARION_CLICK", 1, warions.size)
+                val warionOwners = mutableListOf<ClassDef>()
+                FixtureDex.forEach(bundle) { dex ->
+                    if (dex.methodSection.none { it.name == CHANNEL_FEED_CHECK }) return@forEach
+                    dex.classes.filter { classDef ->
+                        !classDef.type.startsWith(EXTENSION_PACKAGE) && classDef.methods.any { it.name == CHANNEL_FEED_CHECK }
+                    }.mapTo(warionOwners) { ImmutableClassDef.of(it) }
+                }
+                val warions = warionOwners.distinctBy { it.type }
+                    .flatMap { owner -> owner.methods.filter(::isWarionStep).map { owner to it } }
+                assertEquals("$name: void methods taking the tap beside a $CHANNEL_FEED_CHECK", 1, warions.size)
                 val fetchOwners = FixtureDex.classesHolding(bundle, FETCH_MORE)
                     .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
                 val fetches = fetchOwners.flatMap { owner -> owner.methods.filter(::isFetchMore).map { owner to it } }
@@ -73,7 +88,7 @@ class FeedVideoAloneFixtureTest {
                 val entryOwners = FixtureDex.classesHolding(bundle, VIEWER_ENTRY)
                     .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
                 val entries = entryOwners.flatMap { owner -> owner.methods.filter(::isViewerEntry).map { owner to it } }
-                assertEquals("$name: void methods holding $VIEWER_ENTRY", 1, entries.size)
+                assertEquals("$name: void or boolean methods holding $VIEWER_ENTRY", 1, entries.size)
                 val (warionOwner, warion) = warions.single()
                 val (fetchOwner, fetch) = fetches.single()
                 val (loaderOwner, loader) = loaders.single()
@@ -98,11 +113,18 @@ class FeedVideoAloneFixtureTest {
                 assertTrue("$name: $paramsType isn't public", AccessFlags.PUBLIC.isSet(params.accessFlags))
                 val originDef = params.fields.single { it.name == originField.name && it.type == PLAYER_ORIGIN }
                 assertTrue("$name: the origin field isn't public", AccessFlags.PUBLIC.isSet(originDef.accessFlags))
-                val listOwners = FixtureDex.classesHolding(bundle, LOADING_PAGE)
+                // The Android 9 build names the string through a table, so the builder is found among
+                // every method naming it, the table's callers included, as the patch finds it.
+                val nameHolders = FixtureDex.classesHolding(bundle, LOADING_PAGE)
                     .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
-                val lists = listOwners.flatMap { owner -> owner.methods.filter { isListBuilder(it, paramsType) }.map { owner to it } }
-                assertEquals("$name: list builders holding $LOADING_PAGE", 1, lists.size)
-                val (listOwner, list) = lists.single()
+                val holderTypes = nameHolders.associateBy { it.type }
+                val resolve: (MethodReference) -> Method? = { call -> holderTypes[call.definingClass]?.let { resolveStatic(it, call) } }
+                val lists = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in holderTypes } }) {
+                    !it.definingClass.startsWith(EXTENSION_PACKAGE) && isListBuilder(it, paramsType) && namesString(it, LOADING_PAGE, resolve)
+                }.distinctBy { "${it.definingClass}->${it.name}${it.parameterTypes.joinToString("")}${it.returnType}" }
+                assertEquals("$name: list builders naming $LOADING_PAGE", 1, lists.size)
+                val list = lists.single()
+                val listOwner = FixtureDex.classes(bundle, setOf(list.definingClass)).getValue(list.definingClass)
                 val gate = loadingPageRead(list, paramsType)!!
                 val listCode = list.code()
                 assertEquals("$name: the answer is a boolean field read", Opcode.IGET_BOOLEAN, listCode[gate.index - 1].opcode)
@@ -135,17 +157,23 @@ class FeedVideoAloneFixtureTest {
                 val paging = paginationRead(list, paramsType, ::buildsPage)
                     ?: throw AssertionError("$name: the list builder doesn't read whether to add its pagination page")
                 assertTrue("$name: the pagination read comes after the loading page's", paging.index > gate.index)
-                assertEquals("$name: both reads hand over the same params", gate.params, paging.params)
+                // Android 9 has written over the params' low copy by the pagination read, never their parameter.
+                val paramsArgument = list.parameterTypes.map(CharSequence::toString).indexOf(paramsType)
+                    .takeIf { it >= 0 }?.let { list.parameterRegisterNumber(it) }
+                assertTrue("$name: the pagination read hands over v${paging.params}, not the params",
+                    paging.params == gate.params || paging.params == paramsArgument && paging.params > 15)
                 val pageBranch = listCode[paging.index]
                 assertTrue("$name: the flag decides a branch", pageBranch.opcode in setOf(Opcode.IF_NE, Opcode.IF_EQZ))
                 // Positive control: past the branch, before where it skips to, the builder calls the page's builder.
                 val pageSkipTo = listAddresses.indexOf(listAddresses[paging.index] + (pageBranch as OffsetInstruction).codeOffset)
-                val pageCall = (paging.index + 1 until listCode.size).first { at ->
-                    listCode[at].opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) &&
-                        buildsPage((listCode[at] as ReferenceInstruction).reference as MethodReference)
-                }
+                val pageCall = (paging.index + 1 until listCode.size).first { at -> buildsPaginationPageAt(listCode, at, ::buildsPage) }
                 assertTrue("$name: the branch doesn't skip the page's builder", paging.index < pageCall && pageCall < pageSkipTo)
-                assertEquals("$name: a read with no page builder", null, paginationRead(list, paramsType) { false })
+                if (listCode[pageCall].opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)) {
+                    assertEquals("$name: a read with no page builder", null, paginationRead(list, paramsType) { false })
+                } else {
+                    // Android 9 inlines the page: its name goes straight into the call that builds it.
+                    assertTrue("$name: the inlined page isn't named", listCode[pageCall].opcode in setOf(Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO))
+                }
 
                 // Positive control: the check turns down the trace's other holders of the same class, and
                 // a static or void copy of the fetch more wouldn't pass it.
@@ -179,26 +207,38 @@ class FeedVideoAloneFixtureTest {
                 assertEquals("$name: classes answering $check", 1, sources.size)
                 val (sourceOwner, source) = sources.single()
 
-                val context = PatchContexts.of(
-                    (listOf(warionOwner, entryOwner, fetchOwner, loaderOwner, fragment, sourceOwner, listOwner, params,
-                        ExtensionDex.classDef(FEED_VIDEO_ALONE)) + pageOwners).distinctBy { it.type },
-                )
+                val classes = (listOf(warionOwner, entryOwner, fetchOwner, loaderOwner, fragment, sourceOwner, listOwner, params,
+                    ExtensionDex.classDef(FEED_VIDEO_ALONE)) + pageOwners + nameHolders).distinctBy { it.type }
+                // Positive control: Clean up Reels refuses when the opening hooks it rests on aren't in.
+                val unhooked = assertThrows(PatchException::class.java) { PatchContexts.of(classes).keepFeedVideosAlone() }
+                assertTrue("$name: ${unhooked.message}", unhooked.message.orEmpty().contains("doesn't tell the extension"))
+                val context = PatchContexts.of(classes)
+                context.hookFeedVideoOpening()
                 context.keepFeedVideosAlone()
 
                 val listed = context.mutableClassDefBy(listOwner.type).methods.single { it.sameAs(list) }.code()
-                assertEquals("$name: four instructions added to the list builder", listCode.size + 4, listed.size)
+                // A params parameter past v15 is copied into a local for the call first.
+                val copies = if (paging.params > 15) 1 else 0
+                assertEquals("$name: instructions added to the list builder", listCode.size + 4 + copies, listed.size)
                 // The loading page's two instructions push the pagination read's down by two.
-                for ((read, at) in listOf(gate to gate.index, paging to paging.index + 2)) {
+                for ((read, at) in listOf(gate to gate.index, paging to paging.index + 2 + copies)) {
                     val ask = listed[at]
                     assertEquals("$name: the builder asks the extension at ${read.index}", MORE_REELS_COMING, called(ask))
                     ask as FiveRegisterInstruction
+                    val handed = if (read.params <= 15) read.params else {
+                        val copy = listed[at - 1]
+                        assertEquals("$name: the params copied out of their parameter at ${read.index}",
+                            listOf(Opcode.MOVE_OBJECT_FROM16, read.params), listOf(copy.opcode, (copy as TwoRegisterInstruction).registerB))
+                        assertTrue("$name: the copy writes over the answer at ${read.index}", copy.registerA != read.more)
+                        copy.registerA
+                    }
                     assertEquals("$name: handed the answer, then the params at ${read.index}",
-                        listOf(2, read.more, read.params), listOf(ask.registerCount, ask.registerC, ask.registerD))
+                        listOf(2, read.more, handed), listOf(ask.registerCount, ask.registerC, ask.registerD))
                     assertEquals("$name: its answer back where Facebook's was at ${read.index}",
                         listOf(Opcode.MOVE_RESULT, read.more),
                         listOf(listed[at + 1].opcode, (listed[at + 1] as OneRegisterInstruction).registerA))
                 }
-                val added = setOf(gate.index, gate.index + 1, paging.index + 2, paging.index + 3)
+                val added = setOf(gate.index, gate.index + 1) + (paging.index + 2 until paging.index + 4 + copies)
                 assertEquals("$name: the rest of the list builder is Facebook's",
                     listCode.map { it.opcode }, listed.filterIndexed { at, _ -> at !in added }.map { it.opcode })
                 val stub = context.mutableClassDefBy(FEED_VIDEO_ALONE).methods.single { it.name == VIEWER_ORIGIN }.code()
@@ -243,6 +283,38 @@ class FeedVideoAloneFixtureTest {
                     assertEquals("$where: the rest is Facebook's",
                         method.code().map { it.opcode }, asked.drop(6).map { it.opcode })
                 }
+                // #421: the loader's vend hands the extension the data source and the page just ahead of
+                // its branch on the seed check, and the branch still lands where it did.
+                val vends = loaderOwner.methods.filter { it.returnType == "V" && holdsString(it, SEED_VEND) }
+                assertEquals("$name: void methods beside the loader holding $SEED_VEND", 1, vends.size)
+                val vend = vends.single()
+                val vendCode = vend.code()
+                val vendAt = vendAsk(vend, check) ?: throw AssertionError("$name: the vend doesn't branch on $check past a page")
+                val landed = branchTarget(vendCode, vendAt.index)!!
+                val vended = context.mutableClassDefBy(loaderOwner.type).methods.single { it.sameAs(vend) }.code()
+                // Seven code units in front of a switch payload put it off its four-byte boundary, and
+                // dexlib pads it with a nop (the A9 build's vend ends in a sparse-switch payload).
+                assertEquals("$name: three instructions added to the vend, not counting alignment nops",
+                    vendCode.count { it.opcode != Opcode.NOP } + 3, vended.count { it.opcode != Opcode.NOP })
+                val (fromSource, fromPage, told421) = vended.subList(vendAt.index, vendAt.index + 3)
+                assertEquals("$name: the vend's copies and call", listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC),
+                    listOf(fromSource.opcode, fromPage.opcode, told421.opcode))
+                fromSource as TwoRegisterInstruction
+                fromPage as TwoRegisterInstruction
+                assertEquals("$name: copied from the data source, then the page", listOf(vendAt.source, vendAt.reels),
+                    listOf(fromSource.registerB, fromPage.registerB))
+                assertEquals("$name: the vend tells the extension", VENDING, called(told421))
+                told421 as FiveRegisterInstruction
+                assertEquals("$name: with both copies", listOf(2, fromSource.registerA, fromPage.registerA),
+                    listOf(told421.registerCount, told421.registerC, told421.registerD))
+                val branch = vended[vendAt.index + 3]
+                assertEquals("$name: Facebook's branch follows", Opcode.IF_EQZ, branch.opcode)
+                assertTrue("$name: the copies leave the answer alone", (branch as OneRegisterInstruction).registerA !in
+                    setOf(fromSource.registerA, fromPage.registerA))
+                assertEquals("$name: the branch lands where it did", landed + 3, branchTarget(vended, vendAt.index + 3))
+                assertEquals("$name: the rest of the vend is Facebook's", vendCode.map { it.opcode }.filter { it != Opcode.NOP },
+                    vended.filterIndexed { at, _ -> at !in vendAt.index until vendAt.index + 3 }.map { it.opcode }.filter { it != Opcode.NOP })
+
                 // Positive control: three separate roads, so no hook stands in for another.
                 assertEquals("$name: the loader, the data controller and the data source share a class",
                     3, setOf(loaderOwner.type, fetchOwner.type, sourceOwner.type).size)
@@ -271,6 +343,13 @@ class FeedVideoAloneFixtureTest {
     }
 
     @Test
+    fun `Tap to play and Clean up Reels both bring the feed video opening hooks`() {
+        // #393: Tap to play patched without Clean up Reels held a tapped feed video whose player started late.
+        assertTrue("Tap to play doesn't bring them", feedVideoOpeningPatch in tapToPlayPatch.dependencies)
+        assertTrue("Clean up Reels doesn't bring them", feedVideoOpeningPatch in cleanUpReelsPatch.dependencies)
+    }
+
+    @Test
     fun `the extension has every hook`() {
         val stub = ExtensionDex.classDef(FEED_VIDEO_ALONE).methods.singleOrNull { it.name == VIEWER_ORIGIN }
         assertNotNull("the extension has no $VIEWER_ORIGIN stub", stub)
@@ -278,7 +357,8 @@ class FeedVideoAloneFixtureTest {
             "${stub!!.definingClass}->${stub.name}(${stub.parameterTypes.joinToString("")})${stub.returnType}")
         assertTrue("the stub isn't public static",
             AccessFlags.STATIC.isSet(stub.accessFlags) && AccessFlags.PUBLIC.isSet(stub.accessFlags))
-        for (hook in listOf(FEED_VIDEO_TAPPED, VIEWER_OPENING, HOLDS_BACK, WARION_OPENING, WARION_CLOSED, SEED_CHECK, MORE_REELS_COMING)) {
+        for (hook in listOf(FEED_VIDEO_TAPPED, VIEWER_OPENING, HOLDS_BACK, WARION_OPENING, WARION_CLOSED, SEED_CHECK, MORE_REELS_COMING,
+            VENDING)) {
             val type = hook.substringBefore("->")
             val name = hook.substringAfter("->").substringBefore("(")
             val method = ExtensionDex.classDef(type).methods.singleOrNull { it.name == name }

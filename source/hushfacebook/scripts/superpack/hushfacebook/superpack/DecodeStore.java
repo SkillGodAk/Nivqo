@@ -1,0 +1,270 @@
+package hushfacebook.superpack;
+
+import com.facebook.superpack.SuperpackArchive;
+import com.facebook.superpack.SuperpackFile;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+
+/**
+ * Decodes Facebook's Superpack dex store on a device, with the libsuperpack-jni.so the APK ships,
+ * and checks every DEX against the APK's own metadata.txt.
+ *
+ * <p>Facebook's Android 9+ builds keep all but the first DEX in one compressed store
+ * (assets/secondary-program-dex-jars/store-0.dex.spo) that only that native library reads. Runs
+ * through app_process as the shell user, with the stubs in com.facebook.superpack giving the
+ * library the class surface it registers against:
+ *
+ *   app_process -cp decoder.jar /system/bin hushfacebook.superpack.DecodeStore \
+ *       &lt;libsuperpack-jni.so&gt; &lt;store-0.dex.spo&gt; &lt;metadata.txt&gt; &lt;outdir&gt;
+ *
+ * <p>Exits 0, with a last line starting VERIFIED, only when every listed DEX came out with its
+ * listed SHA-1 and a dex header and nothing unlisted did. A damaged store can abort inside the
+ * library, which no catch here sees, so callers treat anything without that last line as a
+ * refusal.
+ *
+ * <p>The Hush Unpacker app (helper/) calls {@link #decode} in its own process instead, and the
+ * desktop decoder (scripts/superpack-desktop) hands {@link #decode(Natives, File, File, File,
+ * Consumer)} the same library running under an ARM emulator, so every route makes the same checks.
+ */
+public final class DecodeStore {
+    private DecodeStore() {
+    }
+
+    public static void main(String[] args) {
+        if (args.length != 4) {
+            System.out.println("REFUSED usage: <libsuperpack-jni.so> <store.dex.spo> <metadata.txt> <outdir>");
+            System.exit(2);
+        }
+        boolean verified = false;
+        try {
+            verified = decode(new File(args[0]), new File(args[1]), new File(args[2]), new File(args[3]), System.out::println);
+        } catch (Refusal refusal) {
+            System.out.println("REFUSED " + refusal.getMessage());
+        } catch (Throwable failure) {
+            System.out.println("REFUSED " + failure.getClass().getName() + ": " + failure.getMessage());
+        }
+        System.exit(verified ? 0 : 1);
+    }
+
+    /**
+     * Decodes {@code store} with {@code library} into {@code out}, one line per file to
+     * {@code log} and a last line starting VERIFIED or REFUSED, and says whether every DEX
+     * {@code metadata} lists came out right. Throws {@link Refusal} before decoding when the
+     * inputs can't be used.
+     */
+    public static boolean decode(File library, File store, File metadata, File out, Consumer<String> log) throws Exception {
+        return decode(new InProcess(library), store, metadata, out, log);
+    }
+
+    /** The same decode and checks, with the library's natives reached through {@code natives}. */
+    public static boolean decode(Natives natives, File store, File metadata, File out, Consumer<String> log) throws Exception {
+        Map<String, String> want = readMetadata(metadata);
+        if (want.isEmpty()) refuse("metadata lists no dex files");
+        if (!out.mkdirs() && !out.isDirectory()) refuse("can't make " + out);
+
+        natives.load();
+        long started = System.nanoTime();
+        int good = 0;
+        int bad = 0;
+        byte[] chunk = new byte[1 << 20];
+        try (InputStream in = new BufferedInputStream(new FileInputStream(store), 1 << 20)) {
+            long archive = natives.readArchive(in, "spo", 0L);
+            if (archive == 0) refuse("the library didn't open the store");
+            try {
+                while (!natives.isEmpty(archive)) {
+                    long file = natives.next(archive);
+                    if (file == 0) refuse("the library returned no file before the end");
+                    try {
+                        String name = natives.name(file);
+                        int length = natives.length(file);
+                        String expected = want.remove(name);
+                        File target = new File(out, safeName(name) + ".part");
+                        MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+                        try (OutputStream os = new FileOutputStream(target)) {
+                            for (int at = 0; at < length; ) {
+                                int count = Math.min(chunk.length, length - at);
+                                natives.readBytes(file, at, count, chunk, 0);
+                                sha1.update(chunk, 0, count);
+                                os.write(chunk, 0, count);
+                                at += count;
+                            }
+                        }
+                        String actual = hex(sha1.digest());
+                        boolean dex = length >= 8 && isDex(target);
+                        if (expected == null) {
+                            bad++;
+                            delete(target, log);
+                            log.accept("UNLISTED " + name + " " + length + " " + actual);
+                        } else if (!expected.equals(actual) || !dex) {
+                            bad++;
+                            delete(target, log);
+                            log.accept("MISMATCH " + name + " " + length + " want " + expected + " got " + actual
+                                    + (dex ? "" : " (no dex header)"));
+                        } else if (!target.renameTo(new File(out, name))) {
+                            bad++;
+                            delete(target, log);
+                            log.accept("UNWRITTEN " + name);
+                        } else {
+                            good++;
+                            log.accept("OK " + name + " " + length + " " + actual);
+                        }
+                    } finally {
+                        natives.closeFile(file);
+                    }
+                }
+            } finally {
+                natives.closeArchive(archive);
+            }
+        }
+        for (String missing : want.keySet()) {
+            bad++;
+            log.accept("MISSING " + missing);
+        }
+        long ms = (System.nanoTime() - started) / 1_000_000;
+        log.accept((bad == 0 ? "VERIFIED " : "REFUSED ") + good + " ok, " + bad + " bad, " + ms + " ms");
+        return bad == 0;
+    }
+
+    /** Name to SHA-1 for every dex line; the dot-lines say how the store is packed and are skipped. */
+    private static Map<String, String> readMetadata(File metadata) throws Exception {
+        Map<String, String> want = new LinkedHashMap<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(metadata), StandardCharsets.UTF_8))) {
+            for (String line; (line = reader.readLine()) != null; ) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith(".")) continue;
+                String[] parts = line.split("\\s+");
+                if (parts.length < 2 || !parts[1].matches("[0-9a-f]{40}")) refuse("metadata line not understood: " + line);
+                if (want.put(parts[0], parts[1]) != null) refuse("metadata lists " + parts[0] + " twice");
+            }
+        }
+        return want;
+    }
+
+    private static boolean isDex(File file) throws Exception {
+        byte[] head = new byte[4];
+        try (InputStream in = new FileInputStream(file)) {
+            if (in.read(head) != 4) return false;
+        }
+        return head[0] == 'd' && head[1] == 'e' && head[2] == 'x' && head[3] == '\n';
+    }
+
+    /** The store names its files; one that could climb out of the output directory is refused. */
+    private static String safeName(String name) {
+        if (name == null || !name.matches("[A-Za-z0-9._-]{1,64}") || name.startsWith(".")) {
+            refuse("unsafe file name in store: " + name);
+        }
+        return name;
+    }
+
+    private static void delete(File file, Consumer<String> log) {
+        if (!file.delete() && file.exists()) log.accept("WARN couldn't delete " + file);
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) sb.append(String.format("%02x", b & 0xff));
+        return sb.toString();
+    }
+
+    private static void refuse(String why) {
+        throw new Refusal(why);
+    }
+
+    /**
+     * The library's archive natives, one method each, as SuperpackArchive and SuperpackFile
+     * declare them. Handles are the library's own pointers.
+     */
+    public interface Natives {
+        /** Loads the library. Called once, after the inputs have been checked. */
+        void load() throws Exception;
+
+        long readArchive(InputStream in, String extension, long options) throws Exception;
+
+        boolean isEmpty(long archive) throws Exception;
+
+        long next(long archive) throws Exception;
+
+        void closeArchive(long archive) throws Exception;
+
+        String name(long file) throws Exception;
+
+        int length(long file) throws Exception;
+
+        void readBytes(long file, int offset, int count, byte[] into, int intoOffset) throws Exception;
+
+        void closeFile(long file) throws Exception;
+    }
+
+    /** The library loaded into this process, on a phone. */
+    private static final class InProcess implements Natives {
+        private final File library;
+
+        InProcess(File library) {
+            this.library = library;
+        }
+
+        @Override
+        public void load() {
+            System.load(library.getAbsolutePath());
+        }
+
+        @Override
+        public long readArchive(InputStream in, String extension, long options) {
+            return SuperpackArchive.readNative(in, extension, options);
+        }
+
+        @Override
+        public boolean isEmpty(long archive) {
+            return SuperpackArchive.isEmptyNative(archive);
+        }
+
+        @Override
+        public long next(long archive) {
+            return SuperpackArchive.nextNative(archive);
+        }
+
+        @Override
+        public void closeArchive(long archive) {
+            SuperpackArchive.closeNative(archive);
+        }
+
+        @Override
+        public String name(long file) {
+            return SuperpackFile.getNameNative(file);
+        }
+
+        @Override
+        public int length(long file) {
+            return SuperpackFile.getLengthNative(file);
+        }
+
+        @Override
+        public void readBytes(long file, int offset, int count, byte[] into, int intoOffset) {
+            SuperpackFile.readBytesNative(file, offset, count, into, intoOffset);
+        }
+
+        @Override
+        public void closeFile(long file) {
+            SuperpackFile.closeNative(file);
+        }
+    }
+
+    /** The store or its metadata can't be decoded; the message says why. */
+    public static final class Refusal extends RuntimeException {
+        Refusal(String message) {
+            super(message);
+        }
+    }
+}

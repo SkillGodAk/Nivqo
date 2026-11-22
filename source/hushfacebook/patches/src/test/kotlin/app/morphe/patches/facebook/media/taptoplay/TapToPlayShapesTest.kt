@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
+import app.morphe.patches.facebook.media.progressbar.LIVE_LATENCY_LOG
 import app.morphe.patches.facebook.media.reelspeed.PLAYER_ORIGIN
 import app.morphe.patches.facebook.media.resume.GROOT_RELEASE
 import app.morphe.patches.facebook.media.resume.GROOT_SAFE_SEEK
@@ -62,8 +63,56 @@ class TapToPlayShapesTest {
     private val playbackState = "Lfixture/PlaybackState;"
     private val reelControl = "Lfixture/ReelControl;"
     private val reelController = "Lfixture/ReelController;"
+    private val stateSource = "Lfixture/StateSource;"
+    private val reelEvents = "Lfixture/ReelEvents;"
 
-    private fun playbackClasses(compare: String = "if-ne", resetValue: Int = 0): List<ClassDef> {
+    /**
+     * The Reels controls' state enum with real constants, the "autoplay disabled" handler storing
+     * [disabledStores] into the controller, and, with [readsState], the controller's read of the
+     * player's state through its source (585 `LX/09hU;->A09` then `Er5()`).
+     */
+    private fun disabledClasses(disabledStores: String, readsState: Boolean): List<ClassDef> {
+        val control = method(reelControl, "<clinit>", emptyList(), "V", """
+            new-instance v0, $reelControl
+            const-string v1, "AUTOPLAY_OFF_INIT_STATE"
+            const/4 v2, 0x0
+            invoke-direct {v0, v1, v2}, $reelControl-><init>(Ljava/lang/String;I)V
+            sput-object v0, $reelControl->init:$reelControl
+            new-instance v0, $reelControl
+            const-string v1, "PLAYING"
+            const/4 v2, 0x1
+            invoke-direct {v0, v1, v2}, $reelControl-><init>(Ljava/lang/String;I)V
+            sput-object v0, $reelControl->playing:$reelControl
+            ${(REEL_CONTROL_NAMES - "AUTOPLAY_OFF_INIT_STATE" - "PLAYING").joinToString("\n") { "const-string v0, \"$it\"" }}
+            return-void
+        """, registers = 3, static = true)
+        val source = ImmutableClassDef(stateSource,
+            AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value,
+            "Ljava/lang/Object;", null, null, null, null,
+            listOf(ImmutableMethod(stateSource, "state", emptyList<ImmutableMethodParameter>(), playbackState,
+                AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null)))
+        val handler = method(reelEvents, "onEvent", listOf("Lfixture/Event;"), "V", """
+            const-string v0, "$REELS_AUTOPLAY_DISABLED"
+            iget-object v0, p0, $reelEvents->controls:Ljava/lang/Object;
+            check-cast v0, $reelController
+            sget-object v1, $reelControl->$disabledStores:$reelControl
+            iput-object v1, v0, $reelController->state:$reelControl
+            const-string v2, "updateState"
+            return-void
+        """, registers = 5)
+        val events = ImmutableClassDef(reelEvents, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null,
+            listOf(ImmutableField(reelEvents, "controls", "Ljava/lang/Object;", AccessFlags.PUBLIC.value, null, null, null)),
+            listOf(ImmutableMethod.of(handler)))
+        return listOf(ImmutableClassDef(reelControl, AccessFlags.PUBLIC.value, "Ljava/lang/Enum;", null, null, null,
+            null, listOf(ImmutableMethod.of(control))), events) + (if (readsState) listOf(source) else emptyList())
+    }
+
+    private fun playbackClasses(
+        compare: String = "if-ne",
+        resetValue: Int = 0,
+        disabledStores: String = "init",
+        readsState: Boolean = true,
+    ): List<ClassDef> {
         val playing = method(playbackState, "<clinit>", emptyList(), "V", """
             new-instance v0, $playbackState
             const-string v1, "PLAYING"
@@ -80,8 +129,16 @@ class TapToPlayShapesTest {
             iput-object v1, p0, $reelController->state:$reelControl
             return-void
         """, registers = 6)
+        val sourceField = ImmutableField(reelController, "source", stateSource, AccessFlags.PUBLIC.value, null, null, null)
+        val update = method(reelController, "update", emptyList(), "V", """
+            iget-object v0, p0, $reelController->source:$stateSource
+            invoke-interface {v0}, $stateSource->state()$playbackState
+            move-result-object v1
+            return-void
+        """)
         val controllerClass = ImmutableClassDef(reelController, AccessFlags.PUBLIC.value, "Ljava/lang/Object;",
-            null, null, null, listOf(stateField), listOf(ImmutableMethod.of(reset)))
+            null, null, null, listOf(stateField) + (if (readsState) listOf(sourceField) else emptyList()),
+            listOf(ImmutableMethod.of(reset)) + (if (readsState) listOf(ImmutableMethod.of(update)) else emptyList()))
         val listener = method(playbackListener, "onState", listOf("Lfixture/PlaybackEvent;"), "V", """
             iget-object v5, p1, Lfixture/PlaybackEvent;->state:$playbackState
             sget-object v0, $playbackState->playing:$playbackState
@@ -99,8 +156,8 @@ class TapToPlayShapesTest {
             const-string v0, "$REELS_PLAYBACK_STARTED"
             return-void
         """, registers = 9)
-        return listOf(classDef(playbackState, "Ljava/lang/Enum;", playing), enumNaming(reelControl, REEL_CONTROL_NAMES),
-            controllerClass, classDef(playbackListener, "Ljava/lang/Object;", listener))
+        return listOf(classDef(playbackState, "Ljava/lang/Enum;", playing), controllerClass,
+            classDef(playbackListener, "Ljava/lang/Object;", listener)) + disabledClasses(disabledStores, readsState)
     }
 
     private fun method(
@@ -191,6 +248,7 @@ class TapToPlayShapesTest {
             method(player, "params", emptyList(), VIDEO_PLAYER_PARAMS, "const/4 v0, 0x0\nreturn-object v0"),
             method(player, "origin", emptyList(), PLAYER_ORIGIN, "const/4 v0, 0x0\nreturn-object v0"),
             method(player, "release", listOf(trigger, "Ljava/lang/String;"), "V", holding(GROOT_RELEASE)),
+            method(player, "rewound", listOf("Z"), "V", holding(LIVE_LATENCY_LOG)),
             method(player, "attach", listOf(VIEW_GROUP, "Ljava/lang/String;", player), "V", """
                 const-string v0, "$ATTACH_VIEW_LOG"
                 iput-object p0, p2, $player->container:$VIEW_GROUP
@@ -315,10 +373,11 @@ class TapToPlayShapesTest {
         activityClass: ClassDef = activity(),
         componentClass: ClassDef = controlComponent(),
         controlsClass: ClassDef = classDef(controls, "Ljava/lang/Object;", reelCheck()),
+        playback: List<ClassDef> = playbackClasses(),
     ) = PatchContexts.of(
         listOf(inlinePlayer(grootPlayer), playingInterface(), inlineParams(), triggerEnum, legacy(), checkerClass,
             enumNaming(setting, SETTING_NAMES), activityClass, componentClass, controlsClass,
-            ExtensionDex.classDef(FEED_CONTROLS), ExtensionDex.classDef(SETTINGS_STATUS)) + playbackClasses(),
+            ExtensionDex.classDef(FEED_CONTROLS), ExtensionDex.classDef(SETTINGS_STATUS)) + playback,
     )
 
     private val Instruction.call: MethodReference?
@@ -338,6 +397,46 @@ class TapToPlayShapesTest {
         assertThrows(PatchException::class.java) { PatchContexts.of(playbackClasses(compare = "if-eq")).hookReelPlayback() }
         assertThrows(PatchException::class.java) { PatchContexts.of(playbackClasses(resetValue = 1)).hookReelPlayback() }
         assertThrows(PatchException::class.java) { PatchContexts.of(emptyList()).hookReelPlayback() }
+    }
+
+    @Test
+    fun `a late autoplay-disabled event asks the extension with the player's state before storing the button`() {
+        val context = build()
+        tapToPlayPatch.execute(context)
+        val code = patched(context, reelEvents, "onEvent").implementation!!.instructions.toList()
+        val ask = code.indices.single { code[it].call?.toString() == KEEP_REEL_PLAYING }
+        // The controls' state source, read off the controls register the store writes into.
+        assertEquals(Opcode.CHECK_CAST, code[ask - 5].opcode)
+        assertEquals(Opcode.IGET_OBJECT, code[ask - 4].opcode)
+        assertEquals("$reelController->source:$stateSource", (code[ask - 4] as ReferenceInstruction).reference.toString())
+        assertEquals(0, (code[ask - 4] as TwoRegisterInstruction).registerB)
+        val scratch = (code[ask - 4] as TwoRegisterInstruction).registerA
+        assertTrue("the scratch isn't the controls register", scratch != 0)
+        assertEquals(Opcode.INVOKE_INTERFACE, code[ask - 2].opcode)
+        assertEquals("$stateSource->state()$playbackState", code[ask - 2].call.toString())
+        assertEquals(listOf(scratch), code[ask].registers())
+        assertEquals(listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID, Opcode.NOP, Opcode.SGET_OBJECT,
+            Opcode.IPUT_OBJECT), code.subList(ask + 1, ask + 7).map { it.opcode })
+        // A missing source and a no both go on to Facebook's own store.
+        val keep = code[ask + 4]
+        assertSame(keep, (code[ask - 3] as BuilderOffsetInstruction).target.location.instruction)
+        assertSame(keep, (code[ask + 2] as BuilderOffsetInstruction).target.location.instruction)
+        assertEquals("$reelControl->init:$reelControl", (code[ask + 5] as ReferenceInstruction).reference.toString())
+    }
+
+    @Test
+    fun `the autoplay-disabled hook refuses another store and a controller without a state read, and the patch goes on`() {
+        assertThrows(PatchException::class.java) {
+            PatchContexts.of(playbackClasses(disabledStores = "playing")).hookReelAutoplayDisabled()
+        }
+        assertThrows(PatchException::class.java) {
+            PatchContexts.of(playbackClasses(readsState = false)).hookReelAutoplayDisabled()
+        }
+        val context = build(playback = playbackClasses(readsState = false))
+        tapToPlayPatch.execute(context)
+        assertTrue(patched(context, reelEvents, "onEvent").implementation!!.instructions.none {
+            it.call?.toString() == KEEP_REEL_PLAYING
+        })
     }
 
     @Test
@@ -365,6 +464,10 @@ class TapToPlayShapesTest {
         assertEquals(listOf(0, 1, 2), seek.first { it.call != null }.registers())
         assertEquals("$trigger->seeker:$trigger", seek.single { it.opcode == Opcode.SGET_OBJECT }
             .let { (it as ReferenceInstruction).reference.toString() })
+        // A live seek marks the player rewound first through the setter that logs the latency message (#431).
+        val rewind = bridge.methods.single { it.name == "rewindPlayer" }.implementation!!.instructions.toList()
+        assertEquals("$player->rewound(Z)V", rewind.firstNotNullOf { it.call }.toString())
+        assertEquals(listOf(0, 1), rewind.first { it.call != null }.registers())
         listOf("playerPosition" to "position", "playerLength" to "length").forEach { (stub, reader) ->
             val code = bridge.methods.single { it.name == stub }.implementation!!.instructions
             assertEquals("$player->$reader()I", code.firstNotNullOf { it.call }.toString())
@@ -392,6 +495,11 @@ class TapToPlayShapesTest {
         val noLength = build()
         noLength.mutableClassDefBy(player).methods.removeAll { it.name == "remaining" }
         assertTrue(refusalWithout(noLength).contains("remaining time reader"))
+        val noRewind = build()
+        noRewind.mutableClassDefBy(player).methods.removeAll { it.name == "rewound" }
+        assertTrue(refusalWithout(noRewind).contains("live rewind setter"))
+        assertTrue(noRewind.mutableClassDefBy(FEED_CONTROLS).methods.single { it.name == "rewindPlayer" }
+            .implementation!!.instructions.none { it.call?.definingClass == player })
         assertTrue(noSeek.mutableClassDefBy(FEED_CONTROLS).methods.single { it.name == "seekPlayer" }
             .implementation!!.instructions.none { it.call?.definingClass == player })
         assertTrue(missing.mutableClassDefBy(FEED_CONTROLS).methods.single { it.name == "commandPlayer" }
@@ -534,11 +642,14 @@ class TapToPlayShapesTest {
         assertEquals(0, (reels[4] as OneRegisterInstruction).registerA)
         assertSame(reels[5], (reels[3] as BuilderOffsetInstruction).target.location.instruction)
 
-        // Every touch goes to the tap clock, the screen and the event in p0 and p1.
+        // Every touch goes to the feed video double tap, then the tap clock, the screen and the event
+        // in p0 and p1 (#432).
         val touch = patched(context, FRAGMENT_ACTIVITY, "dispatchTouchEvent").implementation!!.instructions.toList()
-        assertEquals(TOUCH, touch[0].call.toString())
+        assertEquals(DOUBLE_TAP_TOUCH, touch[0].call.toString())
         assertEquals(listOf(1, 2), touch[0].registers())
-        assertEquals(Opcode.CONST_4, touch[1].opcode)
+        assertEquals(TOUCH, touch[1].call.toString())
+        assertEquals(listOf(1, 2), touch[1].registers())
+        assertEquals(Opcode.CONST_4, touch[2].opcode)
 
         val events = patched(context, playbackListener, "onState").implementation!!.instructions.toList()
         val cleanup = events.indexOfFirst { it.call?.toString() == CLEAR_REEL_PLAY_BUTTON }

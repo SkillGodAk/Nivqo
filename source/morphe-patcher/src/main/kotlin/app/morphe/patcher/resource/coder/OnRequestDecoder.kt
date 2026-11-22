@@ -163,7 +163,7 @@ internal class OnRequestDecoder(
     init {
         val state = currentState()
         val tableBlock = state.module.tableBlock
-        packages = tableBlock.listPackages().associate { packageBlock ->
+        packages = tableBlock.associate { packageBlock ->
             packageBlock.name to DecodablePackage(
                 packageBlock.name,
                 packageBlock.id,
@@ -176,7 +176,7 @@ internal class OnRequestDecoder(
             state.resourceFiles.forEach { (archiveName, resFile) ->
                 val entry = resFile.pickOne()
                 if (!entry.isNull) fileEntries.getOrPut(entry.resourceId) { HashSet() } += entry.resConfig.qualifiers
-                val alias = resFile.buildPath(PackageBlock.RES_DIRECTORY_NAME)
+                val alias = resFile.buildPath(PackageBlock.DIRECTORY_NAME_RES)
                 packages[entry.packageBlock.name]?.resourceFiles?.put(alias, archiveName)
                 pathMapEntries += archiveName to alias
             }
@@ -185,10 +185,10 @@ internal class OnRequestDecoder(
         resourceArchiveNames = timings.measure("aliases") { state.resourceFiles.keys.toHashSet() }
 
         timings.measure("valuesIndex") {
-            tableBlock.listPackages().forEach { packageBlock ->
+            tableBlock.forEach { packageBlock ->
                 val decodablePackage = packages.getValue(packageBlock.name)
                 packageBlock.listSpecTypePairs().forEach { specTypePair ->
-                    specTypePair.listResConfig().forEach { resConfig ->
+                    specTypePair.uniqueConfigs().asSequence().forEach { resConfig ->
                         if (specTypePair.hasValues(resConfig, isFileEntry)) {
                             val qualifiers = resConfig.qualifiers
                             decodablePackage.valuesFiles[valuesPath(specTypePair.typeName, qualifiers)] =
@@ -207,7 +207,7 @@ internal class OnRequestDecoder(
                             name != TableBlock.FILE_NAME &&
                             name !in resourceArchiveNames &&
                             // Collides with the paths of the decoded resources, which take precedence.
-                            !name.startsWith("${PackageBlock.RES_DIRECTORY_NAME}/") &&
+                            !name.startsWith("${PackageBlock.DIRECTORY_NAME_RES}/") &&
                             !name.startsWith("lib/") &&
                             !DEX_FILE_NAME.matches(name)
                 }
@@ -262,7 +262,7 @@ internal class OnRequestDecoder(
         name == decodablePackage.name && id == decodablePackage.id
 
     private fun ApkModule.packageBlock(decodablePackage: DecodablePackage): PackageBlock =
-        tableBlock.listPackages().firstOrNull { it.matches(decodablePackage) }
+        tableBlock.firstOrNull { it.matches(decodablePackage) }
             ?: throw PatchException("Package ${decodablePackage.name} not found in the resource table")
 
     /**
@@ -277,9 +277,9 @@ internal class OnRequestDecoder(
     fun writePackageInfo() {
         val tableBlock = currentState().module.tableBlock
         packages.values.forEach { decodablePackage ->
-            val packageBlock = tableBlock.listPackages().first { it.matches(decodablePackage) }
-            val file = decodablePackage.directory.resolve(PackageBlock.JSON_FILE_NAME)
-            file.writeJson(packageBlock.toJson(false))
+            val packageBlock = tableBlock.first { it.matches(decodablePackage) }
+            val file = decodablePackage.directory.resolve(PackageBlock.FILE_NAME_JSON)
+            file.writeJson(packageBlock.toJson(false, true))
         }
     }
 
@@ -406,7 +406,7 @@ internal class OnRequestDecoder(
             private fun locate(): Pair<SpecTypePair, ResConfig>? {
                 val packageBlock = currentState().module.packageBlock(decodablePackage)
                 val specTypePair = packageBlock.getSpecTypePair(valuesFile.type) ?: return null
-                val resConfig = specTypePair.listResConfig().firstOrNull { it.qualifiers == valuesFile.qualifiers }
+                val resConfig = specTypePair.uniqueConfigs().asSequence().firstOrNull { it.qualifiers == valuesFile.qualifiers }
                     ?: return null
                 return specTypePair to resConfig
             }
@@ -458,7 +458,7 @@ internal class OnRequestDecoder(
     ) {
         val specTypePair = packageBlock.getSpecTypePair(valuesFile.type)
             ?: throw PatchException("No resources of type ${valuesFile.type} in ${packageBlock.name}")
-        val resConfig = specTypePair.listResConfig().firstOrNull { it.qualifiers == valuesFile.qualifiers }
+        val resConfig = specTypePair.uniqueConfigs().asSequence().firstOrNull { it.qualifiers == valuesFile.qualifiers }
             ?: throw PatchException("No ${valuesFile.type} resources for \"${valuesFile.qualifiers}\" in ${packageBlock.name}")
         val typeBlock = specTypePair.getTypeBlock(resConfig)
 
@@ -518,7 +518,7 @@ internal class OnRequestDecoder(
     private companion object {
         fun valuesPath(type: String, qualifiers: String): String {
             val fileName = if (type.endsWith("s")) type else "${type}s"
-            return "${PackageBlock.RES_DIRECTORY_NAME}/${PackageBlock.VALUES_DIRECTORY_NAME}$qualifiers/$fileName.xml"
+            return "${PackageBlock.DIRECTORY_NAME_RES}/${PackageBlock.DIRECTORY_NAME_VALUES}$qualifiers/$fileName.xml"
         }
 
         /**

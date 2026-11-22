@@ -6,8 +6,11 @@
 package app.morphe.manager.domain.batch
 
 import android.os.Parcelable
+import app.morphe.manager.patcher.patch.PatchSourceRef
 import app.morphe.manager.ui.model.PatchRunProgress
 import app.morphe.manager.ui.model.producesClone
+import app.morphe.manager.util.ApkExportData
+import app.morphe.manager.util.ExportNameFormatter
 import app.morphe.manager.util.Options
 import app.morphe.manager.util.PatchSelection
 import app.morphe.manager.util.PathValidationResult
@@ -111,6 +114,17 @@ enum class BatchItemState {
     val isTerminal get() = this == SUCCEEDED || this == FAILED || this == CANCELLED
 }
 
+/**
+ * The patched APK a successful run kept, with what it is named by once it leaves the manager:
+ * the same name the single-app flow gives a build, see [app.morphe.manager.util.exportData].
+ */
+data class PatchedBuild(
+    val file: File,
+    val exportData: ApkExportData
+) {
+    val exportFileName get() = ExportNameFormatter.format(exportData)
+}
+
 /** What happened when the patched APK was handed to the installer. */
 enum class BatchInstallOutcome { INSTALLED, FAILED }
 
@@ -145,7 +159,7 @@ data class BatchBundleRef(
  * @param unreadableOptionPaths Path options planning left out because nothing can be read at
  *   them anymore. The app is still patched without them, so one queued app cannot hold up the run.
  * @param restoreState State to return to when the user un-excludes the item.
- * @param patchedFile Populated after a successful run with the retained patched APK.
+ * @param patchedBuild Populated after a successful run with the retained patched APK.
  * @param installOutcome Set once the user installs from the summary, so a failure is visible
  *   on the app it belongs to rather than only in a message that is gone a moment later.
  */
@@ -182,7 +196,7 @@ data class BatchPatchItem(
     val selectionEdited: Boolean = false,
     val unreadableOptionPaths: List<PathValidationResult> = emptyList(),
     val restoreState: BatchItemState? = null,
-    val patchedFile: File? = null,
+    val patchedBuild: PatchedBuild? = null,
     val installOutcome: BatchInstallOutcome? = null,
     val installMessage: String? = null,
     /** Package the app ended up under, which patching may have renamed. */
@@ -196,6 +210,13 @@ data class BatchPatchItem(
 
     val patchCount get() = selection.values.sumOf { it.size }
     val version get() = source?.version
+
+    /**
+     * The sources [selection] takes patches from. [bundles] also lists those the user took nothing
+     * from, which the app is not patched from and nothing should name as if it were.
+     */
+    val patchSources: List<PatchSourceRef>
+        get() = bundles.filter { it.uid in selection.keys }.map { PatchSourceRef(it.name, it.version) }
 
     /**
      * State of this item with a selection picked by hand, over the [resolved] one: nothing picked
@@ -297,7 +318,7 @@ data class BatchRunState(
     val wasStopped get() = items.any { it.state == BatchItemState.CANCELLED }
 
     /** Successful items that still have their patched APK on disk, in queue order. */
-    val patchedItems get() = items.filter { it.state == BatchItemState.SUCCEEDED && it.patchedFile != null }
+    val patchedItems get() = items.filter { it.state == BatchItemState.SUCCEEDED && it.patchedBuild != null }
 
     /** A queue that has not started yet. */
     val isPending get() = phase == BatchPhase.PLANNING || phase == BatchPhase.PREFLIGHT
@@ -329,5 +350,5 @@ data class SavedBatchQueue(
     val policy: BatchInstallPolicy = BatchInstallPolicy.SAVE_ONLY
 ) {
     /** Apps the queue would patch if it were started now. */
-    val queuedCount get() = targets.count { it.id !in excluded }
+    val queued get() = targets.filter { it.id !in excluded }
 }

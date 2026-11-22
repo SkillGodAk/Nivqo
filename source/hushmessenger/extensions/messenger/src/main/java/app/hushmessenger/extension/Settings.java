@@ -307,7 +307,7 @@ public final class Settings {
     /** Puts the People tab back in the bar on accounts where Messenger no longer builds it. */
     static final String SHOW_PEOPLE_TAB = "tab_people_show";
     /** Bottom tabs with a switch of their own, held for the run like the Meta AI tab. */
-    static final List<String> BOTTOM_TABS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications", SHOW_PEOPLE_TAB));
+    static final List<String> BOTTOM_TABS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications", "tab_stories", SHOW_PEOPLE_TAB));
     /** First answer this process gave for each of {@link #BOTTOM_TABS}, by key, once the bottom bar asked. */
     static final ConcurrentHashMap<String, Boolean> bottomTabs = new ConcurrentHashMap<>();
 
@@ -384,16 +384,17 @@ public final class Settings {
     }
 
     /** Every switch that changes the bottom bar's tabs, so each one's list goes through {@link #visibleTabs}. */
-    static final List<String> TAB_CONTROLS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications", "meta_ai", SHOW_PEOPLE_TAB));
+    static final List<String> TAB_CONTROLS = Collections.unmodifiableList(Arrays.asList("tab_people", "tab_notifications", "tab_stories", "meta_ai", SHOW_PEOPLE_TAB));
 
     /**
      * The switch that hides a bottom tab, by the tab's constant in Messenger's tab enum, or null for a tab with none. MUSE
-     * is the AI agent tab some accounts get in Meta AI's place, so Hide Meta AI takes it too.
+     * is the AI agent tab some accounts get in Meta AI's place, so Hide Meta AI takes it too. MONTAGE is the Stories tab.
      */
     static String barTabKey(String name) {
         switch (name) {
             case "PEOPLE": return "tab_people";
             case "JEWEL": return "tab_notifications";
+            case "MONTAGE": return "tab_stories";
             case "AI":
             case "MUSE": return "meta_ai";
             default: return null;
@@ -425,9 +426,15 @@ public final class Settings {
         owners.put(Settings.AVATAR_ROUNDED, Settings.AVATAR_SHAPE);
         for (String keep : KEEP_BADGES.values()) owners.put(keep, TAB_BADGES);
         owners.put(QuietCalls.CHOSEN_ONLY, QuietCalls.KEY);
+        owners.put(CameraActivity.ASK, CameraActivity.KEY);
         owners.put(MessageLog.SAVE_EXPIRING, MessageLog.KEY);
+        owners.put(QuietChats.KEY, MessageLog.KEY);
         owners.put(MessageLogButton.KEY, MessageLog.KEY);
         owners.put(MessageLogButton.MENU_KEY, MessageLog.KEY);
+        owners.put(MessageLogButton.CHAT_KEY, MessageLog.KEY);
+        owners.put(StoryEye.KEY, StoryEye.OWNER);
+        owners.put(CallCaptions.SPEAK, CallCaptions.KEY);
+        owners.put(CallCaptions.DUCK, CallCaptions.KEY);
         SUB_SWITCHES = Collections.unmodifiableMap(owners);
     }
 
@@ -615,8 +622,11 @@ public final class Settings {
             // Square to rounded and back takes effect after a restart; only going back to circles stays in effect.
             return shape < 0 || shape == now ? null : now == AVATAR_CIRCLE;
         }
+        // Record calls and Live captions share the one audio choice native makes per run.
+        if (CallRecording.KEY.equals(key) || CallCaptions.KEY.equals(key)) return CallRecording.heldPlayout(key);
         Boolean held = "meta_ai".equals(key) ? metaAiTab : "emoji_drawer".equals(key) ? oldEmojiDrawer
-            : SEARCH_BAR.equals(key) ? keptSearchBar : LANDSCAPE.equals(key) ? landscape : OwnFont.KEY.equals(key) ? customFont : CallRecording.KEY.equals(key) ? CallRecording.heldPlayout() : bottomTabs.get(key);
+            : SEARCH_BAR.equals(key) ? keptSearchBar : LANDSCAPE.equals(key) ? landscape : OwnFont.KEY.equals(key) ? customFont
+            : FLOATING_TAB_BAR.equals(key) ? floatingBar : TAB_BAR_SCROLL_AWAY.equals(key) ? scrollAwayBar : bottomTabs.get(key);
         return held == null || held == wouldUse(key) ? null : held;
     }
 
@@ -779,6 +789,91 @@ public final class Settings {
     public static Object shareStorySection(Object state, Object skip) {
         return state != skip && enabled(SHARE_STORY) ? skip : state;
     }
+    /** The activity behind Messenger's Your story choice in other apps' share sheets, beside its Chats one. */
+    static final String STORY_SHARE_ACTIVITY = "com.facebook.messenger.intents.MediaEditShareIntentHandler";
+    /** Messenger's own last answer for that share target in this process, or null before the chat list has given one. */
+    static volatile Boolean storyTargetWanted;
+    /**
+     * Each time the chat list opens, Messenger turns its Your story share target on or off with this answer, non-zero
+     * meaning on. With the switch on the answer is off, so a share from the gallery goes straight to Chats instead of
+     * asking which one. Off, Pause and safe mode give Messenger's answer back.
+     */
+    public static boolean storyShareTarget(int wanted) {
+        storyTargetWanted = wanted != 0;
+        return wanted != 0 && !enabled(SHARE_STORY);
+    }
+
+    /**
+     * Puts the Your story share target where the switch wants it now, without waiting for the chat list: off while the
+     * switch is in effect, otherwise Messenger's own last answer. Before Messenger has given one, its next answer
+     * settles it.
+     */
+    static void syncStoryShareTarget(Context context) {
+        if (!installed.contains(SHARE_STORY)) return;
+        Boolean wanted = wouldUse(SHARE_STORY) ? Boolean.FALSE : storyTargetWanted;
+        if (wanted == null) return;
+        PackageManager packages = context.getPackageManager();
+        android.content.ComponentName target = new android.content.ComponentName(context, STORY_SHARE_ACTIVITY);
+        int state = wanted ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED : PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+        try {
+            if (packages.getComponentEnabledSetting(target) != state) {
+                packages.setComponentEnabledSetting(target, state, PackageManager.DONT_KILL_APP);
+            }
+        } catch (IllegalArgumentException | SecurityException error) {
+            hookFailed(SHARE_STORY, "Can't change the Your story share target", error);
+        }
+    }
+    static final String FLOATING_TAB_BAR = "floating_tab_bar";
+    static final String TAB_BAR_SCROLL_AWAY = "tab_bar_scroll_away";
+    /** First answers this process gave for the two tab bar switches, or null before the home screen asked. */
+    static volatile Boolean floatingBar, scrollAwayBar;
+    private static final Object TAB_BAR_LOCK = new Object();
+
+    /** A switch's first answer for this run, so every home screen built before a restart lays the tab bar out alike. */
+    private static boolean heldTabBar(String key) {
+        Boolean held = FLOATING_TAB_BAR.equals(key) ? floatingBar : scrollAwayBar;
+        if (held == null) {
+            if (!HostScreens.started) HostScreens.initializeLate();
+            synchronized (TAB_BAR_LOCK) {
+                if (FLOATING_TAB_BAR.equals(key)) {
+                    if (floatingBar == null) floatingBar = wouldUse(key);
+                    held = floatingBar;
+                } else {
+                    if (scrollAwayBar == null) scrollAwayBar = wouldUse(key);
+                    held = scrollAwayBar;
+                }
+            }
+        }
+        if (held) activeAt.put(key, System.currentTimeMillis());
+        return held;
+    }
+
+    /**
+     * The home screen asks Messenger's floating tab bar flag as it builds its frame, non-zero meaning yes. With the switch
+     * on the answer is yes, so the bar takes Messenger's floating style. Messenger's own yes has nothing to hold. Off,
+     * Pause and safe mode keep Messenger's answer from the next restart on.
+     */
+    public static boolean floatingTabBar(int stock) { return stock != 0 || heldTabBar(FLOATING_TAB_BAR); }
+
+    /**
+     * Then it asks whether to lay the tab bar over the page, where it can slide away, instead of under it. With Hide the
+     * tab bar while scrolling on the answer is yes, held for the run like the floating one.
+     */
+    public static boolean tabBarOverlay(int stock) { return stock != 0 || heldTabBar(TAB_BAR_SCROLL_AWAY); }
+
+    /**
+     * The Chats page's two answers on the tab bar sliding away (how far it may go, and whether a scroll may move it at
+     * all), and the bar's own check as each scroll starts, which Messenger only fills in for the floating pill, from its
+     * own overlay flag. Each follows the overlay's held answer, or the switch itself when Messenger chose the overlay on
+     * its own and never asked.
+     */
+    public static boolean tabBarScrollAway(int stock) {
+        if (stock != 0) return true;
+        Boolean held = scrollAwayBar;
+        if (held == null) return enabled(TAB_BAR_SCROLL_AWAY);
+        if (held) activeAt.put(TAB_BAR_SCROLL_AWAY, System.currentTimeMillis());
+        return held;
+    }
     static final String BLOCKED_LIST_PICTURES = "blocked_list_pictures";
     /**
      * The blocked people list hands over each blocked person's picture before it goes on their row. Null gives the row
@@ -789,12 +884,18 @@ public final class Settings {
     /** The folder enum's INBOX constant, found once per folder type. */
     private static volatile Enum<?> inboxFolder;
     /**
-     * The new-message notification check reads the chat's folder before it decides. A RESTRICTED folder comes back as
-     * INBOX, so the chat gets the same mute and status checks as any other chat. Only that local read changes: the chat
-     * stays in Restricted. Off, Pause and safe mode, and every other folder, keep the folder.
+     * The new-message notification check reads the chat's folder before it decides. With Notify for restricted chats on,
+     * a RESTRICTED folder comes back as INBOX, so the chat gets the same mute and status checks as any other chat. With it
+     * off and Log chats that don't notify on, it comes back as INBOX too, marked so the message goes to the log with no
+     * notification. Only that local read changes: the chat stays in Restricted. Off, Pause and safe mode, and every other
+     * folder, keep the folder.
      */
     public static Object notificationFolder(Object folder) {
-        if (!(folder instanceof Enum) || !"RESTRICTED".equals(((Enum<?>) folder).name()) || !enabled(RESTRICTED_NOTIFY)) return folder;
+        boolean restricted = folder instanceof Enum && "RESTRICTED".equals(((Enum<?>) folder).name());
+        boolean notify = restricted && enabled(RESTRICTED_NOTIFY);
+        boolean forLog = restricted && !notify && QuietChats.wanted();
+        QuietChats.restrictedForLog(forLog);
+        if (!notify && !forLog) return folder;
         try {
             Class<?> type = ((Enum<?>) folder).getDeclaringClass();
             Enum<?> inbox = inboxFolder;
@@ -811,9 +912,34 @@ public final class Settings {
             }
             return inbox;
         } catch (ReflectiveOperationException | RuntimeException error) {
-            hookFailed(RESTRICTED_NOTIFY, "Can't notify for a restricted chat", error);
+            QuietChats.restrictedForLog(false);
+            if (notify) hookFailed(RESTRICTED_NOTIFY, "Can't notify for a restricted chat", error);
+            else hookFailed(MessageLog.KEY, "Can't log a restricted chat", error);
             return folder;
         }
+    }
+
+    /**
+     * The notification check's mute check, for a muted chat. With Log chats that don't notify on, the message goes on as
+     * if the chat notified, so the log gets it, and its notification is dropped before it goes up. Off, Pause and safe
+     * mode keep Messenger's: the message stops here.
+     */
+    public static boolean quietChat(Object thread) { return QuietChats.muted(thread); }
+
+    /** The same check for a chat that notifies. A restricted chat let on only for the log still counts as quiet. */
+    public static void loudChat(Object thread) { QuietChats.notifies(thread); }
+
+    /** The notification manager asks this before it reads anything off a new message. */
+    public static boolean logQuietChats() { return QuietChats.wanted(); }
+
+    /**
+     * A new message's notification, right before it goes up. True drops it, since its chat was let on only for the log.
+     * The sender's name goes to the log now: there's no notification to read it from later.
+     */
+    public static boolean dropQuiet(Object thread, String id, String sender) {
+        if (!QuietChats.isQuiet(thread)) return false;
+        MessageLog.noteSender(String.valueOf(thread), id, sender);
+        return true;
     }
     static final String AVATAR_SHAPE = "avatar_shape";
     /** Under Square profile pictures: rounds the square's corners. */
@@ -1057,8 +1183,14 @@ public final class Settings {
     /** The same notification hook asks this for an auto reply: on, not paused, and with at least one reply written. */
     public static boolean autoReplyWanted() { return AutoReply.wanted(); }
 
-    /** Hands an incoming message to the auto reply, which answers it off this thread. */
-    public static void autoReplyTo(String text, String thread) { AutoReply.received(text, thread, takeIncomingMessageId()); }
+    /**
+     * Hands an incoming message to the auto reply, which answers it off this thread. A chat that doesn't notify gets no
+     * answer: it only reaches here for the log, and auto reply answers through a notification it won't have.
+     */
+    public static void autoReplyTo(String text, String thread) {
+        String id = takeIncomingMessageId();
+        if (!QuietChats.isQuiet(thread)) AutoReply.received(text, thread, id);
+    }
 
     /**
      * The chat camera button's intent, right before Messenger starts it. With the switch on it opens the capture screen,
@@ -1295,6 +1427,11 @@ public final class Settings {
             Context context = appContext;
             return context == null || GalleryPicker.screenIntent(context) != null;
         }
+        // The same for the Instants pick screen.
+        if (InstantGallery.KEY.equals(key)) {
+            Context context = appContext;
+            return context == null || InstantGallery.screenIntent(context) != null;
+        }
         // A Root Mount install keeps the stock manifest, with no search screen.
         if (LocalChatSearch.KEY.equals(key)) {
             Context context = appContext;
@@ -1304,6 +1441,10 @@ public final class Settings {
         if (HIDE_ICON_SHORTCUTS.equals(key) || HIDE_LOGO_PRESS.equals(key)) return anotherWayIn(key);
         // Android 9 lets no app add to the shared Recordings or Music folders without the storage permission.
         if (VoiceMessages.KEY.equals(key) || SaveVoiceMenu.KEY.equals(key) || CallRecording.KEY.equals(key)) return Build.VERSION.SDK_INT >= 29;
+        // Windows blur what's behind them from Android 12.
+        if (MenuBlur.KEY.equals(key)) return Build.VERSION.SDK_INT >= 31;
+        // An app can feed the phone's recognizer its own sound from Android 13.
+        if (CallCaptions.KEY.equals(key)) return Build.VERSION.SDK_INT >= 33;
         if (!"bubbles".equals(key)) return true;
         if (Build.VERSION.SDK_INT < 30) return false;
         if (!HostScreens.started) HostScreens.initializeLate();
@@ -1387,6 +1528,20 @@ public final class Settings {
     }
     public static boolean keepUnsent() { return wouldUse("keep_unsent"); }
     public static boolean viewStoriesAnonymously() { return enabled("anonymous_stories"); }
+
+    /**
+     * View stories anonymously's gate in the story mark-read handler: true keeps the seen from going out. The card it
+     * held goes to the Mark as seen button (#169), whose tap runs the same handler while this lets it through.
+     */
+    public static boolean holdStorySeen(Object handler, Object card, int flag) {
+        if (StoryEye.replaying() || !viewStoriesAnonymously()) return false;
+        try {
+            StoryEye.hold(handler, card, flag != 0);
+        } catch (RuntimeException error) {
+            hookFailed("anonymous_stories", "Can't keep the story for the Mark as seen button", error);
+        }
+        return true;
+    }
     public static boolean saveAnyStory() { return enabled("save_stories"); }
 
     /** Story cards read on this phone, as "account:card:time kept". A story is up for a day; each entry lasts two. */
@@ -1687,15 +1842,126 @@ public final class Settings {
         return original;
     }
 
+    static final int ROW_TEXT_LIMIT = 1024;
+    /**
+     * The words encrypted chat rows showed, newest use last: by threading id (else message id), and by the time and
+     * sender the row was sent with ({@link #rowStamp}). An unsent message's row comes back with no text, or is swapped
+     * for a "deleted a message" row at the same time and sender, so this is where its words come from while Messenger
+     * keeps running.
+     */
+    static final Map<String, String> ROW_TEXT = Collections.synchronizedMap(new LinkedHashMap<String, String>(64, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+            return size() > ROW_TEXT_LIMIT;
+        }
+    });
+
+    /** Whether an encrypted chat's rows go through {@link #labelKeptUnsentRow} at all. */
+    public static boolean watchesUnsentRows() {
+        return wouldUse("keep_unsent");
+    }
+
+    /**
+     * The message_content_type and subtype of the row 587 puts in an encrypted chat when a message there is unsent: "X
+     * deleted a message", with the unsent message's time and sender but ids of its own, while the message's own row is
+     * hidden.
+     */
+    static final int UNSENT_PLACEHOLDER_TYPE = 5;
+    static final int UNSENT_PLACEHOLDER_SUBTYPE = 1;
+
+    /**
+     * Which row or notification line put each stamp's words in {@link #ROW_TEXT}. Two messages from one sender in the same
+     * millisecond share a stamp, so it holds {@link #SHARED_STAMP} from then on and neither one's words are used for it.
+     */
+    static final Map<String, String> STAMP_OWNER = Collections.synchronizedMap(new LinkedHashMap<String, String>(64, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
+            return size() > ROW_TEXT_LIMIT;
+        }
+    });
+    /** No row or line key is empty, so an empty owner marks a stamp two messages share. */
+    static final String SHARED_STAMP = "";
+
+    /** The key a row's words are kept under by when and by whom it was sent. Null when the row has no time. */
+    static String rowStamp(long timestamp, long senderId) {
+        return timestamp > 0 ? "at:" + timestamp + ":" + senderId : null;
+    }
+
+    /** The key a notification line's words are kept under by when it was sent, its sender being unknown there. */
+    static String lineStamp(long timestamp) {
+        return timestamp > 0 ? "at:" + timestamp : null;
+    }
+
+    /** Keeps [text] under [stamp] for the message [owner], unless another message already has that stamp. */
+    static void rememberStamp(String stamp, String owner, String text) {
+        if (stamp == null) return;
+        synchronized (STAMP_OWNER) {
+            String had = STAMP_OWNER.get(stamp);
+            if (had == null || had.equals(owner)) {
+                STAMP_OWNER.put(stamp, owner);
+                ROW_TEXT.put(stamp, text);
+            } else if (!had.equals(SHARED_STAMP)) {
+                STAMP_OWNER.put(stamp, SHARED_STAMP);
+                ROW_TEXT.remove(stamp);
+            }
+        }
+    }
+
+    /**
+     * The text an encrypted chat's row shows. A row whose message was unsent while Keep unsent messages was on shows the
+     * words it had, marked [unsent], and so does the "deleted a message" row Messenger shows in its place; any other
+     * row's text is remembered for the day its message is unsent.
+     */
+    public static String labelKeptUnsentRow(String text, String messageId, String threadingId, long timestamp, long senderId,
+                                            int contentType, int contentSubtype) {
+        try {
+            String key = threadingId != null && !threadingId.isEmpty() ? threadingId : messageId;
+            if (key == null || key.isEmpty()) return text;
+            boolean hasText = text != null && !text.isEmpty();
+            String stamp = rowStamp(timestamp, senderId);
+            if (contentType == UNSENT_PLACEHOLDER_TYPE && contentSubtype == UNSENT_PLACEHOLDER_SUBTYPE) {
+                String words = stamp == null ? null : ROW_TEXT.get(stamp);
+                if (words == null && stamp != null) words = ROW_TEXT.get(lineStamp(timestamp));
+                return words == null ? text : "[unsent] " + words;
+            }
+            if (!isKeptUnsent(threadingId) && !isKeptUnsent(messageId)) {
+                if (hasText) {
+                    ROW_TEXT.put(key, text);
+                    rememberStamp(stamp, key, text);
+                }
+                return text;
+            }
+            String original = hasText ? text : ROW_TEXT.get(key);
+            // A notification keeps its words under the message id, and the row may have been keyed by its threading id.
+            if (original == null && messageId != null && !messageId.equals(key)) original = ROW_TEXT.get(messageId);
+            return original == null ? text : "[unsent] " + original;
+        } catch (Throwable failure) {
+            hookFailedPrivately("keep_unsent", "Can't show an unsent message", failure);
+            return text;
+        }
+    }
+
     /**
      * Messenger is about to take [messageId] out of its notification because it was unsent. The message log marks it
-     * Unsent, and with Keep unsent messages on the answer is true, so Messenger leaves the notification showing it. That
-     * notification is the one place an end-to-end encrypted chat's unsent message can stay, since the chat drops it.
+     * Unsent, and with Keep unsent messages on the answer is true, so Messenger leaves the notification showing it. The
+     * words the notification shows are kept too, for the encrypted chat's row, which comes back with none.
      */
     public static boolean unsentRecall(String messageId) {
         try {
             if (wouldUse(MessageLog.KEY)) MessageLog.markUnsent(messageId);
             if (messageId == null || messageId.isEmpty() || !wouldUse("keep_unsent")) return false;
+            if (!ROW_TEXT.containsKey(messageId)) {
+                try {
+                    ChatNotifications.Line shown = ChatNotifications.line(appContext, messageId);
+                    if (shown != null && shown.text != null && !shown.text.isEmpty()) {
+                        ROW_TEXT.put(messageId, shown.text);
+                        // The chat's "deleted a message" row finds it by the line's time.
+                        rememberStamp(lineStamp(shown.time), messageId, shown.text);
+                    }
+                } catch (RuntimeException unreadable) {
+                    // The row's own earlier text can still answer.
+                }
+            }
             recordUnsent(messageId);
             return true;
         } catch (Throwable failure) {

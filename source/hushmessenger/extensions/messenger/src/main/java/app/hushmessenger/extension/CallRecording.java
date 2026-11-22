@@ -90,6 +90,8 @@ public final class CallRecording {
     private static volatile Session listening;
     /** What native was first told about its audio this run. A flip waits for a restart, so the button and the audio can't disagree. */
     private static volatile Boolean playoutHeld;
+    /** Which of the two switches were on when native asked. */
+    private static volatile boolean heldForRecording, heldForCaptions;
     private static volatile boolean complained;
     // Main thread only from here on.
     private static Activity top;
@@ -103,63 +105,116 @@ public final class CallRecording {
         callActive = false;
         listening = null;
         playoutHeld = null;
+        heldForRecording = heldForCaptions = false;
         complained = false;
         top = null;
         pill = null;
         session = null;
         stopReceiver = null;
         store = new SharedAudio();
+        CallCaptions.resetForTests();
     }
 
-    /** Messenger hands native its call settings here as layers of numbers. With the switch on, ours goes last so its word stands. */
+    /**
+     * Messenger hands native its call settings here as layers of numbers. With the switch on, ours goes last so its word
+     * stands. It takes its length from Messenger's own layer, so a list without one gets nothing added. Live captions
+     * on calls needs the same Java audio, so either switch adds it.
+     */
     public static void addLayer(ArrayList<Object> layers) {
         try {
             Boolean held = playoutHeld;
-            if (held == null) playoutHeld = held = Settings.enabled(KEY) && Settings.available(KEY);
-            if (held && layers != null) layers.add(new JavaAudioLayer());
+            if (held == null) {
+                heldForRecording = Settings.enabled(KEY) && Settings.available(KEY);
+                heldForCaptions = Settings.enabled(CallCaptions.KEY) && Settings.available(CallCaptions.KEY);
+                playoutHeld = held = heldForRecording || heldForCaptions;
+            }
+            if (!held || layers == null) return;
+            for (Object layer : layers) {
+                if (layer instanceof OverlayConfigLayerInterface) {
+                    layers.add(new JavaAudioLayer((OverlayConfigLayerInterface) layer));
+                    return;
+                }
+            }
+            Settings.hookFailedPrivately(audioOwner(), "Couldn't choose the call's audio", new IllegalStateException("no config layer of Messenger's own"));
         } catch (Throwable error) {
-            Settings.hookFailedPrivately(KEY, "Couldn't choose the call's audio", error);
+            Settings.hookFailedPrivately(audioOwner(), "Couldn't choose the call's audio", error);
         }
+    }
+
+    /** The switch a failure to choose the call's audio belongs to. */
+    private static String audioOwner() {
+        return Settings.wouldUse(KEY) || !Settings.wouldUse(CallCaptions.KEY) ? KEY : CallCaptions.KEY;
     }
 
     /** Says no to Messenger's own native audio and yes to WebRTC's Java audio. Everything else stays unset. */
     static final class JavaAudioLayer implements OverlayConfigLayerInterface {
-        /** The ids and the length belong to Messenger's generated config, so a new Messenger version has to be checked against them. */
-        static final int VALUES = 0x18bb;
+        /** Ids in Messenger's generated config. Native 586 still reads 6 as audio_device_module_override and 0xb1d as the Oboe switch. */
         static final int OBOE_ON = 0xb1d;
         static final int OBOE_RECORD = 0xb1c;
         static final int MODULE = 6;
         static final int MODULE_JAVA = 1;
-        private static final int UNSET = -1;
+        static final int UNSET = -1;
         private static final int SOURCE = 0x17;
+
+        /**
+         * Messenger's own layer. Native reads every layer at the length its build was made with (0x18bb on 585, 0x18d6 on
+         * 586), and a layer of another length crashed the call as it started, so ours copies the length from this one.
+         */
+        private final OverlayConfigLayerInterface own;
+        private int[] values;
+
+        JavaAudioLayer(OverlayConfigLayerInterface own) {
+            this.own = own;
+        }
 
         @Override
         public int getLayerSource() {
             return SOURCE;
         }
 
+        /** Ours never change, so an update is the same numbers. */
         @Override
         public int[] getUpdatedValues() {
-            return new int[0];
+            return getValues();
         }
 
         @Override
-        public int[] getValues() {
-            int[] values = new int[VALUES];
-            Arrays.fill(values, UNSET);
-            values[OBOE_ON] = 0;
-            values[OBOE_RECORD] = 0;
-            values[MODULE] = MODULE_JAVA;
-            return values;
+        public synchronized int[] getValues() {
+            if (values == null) values = build(own.getValues().length);
+            return values.clone();
+        }
+
+        /** All unset but the three audio ids, or all unset when the build's config is too short to hold them. */
+        static int[] build(int length) {
+            int[] built = new int[length];
+            Arrays.fill(built, UNSET);
+            if (length <= Math.max(OBOE_ON, Math.max(OBOE_RECORD, MODULE))) return built;
+            built[OBOE_ON] = 0;
+            built[OBOE_RECORD] = 0;
+            built[MODULE] = MODULE_JAVA;
+            return built;
         }
 
         @Override
         public void logExposure(int id) {}
     }
 
-    /** For the restart row, once native has asked. */
-    static Boolean heldPlayout() {
-        return Settings.available(KEY) ? playoutHeld : null;
+    /**
+     * For the restart row of Record calls or Live captions, once native has asked: what this run holds when the switch
+     * now says otherwise. Turning one on works at the next call when the other already has the audio in Java, and
+     * turning one off changes nothing on a restart while the other still wants it.
+     */
+    static Boolean heldPlayout(String key) {
+        Boolean held = playoutHeld;
+        if (held == null || !Settings.available(key)) return null;
+        boolean was = KEY.equals(key) ? heldForRecording : heldForCaptions, now = Settings.wouldUse(key);
+        if (was == now) return null;
+        if (now) return held ? null : Boolean.FALSE;
+        return wantsJavaAudio(KEY) || wantsJavaAudio(CallCaptions.KEY) ? null : Boolean.TRUE;
+    }
+
+    private static boolean wantsJavaAudio(String key) {
+        return Settings.wouldUse(key) && Settings.available(key);
     }
 
     /** Native starts the Java playout thread here, so a call's sound is about to run. */
@@ -171,15 +226,20 @@ public final class CallRecording {
         active(false);
     }
 
-    /** The far side's next frame, on its way to the speaker. Nothing's touched unless a recording is running. */
+    /**
+     * The far side's next frame, on its way to the speaker. A running recording takes it as it is, then live captions
+     * get it and may turn it down while a caption is read aloud. Nothing's touched with neither running.
+     */
     public static void heard(AudioTrack track, ByteBuffer sound, int bytes) {
         Session now = listening;
-        if (now == null) return;
-        try {
-            now.mix.theirs.offer(sound, bytes, track.getChannelCount(), track.getSampleRate(), now.elapsed());
-        } catch (Throwable error) {
-            lostSound(error);
+        if (now != null) {
+            try {
+                now.mix.theirs.offer(sound, bytes, track.getChannelCount(), track.getSampleRate(), now.elapsed());
+            } catch (Throwable error) {
+                lostSound(error);
+            }
         }
+        CallCaptions.heard(track, sound, bytes);
     }
 
     /** This phone's next frame, on its way to the far side. A mute has already cleared it by here. */
@@ -209,6 +269,7 @@ public final class CallRecording {
             callActive = running;
             MAIN.post(() -> {
                 if (!callActive && session != null) session.finishUp();
+                CallCaptions.call(callActive);
                 refresh();
             });
         } catch (Throwable error) {
@@ -245,6 +306,11 @@ public final class CallRecording {
     }
 
     private static void refresh() {
+        refreshPill();
+        CallCaptions.screen(top);
+    }
+
+    private static void refreshPill() {
         try {
             View found = top == null ? null : top.findViewById(android.R.id.content);
             if (!(found instanceof FrameLayout) || !offered()) {

@@ -40,6 +40,7 @@ import app.morphe.patches.facebook.reels.PlayerRead
 import app.morphe.patches.facebook.reels.VIDEO_COMPLETE_ANCHOR
 import app.morphe.patches.facebook.reels.playerRead
 import app.morphe.patches.facebook.reels.videoCompletes
+import app.morphe.patches.facebook.search.branchTarget
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -80,6 +81,13 @@ internal const val ALLOWED = "$PICTURE_IN_PICTURE->allowed($ACTIVITY)Z"
 internal const val REFUSED = "$PICTURE_IN_PICTURE->refused()Z"
 
 internal const val SURFACE_ALLOWED = "$PICTURE_IN_PICTURE->surfaceAllowed()Z"
+
+internal const val WIDE_FITS = "$PICTURE_IN_PICTURE->wideFits(I)Z"
+
+internal const val WINDOW_SHAPE = "$PICTURE_IN_PICTURE->window($RATIONAL)$RATIONAL"
+
+/** The float bits of 1000f, which ReelsPipUtil's shape check divides a reel's thousandths by. */
+internal const val THOUSAND_FLOAT_BITS = 0x447a0000
 
 internal const val ARMED = "$PICTURE_IN_PICTURE->armed(${ACTIVITY}Ljava/lang/Object;[Ljava/lang/Object;)V"
 
@@ -156,8 +164,17 @@ internal const val SHOWN_AGAIN = "$PICTURE_IN_PICTURE->shownAgain(${VIEW}I)V"
  * again, through a helper the patch adds to ReelsPipUtil, with Facebook's own arguments and that
  * reel's player, so the window plays the reel on screen. Its shape is that reel's own, from the
  * aspect its video params carry (581 `LX/5AT;`, their one double), checked the way the arming step
- * checks the aspect it reads: Facebook arms no window for a reel wider than square, so neither does
- * the helper, and the extension keeps that reel out of the window (#126).
+ * checks the aspect it reads, from 1 by 2.39 up to 2.39 by 1; the extension keeps a reel of another
+ * shape out of the window (#126). Facebook's own check of that shape (585 `LX/09OS;->A0B`, the
+ * util's static (int) -> boolean dividing the thousandths it gets by 1000f) stops at square, so a
+ * landscape reel opened no window at all. The extension goes first in it and says yes up to
+ * Android's widest window, 2.39 to one (#418). Every arming and change of auto-enter builds the
+ * window's params in one static method of the util (585 `LX/09OS;->A00`, (Rect, Rational, List,
+ * boolean) -> PictureInPictureParams), which widened any shape past square to 2.39. A window wider
+ * than tall also turns Facebook's screen landscape, and Facebook then opened its video modal (the
+ * Watch topic feed, `target_fragment` 562, entry point FEED_INLINE_VIDEO_TAPPED) over the window,
+ * a spinner where the reel should be and a black page back full screen. The extension goes first
+ * in that builder and hands it a square shape for anything wider, which it keeps.
  *
  * In the window, Facebook's viewer (581 `LX/g7h;`) gives its container a new view id, and its
  * fragment finds the container by that id from the top of the screen. A React Native view can
@@ -179,7 +196,8 @@ internal const val SHOWN_AGAIN = "$PICTURE_IN_PICTURE->shownAgain(${VIEW}I)V"
  * ReelsPipUtil's check. Its questions before it arms, in order:
  * - its own copy of the Reels viewer's surface gate, inlined: the same fetch of the surface's
  *   settings (581 `LX/Cr0;->CKK()`) and the same two lambda cases (581 39 and 40, 580 165 and 166,
- *   577 178 and 179), reading one server flag in the Video tab's Reels and another elsewhere. A no
+ *   577 178 and 179), reading one server flag in the Video tab's Reels and another elsewhere. From
+ *   586 there are no cases: the gate and its copy call one settings method for the answer. A no
  *   skips the arming. The patch already answers the gate itself, so the extension answers the copy.
  * - Android 12, an activity, ReelsPipUtil's check (answered first by the extension already).
  * - For the deep-dive surface, a flag in the same MobileConfig config as the Reels arming's ad and
@@ -241,6 +259,15 @@ val pictureInPicturePatch = bytecodePatch(
         val home = findHome(check, gate, disarms)
         applyPipCheck(check)
         applySurfaceGate(gate)
+        // Landscape reels in a square window (#418); without both hooks they open none, as Facebook
+        // has them, since a wide window brings Facebook's video modal up over it.
+        try {
+            val shape = findShapeCheck(check, step)
+            applyWindowShape(findParamsBuilder(check))
+            applyShapeCheck(shape)
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so landscape reels open no window.")
+        }
         applyArming(arming, player.play.definingClass, videoParams)
         disarms.forEach { applyDisarm(it) }
         applyPlayer(player)
@@ -287,10 +314,19 @@ private fun Method.calls(): List<MethodReference> = implementation?.instructions
 
 private fun MethodReference.parameterList(): List<String> = parameterTypes.map(CharSequence::toString)
 
-/** Whether [method] is ReelsPipUtil's check: (Activity) -> boolean, asking for the phone's feature. */
+/**
+ * Whether [method] is ReelsPipUtil's check: the activity first, a boolean back, asking for the
+ * phone's feature. Up to 586 it takes the activity alone; 587 (0CrA.A0Q) adds the session and a
+ * Function0, and its (Activity) methods read the arming flag (A0P) or a cached feature answer (A0R).
+ */
 internal fun isPipCheck(method: Method): Boolean =
-    method.returnType == "Z" && method.parameterTypes.map(CharSequence::toString) == listOf(ACTIVITY) &&
+    method.returnType == "Z" && method.parameterTypes.firstOrNull()?.toString() == ACTIVITY &&
         method.calls().any { it.name == "hasSystemFeature" && it.definingClass == "Landroid/content/pm/PackageManager;" }
+
+/** Whether [call] is a call of ReelsPipUtil's [check]. */
+private fun callsCheck(call: MethodReference, check: Method): Boolean =
+    call.definingClass == check.definingClass && call.name == check.name && call.returnType == "Z" &&
+        call.parameterList() == check.parameterTypes.map(CharSequence::toString)
 
 /** ReelsPipUtil, the one class loading [PIP_SURFACE], and its one check. Changes nothing. */
 internal fun BytecodePatchContext.findPipCheck(): Method {
@@ -305,7 +341,7 @@ internal fun BytecodePatchContext.findPipCheck(): Method {
 /** Whether [method] is the Reels viewer's arming step: both origins' names, and a call of [check]. */
 internal fun isArmingStep(method: Method, check: Method): Boolean =
     holdsString(method, AI_STYLES_DRAFTS) && holdsString(method, REELS_VIEWER) &&
-        method.calls().any { it.definingClass == check.definingClass && it.name == check.name && it.parameterList() == listOf(ACTIVITY) }
+        method.calls().any { callsCheck(it, check) }
 
 /**
  * The surface gate: the arming step's first static call of a method of its own class that takes
@@ -388,6 +424,81 @@ internal fun BytecodePatchContext.applySurfaceGate(gate: Method) {
     )
 }
 
+/** Whether [method] is ReelsPipUtil's shape check: static (int) -> boolean, dividing by 1000f. */
+internal fun isShapeCheck(method: Method): Boolean =
+    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
+        method.parameterTypes.map(CharSequence::toString) == listOf("I") &&
+        method.implementation?.instructions?.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == THOUSAND_FLOAT_BITS } == true
+
+/**
+ * ReelsPipUtil's shape check, the one [isShapeCheck] of [check]'s class, which the arming [step]
+ * asks with the reel's thousandths before it arms. Changes nothing.
+ */
+internal fun BytecodePatchContext.findShapeCheck(check: Method, step: Method): Method {
+    val util = classDefBy(check.definingClass)
+    val shapes = util.methods.filter(::isShapeCheck)
+    val shape = shapes.singleOrNull()
+        ?: refuse("${util.type} has ${shapes.size} static (int) -> boolean checks dividing by a thousand, expected 1")
+    val asked = step.calls().any {
+        it.definingClass == shape.definingClass && it.name == shape.name && it.parameterList() == listOf("I") && it.returnType == "Z"
+    }
+    if (!asked) refuse("${step.definingClass}->${step.name} doesn't ask ${shape.definingClass}->${shape.name} for the reel's shape")
+    return shape
+}
+
+/**
+ * The extension goes first in the shape check, handed the reel's thousandths. Its yes, for a reel
+ * wider than square that Android's window still takes, returns true from v0, free at the method's
+ * start. Anything else runs Facebook's check as it was (#418).
+ */
+internal fun BytecodePatchContext.applyShapeCheck(shape: Method) {
+    val method = mutableClassDefBy(shape.definingClass).findMutableMethodOf(shape)
+    method.requireLocals(PATCH, 1)
+    method.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { p0 .. p0 }, $WIDE_FITS
+            move-result v0
+            if-eqz v0, :facebook
+            const/4 v0, 0x1
+            return v0
+        """,
+        ExternalLabel("facebook", method.getInstruction(0)),
+    )
+}
+
+/**
+ * Whether [method] is ReelsPipUtil's builder of the window's params: static (Rect, Rational, List,
+ * boolean) -> PictureInPictureParams, setting the builder's aspect ratio.
+ */
+internal fun isParamsBuilder(method: Method): Boolean =
+    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == PIP_PARAMS &&
+        method.shape() == listOf(RECT, RATIONAL, "Ljava/util/List;", "Z") &&
+        method.calls().any { it.definingClass == PIP_PARAMS_BUILDER && it.name == "setAspectRatio" }
+
+/** ReelsPipUtil's one params builder, in [check]'s class. Changes nothing. */
+internal fun BytecodePatchContext.findParamsBuilder(check: Method): Method {
+    val util = classDefBy(check.definingClass)
+    val builders = util.methods.filter(::isParamsBuilder)
+    return builders.singleOrNull()
+        ?: refuse("${util.type} has ${builders.size} static (Rect, Rational, List, boolean) params builders, expected 1")
+}
+
+/**
+ * The extension goes first in the params builder, handed the window's shape, and the builder goes
+ * on with the shape it hands back: square for anything wider (#418).
+ */
+internal fun BytecodePatchContext.applyWindowShape(builder: Method) {
+    val method = mutableClassDefBy(builder.definingClass).findMutableMethodOf(builder)
+    method.addInstructions(
+        0,
+        """
+            invoke-static/range { p1 .. p1 }, $WINDOW_SHAPE
+            move-result-object p1
+        """,
+    )
+}
+
 /**
  * FbGrootPlayer's play and the pause every other pause hands on to, the two Tap to play gates, and
  * the seek every seek goes through.
@@ -411,6 +522,8 @@ internal fun BytecodePatchContext.findPlayer(): Player {
 
 private fun Method.shape() = parameterTypes.map(CharSequence::toString)
 
+private val DISARM_SHAPES = setOf(listOf(ACTIVITY), listOf(ACTIVITY, "Z"))
+
 /**
  * Whether [method] is ReelsPipUtil's arming: it takes an activity, the window's place and its shape
  * first, [player] among the rest, and hands a PictureInPictureParams on. The step that only
@@ -427,9 +540,12 @@ internal fun BytecodePatchContext.findArming(check: Method, player: String): Met
         ?: refuse("${check.definingClass} has ${armings.size} armings handing on a window's parameters, expected 1")
 }
 
-/** Whether [method] is one of ReelsPipUtil's disarms: (Activity) -> void, building auto-enter params of its own. */
+/**
+ * Whether [method] is one of ReelsPipUtil's disarms: (Activity) -> void, building auto-enter params
+ * of its own. 587 gave one of them a boolean after the activity (0CrA.A0O on arm64).
+ */
 internal fun isDisarm(method: Method): Boolean =
-    method.returnType == "V" && method.shape() == listOf(ACTIVITY) &&
+    method.returnType == "V" && method.shape() in DISARM_SHAPES &&
         method.calls().any { it.definingClass == PIP_PARAMS_BUILDER && it.name == "setAutoEnterEnabled" }
 
 /** ReelsPipUtil's disarms, at least one. Changes nothing. */
@@ -783,7 +899,7 @@ internal fun topicFlagAt(onResume: Method, check: Method): Int {
     val asked = code.indexOfFirst { instruction ->
         val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
         call != null && instruction.opcode.name.startsWith("invoke") && call.definingClass == check.definingClass &&
-            call.name == check.name && call.parameterList() == listOf(ACTIVITY) && call.returnType == "Z"
+            callsCheck(call, check)
     }
     if (asked < 0) return -1
     val read = (asked - 1 downTo 0).firstOrNull { isFlagRead(code[it]) } ?: return -1
@@ -829,7 +945,7 @@ internal fun BytecodePatchContext.applyTopicFlag(topic: TopicFlag) {
 private fun asksCheck(instruction: Instruction, check: Method): Boolean {
     val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return false
     return instruction.opcode.name.startsWith("invoke") && call.definingClass == check.definingClass &&
-        call.name == check.name && call.parameterList() == listOf(ACTIVITY) && call.returnType == "Z"
+        callsCheck(call, check)
 }
 
 /**
@@ -881,8 +997,9 @@ internal fun settingsFetchAt(gate: Method): Int {
 /**
  * Where the Video tab's arming [home] answers its own copy of the surface [gate], inlined: the
  * move-result of the first boolean answer after its last fetch of the gate's settings before it asks
- * [check], when the numbers loaded on the way are the gate's own lambda cases. -1 otherwise.
- * Changes nothing.
+ * [check], when the numbers loaded on the way are the gate's own lambda cases. From 586 the gate
+ * reads its answer straight off the settings (`LX/09vD;->A01` calls `LX/05XG;->A1D()Z`, no cases),
+ * so with no cases the copy's answer must call that same method. -1 otherwise. Changes nothing.
  */
 internal fun homeGateAt(home: Method, gate: Method, check: Method): Int {
     val gateCode = gate.implementation?.instructions?.toList().orEmpty()
@@ -890,7 +1007,8 @@ internal fun homeGateAt(home: Method, gate: Method, check: Method): Int {
     if (fetch < 0) return -1
     val settings = ((gateCode[fetch] as ReferenceInstruction).reference as MethodReference).toString()
     val (gateAnswer, cases) = gateRead(gateCode, fetch)
-    if (gateAnswer < 0 || cases.isEmpty()) return -1
+    if (gateAnswer < 0) return -1
+    val gateAsks = called(gateCode[gateAnswer])?.toString() ?: return -1
     val code = home.implementation?.instructions?.toList().orEmpty()
     val asked = code.indexOfFirst { asksCheck(it, check) }
     if (asked < 0) return -1
@@ -900,13 +1018,16 @@ internal fun homeGateAt(home: Method, gate: Method, check: Method): Int {
     } ?: return -1
     val (answer, homeCases) = gateRead(code, fetched)
     if (answer < 0 || answer >= asked || homeCases != cases) return -1
+    if (cases.isEmpty() && called(code[answer])?.toString() != gateAsks) return -1
     return if (code.getOrNull(answer + 1)?.opcode == Opcode.MOVE_RESULT) answer + 1 else -1
 }
 
 /**
  * Where the Video tab's arming [home] reads its flag for [VIDEO_TAB_SURFACE]: the move-result of the
  * first MobileConfig boolean read after it loads that name, when an if-nez on it follows and a no
- * falls through into one of ReelsPipUtil's [disarms]. -1 otherwise. Changes nothing.
+ * falls through into one of ReelsPipUtil's [disarms]. 587 (09Ha.A08 on arm64) loads constants into
+ * other registers first and tests with an if-eqz, so its no is the jump, which reaches the disarm
+ * past more constant loads. -1 otherwise. Changes nothing.
  */
 internal fun homeFlagAt(home: Method, disarms: List<Method>): Int {
     val code = home.implementation?.instructions?.toList().orEmpty()
@@ -914,10 +1035,16 @@ internal fun homeFlagAt(home: Method, disarms: List<Method>): Int {
     if (named < 0) return -1
     val read = (named + 1 until code.size).firstOrNull { isFlagRead(code[it]) } ?: return -1
     val result = code.getOrNull(read + 1)
-    val branch = code.getOrNull(read + 2)
-    if (result?.opcode != Opcode.MOVE_RESULT || branch?.opcode != Opcode.IF_NEZ) return -1
-    if ((branch as OneRegisterInstruction).registerA != (result as OneRegisterInstruction).registerA) return -1
-    val next = code.getOrNull(read + 3) ?: return -1
+    if (result?.opcode != Opcode.MOVE_RESULT) return -1
+    val flag = (result as OneRegisterInstruction).registerA
+    val branchAt = (read + 2 until code.size).firstOrNull { code[it].opcode !in literalLoads } ?: return -1
+    if ((read + 2 until branchAt).any { (code[it] as OneRegisterInstruction).registerA == flag }) return -1
+    val branch = code[branchAt]
+    if (branch.opcode != Opcode.IF_NEZ && branch.opcode != Opcode.IF_EQZ) return -1
+    if ((branch as OneRegisterInstruction).registerA != flag) return -1
+    val no = if (branch.opcode == Opcode.IF_NEZ) branchAt + 1 else branchTarget(code, branchAt) ?: return -1
+    val callAt = (no until code.size).firstOrNull { code[it].opcode !in literalLoads } ?: return -1
+    val next = code[callAt]
     val disarm = (next as? ReferenceInstruction)?.reference as? MethodReference ?: return -1
     if (!next.opcode.name.startsWith("invoke")) return -1
     val disarming = disarms.any {

@@ -161,7 +161,10 @@ publishing {
     }
 }
 
+// Nivqo local Maven dependency install may skip upstream GPG; formal publishing stays signed.
 signing {
+    if (!providers.gradleProperty("nivqo.localUnsignedPublish").map(String::toBoolean).getOrElse(false)) {
     useGpgCmd()
     sign(publishing.publications["morphe-patcher-publication"])
+    }
 }

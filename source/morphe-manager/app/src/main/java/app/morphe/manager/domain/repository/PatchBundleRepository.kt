@@ -11,7 +11,6 @@
 package app.morphe.manager.domain.repository
 
 import android.app.Application
-import android.content.Context
 import android.database.SQLException
 import android.util.Log
 import androidx.annotation.StringRes
@@ -21,6 +20,7 @@ import app.morphe.manager.data.platform.NetworkInfo
 import app.morphe.manager.data.redux.Action
 import app.morphe.manager.data.redux.ActionContext
 import app.morphe.manager.data.redux.Store
+import app.morphe.manager.data.platform.Filesystem
 import app.morphe.manager.data.room.AppDatabase
 import app.morphe.manager.data.room.AppDatabase.Companion.generateUid
 import app.morphe.manager.data.room.apps.installed.SelectionPayload
@@ -39,8 +39,6 @@ import app.morphe.manager.ui.screen.shared.UserMessages
 import app.morphe.manager.ui.viewmodel.BundleSnapshot
 import app.morphe.manager.util.*
 import io.ktor.client.plugins.ResponseException
-import io.ktor.http.Url
-import io.ktor.http.hostWithPortIfSpecified
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentMapOf
@@ -52,8 +50,6 @@ import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
-import java.net.URI
-import java.net.URISyntaxException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.security.MessageDigest
@@ -72,9 +68,10 @@ class PatchBundleRepository(
     private val blocklistRepository: BlocklistRepository,
     private val sourceMuteRepository: SourceMuteRepository,
     db: AppDatabase,
+    fs: Filesystem,
 ) {
     private val dao = db.patchBundleDao()
-    private val bundlesDir = app.getDir("patch_bundles", Context.MODE_PRIVATE)
+    private val bundlesDir = fs.patchBundlesDir
 
     /** Crash attribution for every in-process bundle read, the patcher runtime's included. */
     val loadGuard = PatchBundleLoadGuard(app, bundlesDir)
@@ -118,19 +115,20 @@ class PatchBundleRepository(
     }
 
     /**
-     * Whether a source was built for a newer patcher than this manager ships. Answered here
-     * rather than on screen, as reading what a source requires opens its patches.jar.
+     * Sources built for a newer patcher than this manager ships. Answered here rather than on
+     * screen, as reading what a source requires opens its patches.jar.
      */
-    val hasOutdatedManagerSources: StateFlow<Boolean> = sources
-        // The generic upstream warning must not tell Nivqo users to install Morphe.
-        // Our official bundles may still warn if they truly need a newer Nivqo patcher.
-        .map { list -> list.any { isNivqoManagerCompatibilityWarning(it) } }
+val outdatedManagerSources = sourceUidsWhere { isNivqoManagerCompatibilityWarning(it) }
+    val hasOutdatedManagerSources: StateFlow<Boolean> = outdatedManagerSources
+        .map { it.isNotEmpty() }
         .stateIn(scope, SharingStarted.Eagerly, false)
 
-    /** Whether a source is skipped for having taken the process down while being read. */
-    val hasHeldBackSources: StateFlow<Boolean> = sources
-        .map { list -> list.any { it.isHeldBack } }
-        .stateIn(scope, SharingStarted.Eagerly, false)
+    /** Sources skipped for having taken the process down while being read. */
+    val heldBackSources = sourceUidsWhere { it.isHeldBack }
+
+    private fun sourceUidsWhere(predicate: (PatchBundleSource) -> Boolean): StateFlow<Set<Int>> = sources
+        .map { list -> list.filter(predicate).mapTo(mutableSetOf()) { it.uid } }
+        .stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     /**
      * Sources that appear on the remote blocklist, keyed by source uid.
@@ -259,6 +257,18 @@ class PatchBundleRepository(
 
     private val bundleUpdateProgressFlow = MutableStateFlow<BundleUpdateProgress?>(null)
     val bundleUpdateProgress: StateFlow<BundleUpdateProgress?> = bundleUpdateProgressFlow.asStateFlow()
+
+    /** Takes down the result of the last update, see [showFinished]. */
+    private var bundleUpdateAutoClearJob: Job? = null
+
+    private val pendingUpdatesFlow = MutableStateFlow<Map<Int, String>>(emptyMap())
+
+    /**
+     * Sources a check found an update for and left it to the user to download, see
+     * [PreferencesManager.autoUpdates], each with the version waiting. A source leaves it once
+     * it is updated.
+     */
+    val pendingUpdates: StateFlow<Map<Int, String>> = pendingUpdatesFlow.asStateFlow()
 
     private val bundleImportProgressFlow = MutableStateFlow<ImportProgress?>(null)
 
@@ -433,13 +443,9 @@ class PatchBundleRepository(
     }
 
     private fun guessNameFromEndpoint(endpoint: String): String? {
-        val uri = try {
-            URI(endpoint)
-        } catch (_: URISyntaxException) {
-            return null
-        }
-        val host = uri.host?.lowercase(Locale.US) ?: return null
-        val segments = uri.path?.trim('/')?.split('/')?.filter { it.isNotBlank() }.orEmpty()
+        val source = SourceUrl.parse(endpoint) ?: return null
+        val host = source.host
+        val segments = source.segments
 
         // Prefer a segment containing "bundle" (case-insensitive), e.g. ".../piko-latest-patches-bundle.json".
         val bundleCandidates = segments.filter { it.contains("bundle", ignoreCase = true) }
@@ -466,8 +472,8 @@ class PatchBundleRepository(
         // Fallbacks for common GitHub URL patterns.
         if (segments.isEmpty()) return host
         return when (host) {
-            "github.com" if segments.size >= 2 -> segments[1]
-            "api.github.com" if segments.size >= 3 && segments[0] == "repos" -> segments[2]
+            GITHUB_HOST -> source.repo ?: host
+            GITHUB_API_HOST if segments.size >= 3 && segments[0] == "repos" -> segments[2]
             else -> host
         }
     }
@@ -703,18 +709,18 @@ class PatchBundleRepository(
                 if (error is PatchBundleHeldBackException) {
                     // The bundle took the process down with it, so the launch it would break is
                     // worth more than the patches it carries
-                    Log.e(tag, "Held back bundle ${src.name}", error)
+                    Log.e(LOG_TAG, "Held back bundle ${src.name}", error)
                 } else if (requiredPatcher != null && isPatcherOutdated(requiredPatcher)) {
                     // Loading fails with linkage errors when the bundle uses patcher APIs this
                     // manager does not have. Spell it out so logs are not just a NoSuchMethodError
                     Log.e(
-                        tag,
+                        LOG_TAG,
                         "Failed to load bundle ${src.name}: it requires patcher $requiredPatcher, " +
                                 "but this manager ships ${BuildConfig.PATCHER_VERSION}. Update the manager",
                         error
                     )
                 } else {
-                    Log.e(tag, "Failed to load bundle ${src.name}", error)
+                    Log.e(LOG_TAG, "Failed to load bundle ${src.name}", error)
                 }
                 null
             }
@@ -725,7 +731,7 @@ class PatchBundleRepository(
         try {
             sourceMuteRepository.leaveOutNewApps(metadata)
         } catch (e: SQLException) {
-            Log.e(tag, "Failed to leave out new apps", e)
+            Log.e(LOG_TAG, "Failed to leave out new apps", e)
         }
 
         if (failures.isNotEmpty()) {
@@ -826,7 +832,7 @@ class PatchBundleRepository(
 
     private suspend fun loadEntitiesEnforcingOfficialOrder(): List<PatchBundleEntity> {
         val entities = loadFromDb()
-        entities.forEach { Log.d(tag, "Bundle: $it") }
+        entities.forEach { Log.d(LOG_TAG, "Bundle: $it") }
         return entities
     }
 
@@ -963,7 +969,11 @@ class PatchBundleRepository(
         val force: Boolean = false,
         val showMessage: Boolean = false,
         val allowUnsafeNetwork: Boolean = false,
+        // False for a check that only speaks up once something arrives, and ends without a word
+        // when nothing was new
         val reportUpToDate: Boolean = true,
+        // The check opening Morphe runs, which the auto updates setting holds to less
+        val onLaunch: Boolean = false,
     ) {
         /**
          * True when running this request already does everything [other] asks for. A request
@@ -975,6 +985,7 @@ class PatchBundleRepository(
                     !other.showMessage &&
                     (allowUnsafeNetwork || !other.allowUnsafeNetwork) &&
                     (reportUpToDate || !other.reportUpToDate) &&
+                    (!onLaunch || other.onLaunch) &&
                     target.covers(other.target)
     }
 
@@ -990,6 +1001,7 @@ class PatchBundleRepository(
             showMessage = requests.any { it.showMessage },
             allowUnsafeNetwork = requests.all { it.allowUnsafeNetwork },
             reportUpToDate = requests.any { it.reportUpToDate },
+            onLaunch = requests.all { it.onLaunch },
             target = requests.map { it.target }.reduce(UpdateTarget::plus),
         )
     }
@@ -1057,12 +1069,12 @@ class PatchBundleRepository(
 
             // After store is updated, trigger update for bundles that were just enabled
             if (beingEnabledUids.isNotEmpty()) {
-                Log.d(tag, "Triggering update for re-enabled bundles: $beingEnabledUids")
+                Log.d(LOG_TAG, "Triggering update for re-enabled bundles: $beingEnabledUids")
                 startRemoteUpdateJob(
                     UpdateRequest(
                         target = UpdateTarget(custom = { bundle ->
                             val matches = bundle.uid in beingEnabledUids && bundle.enabled
-                            Log.d(tag, "  predicate check uid=${bundle.uid} inEnabled=${bundle.uid in beingEnabledUids} enabled=${bundle.enabled} ??$matches")
+                            Log.d(LOG_TAG, "  predicate check uid=${bundle.uid} inEnabled=${bundle.uid in beingEnabledUids} enabled=${bundle.enabled} → $matches")
                             matches
                         })
                     )
@@ -1239,7 +1251,7 @@ class PatchBundleRepository(
         var importedUid: Int? = null
         fun reportFailure(e: Exception) {
             if (e is CancellationException) throw e
-            Log.e(tag, "Got exception while importing bundle", e)
+            Log.e(LOG_TAG, "Got exception while importing bundle", e)
             if (e is PatchBundleSignerChangedException) {
                 messages.showIfInForeground(R.string.sources_signing_key_changed_local)
             } else {
@@ -1249,15 +1261,15 @@ class PatchBundleRepository(
         enqueueLocalImport()
         localImportMutex.withLock {
             val baseProcessed = localImportBaseSteps()
+            // Every step reports against the same place in the queue, under the name read so far
+            fun reportProgress(offset: Int, phase: BundleImportPhase, bytesRead: Long = 0L, bytesTotal: Long? = null) =
+                setLocalImportProgress(baseProcessed, offset, displayName, phase, bytesRead, bytesTotal)
+            val reportProcessing = { read: Long, total: Long? ->
+                reportProgress(1, BundleImportPhase.Processing, read, total)
+            }
+
             try {
-                setLocalImportProgress(
-                    baseProcessed = baseProcessed,
-                    offset = 0,
-                    displayName = null,
-                    phase = BundleImportPhase.Downloading,
-                    bytesRead = 0L,
-                    bytesTotal = null,
-                )
+                reportProgress(0, BundleImportPhase.Downloading)
 
                 val tempFile = withContext(Dispatchers.IO) {
                     File.createTempFile("local_bundle", ".jar", app.cacheDir)
@@ -1274,26 +1286,12 @@ class PatchBundleRepository(
                                             else -> runCatching { input.available().takeIf { it > 0 }?.toLong() }.getOrNull()
                                         }
                                     }
-                                    setLocalImportProgress(
-                                        baseProcessed = baseProcessed,
-                                        offset = 0,
-                                        displayName = displayName,
-                                        phase = BundleImportPhase.Downloading,
-                                        bytesRead = 0L,
-                                        bytesTotal = copyTotal,
-                                    )
+                                    reportProgress(0, BundleImportPhase.Downloading, bytesTotal = copyTotal)
 
                                     sha256Of(input) { buffer, read ->
                                         output.write(buffer, 0, read)
                                         copyRead += read
-                                        setLocalImportProgress(
-                                            baseProcessed = baseProcessed,
-                                            offset = 0,
-                                            displayName = displayName,
-                                            phase = BundleImportPhase.Downloading,
-                                            bytesRead = copyRead,
-                                            bytesTotal = copyTotal,
-                                        )
+                                        reportProgress(0, BundleImportPhase.Downloading, copyRead, copyTotal)
                                     }
                                 }
                             }
@@ -1315,14 +1313,7 @@ class PatchBundleRepository(
                     displayName = (manifestName ?: existingProps?.name).orEmpty()
 
                     val replaceTotal = tempFile.length().takeIf { it > 0L } ?: copyTotal
-                    setLocalImportProgress(
-                        baseProcessed = baseProcessed,
-                        offset = 1,
-                        displayName = displayName,
-                        phase = BundleImportPhase.Processing,
-                        bytesRead = 0L,
-                        bytesTotal = replaceTotal,
-                    )
+                    reportProgress(1, BundleImportPhase.Processing, bytesTotal = replaceTotal)
 
                     // Updating a source keeps the name it is listed under: the file it points at
                     // changed, the source did not, and renaming stays a separate action
@@ -1339,32 +1330,16 @@ class PatchBundleRepository(
                     try {
                         val moved = localBundle.replaceFromTempFile(
                             tempFile,
-                            totalBytes = replaceTotal
-                        ) { read, total ->
-                            setLocalImportProgress(
-                                baseProcessed = baseProcessed,
-                                offset = 1,
-                                displayName = displayName,
-                                phase = BundleImportPhase.Processing,
-                                bytesRead = read,
-                                bytesTotal = total,
-                            )
-                        }
+                            totalBytes = replaceTotal,
+                            onProgress = reportProcessing
+                        )
                         if (!moved) {
                             tempFile.inputStream().use { patches ->
                                 localBundle.replace(
                                     patches,
-                                    totalBytes = replaceTotal
-                                ) { read, total ->
-                                    setLocalImportProgress(
-                                        baseProcessed = baseProcessed,
-                                        offset = 1,
-                                        displayName = displayName,
-                                        phase = BundleImportPhase.Processing,
-                                        bytesRead = read,
-                                        bytesTotal = total,
-                                    )
-                                }
+                                    totalBytes = replaceTotal,
+                                    onProgress = reportProcessing
+                                )
                             }
                         }
                         importedUid = uid
@@ -1380,23 +1355,9 @@ class PatchBundleRepository(
                 } finally {
                     tempFile.delete()
                 }
-                setLocalImportProgress(
-                    baseProcessed = baseProcessed,
-                    offset = LOCAL_IMPORT_STEPS - 1,
-                    displayName = displayName,
-                    phase = BundleImportPhase.Finalizing,
-                    bytesRead = 0L,
-                    bytesTotal = null,
-                )
+                reportProgress(LOCAL_IMPORT_STEPS - 1, BundleImportPhase.Finalizing)
                 dispatchAction(if (targetUid != null) "Replace bundle" else "Add bundle") { doReload() }
-                setLocalImportProgress(
-                    baseProcessed = baseProcessed,
-                    offset = LOCAL_IMPORT_STEPS,
-                    displayName = displayName,
-                    phase = BundleImportPhase.Finalizing,
-                    bytesRead = 0L,
-                    bytesTotal = null,
-                )
+                reportProgress(LOCAL_IMPORT_STEPS, BundleImportPhase.Finalizing)
             } finally {
                 completeLocalImport()
             }
@@ -1477,7 +1438,7 @@ class PatchBundleRepository(
                 for (url in urls) {
                     when (val check = checkRemoteUrl(url, takenKeys)) {
                         is RemoteUrlCheck.Rejected -> {
-                            Log.i(tag, "Skipped source $url: ${check.reason}")
+                            Log.i(LOG_TAG, "Skipped source $url: ${check.reason}")
                             rejections += check.reason
                         }
                         is RemoteUrlCheck.Accepted -> {
@@ -1498,7 +1459,7 @@ class PatchBundleRepository(
             keptApps?.let { apps ->
                 created.forEach { sourceMuteRepository.setBringsNewApps(it.uid, false, apps) }
             }
-            update(*created.toTypedArray(), allowUnsafeNetwork = prefs.allowMeteredUpdates.get())
+            update(*created.toTypedArray())
             ready.copy(sources = ready.sources.mutate { sources -> created.forEach { sources[it.uid] = it } })
         }
         return added.await()
@@ -1530,7 +1491,7 @@ class PatchBundleRepository(
             metadataFetchErrorsFlow.update { it - current.uid }
 
             val changed = createEntity("", SourceInfo.from(endpoint), uid = current.uid).load() as RemotePatchBundle
-            update(changed, allowUnsafeNetwork = prefs.allowMeteredUpdates.get())
+            update(changed)
             ready.copy(sources = ready.sources.putting(changed.uid, changed))
         }
 
@@ -1547,12 +1508,12 @@ class PatchBundleRepository(
      */
     fun typedRemoteLink(src: RemotePatchBundle): String =
         RemotePatchBundle.inferPageUrlFromEndpoint(src.endpoint)
-            ?.takeIf { runCatching { normalizeRemoteBundleUrl(it) }.getOrNull() == src.endpoint }
+            ?.takeIf { runCatching { SourceUrl.normalizeBundleUrl(it) }.getOrNull() == src.endpoint }
             ?: src.endpoint
 
     private fun checkRemoteUrl(url: String, takenKeys: Set<String>): RemoteUrlCheck {
         val endpoint = try {
-            normalizeRemoteBundleUrl(url)
+            SourceUrl.normalizeBundleUrl(url)
         } catch (_: IllegalArgumentException) {
             return RemoteUrlCheck.Rejected(RemoteSourceRejection.Invalid)
         }
@@ -1583,7 +1544,7 @@ class PatchBundleRepository(
 
     private fun RemotePatchBundle.sourceKeys(): Set<String> = buildSet {
         add(endpoint.lowercase(Locale.US))
-        if (this@sourceKeys is APIPatchBundle) toBlocklistKey(normalizeRemoteBundleUrl(SOURCE_REPO_URL))?.let(::add)
+        if (this@sourceKeys is APIPatchBundle) toBlocklistKey(SourceUrl.normalizeBundleUrl(SOURCE_REPO_URL))?.let(::add)
     }
 
     /** The source [url] would duplicate, by the same rule [createRemotes] turns it down with. */
@@ -1604,7 +1565,7 @@ class PatchBundleRepository(
 
         // Auto-enable prerelease if asked for or if the URL explicitly targets the "dev" branch
         if (src is JsonPatchBundle &&
-            (src.endpointBranch == RemotePatchBundle.BRANCH_DEV || usePrerelease && src.supportsPrerelease)
+            (src.endpointBranch == BRANCH_DEV || usePrerelease && src.supportsPrerelease)
         ) {
             val current = prefs.bundlePrereleasesEnabled.get().toMutableSet()
             current.add(src.uid.toString())
@@ -1618,11 +1579,11 @@ class PatchBundleRepository(
      * Returns true if 'usePrerelease' should be enabled for a [JsonPatchBundle] with the given [url].
      * Prerelease is enabled if:
      * - the uid is already stored in [PreferencesManager.bundlePrereleasesEnabled] (user toggled it on)
-     * - the endpoint URL explicitly targets the "dev" branch.
+     * - the endpoint URL explicitly targets the [BRANCH_DEV] branch.
      */
     private fun shouldUsePrerelease(uid: Int, url: String): Boolean =
         prefs.bundlePrereleasesEnabled.getBlocking().contains(uid.toString()) ||
-                JsonPatchBundle.extractBranch(url) == "dev"
+                SourceUrl.parse(url)?.branch == BRANCH_DEV
 
     /**
      * Extracts the HTTP status code from an exception.
@@ -1638,7 +1599,7 @@ class PatchBundleRepository(
      */
     private fun handleBundleDownloadError(e: Exception, bundle: RemotePatchBundle) {
         val code = e.httpCodeOrNull()
-        Log.e(tag, "Failed to update bundle ${bundle.name} (HTTP $code)", e)
+        Log.e(LOG_TAG, "Failed to update bundle ${bundle.name} (HTTP $code)", e)
         if (e is PatchBundleSignerChangedException) {
             messages.showIfInForeground(R.string.sources_signing_key_changed_named, bundle.displayTitle)
         } else if (code != null && code in 400..499
@@ -1668,9 +1629,9 @@ class PatchBundleRepository(
             val entry = blocked[key] ?: return@mapNotNull null
             Triple(remote.endpoint, remote.name, entry)
         }
-        Log.d(tag, "logBlockedSources: blocked=${blocked.size}, matched=${matched.size}")
+        Log.d(LOG_TAG, "logBlockedSources: blocked=${blocked.size}, matched=${matched.size}")
         matched.forEach { (endpoint, name, entry) ->
-            Log.i(tag, "Blocked source disabled: $name endpoint=$endpoint reason=${entry.reason}")
+            Log.i(LOG_TAG, "Blocked source disabled: $name endpoint=$endpoint reason=${entry.reason}")
         }
     }
 
@@ -1679,169 +1640,8 @@ class PatchBundleRepository(
         bundleState.filterIsInstance<BundleState.Ready>().first()
 
     /** Returns the blocklist key for a normalized bundle URL, or null for non-GitHub/GitLab hosts. */
-    private fun toBlocklistKey(normalizedUrl: String): String? = try {
-        val parsed = Url(normalizedUrl)
-        val segments = parsed.encodedPath.trim('/').split('/').filter { it.isNotBlank() }
-        when {
-            segments.size < 2 -> null
-            parsed.host.equals("raw.githubusercontent.com", ignoreCase = true) ||
-                parsed.host.equals("github.com", ignoreCase = true) ->
-                "github=${segments[0]}/${segments[1]}".lowercase(Locale.US)
-            parsed.host.equals("gitlab.com", ignoreCase = true) ->
-                "gitlab=${segments[0]}/${segments[1]}".lowercase(Locale.US)
-            else -> null
-        }
-    } catch (_: Exception) { null }
-
-    fun normalizeRemoteBundleUrl(input: String): String {
-        // A link is usually pasted without its scheme, and every host here serves https
-        val trimmed = input.trim().let { if ("://" in it) it else "https://$it" }
-        val parsed = try {
-            Url(trimmed)
-        } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid bundle URL: ${e.message ?: trimmed}")
-        }
-
-        val host = parsed.host
-        val pathSegments = parsed.encodedPath.trim('/').split('/').filter { it.isNotBlank() }
-
-        // Handle GitHub repository URLs
-        if (host.equals("github.com", ignoreCase = true)) {
-            if (pathSegments.size < 2) {
-                throw IllegalArgumentException("Invalid GitHub repository URL")
-            }
-
-            // Check if it's a pull request URL
-            if (pathSegments.size >= 3 && pathSegments[2] == "pull") {
-                val scheme = if (parsed.protocol.name.equals("https", ignoreCase = true)) "https" else "http"
-                val basePath = "/" + pathSegments.joinToString("/")
-                val query = parsed.encodedQuery.takeIf { it.isNotEmpty() }?.let { "?$it" }.orEmpty()
-                return "$scheme://$host$basePath$query"
-            }
-
-            // Transform GitHub repository URL to raw.githubusercontent.com
-            val owner = pathSegments[0]
-            val repo = pathSegments[1]
-
-            // Determine branch and additional path
-            val branch = when {
-                // URL format: github.com/owner/repo/tree/branch/path...
-                pathSegments.size >= 4 && pathSegments[2] == "tree" -> {
-                    val branchSegments = pathSegments.drop(3)
-                    // Find where the branch name ends (could be multi-segment like "refs/heads/main")
-                    branchSegments.takeWhile { !it.endsWith(".json") }.joinToString("/")
-                }
-                // URL format: github.com/owner/repo/blob/branch/path...
-                pathSegments.size >= 4 && pathSegments[2] == "blob" -> {
-                    pathSegments[3]
-                }
-                // Default to main branch
-                else -> "main"
-            }
-
-            // Get the remaining path after branch (if any)
-            val remainingPath = when {
-                pathSegments.size >= 4 && pathSegments[2] == "tree" -> {
-                    // For tree URLs, get everything after the branch
-                    val branchSegmentCount = branch.split("/").size
-                    pathSegments.drop(3 + branchSegmentCount).joinToString("/")
-                }
-                pathSegments.size >= 5 && pathSegments[2] == "blob" -> {
-                    // For blob URLs, get everything after the branch
-                    pathSegments.drop(4).joinToString("/")
-                }
-                pathSegments.size >= 3 -> {
-                    // Direct path after repo (e.g., github.com/owner/repo/legacy)
-                    pathSegments.drop(2).joinToString("/")
-                }
-                else -> ""
-            }
-
-            // Build the final path
-            val finalPath = buildString {
-                append("/$owner/$repo/$branch")
-                if (remainingPath.isNotEmpty()) {
-                    append("/$remainingPath")
-                    // Add patches-bundle.json only if the path doesn't already end with .json
-                    if (!remainingPath.endsWith(".json", ignoreCase = true)) {
-                        append("/patches-bundle.json")
-                    }
-                } else {
-                    append("/patches-bundle.json")
-                }
-            }
-
-            return "https://raw.githubusercontent.com$finalPath"
-        }
-
-        // Handle GitLab repository URLs
-        // Accepts short form: gitlab.com/owner/repo
-        // Or full raw URL:    gitlab.com/owner/repo/-/raw/branch/patches-bundle.json
-        if (host.equals("gitlab.com", ignoreCase = true)) {
-            if (pathSegments.size < 2) {
-                throw IllegalArgumentException("Invalid GitLab repository URL")
-            }
-
-            val owner = pathSegments[0]
-            val repo = pathSegments[1]
-
-            // Check if this is already a raw URL: owner/repo/-/raw/branch/path
-            val rawIndex = pathSegments.indexOf("raw")
-            if (rawIndex >= 2 && pathSegments.getOrNull(rawIndex - 1) == "-") {
-                // Already a raw URL - normalize it
-                val normalizedPath = "/" + pathSegments.joinToString("/")
-                val pathNoQuery = normalizedPath.substringBefore('?').substringBefore('#')
-                if (!pathNoQuery.endsWith(".json", ignoreCase = true)) {
-                    throw IllegalArgumentException("Patch bundle URL must point to a .json file.")
-                }
-                val query = parsed.encodedQuery.takeIf { it.isNotEmpty() }?.let { "?$it" }.orEmpty()
-                return "https://gitlab.com$normalizedPath$query"
-            }
-
-            // Determine branch from GitLab UI URLs (/-/tree/branch or /-/blob/branch)
-            val treeIndex = pathSegments.indexOf("tree")
-            val blobIndex = pathSegments.indexOf("blob")
-            val branch = when {
-                treeIndex >= 2 && pathSegments.getOrNull(treeIndex - 1) == "-" ->
-                    pathSegments.getOrNull(treeIndex + 1) ?: "main"
-                blobIndex >= 2 && pathSegments.getOrNull(blobIndex - 1) == "-" ->
-                    pathSegments.getOrNull(blobIndex + 1) ?: "main"
-                else -> "main"
-            }
-
-            return "https://gitlab.com/$owner/$repo/-/raw/$branch/patches-bundle.json"
-        }
-
-        // Handle raw.githubusercontent.com URLs (legacy support)
-        if (host.equals("raw.githubusercontent.com", ignoreCase = true)) {
-            if (pathSegments.size < 3) {
-                throw IllegalArgumentException("Invalid raw GitHub URL")
-            }
-
-            val normalizedPath = "/" + pathSegments.joinToString("/")
-            val pathNoQuery = normalizedPath.substringBefore('?').substringBefore('#')
-
-            if (!pathNoQuery.endsWith(".json", ignoreCase = true)) {
-                throw IllegalArgumentException("Patch bundle URL must point to a .json file.")
-            }
-
-            val query = parsed.encodedQuery.takeIf { it.isNotEmpty() }?.let { "?$it" }.orEmpty()
-            return "https://$host$normalizedPath$query"
-        }
-
-        // Handle direct JSON URLs from other hosts
-        val normalizedPath = "/" + pathSegments.joinToString("/")
-        val pathNoQuery = normalizedPath.substringBefore('?').substringBefore('#')
-
-        if (!pathNoQuery.endsWith(".json", ignoreCase = true)) {
-            throw IllegalArgumentException("Patch bundle URL must point to a .json file.")
-        }
-
-        val query = parsed.encodedQuery.takeIf { it.isNotEmpty() }?.let { "?$it" }.orEmpty()
-        // Rebuilt from the host and port rather than the host alone, so that a bundle served on a
-        // custom port is not silently requested on the protocol default one
-        return "https://${parsed.hostWithPortIfSpecified}$normalizedPath$query"
-    }
+    private fun toBlocklistKey(normalizedUrl: String): String? =
+        SourceUrl.parse(normalizedUrl)?.repositoryKey?.lowercase(Locale.US)
 
     /** Returns true if [uid] corresponds to a currently loaded bundle. */
     fun isUidLoaded(uid: Int): Boolean =
@@ -1857,16 +1657,16 @@ class PatchBundleRepository(
 
     /**
      * Returns the current UID of the loaded bundle whose endpoint matches [endpoint], or null
-     * if no such bundle is loaded. Uses [normalizeRemoteBundleUrl] for comparison so that
+     * if no such bundle is loaded. Uses [SourceUrl.normalizeBundleUrl] for comparison so that
      * GitHub shorthand and raw URLs for the same repo are treated as equal.
      */
     fun resolveUidForEndpoint(endpoint: String): Int? {
-        val normalizedInput = runCatching { normalizeRemoteBundleUrl(endpoint) }
+        val normalizedInput = runCatching { SourceUrl.normalizeBundleUrl(endpoint) }
             .getOrElse { endpoint.lowercase(Locale.US) }
         return (store.state.value as? BundleState.Ready)?.sources?.entries
             ?.firstOrNull { (_, src) ->
                 (src as? RemotePatchBundle)?.let { bundle ->
-                    runCatching { normalizeRemoteBundleUrl(bundle.endpoint) }
+                    runCatching { SourceUrl.normalizeBundleUrl(bundle.endpoint) }
                         .getOrElse { bundle.endpoint.lowercase(Locale.US) } == normalizedInput
                 } == true
             }?.key
@@ -1893,6 +1693,16 @@ class PatchBundleRepository(
                 )
             )
         )
+    }
+
+    /**
+     * Updates [sources] as their update action does. A source that failed to load may hold a broken
+     * jar of the current version, which a plain version check would keep, so it is downloaded again.
+     */
+    suspend fun updateOrRepair(sources: List<RemotePatchBundle>, showMessage: Boolean = false) {
+        val (failed, loaded) = sources.partition { it.state is PatchBundleSource.State.Failed }
+        if (failed.isNotEmpty()) update(*failed.toTypedArray(), force = true, showMessage = showMessage)
+        if (loaded.isNotEmpty()) update(*loaded.toTypedArray(), showMessage = showMessage)
     }
 
     /**
@@ -1937,12 +1747,11 @@ class PatchBundleRepository(
      * Updates every remote bundle that is currently enabled.
      * Disabled bundles are skipped - they will be updated automatically when re-enabled.
      * Blocked sources are skipped even if enabled.
-     * Respects [PreferencesManager.allowMeteredUpdates]: if the network is metered and the
-     * user has disabled metered updates, the update is skipped and
-     * [BundleUpdateResult.SkippedMetered] is emitted so the UI can warn the user before patching.
+     * Follows [PreferencesManager.autoUpdates], which can hold it to a check that leaves what it
+     * finds in [pendingUpdates], or skip it altogether.
      *
-     * @param allowUnsafeNetwork When `true`, bypasses the metered network check and downloads
-     *   regardless. Use this when the user explicitly requests an update (e.g. "Update & patch"
+     * @param allowUnsafeNetwork When `true`, downloads whatever the auto updates setting and the
+     *   network allow. Use this when the user explicitly requests an update (e.g. "Update & patch"
      *   dialog action).
      */
     suspend fun updateCheck(allowUnsafeNetwork: Boolean = false) {
@@ -1951,9 +1760,12 @@ class PatchBundleRepository(
         // queue, so it does not wait out the disabled sources being read in the meantime
         awaitReady()
         startRemoteUpdateJob(
+            // Nobody asked for it, so it only tells what it brought or what went wrong
             UpdateRequest(
                 target = UpdateTarget(allEnabled = true),
                 allowUnsafeNetwork = allowUnsafeNetwork,
+                reportUpToDate = false,
+                onLaunch = true,
             )
         )
     }
@@ -1973,24 +1785,27 @@ class PatchBundleRepository(
     suspend fun checkForBundleUpdatesQuiet(): AvailableBundleUpdate? {
         if (!networkInfo.isConnected()) return null
 
-        val allowMeteredUpdates = prefs.allowMeteredUpdates.get()
-        if (!allowMeteredUpdates && networkInfo.isMetered()) return null
+        // Only sources an update can reach, or the notification points at one that never comes
+        val remoteBundles = (store.state.value as? BundleState.Ready)?.sources?.values
+            .orEmpty()
+            .filterIsInstance<RemotePatchBundle>()
+            .filter { it.enabled && !isSourceBlocked(it) }
+
+return availableUpdates(remoteBundles.filter { isNivqoUpdateNotificationSource(it.uid, it.endpoint) }).firstOrNull()
+    }
+
+    /**
+     * The [bundles] with a newer release than the one installed, read from the versions alone,
+     * which costs a few kilobytes rather than the bundles themselves. A source that cannot be
+     * reached is left out.
+     */
+    private suspend fun availableUpdates(bundles: List<RemotePatchBundle>): List<AvailableBundleUpdate> {
+        if (bundles.isEmpty()) return emptyList()
 
         return try {
-            // Only sources an update can reach, or the notification points at one that never comes
-            val remoteBundles = (store.state.value as? BundleState.Ready)?.sources?.values
-                .orEmpty()
-                .filterIsInstance<RemotePatchBundle>()
-                .filter { it.enabled && !isSourceBlocked(it) }
-                // Do not alert Nivqo users about arbitrary manually added or upstream
-                // Morphe bundles. Their updates remain available in source management.
-                .filter { isNivqoUpdateNotificationSource(it.uid, it.endpoint) }
-
-            if (remoteBundles.isEmpty()) return null
-
-            // Check all remote bundles in parallel for speed; return the first updated version found
+            // Checked in parallel, as each one waits on the network
             coroutineScope {
-                remoteBundles
+                bundles
                     .map { bundle ->
                         async {
                             try {
@@ -2002,17 +1817,17 @@ class PatchBundleRepository(
                                 else
                                     null
                             } catch (e: Exception) {
-                                Log.w(tag, "Failed to check update for bundle ${bundle.name}", e)
+                                Log.w(LOG_TAG, "Failed to check update for bundle ${bundle.name}", e)
                                 null
                             }
                         }
                     }
                     .awaitAll()
-                    .firstNotNullOfOrNull { it }
+                    .filterNotNull()
             }
         } catch (e: Exception) {
-            Log.e(tag, "Failed to quietly check for bundle updates", e)
-            null
+            Log.e(LOG_TAG, "Failed to quietly check for bundle updates", e)
+            emptyList()
         }
     }
 
@@ -2027,7 +1842,7 @@ class PatchBundleRepository(
         }
 
         override suspend fun catch(exception: Exception) {
-            Log.e(tag, "Failed to update patches", exception)
+            Log.e(LOG_TAG, "Failed to update patches", exception)
             messages.showIfInForeground(R.string.sources_download_fail, exception.simpleMessage())
         }
     }
@@ -2041,7 +1856,7 @@ class PatchBundleRepository(
                 // the same bundles, so running the second one would download them twice and raise
                 // a duplicate progress snackbar
                 if (activeUpdateRequest?.covers(request) == true) {
-                    Log.d(tag, "Skipping update request already covered by the running one")
+                    Log.d(LOG_TAG, "Skipping update request already covered by the running one")
                     return
                 }
                 queued = true
@@ -2073,45 +1888,14 @@ class PatchBundleRepository(
         val showMessage = request.showMessage
         val allowUnsafeNetwork = request.allowUnsafeNetwork
         val predicate = predicateFor(request.target)
+        val autoUpdates = prefs.autoUpdates.get()
         try {
-            // Check network connectivity first
+            // Turned off, the launch check does not even say it is offline
+            if (request.onLaunch && !allowUnsafeNetwork && !autoUpdates.checksOnLaunch) return@coroutineScope
+
             if (!networkInfo.isConnected()) {
-                Log.d(tag, "No internet connection for bundle update")
-
-                // Show "No Internet" state
-                val noInternetProgress = BundleUpdateProgress(
-                    total = 1,
-                    completed = 1,
-                    phase = BundleUpdatePhase.Checking,
-                    result = BundleUpdateResult.NoInternet,
-                )
-                bundleUpdateProgressFlow.value = noInternetProgress
-
-                scope.launch {
-                    delay(3.5.seconds)
-                    if (bundleUpdateProgressFlow.value == noInternetProgress) {
-                        bundleUpdateProgressFlow.value = null
-                    }
-                }
-                return@coroutineScope
-            }
-
-            val allowMeteredUpdates = prefs.allowMeteredUpdates.get()
-            if (!allowUnsafeNetwork && !allowMeteredUpdates && networkInfo.isMetered()) {
-                Log.d(tag, "Skipping update check because the network is metered.")
-                val skippedProgress = BundleUpdateProgress(
-                    total = 1,
-                    completed = 1,
-                    phase = BundleUpdatePhase.Checking,
-                    result = BundleUpdateResult.SkippedMetered,
-                )
-                bundleUpdateProgressFlow.value = skippedProgress
-                scope.launch {
-                    delay(3.5.seconds)
-                    if (bundleUpdateProgressFlow.value == skippedProgress) {
-                        bundleUpdateProgressFlow.value = null
-                    }
-                }
+                Log.d(LOG_TAG, "No internet connection for bundle update")
+                showFinished(BundleUpdateResult.NoInternet)
                 return@coroutineScope
             }
 
@@ -2126,13 +1910,29 @@ class PatchBundleRepository(
                 return@coroutineScope
             }
 
-            markActiveUpdateUids(targets.map(RemotePatchBundle::uid).toSet())
+            val metered = networkInfo.isMetered()
+            val downloads = allowUnsafeNetwork || if (request.onLaunch) {
+                autoUpdates.downloadsOnLaunch(metered)
+            } else {
+                autoUpdates.downloadsOnMobileData || !metered
+            }
+            if (!downloads) {
+                // The versions alone cost a few kilobytes, so what is waiting is still known
+                val available = availableUpdates(targets).associate { it.bundleUid to it.version }
+                pendingUpdatesFlow.update { it - targets.uids() + available }
+                if (available.isNotEmpty()) showFinished(BundleUpdateResult.UpdatesAvailable, targets.size)
+                else showUpToDate(request, targets.size)
+                return@coroutineScope
+            }
+
+            markActiveUpdateUids(targets.uids())
 
             bundleUpdateProgressFlow.value = BundleUpdateProgress(
                 total = currentUpdateTotal(targets.size),
                 completed = 0,
                 phase = BundleUpdatePhase.Checking,
                 result = BundleUpdateResult.None,
+                quiet = !request.reportUpToDate,
             )
 
             val bundleBytes = ConcurrentHashMap<Int, Pair<Long, Long?>>()
@@ -2151,7 +1951,7 @@ class PatchBundleRepository(
                         async(downloadDispatcher) {
                             if (isRemoteUpdateCancelled(bundle.uid)) return@async null
 
-                            Log.d(tag, "Updating patch bundle: ${bundle.name}")
+                            Log.d(LOG_TAG, "Updating patch bundle: ${bundle.name}")
 
                             activeNamesMap[bundle.uid] = progressLabelFor(bundle)
                             val active = activeNamesMap.entries.toMutableList()
@@ -2210,50 +2010,18 @@ class PatchBundleRepository(
                     }.awaitAll().filterNotNull().toMap()
                 }
             } catch (e: Exception) {
-                Log.e(tag, "Failed to update patches", e)
-
-                // Show error state
-                val errorProgress = BundleUpdateProgress(
-                    total = 1,
-                    completed = 1,
-                    phase = BundleUpdatePhase.Finalizing,
-                    result = BundleUpdateResult.Error,
-                )
-                bundleUpdateProgressFlow.value = errorProgress
-
-                scope.launch {
-                    delay(3.5.seconds)
-                    if (bundleUpdateProgressFlow.value == errorProgress) {
-                        bundleUpdateProgressFlow.value = null
-                    }
-                }
-
+                Log.e(LOG_TAG, "Failed to update patches", e)
+                showFinished(BundleUpdateResult.Error, phase = BundleUpdatePhase.Finalizing)
                 messages.showIfInForeground(R.string.sources_download_fail, e.simpleMessage())
                 return@coroutineScope
             }
 
+            // Updated, or found to have nothing newer, so nothing waits on the user anymore
+            pendingUpdatesFlow.update { it - targets.uids() }
+
             if (updated.isEmpty()) {
                 if (showMessage) messages.showIfInForeground(R.string.sources_update_unavailable)
-                if (!request.reportUpToDate) {
-                    bundleUpdateProgressFlow.value = null
-                    return@coroutineScope
-                }
-
-                // No updates available - already up to date
-                val noUpdatesProgress = BundleUpdateProgress(
-                    total = targets.size,
-                    completed = targets.size,
-                    phase = BundleUpdatePhase.Checking,
-                    result = BundleUpdateResult.NoUpdates,
-                )
-                bundleUpdateProgressFlow.value = noUpdatesProgress
-
-                scope.launch {
-                    delay(3.5.seconds)
-                    if (bundleUpdateProgressFlow.value == noUpdatesProgress) {
-                        bundleUpdateProgressFlow.value = null
-                    }
-                }
+                showUpToDate(request, targets.size)
                 return@coroutineScope
             }
 
@@ -2280,26 +2048,35 @@ class PatchBundleRepository(
             }
 
             if (showMessage) messages.showIfInForeground(R.string.sources_update_success)
-
-            // Show success state
-            val successProgress = BundleUpdateProgress(
-                total = targets.size,
-                completed = targets.size,
-                phase = BundleUpdatePhase.Finalizing,
-                result = BundleUpdateResult.Success,
-            )
-            bundleUpdateProgressFlow.value = successProgress
-
-            scope.launch {
-                delay(3.5.seconds)
-                if (bundleUpdateProgressFlow.value == successProgress) {
-                    bundleUpdateProgressFlow.value = null
-                }
-            }
+            showFinished(BundleUpdateResult.Success, targets.size, BundleUpdatePhase.Finalizing)
         } finally {
             clearActiveUpdateState()
         }
     }
+
+    /** Ends a check of [count] sources that found nothing new, said only by a check that reports it. */
+    private fun showUpToDate(request: UpdateRequest, count: Int) {
+        if (request.reportUpToDate) showFinished(BundleUpdateResult.NoUpdates, count)
+        else bundleUpdateProgressFlow.value = null
+    }
+
+    /** Shows how an update of [count] sources ended, until the next one starts or for a few seconds. */
+    private fun showFinished(
+        result: BundleUpdateResult,
+        count: Int = 1,
+        phase: BundleUpdatePhase = BundleUpdatePhase.Checking
+    ) {
+        val finished = BundleUpdateProgress(total = count, completed = count, phase = phase, result = result)
+        bundleUpdateProgressFlow.value = finished
+        // A result equal to the one before would otherwise be taken down on the earlier clock
+        bundleUpdateAutoClearJob?.cancel()
+        bundleUpdateAutoClearJob = scope.launch {
+            delay(4.seconds)
+            bundleUpdateProgressFlow.compareAndSet(finished, null)
+        }
+    }
+
+    private fun List<RemotePatchBundle>.uids() = mapTo(mutableSetOf(), RemotePatchBundle::uid)
 
     private class BundleUpdateCancelled : Exception()
 
@@ -2353,7 +2130,7 @@ class PatchBundleRepository(
         NoUpdates,      // Already up to date
         NoInternet,     // No internet connection
         Error,          // Error occurred
-        SkippedMetered, // Update skipped - network is metered and allowMeteredUpdates is false
+        UpdatesAvailable, // Checked only, the updates found wait in pendingUpdates
     }
 
     data class BundleUpdateProgress(
@@ -2367,6 +2144,8 @@ class PatchBundleRepository(
         val bytesRead: Long = 0L,
         val bytesTotal: Long? = null,
         val result: BundleUpdateResult = BundleUpdateResult.None, // Morphe
+        /** Whether the update says nothing while it only checks, as nothing new may turn up. */
+        val quiet: Boolean = false,
     )
 
     enum class BundleUpdatePhase {
@@ -2456,7 +2235,7 @@ class PatchBundleRepository(
             val ready = state as? BundleState.Ready ?: return@dispatchAction state
 
             val incomingEndpoints = snapshots
-                .mapNotNull { runCatching { normalizeRemoteBundleUrl(it.source) }.getOrNull() }
+                .mapNotNull { runCatching { SourceUrl.normalizeBundleUrl(it.source) }.getOrNull() }
                 .map { it.lowercase(Locale.US) }
                 .toSet()
 
@@ -2504,7 +2283,7 @@ class PatchBundleRepository(
             // Replace mode also reconciles the enabled toggle; Merge preserves the local state.
             if (mode == ImportMode.Replace) {
                 val snapshotByEndpoint = snapshots.mapNotNull { snapshot ->
-                    runCatching { normalizeRemoteBundleUrl(snapshot.source) }.getOrNull()
+                    runCatching { SourceUrl.normalizeBundleUrl(snapshot.source) }.getOrNull()
                         ?.lowercase(Locale.US)
                         ?.let { it to snapshot }
                 }.toMap()
@@ -2528,7 +2307,7 @@ class PatchBundleRepository(
 
             snapshots.forEach { snapshot ->
                 val normalizedUrl = runCatching {
-                    normalizeRemoteBundleUrl(snapshot.source)
+                    SourceUrl.normalizeBundleUrl(snapshot.source)
                 }.getOrNull() ?: return@forEach
 
                 if (!knownEndpoints.add(normalizedUrl.lowercase(Locale.US))) return@forEach
@@ -2567,7 +2346,6 @@ class PatchBundleRepository(
 
             startRemoteUpdateJob(
                 UpdateRequest(
-                    allowUnsafeNetwork = prefs.allowMeteredUpdates.get(),
                     target = UpdateTarget(custom = { bundle ->
                         bundle.uid != DEFAULT_SOURCE_UID &&
                                 // Disabled bundles are not refreshed, but ones that were never
@@ -2575,7 +2353,7 @@ class PatchBundleRepository(
                                 (bundle.enabled || bundle.state is PatchBundleSource.State.Missing) &&
                                 snapshots.any { s ->
                                     bundle.endpoint.equals(
-                                        runCatching { normalizeRemoteBundleUrl(s.source) }.getOrNull(),
+                                        runCatching { SourceUrl.normalizeBundleUrl(s.source) }.getOrNull(),
                                         ignoreCase = true
                                     )
                                 }

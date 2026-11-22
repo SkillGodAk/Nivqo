@@ -108,6 +108,60 @@ public class CallConfirmTest {
         assertEquals(1, tap.taps);
     }
 
+    /** A 586 call button inside its wrapper: the test tag and the two tap listeners stay on this one. */
+    static final class Built586 extends MarkReadButtonTest.Base {
+        final String testKey;
+        final Tap click;
+        final Tap other;
+
+        Built586(String testKey, Tap click, Tap other) {
+            this.testKey = testKey;
+            this.click = click;
+            this.other = other;
+        }
+    }
+
+    @Test public void aCallButtonWrappedThe586WayAsksFirstAndVideoSaysSo() throws Exception {
+        on(true);
+        Counting tap = new Counting();
+        Counting second = new Counting();
+        Built586 video = new Built586("video_call_button", tap, second);
+        MarkReadButtonTest.Wrapper wrapper = new MarkReadButtonTest.Wrapper(video);
+        MarkReadButton.addTo(Collections.unmodifiableList(Arrays.asList(wrapper, new DetailsButton())), new Object(), new Object(), new Object());
+        assertNotNull(CallConfirm.asking(video.click));
+        assertNotNull(CallConfirm.asking(video.other));
+        video.click.onClick(view);
+        assertEquals(Collections.singletonList(true), asked);
+        assertEquals("Nothing rings before Call", 0, tap.taps);
+        waiting.get(0).run();
+        assertEquals(1, tap.taps);
+        assertEquals("Built again, the bar hands over the same button", 0, CallConfirm.guard(wrapper, true));
+    }
+
+    /** #172: a business chat's bar and the New message screen take the builders' buttons past both top bar seams. */
+    @Test public void aButtonFromTheBuilderAsksWhereverMessengerPutsIt() throws Exception {
+        Counting tap = new Counting();
+        Built586 video = new Built586("video_call_button", tap, null);
+        MarkReadButtonTest.Wrapper wrapper = new MarkReadButtonTest.Wrapper(video);
+        on(false);
+        CallConfirm.built(wrapper);
+        assertSame("Off, Messenger's listener stays", tap, video.click);
+        on(true);
+        CallConfirm.built(wrapper);
+        assertNotNull(CallConfirm.asking(video.click));
+        video.click.onClick(view);
+        assertEquals(Collections.singletonList(true), asked);
+        assertEquals("Nothing rings before Call", 0, tap.taps);
+        waiting.get(0).run();
+        assertEquals(1, tap.taps);
+        assertEquals("The top bar's seam finds it already asking", 0, CallConfirm.guard(wrapper, true));
+        Spec friend = new Spec("friendship_status_button", tap, null);
+        CallConfirm.built(friend);
+        assertSame("Only call buttons ask", tap, friend.click);
+        CallConfirm.built(null);
+        assertTrue(Settings.hookErrors.isEmpty());
+    }
+
     @Test public void theOlderBarsCallButtonsAskTooAndVideoSaysSo() {
         on(true);
         Counting tap = new Counting();

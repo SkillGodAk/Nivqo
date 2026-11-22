@@ -26,8 +26,8 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 
 internal const val BUBBLE_SESSION = "Lcom/facebook/auth/usersession/FbUserSession;"
-/** The specifier of the bubble rollout read as 586 numbers it (585 read 36312002867630111, 584 36312007162597379). Each release renumbers it, and no other is accepted. */
-internal const val BUBBLE_ROLLOUT = 36311998572662839L
+/** The specifier of the bubble rollout read as 587 numbers it (586 read 36311998572662839, 585 36312002867630111). Each release renumbers it, and no other is accepted. */
+internal const val BUBBLE_ROLLOUT = 36311994277695516L
 internal const val BUBBLE_ACTIVITY = "com.facebook.messaging.msys.thread.bubbles.activity.StaxThreadViewBubblesActivity"
 internal const val NATIVE_BUBBLE_ROUTES = "$HOST_SCREENS->nativeBubbleRoutes()Z"
 internal const val NATIVE_BUBBLE_METADATA = "hush.native_bubble_routes"
@@ -65,36 +65,76 @@ internal fun Method.validateBubbleEligibility() {
         c[13].bubbleRegister() != 0 || c[14].bubbleRegister() != 0) bubbleChanged()
 }
 
+private val CALLED_ELIGIBILITY = listOf(Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_EQZ)
+private val INLINE_ELIGIBILITY = listOf(Opcode.SGET, Opcode.CONST_16, Opcode.IF_LT, Opcode.IGET_OBJECT, Opcode.IGET_OBJECT,
+    Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_NEZ)
+private val LAZY_CONFIG = listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT)
+private val NUMBERED_CONFIG = listOf(Opcode.CONST, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.CHECK_CAST)
+
+/** 586's family B arm64 builds copy A00's SDK 30 and low-memory checks into the mode gate and fetch the config by number. */
+internal fun Method.inlinesBubbleEligibility() = bubbleCode().size == 35
+
 /** Both false branches precede the rollout read. Never override the account capability or either return. */
 internal fun Method.validateNativeBubbleMode() {
     val c = bubbleCode()
-    val opcodes = listOf(Opcode.CONST_4, Opcode.INVOKE_STATIC, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT,
-        Opcode.IF_EQZ, Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT,
-        Opcode.CHECK_CAST, Opcode.CONST_16, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_EQZ,
-        Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_STATIC,
-        Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_WIDE, Opcode.CHECK_CAST, Opcode.INVOKE_INTERFACE,
-        Opcode.MOVE_RESULT, Opcode.RETURN, Opcode.RETURN)
+    val inline = inlinesBubbleEligibility()
+    // e and f are how far the inlined eligibility, then the numbered config fetch, push everything after them.
+    val e = if (inline) 8 else 0
+    val f = if (inline) 10 else 0
+    val last = 24 + f
+    val opcodes = listOf(Opcode.CONST_4, Opcode.INVOKE_STATIC) + (if (inline) INLINE_ELIGIBILITY else CALLED_ELIGIBILITY) +
+        listOf(Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT,
+            Opcode.CHECK_CAST, Opcode.CONST_16, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_EQZ,
+            Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.INVOKE_INTERFACE) + (if (inline) NUMBERED_CONFIG else LAZY_CONFIG) +
+        listOf(Opcode.CONST_WIDE, Opcode.CHECK_CAST, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT, Opcode.RETURN, Opcode.RETURN)
+    val eligibility = activeProfile.hooks.getValue("bubbles").single()
     if (hookId() !in activeProfile.hooks.getValue("bubble_mode") || AccessFlags.STATIC.isSet(accessFlags) ||
         returnType != "Z" || bubbleParameters() != listOf(BUBBLE_SESSION) || implementation?.registerCount != 5 ||
         implementation?.tryBlocks?.isNotEmpty() == true || c.map { it.opcode } != opcodes ||
-        c[0].bubbleRegister() != 2 || (c[0] as? NarrowLiteralInstruction)?.narrowLiteral != 0 ||
-        !c[1].calls(4, 2) || c[2].bubbleRef() != activeProfile.hooks.getValue("bubbles").single() ||
-        !c[2].calls(3) || c[3].bubbleRegister() != 0 || c[4].bubbleRegister() != 0 || !c.jumpsTo(4, 24) ||
-        c[9].bubbleRef() != activeProfile.bubbleCapabilityGetter.substringBefore("->") || c[9].bubbleRegister() != 1 ||
-        c[10].bubbleRegister() != 0 || (c[10] as? NarrowLiteralInstruction)?.narrowLiteral != 28 ||
-        c[11].bubbleRef() != activeProfile.bubbleCapabilityGetter || !c[11].calls(1, 4, 0) ||
-        c[12].bubbleRegister() != 0 || c[13].bubbleRegister() != 0 || !c.jumpsTo(13, 24) ||
-        c[18].bubbleRegister() != 2 || c[19].bubbleRegister() != 0 ||
-        (c[19] as? WideLiteralInstruction)?.wideLiteral != BUBBLE_ROLLOUT ||
-        c[20].bubbleRegister() != 2 || c[20].bubbleRef() != MOBILE_CONFIG ||
-        c[21].bubbleRef() != activeProfile.bubbleRolloutGetter || !c[21].calls(2, 0, 1) ||
-        c[22].bubbleRegister() != 0 || c[23].bubbleRegister() != 0 || c[24].bubbleRegister() != 2) bubbleChanged()
+        c[0].bubbleRegister() != 2 || (c[0] as? NarrowLiteralInstruction)?.narrowLiteral != 0 || !c[1].calls(4, 2) ||
+        (if (inline) !c.inlineEligibility(definingClass, eligibility, last) else c[2].bubbleRef() != eligibility ||
+            !c[2].calls(3) || c[3].bubbleRegister() != 0 || c[4].bubbleRegister() != 0 || !c.jumpsTo(4, last)) ||
+        c[9 + e].bubbleRef() != activeProfile.bubbleCapabilityGetter.substringBefore("->") || c[9 + e].bubbleRegister() != 1 ||
+        c[10 + e].bubbleRegister() != 0 || (c[10 + e] as? NarrowLiteralInstruction)?.narrowLiteral != 28 ||
+        c[11 + e].bubbleRef() != activeProfile.bubbleCapabilityGetter || !c[11 + e].calls(1, 4, 0) ||
+        c[12 + e].bubbleRegister() != 0 || c[13 + e].bubbleRegister() != 0 || !c.jumpsTo(13 + e, last) ||
+        (if (inline) !c.numberedConfig(17 + e) else c[18].bubbleRegister() != 2) || c[19 + f].bubbleRegister() != 0 ||
+        (c[19 + f] as? WideLiteralInstruction)?.wideLiteral != BUBBLE_ROLLOUT ||
+        c[20 + f].bubbleRegister() != 2 || c[20 + f].bubbleRef() != MOBILE_CONFIG ||
+        c[21 + f].bubbleRef() != activeProfile.bubbleRolloutGetter || !c[21 + f].calls(2, 0, 1) ||
+        c[22 + f].bubbleRegister() != 0 || c[23 + f].bubbleRegister() != 0 || c[last].bubbleRegister() != 2) bubbleChanged()
+}
+
+/** The copy reads the same holder as A00, which sits beside this gate, and both of its false branches return v2. */
+private fun List<Instruction>.inlineEligibility(owner: String, eligibility: String, last: Int): Boolean {
+    val holder = (get(5) as? ReferenceInstruction)?.reference as? FieldReference
+    return eligibility.substringBefore("->") == owner && get(2).bubbleRef() == "Landroid/os/Build\$VERSION;->SDK_INT:I" &&
+        get(2).bubbleRegister() == 1 && (get(3) as? NarrowLiteralInstruction)?.narrowLiteral == 30 && get(3).bubbleRegister() == 0 &&
+        (get(4) as? TwoRegisterInstruction)?.let { it.registerA == 1 && it.registerB == 0 } == true && jumpsTo(4, last) &&
+        holder?.definingClass == owner && (get(5) as? TwoRegisterInstruction)?.let { it.registerA == 0 && it.registerB == 3 } == true &&
+        get(9).bubbleRef() == "Landroid/app/ActivityManager;" && get(9).bubbleRegister() == 0 &&
+        get(10).bubbleRef() == "Landroid/app/ActivityManager;->isLowRamDevice()Z" && get(10).calls(0) &&
+        get(11).bubbleRegister() == 0 && get(12).bubbleRegister() == 0 && jumpsTo(12, last)
+}
+
+/** const v0, n; invoke-static {v0}, (I)Object; move-result-object v2; check-cast v2. */
+private fun List<Instruction>.numberedConfig(at: Int): Boolean {
+    val fetch = (get(at + 1) as? ReferenceInstruction)?.reference as? MethodReference
+    return get(at).bubbleRegister() == 0 && get(at + 1).calls(0) && fetch?.parameterTypes?.map { it.toString() } == listOf("I") &&
+        fetch.returnType == "Ljava/lang/Object;" && get(at + 2).bubbleRegister() == 2 && get(at + 3).bubbleRegister() == 2
 }
 
 internal fun MutableMethod.injectNativeBubbleMode() {
     validateNativeBubbleMode()
+    val inline = inlinesBubbleEligibility()
     // The account check has already returned false if unavailable. Only its later rollout result is changed.
-    addInstructions(23, "invoke-static {v0}, $SETTINGS->nativeBubbleRollout(Z)Z\nmove-result v0")
+    addInstructions(if (inline) 33 else 23, "invoke-static {v0}, $SETTINGS->nativeBubbleRollout(Z)Z\nmove-result v0")
+    // A00 answers true while Android bubbles are picked. The inlined copy of it skips to the account check the same way.
+    if (inline) addInstructionsWithLabels(2, """
+        invoke-static {}, $SETTINGS->enableBubbles()Z
+        move-result v0
+        if-nez v0, :bubble_eligible
+    """.trimIndent(), ExternalLabel("bubble_eligible", getInstruction(13)))
     addInstructionsWithLabels(0, """
         invoke-static {}, $SETTINGS->forceChatHeads()Z
         move-result v0
@@ -187,12 +227,21 @@ internal fun findNativeBubbleRoutes(classes: List<ClassDef>, gate: String): Stri
     val shortcuts = mutableListOf<Method>()
     val attachments = mutableListOf<Method>()
     val conversations = mutableListOf<Method>()
+    // Building every reference in the app into an id was most of this scan's time. A method can only be one of the
+    // three with the shortcut builder's parameters, the attach flag's string or a dynamic shortcut push, so only those
+    // are read in full. The push test below compares reference text, which a string constant of the push's id also
+    // gives, so that string lets a method through too and the answers stay the old full read's.
+    val pushId = "Landroid/content/pm/ShortcutManager;->pushDynamicShortcut(Landroid/content/pm/ShortcutInfo;)V"
+    val attachFlag = StringMatch("attach_bubble_metadata")
+    val pushShortcut = MemberMatch(pushId)
+    val pushText = StringMatch(pushId)
     for (cls in classes) for (m in cls.methods) {
+        if (m.bubbleParameters() != SHORTCUT_PARAMETERS && m.implementation?.instructions?.any { i ->
+                (i as? ReferenceInstruction)?.reference.let { attachFlag.matches(it) || pushShortcut.matches(it) || pushText.matches(it) }
+            } != true) continue
         val c = m.bubbleCode()
         val refs = c.mapNotNull { it.bubbleRef() }.toSet()
-        if (m.bubbleParameters() == listOf("Landroid/content/Context;", "Landroid/graphics/Bitmap;",
-                "Lcom/facebook/messaging/model/threadkey/ThreadKey;", "Ljava/lang/String;") &&
-            c.namesThreadShortcut(byType) && "$SHORTCUT_BUILDER->setPerson(Landroid/app/Person;)$SHORTCUT_BUILDER" in refs &&
+        if (m.bubbleParameters() == SHORTCUT_PARAMETERS && c.namesThreadShortcut(byType) && "$SHORTCUT_BUILDER->setPerson(Landroid/app/Person;)$SHORTCUT_BUILDER" in refs &&
             "$SHORTCUT_BUILDER->setIntent(Landroid/content/Intent;)$SHORTCUT_BUILDER" in refs &&
             "$SHORTCUT_BUILDER->build()Landroid/content/pm/ShortcutInfo;" in refs) {
             val set = c.indexOfFirst { it.bubbleRef() == "$SHORTCUT_BUILDER->setLongLived(Z)$SHORTCUT_BUILDER" }
@@ -210,7 +259,7 @@ internal fun findNativeBubbleRoutes(classes: List<ClassDef>, gate: String): Stri
                 } == true }) &&
             c.any { it.opcode == Opcode.IPUT_OBJECT && (it as? ReferenceInstruction)?.reference is FieldReference }) attachments.add(m)
         if (MESSAGING_STYLE in refs && "Landroid/content/pm/ShortcutInfo;->getId()Ljava/lang/String;" in refs &&
-            "Landroid/content/pm/ShortcutManager;->pushDynamicShortcut(Landroid/content/pm/ShortcutInfo;)V" in refs) conversations.add(m)
+            pushId in refs) conversations.add(m)
     }
     val shortcut = shortcuts.singleOrNull() ?: return null
     val attachment = attachments.singleOrNull() ?: return null
@@ -245,6 +294,9 @@ internal fun findNativeBubbleRoutes(classes: List<ClassDef>, gate: String): Stri
     return listOf(attachment.hookId(), shortcut.hookId(), conversation.hookId()).joinToString("|")
 }
 
+/** The shortcut builder's parameters: (Context, Bitmap, ThreadKey, String). */
+private val SHORTCUT_PARAMETERS = listOf("Landroid/content/Context;", "Landroid/graphics/Bitmap;",
+    "Lcom/facebook/messaging/model/threadkey/ThreadKey;", "Ljava/lang/String;")
 private const val SHORTCUT = "Landroid/content/pm/ShortcutInfo;"
 private const val THREAD_KEY = "Lcom/facebook/messaging/model/threadkey/ThreadKey;"
 private const val NOTIFICATION_BUILDER = "Landroid/app/Notification\$Builder;"
@@ -547,8 +599,11 @@ private fun connectedBubbleValues(classes: List<ClassDef>, shortcut: Method, att
     }
     if (pending.none { bubbleNotificationBridge(byType, metadata, idField, it) }) return false
     // Arrival must use a returned shortcut, write its ID, attach metadata to that same builder, then build it.
+    val attachmentCall = MemberMatch(attachment.hookId())
     return classes.any { cls -> cls.methods.any { m ->
-        if (m.bubbleCode().none { it.opcode.toString().startsWith("INVOKE") && it.bubbleRef() == attachment.hookId() }) return@any false
+        if (m.implementation?.instructions?.any {
+                it.opcode.toString().startsWith("INVOKE") && attachmentCall.matches((it as? ReferenceInstruction)?.reference)
+            } != true) return@any false
         val f = flow(m)
         f.calls().any { at ->
             if (f.reference(at)?.toString() != attachment.hookId()) return@any false

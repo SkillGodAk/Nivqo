@@ -28,12 +28,12 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.resource.ResourceType
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
-import app.morphe.patches.facebook.ads.affiliate.writesRegister
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.classDefForEachReferencing
 import app.morphe.util.literalReads
 import app.morphe.util.returnEarly
 import app.morphe.util.superclassChain
+import app.morphe.util.writersReaching
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -720,6 +720,17 @@ val amoledThemePatch = bytecodePatch(
             patchLog.warning("${moved.message}. Light background color leaves native template cards like the Menu's profile card white.")
         }
 
+        // Bloks' colour pairs, whose secondary text greys a lighter Background colour lifts like a
+        // text role's (#34): the Menu's profile card draws its "Create Facebook Page" grey this way.
+        // Material You takes the same parse over and lifts after its palette.
+        try {
+            check(hookBloksColourPairs(setOf(PARSE_COLOR_DARK), AMOLED_PARSE_BLOKS) > 0) { "No parse of a Bloks colour pair found" }
+        } catch (moved: IllegalStateException) {
+            patchLog.warning("${moved.message}. A lighter Background color leaves Bloks screens' secondary text unlifted.")
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. A lighter Background color leaves Bloks screens' secondary text unlifted.")
+        }
+
         // The older comment row's time, whose slot drew blank on a black sheet (#138). Material You
         // calls the same hook and finds it in place.
         try {
@@ -765,6 +776,9 @@ internal const val AMOLED_DARK_BRANCH = "Lapp/morphe/extension/facebook/theme/Am
 /** Gets a Bloks box's fill, for the Light background color row (#214). Gives the colour to fill with. */
 internal const val AMOLED_BLOKS_FILL = "Lapp/morphe/extension/facebook/theme/AmoledTheme;->bloksFill(I)I"
 
+/** Parses a Bloks colour pair, lifting its secondary text greys (#34). Gives the colour to draw. */
+internal const val AMOLED_PARSE_BLOKS = "Lapp/morphe/extension/facebook/theme/AmoledTheme;->parseBloks(Ljava/lang/String;)I"
+
 private const val COLOR_DRAWABLE_INIT = "Landroid/graphics/drawable/ColorDrawable;-><init>(I)V"
 
 /**
@@ -777,6 +791,12 @@ private const val COLOR_DRAWABLE_INIT = "Landroid/graphics/drawable/ColorDrawabl
  * 585 (arm64, read 2026-10-30) made the builder a static `LX/04d0;->A00(LX/01PR;LX/062H;LX/04e3;I)LX/03G2;`
  * that its instance entry calls with the node's kind as a trailing int. The child builder
  * `LX/04d2;->A00(LX/01PR;LX/062H;LX/04e3;)LX/03G2;` takes the rest, and backgroundColor is `LX/03G2;->A0e(I)V`.
+ *
+ * 586 (arm64, read 2026-11-09) made the builder an instance method again (`LX/04cP;->Him`), and its
+ * child builder `LX/04cS;->A00` sets no background itself: it builds the style's component and hands
+ * it to a static decorator, `LX/05HY;->A01(LX/03Ej;...)LX/03Ej;`, which sets it. So the statics a
+ * child builder hands a component to and gets one back from are hooked too ([decoratorsOf]). The
+ * decorator's other caller is the template's photo component, also a Native Template.
  */
 internal fun BytecodePatchContext.hookNativeTemplateBackgrounds(target: String = AMOLED_BLOKS_FILL) {
     val builder = NativeTemplateBuilderFingerprint.method
@@ -793,15 +813,32 @@ internal fun BytecodePatchContext.hookNativeTemplateBackgrounds(target: String =
                 it.parameterTypes.map(CharSequence::toString) == parameters
         }
         .distinctBy { it.toString() }
-        .map { child ->
-            mutableClassDefBy(child.definingClass).methods.single { method ->
-                method.name == child.name && method.returnType == child.returnType &&
-                    method.parameterTypes.map(CharSequence::toString) == child.parameterTypes.map(CharSequence::toString)
+        .map { child -> mutableMethodOf(child) }
+    val decorators = children.flatMap { decoratorsOf(it, builder.returnType) }.distinctBy { it.toString() }
+        .filterNot { decorator ->
+            children.any {
+                it.definingClass == decorator.definingClass && it.name == decorator.name &&
+                    it.parameterTypes.map(CharSequence::toString) == decorator.parameterTypes.map(CharSequence::toString)
             }
         }
-    val hooked = (listOf(builder) + children).sumOf { hookBackgroundColours(it, target) }
+        .map { mutableMethodOf(it) }
+    val hooked = (listOf(builder) + children + decorators).sumOf { hookBackgroundColours(it, target) }
     if (hooked == 0) throw PatchException("Native Templates' builders set no background colour")
 }
+
+/** The statics [method] hands a [component] to and gets one back from (586 `LX/05HY;->A01`). */
+internal fun decoratorsOf(method: Method, component: String): List<MethodReference> =
+    method.implementation?.instructions?.toList().orEmpty()
+        .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+        .mapNotNull { (it as ReferenceInstruction).reference as? MethodReference }
+        .filter { it.returnType == component && it.parameterTypes.firstOrNull()?.toString() == component }
+        .distinctBy { it.toString() }
+
+private fun BytecodePatchContext.mutableMethodOf(call: MethodReference): MutableMethod =
+    mutableClassDefBy(call.definingClass).methods.single { method ->
+        method.name == call.name && method.returnType == call.returnType &&
+            method.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString)
+    }
 
 /**
  * Sends each colour [method] hands Litho's backgroundColor ([isBackgroundColour]) through [target]
@@ -909,13 +946,18 @@ internal fun BytecodePatchContext.hookFeedGaps() {
         ?: throw PatchException("Expected $COMPONENT_HOST to declare one dispatchDraw($CANVAS)V, found ${draws.size}")
     val code = draw.implementation!!.instructions.toList()
     // The host and the canvas are p0 and p1, next to each other, so the range form passes both
-    // without borrowing a register, as long as the method never reuses either.
+    // without borrowing a register, as long as no write of either reaches a return. 587 reuses p0
+    // in the handler that names the mounted components, which only throws.
     val self = draw.implementation!!.registerCount - 2
-    code.firstOrNull { writesRegister(it, self) || writesRegister(it, self + 1) }?.let {
-        throw PatchException("$COMPONENT_HOST's dispatchDraw writes its host or canvas register with ${it.opcode.name}") // opcode-name-ok
-    }
     val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
     if (returns.isEmpty()) throw PatchException("$COMPONENT_HOST's dispatchDraw never returns")
+    returns.forEach { at ->
+        listOf(self, self + 1).flatMap { draw.writersReaching(at, it) }.firstOrNull { it >= 0 }?.let {
+            throw PatchException(
+                "$COMPONENT_HOST's dispatchDraw writes its host or canvas register with ${code[it].opcode.name} before it returns", // opcode-name-ok
+            )
+        }
+    }
     // At the label, so a branch to the return draws the line too. Last first, as each insert moves
     // the later indices.
     returns.asReversed().forEach { draw.addInstructionsAtControlFlowLabel(it, "invoke-static/range { p0 .. p1 }, $FEED_GAP_ROW") }
@@ -923,7 +965,7 @@ internal fun BytecodePatchContext.hookFeedGaps() {
 
 /**
  * Route one: the Mig dark scheme's resolver sends its colours to [mig], and the FDS resolvers send
- * theirs to [fds]: each resolver on FDSColors and the [fdsThemeResolver]. Both themes run it, AMOLED
+ * theirs to [fds]: each resolver on FDSColors, its static copies and the [fdsThemeResolver]. Both themes run it, AMOLED
  * from its execute block and Material You after it.
  */
 internal fun BytecodePatchContext.hookColourResolvers(mig: String, fds: String) {
@@ -1161,7 +1203,10 @@ internal fun barColourHelpers(method: Method, painters: Set<String>): Set<String
  * <p>577 had two of them, one for Litho and one from a Context. 580 split the Litho one into a
  * thin wrapper and a second Context resolver, so a fingerprint per resolver matched the wrong one
  * or none. The token type is read off the source's own signature, the one static method answering
- * `Integer` from a Context, the token and a palette.
+ * `Integer` from a Context, the token and a palette. 586 (arm64 `LX/02LL`, read 2026-11-09) merged
+ * the two Context resolvers into one (`A0A`), and the Litho one (`A0B`) only returns that one's
+ * answer, so one resolver is hooked there and every colour still passes it. The [fdsStaticResolvers]
+ * outside the class take the same hook.
  */
 internal fun BytecodePatchContext.hookFdsColorsResolvers(target: String) {
     val type = fdsColors()
@@ -1177,12 +1222,40 @@ internal fun BytecodePatchContext.hookFdsColorsResolvers(target: String) {
             } == true
     }
     check(resolvers.isNotEmpty()) { "No FDSColors resolver asks the Integer colour source" }
-    resolvers.forEach { method ->
+    (resolvers + fdsStaticResolvers()).forEach { method ->
         method.hookColorReturns(
             tokenParameterIndex = method.parameterTypes.indexOfFirst { it.toString() == tokenType },
             target = target,
         )
     }
+}
+
+/**
+ * The static methods outside `FDSColors` that ask its colour source themselves and answer an int
+ * from the token: a copy of its resolver (586 arm64 `LX/03A3;->A00`, read 2026-11-11, which Compose's
+ * text fields and two Litho components call). It returns the source's answer or a DSP theme's own
+ * colour as they are, so only its last fallback, the [fdsThemeResolver], went through route one
+ * (#141's light mode reads DSP colours). None on a build without one.
+ */
+internal fun BytecodePatchContext.fdsStaticResolvers(): List<MutableMethod> {
+    val type = fdsColors()
+    val source = fdsColourSource(classDefBy(type))!!
+    val parameters = source.parameterTypes.map(CharSequence::toString)
+    val signature = { method: Method -> "${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}" }
+    val found = mutableListOf<Pair<String, String>>()
+    classDefForEachReferencing(types = listOf(type)) { classDef ->
+        if (classDef.type == type || classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEachReferencing
+        classDef.methods.filter { method ->
+            AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "I" &&
+                method.parameterTypes.any { it.toString() == parameters[1] } &&
+                method.implementation?.instructions?.any { instruction ->
+                    val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                    call?.definingClass == type && call.name == source.name &&
+                        call.parameterTypes.map(CharSequence::toString) == parameters
+                } == true
+        }.mapTo(found) { classDef.type to signature(it) }
+    }
+    return found.map { (owner, wanted) -> mutableClassDefBy(owner).methods.single { signature(it) == wanted } }
 }
 
 /**

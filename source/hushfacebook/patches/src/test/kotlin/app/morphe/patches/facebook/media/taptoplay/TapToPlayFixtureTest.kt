@@ -11,6 +11,7 @@ import app.morphe.patches.facebook.feed.FixtureDex
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.ads.sponsoredsearch.enumConstantFields
+import app.morphe.patches.facebook.media.progressbar.LIVE_LATENCY_LOG
 import app.morphe.patches.facebook.media.resume.POSITION_STUB
 import app.morphe.patches.facebook.media.resume.VIDEO_PLAYER_PARAMS
 import app.morphe.patches.facebook.media.resume.paramsGetters
@@ -74,7 +75,8 @@ class TapToPlayFixtureTest {
 
                 // One pass over the build for the classes holding the anchors' strings.
                 val holders = mutableMapOf<String, MutableList<ClassDef>>()
-                val anchors = listOf(GROOT_PLAY, LEGACY_PLAY, AUTOPLAY_SETTINGS_CHECKER, REELS_CONTROLS, REELS_PLAYBACK_STARTED)
+                val anchors = listOf(GROOT_PLAY, LEGACY_PLAY, AUTOPLAY_SETTINGS_CHECKER, REELS_CONTROLS, REELS_PLAYBACK_STARTED,
+                    REELS_AUTOPLAY_DISABLED)
                 FixtureDex.forEach(fixture) { dex ->
                     val strings = anchors.filter { anchor -> dex.stringSection.any { it == anchor } }
                     if (strings.isEmpty()) return@forEach
@@ -141,7 +143,13 @@ class TapToPlayFixtureTest {
                     owner.methods.any { it.returnType == "V" && it.parameterTypes.size == 1 && holdsString(it, REELS_PLAYBACK_STARTED) }
                 }
                 val playback = playbackOwner.methods.single { holdsString(it, REELS_PLAYBACK_STARTED) }
-                val playbackClasses = mutableMapOf(playbackOwner.type to playbackOwner)
+                fun disabledHandler(method: Method) = !AccessFlags.STATIC.isSet(method.accessFlags) &&
+                    method.returnType == "V" && method.parameterTypes.size == 1 && holdsString(method, REELS_AUTOPLAY_DISABLED)
+                val disabledOwner = holders.getValue(REELS_AUTOPLAY_DISABLED).single { owner ->
+                    owner.methods.any(::disabledHandler)
+                }
+                val disabled = disabledOwner.methods.single(::disabledHandler)
+                val playbackClasses = mutableMapOf(playbackOwner.type to playbackOwner, disabledOwner.type to disabledOwner)
                 repeat(2) {
                     val references = playbackClasses.values.flatMap { owner ->
                         owner.fields.map { it.type } + owner.methods.flatMap { method ->
@@ -201,6 +209,30 @@ class TapToPlayFixtureTest {
                 val seekCall = seekCode.mapNotNull { it.call }.single()
                 assertEquals("$name: the seek's owner", groot.type, seekCall.definingClass)
                 assertEquals("$name: the seek's arguments", listOf(trigger, "I"), seekCall.parameterTypes.map(CharSequence::toString))
+                // The seek drops a live video's seek unless the player's rewound flag is set, and the
+                // rewind stub sets that flag through the setter logging the latency message (#431).
+                val rewindCall = bridge.methods.single { it.name == "rewindPlayer" }.implementation!!.instructions.mapNotNull { it.call }.single()
+                assertEquals("$name: the rewind's owner", groot.type, rewindCall.definingClass)
+                assertEquals("$name: the rewind's arguments", listOf("Z"), rewindCall.parameterTypes.map(CharSequence::toString))
+                fun own(call: MethodReference) = groot.methods.single {
+                    it.name == call.name && it.returnType == call.returnType &&
+                        it.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString)
+                }
+                val setter = own(rewindCall)
+                assertTrue("$name: the rewind setter doesn't log \"$LIVE_LATENCY_LOG\"", holdsString(setter, LIVE_LATENCY_LOG))
+                val liveNow = bridge.methods.single { it.name == "liveNow" }.implementation!!.instructions
+                    .single { it.opcode == Opcode.IGET_BOOLEAN }.let { (it as ReferenceInstruction).reference.toString() }
+                val gate = own(own(seekCall).implementation!!.instructions.mapNotNull { it.call }.single { it.definingClass == groot.type })
+                val gateCode = gate.implementation!!.instructions.toList()
+                assertTrue("$name: the seek's gate doesn't read $liveNow",
+                    gateCode.any { it.opcode == Opcode.IGET_BOOLEAN && (it as ReferenceInstruction).reference.toString() == liveNow })
+                val rewoundCheck = own(gateCode.mapNotNull { it.call }.single {
+                    it.definingClass == groot.type && it.returnType == "Z" && it.parameterTypes.isEmpty()
+                })
+                fun objectReads(method: Method) = method.implementation!!.instructions.filter { it.opcode == Opcode.IGET_OBJECT }
+                    .map { (it as ReferenceInstruction).reference.toString() }.toSet()
+                val flag = objectReads(rewoundCheck).single()
+                assertTrue("$name: the rewind setter doesn't write the flag $flag the seek's gate reads", flag in objectReads(setter))
                 listOf("playerPosition", "playerLength").forEach { stub ->
                     val call = bridge.methods.single { it.name == stub }.implementation!!.instructions.mapNotNull { it.call }.single()
                     assertEquals("$name: $stub's owner", groot.type, call.definingClass)
@@ -317,13 +349,36 @@ class TapToPlayFixtureTest {
                     (eventCode[cleanup + 1] as OneRegisterInstruction).registerA,
                     (eventCode[cleanup + 2] as OneRegisterInstruction).registerA)
 
-                // Every touch goes to the tap clock with the screen and the event, and on unchanged.
+                // A late "autoplay disabled" event asks the extension with the player's state, and only
+                // a no reaches the store that shows the button (#91).
+                val disabledCode = patched(disabled).implementation!!.instructions.toList()
+                val ask = disabledCode.indices.single { disabledCode[it].call?.toString() == KEEP_REEL_PLAYING }
+                assertEquals("$name: the state read", listOf(Opcode.IGET_OBJECT, Opcode.IF_EQZ),
+                    disabledCode.subList(ask - 4, ask - 2).map { it.opcode })
+                assertTrue("$name: the state read's call", disabledCode[ask - 2].opcode in
+                    setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_VIRTUAL))
+                val stateRead = disabledCode[ask - 2].call!!
+                assertTrue("$name: the read answers the player's state",
+                    playbackClasses[stateRead.returnType]?.let { isEnumNaming(it, PLAYBACK_STATE_NAMES) } == true)
+                assertEquals("$name: the answer and the store", listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
+                    Opcode.NOP, Opcode.SGET_OBJECT, Opcode.IPUT_OBJECT), disabledCode.subList(ask + 1, ask + 7).map { it.opcode })
+                val initial = (disabledCode[ask + 5] as ReferenceInstruction).reference as FieldReference
+                assertEquals("$name: the store is the button's state", "AUTOPLAY_OFF_INIT_STATE",
+                    playbackClasses[initial.type]?.let { enumConstantFields(it)[initial.name] })
+                assertEquals("$name: the handler keeps its original code",
+                    disabled.implementation!!.instructions.count() + 9, disabledCode.size)
+
+                // Every touch goes to the feed video double tap, then the tap clock, with the screen and
+                // the event, and on unchanged (#432).
                 val dispatch = patched(touchDispatches(classes.getValue(FRAGMENT_ACTIVITY)).single())
                 val touch = dispatch.implementation!!.instructions.toList()
-                assertEquals("$name: the tap clock", TOUCH, touch[0].call.toString())
-                assertEquals(listOf(dispatch.localRegisterCount(), dispatch.localRegisterCount() + 1), touch[0].registers())
+                val screenAndEvent = listOf(dispatch.localRegisterCount(), dispatch.localRegisterCount() + 1)
+                assertEquals("$name: the double tap", DOUBLE_TAP_TOUCH, touch[0].call.toString())
+                assertEquals(screenAndEvent, touch[0].registers())
+                assertEquals("$name: the tap clock", TOUCH, touch[1].call.toString())
+                assertEquals(screenAndEvent, touch[1].registers())
                 assertTrue("$name: dispatchTouchEvent still hands the event on",
-                    touch.drop(1).any { it.call?.name == "dispatchTouchEvent" })
+                    touch.drop(2).any { it.call?.name == "dispatchTouchEvent" })
 
                 // The reel check's stubs: the player's params getter, and the field the params report as isFbShorts.
                 val getter = paramsGetters(groot).single()

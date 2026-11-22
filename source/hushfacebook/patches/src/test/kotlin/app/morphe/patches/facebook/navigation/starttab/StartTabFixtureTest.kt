@@ -120,13 +120,15 @@ class StartTabFixtureTest {
             for (fixture in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
                 val name = fixture.name
 
-                // One picker, shaped (context, intent, session) -> tab id.
+                // One picker, shaped (context, intent, session, callback) -> tab id. 586 added the
+                // callback; the patch only needs the picker to be there.
                 val pickers = FixtureDex.methodsWhere(fixture, { dex -> dex.stringSection.any { it == TARGET_TAB_ID } }, ::picksStartTab)
                 assertEquals("$name: start tab pickers", 1, pickers.size)
                 val picker = pickers.single()
                 assertEquals(
                     "$name: the picker's parameters",
-                    listOf("Landroid/content/Context;", INTENT, "Lcom/facebook/auth/usersession/FbUserSession;"),
+                    listOf("Landroid/content/Context;", INTENT, "Lcom/facebook/auth/usersession/FbUserSession;",
+                        "Lkotlin/jvm/functions/Function1;"),
                     picker.parameterTypes.map { it.toString() },
                 )
                 val pickerCode = code(picker)
@@ -149,6 +151,7 @@ class StartTabFixtureTest {
                 val inlineChecks = mutableListOf<Pair<Method, Int>>()
                 val queues = mutableSetOf<String>()
                 val stepCalls = mutableListOf<Pair<String, MethodReference>>()
+                val cases = mutableListOf<Method>()
                 FixtureDex.forEach(fixture) { dex ->
                     val strings = dex.stringSection.toHashSet()
                     val sanitizes = SANITIZE_INTENT in strings
@@ -161,7 +164,9 @@ class StartTabFixtureTest {
                         for (method in classDef.methods) {
                             if (sanitizes) {
                                 sanitizedIntentHandOver(method)?.let { handOvers += ImmutableMethod.of(method) to it }
-                                sanitizeStepCalls(method).forEach { stepCalls += classDef.type to ImmutableMethodReference.of(it) }
+                                val calls = sanitizeStepCalls(method)
+                                calls.forEach { stepCalls += classDef.type to ImmutableMethodReference.of(it) }
+                                if (calls.isNotEmpty()) cases += ImmutableMethod.of(method)
                             }
                             if (traces) startPositionGate(method)?.let { gates += ImmutableMethod.of(method) to it }
                             if (targets && keepsAskedStartTab(method)) checks += ImmutableMethod.of(method)
@@ -171,6 +176,8 @@ class StartTabFixtureTest {
                 }
                 // From 585 the dispatcher's case only calls the step's body, a method of its own.
                 val dispatchers = mutableSetOf<String>()
+                // From 587 the case only asks a method of its own for the copy and sets what it answers.
+                val makers = mutableSetOf<String>()
                 if (handOvers.isEmpty()) {
                     val owners = FixtureDex.classes(fixture, stepCalls.map { it.second.definingClass }.toSet())
                     stepCalls.distinctBy { it.toString() }.forEach { (dispatcher, call) ->
@@ -182,7 +189,32 @@ class StartTabFixtureTest {
                             dispatchers += dispatcher
                         }
                     }
-                    assertEquals("$name: dispatchers whose \"$SANITIZE_INTENT\" case calls the step's body", 1, dispatchers.size)
+                    if (handOvers.isEmpty()) {
+                        val answering = stepCalls.filter { it.second.returnType == INTENT }
+                            .mapNotNull { (_, call) -> owners[call.definingClass]?.let { stepBody(it, call) } }
+                        val called = FixtureDex.classes(fixture, answering.flatMap { code(it).mapNotNull { i -> i.call?.definingClass } }.toSet())
+                        val body = { call: MethodReference -> (owners[call.definingClass] ?: called[call.definingClass])?.let { stepBody(it, call) } }
+                        val makes = { call: MethodReference ->
+                            val maker = body(call)
+                            (maker != null && returnsSanitizedCopy(maker, body)).also { made ->
+                                if (!made) return@also
+                                makers += call.definingClass
+                                code(maker!!).mapNotNullTo(makers) { i ->
+                                    i.call?.takeIf { c ->
+                                        c.parameterTypes.map(CharSequence::toString) == listOf(INTENT, INTENT) && c.returnType == "V"
+                                    }?.definingClass
+                                }
+                            }
+                        }
+                        cases.forEach { case ->
+                            sanitizeCaseHandOver(case, makes)?.let {
+                                handOvers += case to it
+                                dispatchers += case.definingClass
+                            }
+                        }
+                        assertTrue("$name: the copy's makers: $makers", makers.isNotEmpty())
+                    }
+                    assertEquals("$name: dispatchers whose \"$SANITIZE_INTENT\" case calls the step's body or the copy's maker", 1, dispatchers.size)
                 }
                 assertEquals("$name: start-up steps that sanitize the main screen's intent", 1, handOvers.size)
                 assertEquals("$name: tab bar start position gates", 1, gates.size)
@@ -206,7 +238,7 @@ class StartTabFixtureTest {
 
                 val kept = setOf(MAIN_TAB_ACTIVITY, fragmentActivity, delegate, navigationConfig, TAB_TAG,
                     STARTUP_DESTINATION_ROUTER, picker.definingClass, sanitizer.definingClass, position.definingClass,
-                    checkOwner, FEED_FILTERS_FRAGMENT, FEED_TYPE) + offered.keys + dispatchers
+                    checkOwner, FEED_FILTERS_FRAGMENT, FEED_TYPE) + offered.keys + dispatchers + makers
                 val classes = FixtureDex.classes(fixture, kept)
                 assertEquals("$name: classes missing", emptySet<String>(), kept - classes.keys)
 
@@ -234,11 +266,16 @@ class StartTabFixtureTest {
                 val resumeReturns = code(feeds.methods.single { it.name == "onResume" && it.parameterTypes.isEmpty() })
                     .count { it.opcode == Opcode.RETURN_VOID }
 
-                // The router Facebook keeps predicts the main screen's destination by asking the picker.
+                // The router Facebook keeps predicts the main screen's destination by asking the picker,
+                // on the Android 9 build through a method of the picker's own class that asks it.
                 val router = classes.getValue(STARTUP_DESTINATION_ROUTER).methods.single { it.name == "getDestination" }
+                val asksPicker = { method: Method ->
+                    code(method).any { it.call?.let { c -> c.definingClass == picker.definingClass && c.name == picker.name } == true }
+                }
+                val askers = classes.getValue(picker.definingClass).methods.filter { it.name != picker.name && asksPicker(it) }.map { it.name }
                 assertTrue(
                     "$name: getDestination doesn't ask the picker",
-                    code(router).any { it.call?.let { c -> c.definingClass == picker.definingClass && c.name == picker.name } == true },
+                    asksPicker(router) || code(router).any { it.call?.let { c -> c.definingClass == picker.definingClass && c.name in askers } == true },
                 )
 
                 // Every tab the extension offers, by the id it asks for.
@@ -271,7 +308,7 @@ class StartTabFixtureTest {
                 // The patch, on this build's main screen classes, picker and start-up steps.
                 val context = PatchContexts.of(
                     listOf(MAIN_TAB_ACTIVITY, fragmentActivity, picker.definingClass, sanitizer.definingClass,
-                        position.definingClass, checkOwner, FEED_FILTERS_FRAGMENT).plus(dispatchers).distinct()
+                        position.definingClass, checkOwner, FEED_FILTERS_FRAGMENT).plus(dispatchers).plus(makers).distinct()
                         .map(classes::getValue) +
                         ExtensionDex.classDef(SETTINGS_STATUS),
                 )

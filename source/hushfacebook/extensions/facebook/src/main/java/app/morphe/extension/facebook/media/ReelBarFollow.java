@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
+import app.morphe.extension.facebook.navigation.TranslucentBars;
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.Logger;
@@ -51,7 +52,11 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * <p>The same move lifts the bar when its line would sit behind the tab bar (#282). One reporter's
  * Reels tab runs the whole reel about 60 px lower than ours, so Facebook's own line and the kept
  * bar's thumb both went under the tabs. On the S22 and the emulator the line clears the tab bar by
- * 8 dp or more, so nothing moves there.
+ * 8 dp or more, so nothing moves there. Nor under a viewer drawn over the tab bar, as the reels
+ * opened from a feed video play in, where the tabs are hidden and the lift put the line on the
+ * caption (#469). See-through bars and Rounded tab bar stretch the reel under
+ * the tabs, which takes Facebook's own scrubber, shown while a reel is paused, behind them too, so
+ * with either one on the lift runs with Keep the progress bar off as well (#412), without the follow.
  */
 final class ReelBarFollow {
     private static final String FAMILY = FamilyNames.PROGRESS_BAR;
@@ -60,6 +65,7 @@ final class ReelBarFollow {
     private static final String PAGE = "com.facebook.litho.LithoView";
     static final String FOLLOWED = "reel bar followed its reel";
     static final String LIFTED = "reel bar lifted above the tab bar";
+    static final String REHOSTED = "reel bar followed its scrubber into a new host";
     private static final String TAB_BAR = "com.facebook.navigation.tabbar.ui.TabBarContainerLayout";
     /** How far above the tab bar the line has to sit for the whole thumb to show. */
     private static final int LINE_CLEARANCE_DP = 6;
@@ -89,7 +95,7 @@ final class ReelBarFollow {
     static void updated(@Nullable View label) {
         try {
             if (label == null || follows.containsKey(label) || noReels.contains(label)) return;
-            if (!keeps() || !label.isAttachedToWindow()) return;
+            if (!lifts() || !label.isAttachedToWindow()) return;
             start(label);
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, HOOK, failure);
@@ -110,6 +116,11 @@ final class ReelBarFollow {
 
     private static boolean keeps() {
         return Utils.settingsReady() && Settings.KEEP_PROGRESS_BAR.get();
+    }
+
+    /** Whether the line is kept clear of the tab bar: with the bar kept, or with pages run under the tabs (#412). */
+    private static boolean lifts() {
+        return keeps() || TranslucentBars.stretchesPages();
     }
 
     /** Walks up from the label to the view with a list of reels beside it, the one to move. */
@@ -173,6 +184,71 @@ final class ReelBarFollow {
         return null;
     }
 
+    /** Whether [view] and every level above it draw at all, so a tab bar faded right out hides nothing. */
+    private static boolean opaque(View view) {
+        float alpha = 1f;
+        for (View up = view; up != null; up = parentOf(up)) {
+            alpha *= up.getAlpha();
+            if (alpha < 0.01f) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Whether the reels [pager] belongs to draw on top of [tabBar] and reach down over its top. A
+     * reel opened from a feed video plays in a viewer laid over the whole window, the tab bar
+     * included, which stays shown underneath it, so the line rose by the tab bar's height onto the
+     * caption (#469). In the Reels tab the tab bar draws after the reels, so its lift stays. Compares
+     * the two branches where they meet: elevation first, then the order they're drawn in.
+     */
+    private static boolean underReels(View tabBar, View pager, int tabTop, int[] at) {
+        View tabSide = tabBar;
+        View reelSide = pager;
+        int tabDepth = depth(tabSide);
+        int reelDepth = depth(reelSide);
+        for (; tabDepth > reelDepth; tabDepth--) tabSide = parentOf(tabSide);
+        for (; reelDepth > tabDepth; reelDepth--) reelSide = parentOf(reelSide);
+        if (tabSide == null || reelSide == null || tabSide == reelSide) return false;
+        while (true) {
+            View tabUp = parentOf(tabSide);
+            View reelUp = parentOf(reelSide);
+            if (tabUp == null || reelUp == null) return false;
+            if (tabUp == reelUp) break;
+            tabSide = tabUp;
+            reelSide = reelUp;
+        }
+        ViewGroup both = (ViewGroup) tabSide.getParent();
+        boolean reelsLater = reelSide.getZ() > tabSide.getZ()
+                || (reelSide.getZ() == tabSide.getZ() && both.indexOfChild(reelSide) > both.indexOfChild(tabSide));
+        if (!reelsLater || !reelSide.isShown()) return false;
+        reelSide.getLocationInWindow(at);
+        return at[1] + reelSide.getHeight() > tabTop;
+    }
+
+    private static int depth(View view) {
+        int levels = 0;
+        for (View up = parentOf(view); up != null; up = parentOf(up)) levels++;
+        return levels;
+    }
+
+    @Nullable
+    private static View parentOf(@Nullable View view) {
+        if (view == null) return null;
+        ViewParent above = view.getParent();
+        return above instanceof View ? (View) above : null;
+    }
+
+    /** Whether [mover] is still [label] or one of the levels above it that {@link #start} walks. */
+    private static boolean holds(View mover, View label) {
+        View up = label;
+        for (int level = 0; level < LEVELS_UP && up != null; level++) {
+            if (up == mover) return true;
+            ViewParent above = up.getParent();
+            up = above instanceof View ? (View) above : null;
+        }
+        return false;
+    }
+
     /** The scrubber's line, the full-width view beside the time. */
     @Nullable
     private static View barBeside(View label) {
@@ -194,7 +270,7 @@ final class ReelBarFollow {
         private final WeakReference<ViewGroup> heldPager;
         final ViewTreeObserver tree;
         @Nullable
-        private final WeakReference<View> heldTabBar;
+        private WeakReference<View> heldTabBar;
         @Nullable
         private WeakReference<View> heldPage;
         /** What this added to the host's own translation, which Facebook may set as well. */
@@ -226,13 +302,22 @@ final class ReelBarFollow {
         private void place() {
             View mover = heldMover.get();
             ViewGroup pager = heldPager.get();
-            if (mover == null || pager == null || !pager.isAttachedToWindow()) {
+            View label = heldLabel.get();
+            if (mover == null || pager == null || label == null || !pager.isAttachedToWindow()) {
                 stop(mover);
                 return;
             }
-            boolean keeping = keeps();
-            int follow = keeping ? offsetIn(pager) : 0;
-            int lift = keeping ? liftOver() : 0;
+            if (!holds(mover, label)) {
+                // Facebook mounted the scrubber in another host, as when See-through bars stretch
+                // the page under the tab bar (#395): the old one gets its place back, the new one moves.
+                stop(mover);
+                HookStatus.counted(FAMILY, REHOSTED);
+                Logger.printDebug(() -> "Reel bar: the scrubber moved to another host, following that one");
+                if (label.isAttachedToWindow()) start(label);
+                return;
+            }
+            int follow = keeps() ? offsetIn(pager) : 0;
+            int lift = lifts() ? liftOver() : 0;
             if (follow != 0 && lastFollow == 0) HookStatus.counted(FAMILY, FOLLOWED);
             if (lift != 0 && lastLift == 0) HookStatus.counted(FAMILY, LIFTED);
             lastFollow = follow;
@@ -247,13 +332,21 @@ final class ReelBarFollow {
         private int liftOver() {
             View tabBar = heldTabBar == null ? null : heldTabBar.get();
             View label = heldLabel.get();
-            if (tabBar == null || label == null || !tabBar.isShown()) return 0;
+            if (label == null) return 0;
+            if (tabBar != null && !tabBar.isAttachedToWindow()) {
+                // Facebook built the tab bar again, so the one held no longer shows where the tabs are.
+                tabBar = tabBarIn(label.getRootView(), TAB_BAR_LEVELS);
+                heldTabBar = tabBar == null ? null : new WeakReference<>(tabBar);
+            }
+            if (tabBar == null || !tabBar.isShown() || !opaque(tabBar)) return 0;
             View bar = barBeside(label);
             if (bar == null) return 0;
             int[] at = new int[2];
             tabBar.getLocationInWindow(at);
             int tabTop = at[1];
             if (tabTop < tabBar.getRootView().getHeight() / 2) return 0;
+            ViewGroup pager = heldPager.get();
+            if (pager != null && underReels(tabBar, pager, tabTop, at)) return 0;
             bar.getLocationInWindow(at);
             int line = at[1] + bar.getHeight() / 2 - applied;
             int clearance = Math.round(LINE_CLEARANCE_DP * bar.getResources().getDisplayMetrics().density);

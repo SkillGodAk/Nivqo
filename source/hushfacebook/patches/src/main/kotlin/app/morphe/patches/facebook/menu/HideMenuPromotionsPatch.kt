@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.proxy.mutableTypes.MutableField.Companion.toMutable
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
@@ -21,35 +22,81 @@ import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.freeLocalsAt
 import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.profile.bloksNodes
+import app.morphe.patches.facebook.profile.childGetters
+import app.morphe.patches.facebook.profile.filterChildren
+import app.morphe.patches.facebook.profile.isChildGetter
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.findMutableMethodOf
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 
 internal const val HIDE_SECTION = "$EXTENSION_PACKAGE/menu/MenuSections;->hideSection(Ljava/lang/Object;)Z"
 internal const val HIDE_SERVER_SECTION = "$EXTENSION_PACKAGE/menu/MenuSections;->hideServerSection(Ljava/lang/Object;)Z"
+internal const val HIDE_FOLDER = "$EXTENSION_PACKAGE/menu/MenuSections;->hideFolder(Ljava/lang/Object;)Z"
 internal const val SECTION_FOLDED = "$EXTENSION_PACKAGE/menu/MenuSections;->collapsed(ZLjava/lang/Object;)Z"
 internal const val MUSE_DISMISSED ="$EXTENSION_PACKAGE/menu/MuseCard;->dismissed(ZLjava/lang/Object;)Z"
 internal const val SHORTCUTS_KEPT = "$EXTENSION_PACKAGE/menu/MenuShortcuts;->kept(Ljava/util/List;)Ljava/util/List;"
 internal const val HELP_ROWS_KEPT = "$EXTENSION_PACKAGE/menu/MenuRows;->help(Ljava/util/List;)Ljava/util/List;"
 internal const val SETTINGS_ROWS_KEPT = "$EXTENSION_PACKAGE/menu/MenuRows;->settings(Ljava/util/List;)Ljava/util/List;"
 internal const val LIST_COPY_OF = "$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST"
+internal const val HEADER_KEPT_OPEN = "$EXTENSION_PACKAGE/menu/MenuSections;->keepsHeaderOpen(Ljava/lang/Object;)Z"
+internal const val MENU_BLOKS_CHILDREN = "$EXTENSION_PACKAGE/menu/MenuBloks;->children(Ljava/util/List;)Ljava/util/List;"
+internal const val MENU_BLOKS_VISITED = "$EXTENSION_PACKAGE/menu/MenuBloks;->visited(Ljava/lang/Object;)Ljava/lang/Object;"
+private const val SPARSE_VALUE_AT = "Landroid/util/SparseArray;->valueAt(I)Ljava/lang/Object;"
+
+/** A Bloks node's attribute walk: one visitor in, a boolean out, every attribute read by its index. */
+internal fun visitsAttributes(method: Method): Boolean =
+    !AccessFlags.STATIC.isSet(method.accessFlags) && method.implementation != null &&
+        method.returnType == "Z" && method.parameterTypes.size == 1 &&
+        method.implementation!!.instructions.any { (it as? ReferenceInstruction)?.reference?.toString() == SPARSE_VALUE_AT }
+
+/** Hands each attribute the walk reads to [MENU_BLOKS_VISITED] before the visitor sees it. */
+internal fun MutableMethod.passVisitedValues() {
+    val reads = implementation!!.instructions.withIndex()
+        .filter { (it.value as? ReferenceInstruction)?.reference?.toString() == SPARSE_VALUE_AT }.map { it.index }
+    for (index in reads.asReversed()) {
+        val result = getInstruction(index + 1)
+        if (result.opcode != Opcode.MOVE_RESULT_OBJECT) {
+            throw PatchException("$PATCH: $definingClass->$name doesn't keep the value it reads")
+        }
+        val register = (result as OneRegisterInstruction).registerA
+        addInstructions(
+            index + 2,
+            """
+                invoke-static/range { v$register .. v$register }, $MENU_BLOKS_VISITED
+                move-result-object v$register
+            """,
+        )
+    }
+}
+
+/** The boolean the patch adds to the Menu's group header, set on a header whose group is kept open. */
+internal const val HEADER_FLAG = "hushKeptOpen"
 
 /**
  * Both sections of a Menu group ask the extension about the group as soon as they know it, and
  * hand back no children when it says the group goes. See MenuSectionAnchors.kt for how the Menu is
  * built. Help and support goes only by its own switch (issue #224), and every other group, Settings
- * included, builds as Facebook built it.
+ * included, builds as Facebook built it. The server section asks again right before it adds the
+ * bookmarks folder Facebook draws inside it, and a yes leaves only that folder out: the PROFILE
+ * group's, Your shortcuts, goes by its own switch while the profile card around it stays (#445).
  *
  * Right after the native section reads its group, whether the group is folded goes to the extension
  * too, which can answer that Settings and privacy is open, so it builds its rows without a tap
  * (issue #224). A tap on its header leaves it open too, since the next build asks again. Whether the
  * group starts open, which seeds its header's chevron and label, gets the same answer, so the header
- * opens with it. If
- * Facebook moved the fold, the rest of the patch goes on without it.
+ * opens with it. After that the header keeps whether it's collapsed in its own state and flips it on
+ * every tap, so the section also marks the header it makes for a group kept open, and the header's
+ * render and tap handler take a marked header as expanded. If Facebook moved the fold or the header,
+ * the rest of the patch goes on without it.
  *
  * The Muse card is a bookmark, not a group: right after its component reads whether the card was
  * dismissed, the answer and the bookmark go to the extension, which can answer yes instead. See
@@ -67,19 +114,26 @@ internal const val LIST_COPY_OF = "$IMMUTABLE_LIST->copyOf(Ljava/util/Collection
  * Accounts whose Menu slides in from the side can get the server-drawn Bloks Menu there, which none
  * of the hooks above reach (#184). The server's answer to which Menu goes in the panel goes to the
  * extension, which answers the native one while any Menu switch acts. See MenuPanelAnchors.kt.
+ *
+ * On some accounts the top of the Menu, the profile card with Create Facebook Page and Your shortcuts
+ * under it, is a Bloks view inside the native Menu (#445). Every list the Bloks node classes' child
+ * getters return goes to the extension, as Hide profile notes hands them over, and so does every
+ * attribute a node's attribute walk hands its visitor, which is how 586's renderer reaches the
+ * profile card's lists. With a switch on the extension leaves out Create Facebook Page or Your
+ * shortcuts from the list where it sits beside the profile row. See MenuBloks.java.
  */
 @Suppress("unused")
 val hideMenuPromotionsPatch = bytecodePatch(
     name = "Hide Menu promotions",
     description = "Hides the Upgrades and Also from Meta sections and the Muse card in Facebook's Menu, so the " +
         "Menu has fewer ads for Meta's products. Settings, Help and your shortcuts stay. On by default. Turn it " +
-        "off in Hushfacebook settings > Menu. Switches there, off by default, also hide the Meta AI shortcut or the " +
-        "whole Help and support section and keep Settings and privacy open, and a list there hides the Menu tiles " +
+        "off in Hushfacebook settings > Menu. Switches there, off by default, also hide the Meta AI shortcut, the " +
+        "Your shortcuts row, the Create Facebook Page row or the whole Help and support section and keep Settings and privacy open, and a list there hides the Menu tiles " +
         "and Help and Settings rows you pick, such as Gaming or Orders and payments.",
     default = true,
 ) {
     category("Interface")
-    dependsOn(settingsPatch)
+    dependsOn(settingsPatch, menuSubpagesPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
     execute {
@@ -115,13 +169,29 @@ val hideMenuPromotionsPatch = bytecodePatch(
                     "$PATCH: ${native.definingClass}->${native.name} doesn't hand its header whether its group " +
                         "starts open from one flag of its own. A Settings and privacy kept open shows a folded header.",
                 )
+            } else {
+                // Before askAboutFolding, whose code goes in above the seed and would move it.
+                keepHeaderOpen(native, nativeMethod, nativeRead, start)
             }
             nativeMethod.askAboutFolding(nativeRead, fold, start)
         }
         nativeMethod.buildNothingWhenHidden(nativeRead, children(native), HIDE_SECTION)
-        nativeMethod.passRowListsThrough(rows)
-        mutableClassDefBy(server.definingClass).findMutableMethodOf(server)
-            .buildNothingWhenHidden(serverRead, children(server), HIDE_SERVER_SECTION)
+        // On 586 the lists are kept in the static method beside the section that makes the builds.
+        val site = rowListSite(native) { classDefByOrNull(it) }
+        val siteMethod = if (site === native) nativeMethod else mutableClassDefBy(site.definingClass).findMutableMethodOf(site)
+        siteMethod.passRowListsThrough(rows)
+        val serverMethod = mutableClassDefBy(server.definingClass).findMutableMethodOf(server)
+        val folderAdd = nativeFolderAdd(server, serverRead)
+        if (folderAdd == null) {
+            patchLog.warning(
+                "$PATCH: ${server.definingClass}->${server.name} doesn't add one bookmarks folder of its own after " +
+                    "checking it's there. Hide Your shortcuts leaves a natively drawn Your shortcuts row in the Menu.",
+            )
+        } else {
+            // Before buildNothingWhenHidden, whose code goes in above the add and would move it.
+            serverMethod.skipFolderWhenHidden(serverRead, folderAdd)
+        }
+        serverMethod.buildNothingWhenHidden(serverRead, children(server), HIDE_SERVER_SECTION)
 
         val render = single(NT_DISMISSED_UPDATE, "Menu bookmark render", ::isBookmarkRender)
         val component = mutableClassDefBy(render.definingClass)
@@ -143,6 +213,18 @@ val hideMenuPromotionsPatch = bytecodePatch(
         mutableClassDefBy(folder.definingClass).findMutableMethodOf(folder).passBookmarksThroughShortcuts(listRead)
         askAboutBloksPanel()
         askAboutBloksMenuPage()
+        try {
+            childGetters(bloksNodes()).forEach { getter ->
+                mutableClassDefBy(getter.definingClass).methods.single {
+                    it.name == getter.name && isChildGetter(it)
+                }.filterChildren(MENU_BLOKS_CHILDREN)
+            }
+            val walks = bloksNodes().flatMap { node -> mutableClassDefBy(node.type).methods.filter(::visitsAttributes) }
+            if (walks.isEmpty()) throw PatchException("no Bloks node class walks its attributes for a visitor")
+            walks.forEach { it.passVisitedValues() }
+        } catch (failure: PatchException) {
+            patchLog.warning("$PATCH: ${failure.message}. Create Facebook Page and a Bloks drawn Your shortcuts stay in the Menu.")
+        }
         enableStatus("menuPromotions")
     }
 }
@@ -188,6 +270,25 @@ internal fun MutableMethod.buildNothingWhenHidden(read: GroupRead, list: Childre
 }
 
 /**
+ * Right before the server section checks the bookmarks folder Facebook draws inside it, the group
+ * goes to [HIDE_FOLDER], and a yes skips the folder's add the way a missing folder does, so the
+ * server's own parts around it still build (#445). The group goes through the range form, which
+ * names any register, and the answer into a free local nothing reads where either way lands.
+ */
+internal fun MutableMethod.skipFolderWhenHidden(read: GroupRead, add: NativeFolderAdd) {
+    val answer = freeLocalsAt(PATCH, add.check, 1, targets = listOf(add.skip), highest = 255).single()
+    addInstructionsWithLabels(
+        add.check,
+        """
+            invoke-static/range { v${read.register} .. v${read.register} }, $HIDE_FOLDER
+            move-result v$answer
+            if-nez v$answer, :hidden
+        """.trimIndent(),
+        ExternalLabel("hidden", getInstruction(add.skip)),
+    )
+}
+
+/**
  * Right after the native section puts its group in a register, whether the group is folded and the
  * group go to [SECTION_FOLDED], and its answer replaces the one the section read at [fold]. With a
  * [start], the flag the header is seeded from, which says whether the group starts open, goes the
@@ -220,6 +321,75 @@ internal fun MutableMethod.askAboutFolding(read: GroupRead, fold: FoldRead, star
             move/from16 v${fold.register}, v$folded
         """.trimIndent() + "\n" + header,
     )
+}
+
+/**
+ * Marks the header the native section makes for a group the extension keeps open, with a
+ * [HEADER_FLAG] the patch adds to the header's class (false on every header nothing marks), and has
+ * each of the header's reads of whether it's collapsed take a marked header as expanded, so a tap
+ * leaves its arrow up and its label on "Section is expanded" (#224 follow-up). When the seed, the
+ * header or its reads aren't where they were, the header goes as Facebook draws it and the rest of
+ * the patch goes on.
+ */
+private fun BytecodePatchContext.keepHeaderOpen(native: Method, nativeMethod: MutableMethod, group: GroupRead, start: StartRead) {
+    val seed = headerSeed(native, group, start)
+    val headerClass = seed?.takeIf { classDefByOrNull(it.headerClass) != null }?.let { mutableClassDefBy(it.headerClass) }
+    val reads = headerClass?.let(::headerStateReads)
+    if (seed == null || headerClass == null || reads == null || reads.count { it.click } != 1 || reads.all { it.click } ||
+        headerClass.fields.any { it.name == HEADER_FLAG }
+    ) {
+        patchLog.warning(
+            "$PATCH: ${native.definingClass}->${native.name} doesn't seed one header whose render and tap handler each " +
+                "read its collapsed state once. A tap on a Settings and privacy kept open turns its arrow down.",
+        )
+        return
+    }
+    headerClass.instanceFields.add(
+        ImmutableField(headerClass.type, HEADER_FLAG, "Z", AccessFlags.PUBLIC.value, null, null, null).toMutable(),
+    )
+    nativeMethod.seedHeaderFlag(seed)
+    reads.forEach { headerClass.findMutableMethodOf(it.method).keepReadOpen(it, headerClass.type) }
+}
+
+/**
+ * Right after the native section seeds its header, the group goes to [HEADER_KEPT_OPEN] and the
+ * answer into the header's [HEADER_FLAG]. The group goes through the range form, which names any
+ * register. The store's operands are 4-bit, so the one register borrowed is a free local no higher
+ * than v15, and the header's register is already one, the seed's own store naming it.
+ */
+internal fun MutableMethod.seedHeaderFlag(seed: HeaderSeed) {
+    val index = seed.index + 1
+    val flag = freeLocalsAt(PATCH, index, 1).single()
+    addInstructions(
+        index,
+        """
+            invoke-static/range { v${seed.group} .. v${seed.group} }, $HEADER_KEPT_OPEN
+            move-result v$flag
+            iput-boolean v$flag, v${seed.header}, ${seed.headerClass}->$HEADER_FLAG:Z
+        """.trimIndent(),
+    )
+}
+
+/**
+ * Right before [read]'s stash the header's [HEADER_FLAG] goes into the read's free local, and right
+ * after the read a marked header reads as expanded: the render clears the collapsed state it reads,
+ * and the tap handler sets it, so the flip it hands on and the label it sets both say expanded.
+ * Booleans stay booleans through `and-int`, `or-int` and an `xor-int/lit8` with 1, so the method
+ * verifies as before. The code after the read goes in first, so the stash stays where it was found.
+ */
+internal fun MutableMethod.keepReadOpen(read: HeaderStateRead, headerClass: String) {
+    val mark = read.free
+    val state = read.register
+    val force = if (read.click) {
+        "or-int v$state, v$state, v$mark"
+    } else {
+        """
+            xor-int/lit8 v$mark, v$mark, 0x1
+            and-int v$state, v$state, v$mark
+        """.trimIndent()
+    }
+    addInstructions(read.read + 1, force)
+    addInstructions(read.stash, "iget-boolean v$mark, v${read.header}, $headerClass->$HEADER_FLAG:Z")
 }
 
 /**
@@ -264,18 +434,21 @@ private fun signature(call: MethodReference) =
  * The native section's two row list builds, Settings and privacy's then Help and support's, each
  * with its hook, once both are found once on one class and share the one row item MenuRows can
  * read. 584 calls no build: its two kept lists ([keptRowLists]) take the hooks, once the section
- * builds the one row item MenuRows can read. [classDef] finds a class of the app by type.
+ * builds the one row item MenuRows can read. So do those of 586's Android 9 build, kept in the
+ * static method beside the section. [classDef] finds a class of the app by type.
  */
 internal fun rowListHooks(native: Method, classDef: (String) -> ClassDef?): List<RowListHook> {
-    val builds = rowListBuilds(native)
+    // On 586 a static method beside the section makes the builds or keeps the lists ([rowListSite]).
+    val site = rowListSite(native, classDef)
+    val builds = rowListBuilds(site)
     if (builds.isEmpty()) {
-        val kept = keptRowLists(native) ?: throw PatchException(
-            "$PATCH: expected ${native.definingClass}->${native.name} to build one Settings and privacy row list " +
+        val kept = keptRowLists(site) ?: throw PatchException(
+            "$PATCH: expected ${site.definingClass}->${site.name} to build one Settings and privacy row list " +
                 "or keep it beside the Help and support one, found neither",
         )
-        val items = constructedTypes(native).filter { type -> classDef(type)?.let(::isReadableRowItem) == true }
+        val items = constructedTypes(site).filter { type -> classDef(type)?.let(::isReadableRowItem) == true }
         if (items.size != 1) {
-            throw PatchException("$PATCH: ${native.definingClass}->${native.name} builds ${items.size} readable row items, not one")
+            throw PatchException("$PATCH: ${site.definingClass}->${site.name} builds ${items.size} readable row items, not one")
         }
         return listOf(
             RowListHook(reference(kept.settings), SETTINGS_ROWS_KEPT, kept.settings),
@@ -283,14 +456,14 @@ internal fun rowListHooks(native: Method, classDef: (String) -> ClassDef?): List
         )
     }
     val settings = builds.singleOrNull() ?: throw PatchException(
-        "$PATCH: expected ${native.definingClass}->${native.name} to build one Settings and privacy row list, found ${builds.size}",
+        "$PATCH: expected ${site.definingClass}->${site.name} to build one Settings and privacy row list, found ${builds.size}",
     )
-    val helps = native.implementation!!.instructions
+    val helps = site.implementation!!.instructions
         .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
         .filter { isHelpRowListBuild(it, settings.definingClass) }
         .distinctBy(::signature)
     val help = helps.singleOrNull() ?: throw PatchException(
-        "$PATCH: expected ${native.definingClass}->${native.name} to build one Help and support row list, found ${helps.size}",
+        "$PATCH: expected ${site.definingClass}->${site.name} to build one Help and support row list, found ${helps.size}",
     )
     val owner = classDef(settings.definingClass)
         ?: throw PatchException("$PATCH: the row list builder ${settings.definingClass} isn't in this build")

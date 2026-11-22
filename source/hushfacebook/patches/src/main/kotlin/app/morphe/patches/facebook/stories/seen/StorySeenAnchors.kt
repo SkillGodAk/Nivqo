@@ -13,21 +13,25 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.feed.namesString
 import app.morphe.patches.facebook.feed.tableStringAt
+import app.morphe.patches.facebook.layout.theme.branchTargets
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.extension.requireThisIntact
+import app.morphe.patches.facebook.search.history.callRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -55,6 +59,13 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  * builds: the one class whose constructor names the mutation and its root field, the one method
  * that creates that class and fills story_ids_list, and the one other method of that method's
  * class that calls it.
+ *
+ * 586 has no query class for it (read from both 586 builds on 2026-11-08). The builder (586
+ * LX/0CRf;->getRequest) makes Facebook's generic query itself, handing its constructor the result
+ * class and then DirectSeenMutation as the query's name, and the root field goes as null, so that
+ * literal isn't in the APK at all. The persisted query is the same. The builder is then the one
+ * method filling story_ids_list that makes a query named DirectSeenMutation, and the sender is
+ * found from it the same way.
  *
  * Mark as seen (#88, read from 577, 580 and 581 on 2026-10-07). The sender has the same shape on
  * all three (581 LX/AR6;->A00): a callback, the FbUserSession, three strings, the map of bucket
@@ -128,13 +139,49 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 internal fun isSeenMutation(classDef: ClassDef): Boolean =
     classDef.methods.any { it.name == "<init>" && holdsString(it, SEEN_MUTATION) && holdsString(it, SEEN_ROOT_FIELD) }
 
+private const val JAVA_CLASS = "Ljava/lang/Class;"
+
+/**
+ * Whether [method] makes the seen query itself, the way 586 does with no query class: it creates an
+ * instance and hands its constructor a class and then [SEEN_MUTATION], loaded into a register
+ * nothing writes before that call.
+ */
+internal fun makesSeenQuery(method: Method): Boolean {
+    val code = method.implementation?.instructions?.toList() ?: return false
+    for ((load, instruction) in code.withIndex()) {
+        if (instruction.string() != SEEN_MUTATION) continue
+        val name = (instruction as OneRegisterInstruction).registerA
+        for (at in load + 1 until code.size) {
+            val call = code[at].call(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE)
+            if (call != null && call.name == "<init>") {
+                val registers = callRegisters(code[at])
+                val created = code.subList(0, at).lastOrNull {
+                    it.opcode == Opcode.NEW_INSTANCE && (it as OneRegisterInstruction).registerA == registers.first()
+                }
+                if (registers.getOrNull(2) == name &&
+                    call.parameterTypes.take(2).map(Any::toString) == listOf(JAVA_CLASS, STRING) &&
+                    ((created as? ReferenceInstruction)?.reference as? TypeReference)?.type == call.definingClass
+                ) return true
+            }
+            val written = code[at]
+            if (written.opcode.setsRegister() && (written as? OneRegisterInstruction)?.registerA?.let {
+                    it == name || (written.opcode.setsWideRegister() && it + 1 == name)
+                } == true
+            ) break
+        }
+    }
+    return false
+}
+
 /**
  * Whether [method] builds the seen request: an instance method handing back an object that loads
- * [STORY_IDS] and creates an instance of [mutation], the query class [isSeenMutation] found.
+ * [STORY_IDS] and creates an instance of [mutation], the query class [isSeenMutation] found, or,
+ * with [mutation] null (586, no query class), makes the query itself ([makesSeenQuery]).
  */
-internal fun isRequestBuilder(method: Method, mutation: String): Boolean {
+internal fun isRequestBuilder(method: Method, mutation: String?): Boolean {
     if (AccessFlags.STATIC.isSet(method.accessFlags) || !method.returnType.startsWith("L")) return false
     if (!holdsString(method, STORY_IDS)) return false
+    if (mutation == null) return makesSeenQuery(method)
     return method.implementation?.instructions?.any {
         it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == mutation
     } == true
@@ -153,11 +200,11 @@ private fun callsTo(method: Method, target: Method): Int =
 
 /**
  * The method in [owner] that sends the seen request, or null when [owner] isn't the sender's class:
- * [owner] has exactly one request builder for [mutation], exactly one other method of [owner]
- * calls it, and that caller is a void instance method taking the set of card ids and calling the
- * builder once.
+ * [owner] has exactly one request builder for [mutation] (null where the builder makes the query
+ * itself), exactly one other method of [owner] calls it, and that caller is a void instance method
+ * taking the set of card ids and calling the builder once.
  */
-internal fun seenSender(owner: ClassDef, mutation: String): Method? {
+internal fun seenSender(owner: ClassDef, mutation: String?): Method? {
     val builder = owner.methods.filter { isRequestBuilder(it, mutation) }.singleOrNull() ?: return null
     val callers = owner.methods.filter { it.key() != builder.key() && callsTo(it, builder) > 0 }
     val sender = callers.singleOrNull() ?: return null
@@ -187,24 +234,32 @@ private fun calls(method: Method, target: Method): Boolean =
 internal fun callsSender(owner: ClassDef, sender: Method): Boolean = owner.methods.any { calls(it, sender) }
 
 /**
- * The seen helper: the one class among [callers] with a method calling [sender] and a method naming
- * [SEEN_HELPER_LITERAL], as a literal of its own or as a string table entry [resolve] reads.
+ * The seen helper: the one class among [callers] with a method calling [sender], a method naming
+ * [SEEN_HELPER_LITERAL] (as a literal of its own or as a string table entry [resolve] reads), and a
+ * per-card method. 587 also names the literal in the viewer's controller (LX/0CBG;), which calls the
+ * sender too but marks no single card; the helper (LX/0Boj;) is the one with the per-card method.
  */
 internal fun seenHelper(callers: List<ClassDef>, sender: Method, resolve: (MethodReference) -> Method?): ClassDef {
     val helpers = callers.filter { caller ->
-        callsSender(caller, sender) && caller.methods.any { namesString(it, SEEN_HELPER_LITERAL, resolve) }
+        callsSender(caller, sender) && caller.methods.any { namesString(it, SEEN_HELPER_LITERAL, resolve) } &&
+            perCardMethods(caller).isNotEmpty()
     }.distinctBy { it.type }
     return helpers.singleOrNull()
         ?: refuse("expected one class naming \"$SEEN_HELPER_LITERAL\" that calls the sender, found ${helpers.size}")
 }
 
-/** The seen helper's per-card method: its one static void (FbUserSession, StoryBucket, StoryCard, helper, boolean). */
-internal fun cardSeen(helper: ClassDef): Method {
+/** The static voids of [helper] taking (FbUserSession, StoryBucket, StoryCard, helper, boolean). */
+private fun perCardMethods(helper: ClassDef): List<Method> {
     val shape = listOf(FB_USER_SESSION, STORY_BUCKET, STORY_CARD, helper.type, "Z")
-    val methods = helper.methods.filter {
+    return helper.methods.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
             it.parameterTypes.map { type -> type.toString() } == shape
     }
+}
+
+/** The seen helper's per-card method: its one static void (FbUserSession, StoryBucket, StoryCard, helper, boolean). */
+internal fun cardSeen(helper: ClassDef): Method {
+    val methods = perCardMethods(helper)
     return methods.singleOrNull() ?: refuse("expected one static per-card method in ${helper.type}, found ${methods.size}")
 }
 
@@ -553,15 +608,19 @@ internal fun isStartCheck(method: Method): Boolean {
     ) return false
     val code = method.implementation?.instructions?.toList() ?: return false
     val casts = code.count { it.opcode == Opcode.CHECK_CAST && ((it as ReferenceInstruction).reference as TypeReference).type == STORY_CARD }
-    val calls = code.mapNotNull {
-        it.call(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
-    }
+    val calls = startCalls(method)
     val direct = code.count { it.call(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE, Opcode.INVOKE_SUPER, Opcode.INVOKE_SUPER_RANGE) != null }
     if (casts != 1 || calls.size != 2 || direct != 0) return false
     val (media, flag) = calls
     return media.definingClass == STORY_CARD && media.name == "getMedia" && media.parameterTypes.isEmpty() &&
         flag.definingClass == STORY_CARD && flag.parameterTypes.isEmpty() && flag.returnType == "Z"
 }
+
+/** The start check's virtual calls, in order: on a start check, getMedia() and then the seen flag. */
+internal fun startCalls(check: Method): List<MethodReference> =
+    check.implementation?.instructions?.mapNotNull {
+        it.call(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
+    }.orEmpty()
 
 /** Whether [method] is the interface's (Object, int)I method that casts its first argument to StoryBucket. */
 private fun isBucketIndex(method: Method): Boolean =
@@ -598,7 +657,193 @@ internal fun MutableMethod.skipWatchedCards() {
     )
 }
 
+/*
+ * The method asking the start check (#218 again, read from 585 arm64 on 2026-11-06).
+ *
+ * The check is asked by a static method (585 LX/0C5S;->A01) taking the card interface, the bucket,
+ * the id of a card the launch names, and two ints. With no card named and the interface's bucket
+ * answer no (StoryBucket's hasUnwatched, which the extension answers first, #165), it returns the
+ * first card or the last without asking the check at all. A named card wins over the check's pick,
+ * and a tray launch names the card Facebook's own reading of the bucket starts at. Either way a
+ * bucket watched partway opened at card 1 after a restart, and the check's hook never ran. The hook
+ * goes first in that method, for StoryBucket's interface only (the other implementer reads trees),
+ * and hands the bucket and the named card's id to the extension, whose answer is the id named.
+ */
+internal const val START_CARD = "$STORY_SEEN->startCard(${OBJECT}${STRING})${STRING}"
+
+/** Whether [method] is the start picker: a static ([cards], Object, String, int, int)I method asking [cards]'s [check]. */
+internal fun isStartPicker(method: Method, cards: String, check: String): Boolean {
+    if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "I" ||
+        method.parameterTypes.map(Any::toString) != listOf(cards, OBJECT, STRING, "I", "I")
+    ) return false
+    return method.implementation?.instructions?.any {
+        it.call(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)?.let { call ->
+            call.definingClass == cards && call.name == check && call.returnType == "Z" &&
+                call.parameterTypes.map(Any::toString) == listOf(OBJECT)
+        } == true
+    } == true
+}
+
+/**
+ * First thing in the start picker: when its card interface is [owner], StoryBucket's, the card id
+ * it goes on with is the extension's answer. Every other interface goes straight on. The
+ * parameters are read before anything writes them, and the one local the hook needs is free there.
+ */
+internal fun MutableMethod.nameStartCard(owner: String) {
+    requireLocals(PATCH, 1)
+    val cards = parameterRegisterNumber(0)
+    val bucket = parameterRegisterNumber(1)
+    val cardId = parameterRegisterNumber(2)
+    addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, v$cards
+            instance-of v0, v0, $owner
+            if-eqz v0, :facebook
+            invoke-static/range { v$bucket .. v$cardId }, $START_CARD
+            move-result-object v$cardId
+        """,
+        ExternalLabel("facebook", getInstruction(0)),
+    )
+}
+
+/** Fills the extension's stubs for Facebook's own start check from [check]'s two calls on the card. */
+internal fun fillStartStubs(stub: (name: String, answer: String, parameters: List<String>) -> MutableMethod, check: Method) {
+    val (media, flag) = startCalls(check)
+    stub("mediaOf", OBJECT, listOf(OBJECT)).addInstructions(
+        0,
+        """
+            check-cast p0, $STORY_CARD
+            invoke-virtual { p0 }, ${media.smali()}
+            move-result-object p0
+            return-object p0
+        """,
+    )
+    stub("seenFlagOf", "Z", listOf(OBJECT)).addInstructions(
+        0,
+        """
+            check-cast p0, $STORY_CARD
+            invoke-virtual { p0 }, ${flag.smali()}
+            move-result p0
+            return p0
+        """,
+    )
+}
+
 internal fun MethodReference.smali(): String = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+/*
+ * The viewer taking in a new copy of the bucket on screen (#218 again, read from 585 arm64 and
+ * armeabi-v7a on 2026-11-06, the same shape on both).
+ *
+ * A Page opened from its picture first shows a LightweightLoadingBucket with one stand-in card for its
+ * first story, and the start picker above is asked about that bucket only. When the real one arrives,
+ * the story navigation delegate's onDataChanged (585 LX/0C6n;->A0E) checks it's the same bucket with a
+ * static (StoryBucket, StoryBucket)Z taking the new copy first. For a loading bucket it then looks for
+ * the card it was on in the new copy by id and keeps the index found, story 1's. A static
+ * (StoryCard, StoryCard)Z compares the card at that index with the card it was on. When they differ and
+ * the card is a posted story, the delegate's own (reason, I)V "navigateToCard" moves the viewer to the
+ * index kept. The picker is never asked about the real bucket (traced on the S22 the same day). One hook
+ * goes right after the first lookup, while the old bucket is still in its register, and hands the
+ * extension that bucket and the card. The next goes right before the card check and swaps the card it
+ * was on for the extension's answer, and the last, right before that navigateToCard, swaps the index
+ * for the answer's.
+ */
+internal const val DATA_CHANGED = "StoryViewerNavigationDelegate.onDataChanged"
+internal const val REPLACING = "$STORY_SEEN->replacing($OBJECT$OBJECT)V"
+internal const val CARD_AFTER_LOADING = "$STORY_SEEN->cardAfterLoading($OBJECT$OBJECT)$OBJECT"
+internal const val INDEX_AFTER_LOADING = "$STORY_SEEN->indexAfterLoading($OBJECT${OBJECT}I)I"
+
+/**
+ * The hooks' places in onDataChanged: [REPLACING] goes before the instruction at [replacing], handed
+ * [replaced] and [oldCard], [CARD_AFTER_LOADING] before the card check at [check], handed [bucket]
+ * and [card], which takes its answer, and [INDEX_AFTER_LOADING] before the navigateToCard call at
+ * [navigate], handed [bucket], [card] and [index], which takes its answer.
+ */
+internal class LoadingSwap(
+    val replacing: Int,
+    val replaced: Int,
+    val oldCard: Int,
+    val check: Int,
+    val bucket: Int,
+    val card: Int,
+    val navigate: Int,
+    val index: Int,
+)
+
+/** Whether [method] loads [text] as a constant string. */
+internal fun loads(method: Method, text: String): Boolean =
+    method.implementation?.instructions?.any { it.string() == text } == true
+
+/**
+ * The hooks' places in [method], onDataChanged, or null when it isn't shaped as described above: one
+ * same-bucket check, then lookups of a card by id in the bucket that check takes first, with one card
+ * check between the first lookup and the rest, and the rest looking up the card that check takes
+ * second. After the card check, one call of the method's own class on `this`, taking an int it reads
+ * from a field right before, moves the viewer. The old bucket's register isn't written between the
+ * bucket check and the first hook, no branch lands where a hook goes, and the registers go in a plain
+ * invoke, so each is below 16.
+ */
+internal fun loadingSwap(method: Method): LoadingSwap? {
+    val code = method.implementation?.instructions?.toList() ?: return null
+    fun staticCall(i: Int, returns: String, vararg types: String) =
+        code[i].call(Opcode.INVOKE_STATIC)?.let { it.returnType == returns && it.takes(*types) } == true
+    val bucketCheck = code.indices.singleOrNull { staticCall(it, "Z", STORY_BUCKET, STORY_BUCKET) } ?: return null
+    val cardCheck = code.indices.singleOrNull { staticCall(it, "Z", STORY_CARD, STORY_CARD) } ?: return null
+    val lookups = code.indices.filter { it > bucketCheck && staticCall(it, "I", STORY_BUCKET, STORY_CARD) }
+    val first = lookups.firstOrNull() ?: return null
+    val later = lookups.filter { it > cardCheck }.map { code[it] as FiveRegisterInstruction }
+    if (first > cardCheck || later.isEmpty()) return null
+    val same = code[bucketCheck] as FiveRegisterInstruction
+    val firstLookup = code[first] as FiveRegisterInstruction
+    val compare = code[cardCheck] as FiveRegisterInstruction
+    if (lookups.any { (code[it] as FiveRegisterInstruction).registerC != same.registerC }) return null
+    if (later.any { it.registerD != compare.registerD }) return null
+    val result = code.getOrNull(first + 1)
+    if (result?.opcode != Opcode.MOVE_RESULT || (result as OneRegisterInstruction).registerA in setOf(same.registerD, firstLookup.registerD)) return null
+    val written = code.subList(bucketCheck + 1, first).any {
+        it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == same.registerD
+    }
+    val targets = branchTargets(code)
+    if (written || first + 2 in targets || cardCheck in targets) return null
+    if (AccessFlags.STATIC.isSet(method.accessFlags)) return null
+    val self = method.localRegisterCount()
+    val navigate = code.indices.singleOrNull { i ->
+        i > cardCheck && code[i].call(Opcode.INVOKE_VIRTUAL)?.let {
+            it.definingClass == method.definingClass && it.returnType == "V" && it.parameterTypes.size == 2 && it.parameterTypes[1].toString() == "I"
+        } == true && (code[i] as FiveRegisterInstruction).registerC == self
+    } ?: return null
+    val move = code[navigate] as FiveRegisterInstruction
+    val index = code[navigate - 1]
+    if (index.opcode != Opcode.IGET || (index as TwoRegisterInstruction).registerA != move.registerE || navigate in targets) return null
+    if (move.registerE in setOf(same.registerC, compare.registerD)) return null
+    val swap = LoadingSwap(first + 2, same.registerD, firstLookup.registerD, cardCheck, same.registerC, compare.registerD, navigate, move.registerE)
+    return if (maxOf(swap.replaced, swap.oldCard, swap.bucket, swap.card, swap.index) < 16) swap else null
+}
+
+/**
+ * The three hooks in onDataChanged, the last place first so the earlier places stand: the index the
+ * viewer moves to and the card it was on become the extension's answers, the card cast back to the
+ * card type the check takes.
+ */
+internal fun MutableMethod.openAfterLoading(swap: LoadingSwap) {
+    addInstructions(
+        swap.navigate,
+        """
+            invoke-static { v${swap.bucket}, v${swap.card}, v${swap.index} }, $INDEX_AFTER_LOADING
+            move-result v${swap.index}
+        """,
+    )
+    addInstructions(
+        swap.check,
+        """
+            invoke-static { v${swap.bucket}, v${swap.card} }, $CARD_AFTER_LOADING
+            move-result-object v${swap.card}
+            check-cast v${swap.card}, $STORY_CARD
+        """,
+    )
+    addInstructions(swap.replacing, "invoke-static { v${swap.replaced}, v${swap.oldCard} }, $REPLACING")
+}
 
 /*
  * The eye's timing (#150, read from both 582 builds on 2026-10-14).
@@ -656,24 +901,36 @@ internal fun MutableMethod.reportState() {
 internal class CountLater(val listener: ClassDef, val constructor: Method, val session: Field)
 
 /**
+ * True for a listener constructor's parameters: (StoryBucket, StoryCard, [helper]) and then only
+ * primitives, ending in a boolean. Up to 586 that tail was the boolean alone; 587 puts an int
+ * before it.
+ */
+private fun isCountLaterShape(types: List<String>, helper: String): Boolean =
+    types.size >= 4 && types.take(3) == listOf(STORY_BUCKET, STORY_CARD, helper) && types.last() == "Z" &&
+        types.drop(3).all { it.length == 1 }
+
+/**
  * In [helper]'s instance void (StoryBucket, StoryCard) method: the one class it creates with a
- * constructor taking (StoryBucket, StoryCard, [helper], boolean), which [classes] looks up, and
- * [helper]'s one FbUserSession field. Null when the helper isn't shaped that way.
+ * constructor taking (StoryBucket, StoryCard, [helper], primitives..., boolean), which [classes]
+ * looks up, and [helper]'s one FbUserSession field. Null when the helper isn't shaped that way.
  */
 internal fun countLater(helper: ClassDef, classes: (String) -> ClassDef?): CountLater? {
     val session = helper.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == FB_USER_SESSION }
         .singleOrNull() ?: return null
-    val shape = listOf(STORY_BUCKET, STORY_CARD, helper.type, "Z")
     val made = helper.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
             it.parameterTypes.map(Any::toString) == listOf(STORY_BUCKET, STORY_CARD)
     }.flatMap { method ->
         method.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
             val call = instruction.call(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE)
-            if (call != null && call.name == "<init>" && call.takes(*shape.toTypedArray())) call.definingClass else null
+            if (call != null && call.name == "<init>" && isCountLaterShape(call.parameterTypes.map(Any::toString), helper.type)) {
+                call.definingClass to call.parameterTypes.map(Any::toString)
+            } else {
+                null
+            }
         }
     }.toSet()
-    val type = made.singleOrNull() ?: return null
+    val (type, shape) = made.singleOrNull() ?: return null
     val listener = classes(type) ?: return null
     val constructor = listener.methods.singleOrNull {
         it.name == "<init>" && it.parameterTypes.map(Any::toString) == shape && it.implementation != null
