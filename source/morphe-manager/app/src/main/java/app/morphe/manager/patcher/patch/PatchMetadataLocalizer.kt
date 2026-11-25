@@ -76,6 +76,7 @@ object PatchMetadataLocalizer {
         "Live captions on calls" to Zh("通話即時字幕", "使用手機語音辨識顯示通話中的即時字幕，在支援裝置上可翻譯或朗讀。"),
         "Send Instants from your gallery" to Zh("從相簿傳送 Instant", "從手機相簿選取圖片並以 Instant 形式分享，不需要當場拍照。"),
         "Special contacts" to Zh("特別關注聯絡人", "可追蹤特定聊天對象的線上、離線或輸入狀態，並僅將相關紀錄保存在此裝置。"),
+        "Video buffer" to Zh("影片緩衝大小", "調整影片播放前與播放中的預載量。低可加快開始播放並節省流量，中與最大可增加緩衝，改善慢速網路的播放體驗。預設使用 Facebook 設定，可於影片與音訊設定調整。"),
         // Facebook 0.23.0 formal new patches
         "Ask before a like" to Zh(
             "按讚與追蹤前確認",

@@ -8,7 +8,7 @@ import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.misc.extension.enableStatus
@@ -16,6 +16,7 @@ import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import app.morphe.util.findMutableMethodOf
 import app.morphe.util.literalReads
 import com.android.tools.smali.dexlib2.Opcode
@@ -66,28 +67,29 @@ internal const val OVERRIDE = "$BOTTOM_TAB_BAR->override(I)I"
  * Hide the tab bar on the Reels tab takes the bar off that tab alone (ReelsTabBarHidden.kt).
  */
 @Suppress("unused")
-val bottomTabBarPatch = bytecodePatch(
+val bottomTabBarPatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Tab bar at the bottom",
     description = "Moves Facebook's tab bar to the bottom of the screen on accounts that have it at the top, " +
         "where it's easier to reach. `Tab bar position` can also put it at the top, as older Facebook had it, or " +
         "leave it where Facebook puts it. `Tab bar while scrolling` lets it slide away as you scroll or keeps it on " +
         "screen, and another switch keeps the top bar on screen. One gives " +
-        "tablets and unfolded phones the phone layout so the bar can move there too, and one makes the top bar and " +
+        "tablets and unfolded phones the phone layout so the bar can move there too, and another keeps the feed in " +
+        "a column down the middle on those big screens. One makes the top bar and " +
         "the tab bar see-through. Another hides the phone's status bar on the main screen until you swipe down " +
         "from the top, and another keeps the Reels tab's bars light in light mode, like the other tabs. One hides " +
         "the tab bar on the Reels tab alone, so the reel gets the whole screen. Three more " +
         "take the Messenger button, its unread count or the Facebook logo out " +
         "of the top bar. Starts off. Pick it in " +
-        "Hushfacebook settings > Tabs and navigation, then restart Facebook. The see-through, status bar and " +
-        "Reels tab switches sit under Appearance.",
+        "Hushfacebook settings > Tabs and navigation, then restart Facebook. The see-through, status bar, " +
+        "centered feed and Reels tab switches sit under Appearance.",
 ) {
     category("Navigation")
     // The other switches: Facebook's own scroll-away for both bars, in TabBarScrollAwayPatch.kt.
     dependsOn(settingsPatch, tabBarScrollAwayPatch, topBarButtonsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         val key = overrideKeyField(
             classDefByStrings(OVERRIDE_KEY, StringComparisonType.EQUALS).filterNot { it.type.startsWith(EXTENSION_CLASSES) },
         )
@@ -104,8 +106,10 @@ val bottomTabBarPatch = bytecodePatch(
         if (reads.isEmpty()) refuse("nothing reads $key from FbSharedPreferences")
         hookBigScreenLayout(reads)
         hookStatusBarStrip(paddings)
+        hookLithoPositions()
         hookLightReelsTabBars()
         hookReelsTabBarHidden()
+        hookTabBarLineAtLayout()
         reads.groupBy { it.method }.forEach { (method, sites) ->
             mutableClassDefBy(method.definingClass).findMutableMethodOf(method).hookOverrideReads(sites)
         }

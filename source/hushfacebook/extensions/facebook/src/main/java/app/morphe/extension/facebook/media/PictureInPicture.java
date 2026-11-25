@@ -6,6 +6,7 @@ package app.morphe.extension.facebook.media;
 
 import android.app.Activity;
 import android.app.Application;
+import android.app.KeyguardManager;
 import android.app.PictureInPictureParams;
 import android.content.ComponentName;
 import android.content.Context;
@@ -18,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.util.Rational;
 import android.view.View;
@@ -659,6 +661,11 @@ public final class PictureInPicture {
         }
 
         @Override
+        public void onActivityPreStopped(Activity activity) {
+            stopping(activity);
+        }
+
+        @Override
         public void onActivityStopped(Activity activity) {
         }
 
@@ -669,6 +676,30 @@ public final class PictureInPicture {
         @Override
         public void onActivityDestroyed(Activity activity) {
         }
+    }
+
+    /**
+     * [activity] is about to stop. Locking the phone stops the screen in the window without pausing
+     * it, and Facebook's background manager asks about the video as that stop arrives, so this runs
+     * ahead of it (#495). Closing the window with the phone in use stops the screen too, and that one
+     * stays you ending the video. Android 9 has no such callback and keeps the old behavior.
+     */
+    private static void stopping(Activity activity) {
+        try {
+            if (activity == null || activity != armedScreen() || !activity.isInPictureInPictureMode()) return;
+            if (!phoneLocked(activity)) return;
+            BackgroundPlay.windowLocked(currentPlayer(), activity.getApplicationContext());
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "window lock", failure);
+        }
+    }
+
+    /** Whether the screen is off or the lock screen is up. */
+    private static boolean phoneLocked(Activity activity) {
+        PowerManager power = (PowerManager) activity.getSystemService(Context.POWER_SERVICE);
+        if (power != null && !power.isInteractive()) return true;
+        KeyguardManager keyguard = (KeyguardManager) activity.getSystemService(Context.KEYGUARD_SERVICE);
+        return keyguard != null && keyguard.isKeyguardLocked();
     }
 
     /**
@@ -717,6 +748,17 @@ public final class PictureInPicture {
     @Nullable
     static synchronized Object currentPlayer() {
         return current.get();
+    }
+
+    /** Whether [player] is the video of a window still open, with the phone unlocked. */
+    static boolean inOpenWindow(Object player) {
+        Activity screen;
+        synchronized (PictureInPicture.class) {
+            if (player == null || player != current.get()) return false;
+            screen = armedScreen.get();
+        }
+        return screen != null && !screen.isFinishing() && !screen.isDestroyed()
+                && screen.isInPictureInPictureMode() && !phoneLocked(screen);
     }
 
     /** A start while a reel floats got a task of its own at [now]. */
@@ -1009,6 +1051,8 @@ public final class PictureInPicture {
      * armed again for it. Unless that other player's video is off screen: Facebook getting the next
      * reel ready plays it for a moment, and the window then opened on that reel (#126). Or unless it
      * plays on another screen, such as Home beside a floating viewer ({@link #onAnotherScreen}).
+     * Facebook's background player counts as off screen too: it has no view, and the window's own
+     * video is what comes back at unlock (#495).
      */
     public static void playerPlaying(Object player) {
         try {
@@ -1018,7 +1062,7 @@ public final class PictureInPicture {
                 Logger.printDebug(() -> "Picture-in-picture: player " + System.identityHashCode(player) + " plays on another screen, left out");
                 return;
             }
-            if (anotherReel(player) && offScreen(player)) {
+            if (anotherReel(player) && (offScreen(player) || BackgroundPlay.isBackgroundPlayer(player))) {
                 HookStatus.counted(FAMILY, OFF_SCREEN);
                 Logger.printDebug(() -> "Picture-in-picture: player " + System.identityHashCode(player) + " plays off screen, left out");
                 return;

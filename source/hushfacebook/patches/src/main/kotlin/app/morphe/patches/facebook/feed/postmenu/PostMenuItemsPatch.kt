@@ -5,12 +5,13 @@
 package app.morphe.patches.facebook.feed.postmenu
 
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.executeBytecode
 
 /**
  * Lets people pick which rows a post's or a reel's three-dot menu shows (#475), such as Interested,
@@ -24,7 +25,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  * but it changes nothing until rows are picked.
  */
 @Suppress("unused")
-val postMenuItemsPatch = bytecodePatch(
+val postMenuItemsPatch = patch(
     name = "Post menu items",
     description = "Lets you hide rows you never use from the three-dot menu of posts and reels, such as " +
         "Interested, Not interested or Cast, so you can't tap them by accident. Nothing is hidden until you pick. " +
@@ -34,12 +35,25 @@ val postMenuItemsPatch = bytecodePatch(
     dependsOn(settingsPatch, facebookExtensionPatch, postMenuSheetHookPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         postMenuSheetMissing?.let { throw PatchException(it) }
-        try {
-            hookReelMenuSheet(findReelMenuSheet())
+        val sheet = try {
+            findReelMenuSheet().also { hookReelMenuSheet(it) }
         } catch (moved: PatchException) {
             patchLog.warning("${moved.message}. A reel's More sheet keeps all its rows.")
+            null
+        }
+        if (sheet != null) {
+            try {
+                hookReelRowBuilder(findReelRowBuilder(sheet), sheet)
+            } catch (moved: PatchException) {
+                patchLog.warning("${moved.message}. A reel's More sheet keeps its top card's rows.")
+            }
+        }
+        try {
+            hookReelPreferenceHeader(findReelPreferenceHeader())
+        } catch (moved: PatchException) {
+            patchLog.warning("${moved.message}. A reel's More sheet keeps Interested and Not interested.")
         }
         enableStatus("postMenuItems")
     }

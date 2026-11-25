@@ -8,7 +8,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
+import android.app.Activity;
+import android.os.Looper;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.FrameLayout;
+
+import java.lang.ref.WeakReference;
+import java.time.Duration;
 import java.util.Arrays;
 
 import org.junit.After;
@@ -18,16 +27,20 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
 import com.facebook.feed.tab.FeedTab;
 import com.facebook.katana.activity.FbMainTabActivity;
+import com.facebook.navigation.tabbar.ui.TabBarContainerLayout;
 import com.facebook.notifications.tab.NotificationsTab;
 import com.facebook.video.videohome.tab.WatchTab;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.PatchFamily;
 import app.morphe.extension.facebook.settings.Settings;
+import app.morphe.extension.facebook.settings.ShimmerTitleTest;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.HookStatus;
 import app.morphe.extension.shared.settings.BaseSettings;
@@ -73,6 +86,9 @@ public class TabBarScrollAwayTest {
         TabBarScrollAway.Stored.ROW_MADE.resetToDefault();
         TabBarScrollAway.Stored.LIST_HEIGHT.resetToDefault();
         TabBarScrollAway.Stored.ROW_SETUP.resetToDefault();
+        TabBarScrollAway.Stored.WIDE_ROW_MADE.resetToDefault();
+        TabBarScrollAway.Stored.WIDE_LIST_HEIGHT.resetToDefault();
+        TabBarScrollAway.Stored.WIDE_ROW_SETUP.resetToDefault();
         BaseSettings.DEBUG.resetToDefault();
         LogBufferManager.clearLogBuffer();
         HookStatus.clear();
@@ -285,6 +301,89 @@ public class TabBarScrollAwayTest {
         TabBarScrollAway.padsPager(pager, 0, 0, 0, 147);
         assertEquals("Facebook's padding wasn't set first", 147, pager.getPaddingBottom());
         assertNull("a see-through bar's pager got the kept bar's listener", TabBarScrollAway.CLEARED_PAGERS.get(pager));
+    }
+
+    /** A list standing in for the feed, which can or can't still scroll up. */
+    private static View feed(boolean canScrollUp) {
+        return new androidx.recyclerview.widget.RecyclerView(RuntimeEnvironment.getApplication(), true) {
+            @Override
+            public boolean canScrollVertically(int direction) {
+                return direction < 0 && canScrollUp;
+            }
+        };
+    }
+
+    @Test
+    public void onlyAListAtItsTopBringsTheBarsAllTheWayBack() {
+        // Facebook checks the view is a list before it treats it as one, and a view that can't
+        // scroll would read as always at its top.
+        View notAList = new View(RuntimeEnvironment.getApplication());
+        assertEquals("a view that isn't a list changed the distance", -40, TabBarScrollAway.shownAtTop(notAList, -40));
+        // The hook takes an Object (with no manager it gets null), so anything but a view is left alone.
+        assertEquals("something that isn't a view changed the distance", -40, TabBarScrollAway.shownAtTop(new Object(), -40));
+        String line = statusLine();
+        assertFalse("a distance left to Facebook was counted: " + line, line != null && line.contains("Counted"));
+    }
+
+    @Test
+    public void theBarsComeAllTheWayBackOnceTheFeedReachesItsTop() {
+        // Whatever the switches: a bar Facebook slides away on its own stops short the same way.
+        assertEquals("at the feed's top the bars got only Facebook's distance", TabBarScrollAway.ALL_THE_WAY_BACK,
+                TabBarScrollAway.shownAtTop(feed(false), -40));
+        assertTrue("the distance doesn't beat a tall bar", TabBarScrollAway.ALL_THE_WAY_BACK < -10_000);
+        assertEquals("below the feed's top the distance changed", -40, TabBarScrollAway.shownAtTop(feed(true), -40));
+        assertEquals("a scroll down was changed", 40, TabBarScrollAway.shownAtTop(feed(false), 40));
+        assertEquals("with no view the distance changed", -40, TabBarScrollAway.shownAtTop(null, -40));
+        String line = statusLine();
+        assertTrue(line, line != null && line.endsWith("Counted: " + TabBarScrollAway.BARS_BACK_AT_TOP + " 1"));
+    }
+
+    @Test
+    public void pausedOrNotReadyTheBarsComeBackAsFacebookBringsThem() {
+        for (HushfacebookPause.Reason reason : new HushfacebookPause.Reason[] {
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP,
+                HushfacebookPause.Reason.MARKER_FILE}) {
+            PauseForTests.pause(reason);
+            assertEquals("a Hushfacebook paused by " + reason + " changed the distance", -40,
+                    TabBarScrollAway.shownAtTop(feed(false), -40));
+            PauseForTests.resume();
+        }
+        SettingsContextRule.withoutContext(() -> assertEquals("the distance changed before the settings were ready",
+                -40, TabBarScrollAway.shownAtTop(feed(false), -40)));
+        String line = statusLine();
+        assertFalse("a distance left to Facebook was counted: " + line, line != null && line.contains("Counted"));
+    }
+
+    @Test
+    public void theOpeningNudgeIsSkippedOnlyWhileTheSwitchSlidesTheBar() {
+        Settings.TAB_BAR_SCROLL_AWAY.save(true);
+        assertFalse("skipped before Facebook asked whether the bar slides", TabBarScrollAway.skipsOpeningNudge());
+        assertTrue(TabBarScrollAway.slidesAway());
+        assertTrue("the nudge ran with the switch sliding the bar", TabBarScrollAway.skipsOpeningNudge());
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("a paused Hushfacebook skipped the nudge", TabBarScrollAway.skipsOpeningNudge());
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertFalse("skipped before the settings were ready", TabBarScrollAway.skipsOpeningNudge()));
+        Settings.TAB_BAR_SCROLL_AWAY.save(false);
+        assertFalse("skipped with the switch off", TabBarScrollAway.skipsOpeningNudge());
+    }
+
+    @Test
+    public void aKeptSeeThroughBarOrFacebooksOwnAnswerLeavesTheNudge() {
+        // A kept see-through bar takes the scroll-away layout too, but it never slides.
+        Settings.KEEP_TAB_BAR.save(true);
+        Settings.TRANSLUCENT_BARS.save(true);
+        assertTrue(TabBarScrollAway.slidesAway());
+        assertFalse("a kept bar skipped the nudge", TabBarScrollAway.skipsOpeningNudge());
+
+        // Off, Facebook's server settings decide the slide, and its nudge stays with it.
+        Settings.KEEP_TAB_BAR.resetToDefault();
+        Settings.TRANSLUCENT_BARS.resetToDefault();
+        TabBarScrollAway.forgetBuilt();
+        assertFalse(TabBarScrollAway.slidesAway());
+        assertFalse("Facebook's own slide skipped the nudge", TabBarScrollAway.skipsOpeningNudge());
     }
 
     @Test
@@ -620,6 +719,154 @@ public class TabBarScrollAwayTest {
                 TabBarScrollAway.rowFor(2071, -1, 0));
         assertEquals("until the list is seen again", 2287, TabBarScrollAway.rowFor(2071, -1, 2287));
         assertEquals(2287, TabBarScrollAway.rowFor(2071, -1, 0));
+    }
+
+    @Test
+    public void aReelsRowFillsTheWholeListUnderATabBarAlongTheBottom() throws Exception {
+        // #466 on 588 (S22, 2026-11-19): tabs at the bottom with See-through bars, Rounded tab bar
+        // and the status bar hidden run the Reels list the whole screen down under the bar. Rows
+        // that stopped at the bar's top (#503) left the reel's video ending there over black, so
+        // it never ran under the bar and the gesture bar. A row fills the list again, and
+        // ReelDetailsLift holds the reel's name, caption and buttons above the bar.
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        FrameLayout window = new FrameLayout(activity);
+        View list = new View(activity);
+        place(window, list, 0, 2400);
+        TabBarContainerLayout bar = new TabBarContainerLayout(activity);
+        place(window, bar, 2190, 2400);
+        activity.setContentView(window);
+        layOut(activity);
+        TabBarScrollAway.reelsList = new WeakReference<>(list);
+        Settings.BOTTOM_TAB_BAR.save(true);
+        Settings.TRANSLUCENT_BARS.save(true);
+        Settings.HIDE_STATUS_BAR.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        ShimmerTitleTest.appVisible(list, true);
+        assertTrue("the list is in the window", list.isAttachedToWindow());
+        assertEquals("and the window shows", View.VISIBLE, list.getWindowVisibility());
+        assertEquals(2400, list.getHeight());
+        assertEquals("the list's whole height, the part under the bar too", 2400, TabBarScrollAway.reelsListHeight());
+        assertEquals("the row fills the list", 2400, TabBarScrollAway.rowFor(2062, -1, TabBarScrollAway.reelsListHeight()));
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("and rows made ahead on Home take the same", 2400, TabBarScrollAway.rowFor(2062, -1, 0));
+        list.setPadding(0, 30, 0, 50);
+        assertEquals("inside the list's padding", 2320, TabBarScrollAway.reelsListHeight());
+    }
+
+    @Test
+    public void aReelsRowWorkedOutForTheScreenHeldTheOtherWayFitsTheTurnedList() {
+        // #531 on a 3:2 tablet (S22 set to 1600x2400 with Facebook let turn, 588, 2026-11-22):
+        // Facebook keeps the row height it worked out when the screen turns, so a row worked out
+        // upright ran past the bottom of the screen on its side, and one worked out on its side
+        // stopped short upright with the next reel below it.
+        Settings.BOTTOM_TAB_BAR.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("on its side, a row worked out upright is taller than the window", 1600,
+                TabBarScrollAway.rowFor(2198, -1, 1600, 1600));
+        assertEquals("upright, a row worked out on its side is short of the list", 2400,
+                TabBarScrollAway.rowFor(1398, -1, 2400, 2400));
+        assertEquals("a list shorter than a row that fits the window is still passed over", 2400,
+                TabBarScrollAway.rowFor(1398, -1, 1200, 2400));
+        assertEquals("with the window unknown nothing is taken for a turn", 2500,
+                TabBarScrollAway.rowFor(2500, -1, 1300, 0));
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals("paused", 2198, TabBarScrollAway.reelRow(2198, null));
+    }
+
+    @Test
+    public void theRowHeightsSeenAreKeptForEachWayUp() {
+        // #531: a tablet started on its side after a start upright made its rows ahead with the
+        // upright heights, which didn't match, so the reels came out short.
+        Settings.BOTTOM_TAB_BAR.save(true);
+        Settings.TRANSLUCENT_BARS.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("upright, seen once", 2400, TabBarScrollAway.rowFor(2198, -1, 2400));
+        RuntimeEnvironment.setQualifiers("+land");
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertTrue("the main screen is on its side", TabBarScrollAway.wide());
+        assertEquals("on its side, seen once", 1600, TabBarScrollAway.rowFor(1398, -1, 1600));
+        assertEquals("made ahead on its side", 1600, TabBarScrollAway.rowFor(1398, -1, 0));
+        RuntimeEnvironment.setQualifiers("+port");
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertFalse(TabBarScrollAway.wide());
+        assertEquals("made ahead upright, the upright heights still there", 2400,
+                TabBarScrollAway.rowFor(2198, -1, 0));
+    }
+
+    /** A main screen that says whether it shows in a picture in picture window. */
+    public static class WindowedMainTab extends FbMainTabActivity {
+        boolean inWindow;
+
+        @Override
+        public boolean isInPictureInPictureMode() {
+            return inWindow;
+        }
+    }
+
+    @Test
+    public void aReelsRowInAPictureInPictureWindowKeepsFacebooksHeight() {
+        // #495 on 588 (emulator 1080x2400, 2026-11-18): after unlocking with a reel in the window,
+        // Facebook made the Reels rows again for the 451 px window while the list still read its
+        // full 2062, and a row grown to that ran the reel mostly outside the window, so Facebook
+        // let its video go and the sound stopped.
+        Settings.BOTTOM_TAB_BAR.save(true);
+        Settings.TRANSLUCENT_BARS.save(true);
+        Settings.HIDE_STATUS_BAR.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        WindowedMainTab windowed = Robolectric.buildActivity(WindowedMainTab.class).get();
+        windowed.currentTab = new WatchTab();
+        screen = windowed;
+        TabBarScrollAway.mainScreenCreated(windowed);
+        StartTabRouteForTests.tabBar(windowed,
+                StartTabRouteForTests.tabs(new FeedTab(), new WatchTab(), new NotificationsTab()), null);
+        assertEquals("full screen, the row fills the list", 2062, TabBarScrollAway.rowFor(1900, -1, 2062));
+        windowed.inWindow = true;
+        assertEquals("in the window the row stays Facebook's", 451, TabBarScrollAway.rowFor(451, -1, 2062));
+        windowed.inWindow = false;
+        assertEquals("full screen again, the row seen before the window is still the one kept", 2062,
+                TabBarScrollAway.rowFor(1900, -1, 0));
+    }
+
+    @Test
+    public void aReelsRowForAScreenOverTheMainOneKeepsFacebooksHeight() {
+        // On 588 (S22, 2026-11-19, tabs at the top): a saved video opened from the Reels tab's
+        // library plays in a screen of its own over the main one, which still shows the Reels tab
+        // behind it. That screen's rows of 2105 got the 126 the Reels tab drops under the top bars,
+        // so the bottom of the reel's overlay, Clear mode's way out included, ran under the
+        // comment box below the reel.
+        Settings.TOP_TAB_BAR.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        ActivityController<FbMainTabActivity> main = Robolectric.buildActivity(FbMainTabActivity.class).setup();
+        screen = main.get();
+        screen.currentTab = new WatchTab();
+        TabBarScrollAway.mainScreenCreated(screen);
+        StartTabRouteForTests.tabBar(screen, StartTabRouteForTests.tabs(new FeedTab(), new FeedTab(), new WatchTab()), null);
+        assertEquals(0, TabBarScrollAway.pagesTop(126));
+        assertEquals("on the Reels tab the row gets the dropped padding back", 2231, TabBarScrollAway.rowFor(2105, -1, 0));
+
+        main.pause();
+        ActivityController<Activity> viewer = Robolectric.buildActivity(Activity.class).setup();
+        assertEquals("a saved video's screen over the main one", 2105, TabBarScrollAway.rowFor(2105, -1, 0));
+        assertEquals("nor the list's height seen for the Reels tab", 2105, TabBarScrollAway.rowFor(2105, -1, 2231));
+
+        viewer.pause();
+        main.resume();
+        viewer.stop().destroy();
+        assertEquals("back on the main screen", 2231, TabBarScrollAway.rowFor(2105, -1, 0));
+    }
+
+    private static void place(FrameLayout parent, View child, int top, int bottom) {
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(1080, bottom - top, Gravity.LEFT | Gravity.TOP);
+        params.topMargin = top;
+        parent.addView(child, params);
+    }
+
+    private static void layOut(Activity activity) {
+        activity.getWindow().getDecorView().requestLayout();
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(100));
     }
 
     @Test

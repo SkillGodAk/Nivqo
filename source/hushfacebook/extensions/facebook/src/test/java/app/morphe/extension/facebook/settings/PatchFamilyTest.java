@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import app.morphe.extension.facebook.feed.FoldLines;
+import app.morphe.extension.facebook.media.BufferSize;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.HookStatus;
@@ -110,18 +111,20 @@ public class PatchFamilyTest {
             assertEquals("Download any story: on (hushfacebook_download_stories=on, hushfacebook_save_story_photos=off)",
                     lines.get(0));
             assertEquals("Every download patch: hushfacebook_download_compatible=off, hushfacebook_download_convert=off, "
-                            + "hushfacebook_download_quiet=off, hushfacebook_download_quality_ask=off",
+                            + "hushfacebook_download_quiet=off, hushfacebook_download_quality_ask=off, "
+                            + "hushfacebook_download_ask_first=off",
                     lines.get(1));
             assertTrue(lines.get(2), lines.get(2).startsWith("not in this build: "));
 
             Settings.DOWNLOAD_COMPATIBLE.save(true);
             Settings.DOWNLOAD_QUIET.save(true);
             assertEquals("Every download patch: hushfacebook_download_compatible=on, hushfacebook_download_convert=off, "
-                            + "hushfacebook_download_quiet=on, hushfacebook_download_quality_ask=off",
+                            + "hushfacebook_download_quiet=on, hushfacebook_download_quality_ask=off, "
+                            + "hushfacebook_download_ask_first=off",
                     PatchFamily.reportLines(EnumSet.of(PatchFamily.VIDEO_DOWNLOAD), false).get(1));
             assertEquals("Every download patch: off while paused (saved hushfacebook_download_compatible=on, "
                             + "hushfacebook_download_convert=off, hushfacebook_download_quiet=on, "
-                            + "hushfacebook_download_quality_ask=off)",
+                            + "hushfacebook_download_quality_ask=off, hushfacebook_download_ask_first=off)",
                     PatchFamily.reportLines(EnumSet.of(PatchFamily.REEL_DOWNLOAD), true).get(1));
 
             for (String line : PatchFamily.reportLines(EnumSet.of(PatchFamily.SPONSORED_POSTS), false)) {
@@ -436,7 +439,7 @@ public class PatchFamilyTest {
                         + "reel watch history, Newest reels first, Turn off double tap to like, Ask before a like, Double tap to skip, Tap shows the controls, Open comments with a gesture, Keep the reel speed, Hold a reel for 2x, "
                         + "Default comment order, Hide Meta AI comment summaries, Comment sheet options, Open comments "
                         + "at full height, Tag suggestions only after @, Tap to play, Resume long videos, Frame step, Default playback quality, "
-                        + "Picture-in-picture, Keep playing in the background, Turn off HDR brightness, Skip silent parts, Keep feed videos muted, Keep the progress bar, Use the system font, "
+                        + "Picture-in-picture, Keep playing in the background, Turn off HDR brightness, Skip silent parts, Video buffer, Keep feed videos muted, Keep the progress bar, Use the system font, "
                         + "Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Unlock app icons, Home header text, Open links in "
                         + "external browser, Sanitize sharing links, Stop update prompts, Download any story, "
                         + "Download any reel, Download any video, Download any photo, Open on a chosen tab, Following "
@@ -460,7 +463,7 @@ public class PatchFamilyTest {
                         + "prompts, Don't send reel watch history, Newest reels first, Turn off double tap to like, Ask before a like, Double tap to skip, Tap shows the controls, Open comments with a gesture, Keep the reel speed, "
                         + "Hold a reel for 2x, Default comment order, Hide Meta AI comment summaries, Comment sheet "
                         + "options, Open comments at full height, Tag suggestions only after @, Tap to play, Resume long videos, Frame step, Default playback "
-                        + "quality, Picture-in-picture, Keep playing in the background, Turn off HDR brightness, Skip silent parts, Keep feed videos muted, Keep the progress bar, Use the "
+                        + "quality, Picture-in-picture, Keep playing in the background, Turn off HDR brightness, Skip silent parts, Video buffer, Keep feed videos muted, Keep the progress bar, Use the "
                         + "system font, Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Unlock app icons, Home header text, Open "
                         + "links in external browser, Sanitize sharing links, Stop update prompts, Download any "
                         + "story, Download any reel, Download any video, Download any photo, Open on a chosen tab, "
@@ -479,17 +482,19 @@ public class PatchFamilyTest {
         assertEquals("Clean up Reels: on (hushfacebook_hide_reel_chips=off, hushfacebook_hide_reel_follow_button=on, "
                         + "hushfacebook_hide_video_subscribe_button=off, hushfacebook_hide_reel_social_footer=off, hushfacebook_hide_reel_threads_cards=off, "
                         + "hushfacebook_hide_reel_post_cards=off, hushfacebook_followed_reels_only=off, hushfacebook_reel_clean_mode=off, hushfacebook_reel_clean_button=off, "
-                        + "hushfacebook_play_reels_once=off, "
+                        + "hushfacebook_reel_clean_return=OFF, hushfacebook_play_reels_once=off, "
                         + "hushfacebook_original_audio=off, hushfacebook_hide_reel_search_pill=off, "
                         + "hushfacebook_hide_viewer_top_buttons=off, hushfacebook_hide_reels_tab_title=off, "
                         + "hushfacebook_hide_viewer_back_button=off, hushfacebook_burn_in_guard=OFF, "
-                        + "hushfacebook_burn_in_wait=FIVE_SECONDS, hushfacebook_burn_in_stay_dim=off, "
+                        + "hushfacebook_burn_in_wait=FIVE_SECONDS, hushfacebook_burn_in_level=25, "
+                        + "hushfacebook_burn_in_stay_dim=off, hushfacebook_burn_in_fade=off, "
                         + "hushfacebook_gray_reels=off, hushfacebook_reels_minutes=off, hushfacebook_hide_reel_counts=off, hushfacebook_hide_reel_save_button=off, "
                         + "hushfacebook_hide_reel_whatsapp_button=off, hushfacebook_hide_reel_like_button=off, "
                         + "hushfacebook_hide_reel_comment_button=off, hushfacebook_hide_reel_repost_button=off, "
                         + "hushfacebook_hide_reel_share_button=off, "
                         + "hushfacebook_show_reel_comment_button=off, hushfacebook_show_reel_post_date=off, "
-                        + "hushfacebook_reel_post_date_style=AGO, hushfacebook_hide_reel_sound_button=off, hushfacebook_reel_speaker_above_menu=off, "
+                        + "hushfacebook_reel_post_date_style=AGO, hushfacebook_hide_reel_new_for_you=off, "
+                        + "hushfacebook_hide_reel_sound_button=off, hushfacebook_reel_speaker_above_menu=off, "
                         + "hushfacebook_hide_reel_audio_line=off, "
                         + "hushfacebook_hide_slow_connection_message=off, hushfacebook_hide_up_next=off, "
                         + "hushfacebook_hide_reel_fullscreen_pill=off, hushfacebook_hide_feed_video_buttons=off, hushfacebook_feed_videos_alone=off, "
@@ -516,6 +521,13 @@ public class PatchFamilyTest {
                         + "hushfacebook_fold_comments=TEN)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.FOLD_LONG_TEXT), true).get(0));
         Settings.FOLD_COMMENTS.resetToDefault();
+        // Video buffer is set by its list, and a pause hands the sizes back to Facebook (#526).
+        assertEquals("Video buffer: set by its list (hushfacebook_video_buffer=FACEBOOK)",
+                PatchFamily.reportLines(EnumSet.of(PatchFamily.VIDEO_BUFFER), false).get(0));
+        Settings.VIDEO_BUFFER.save(BufferSize.MAXIMUM);
+        assertEquals("Video buffer: disabled while paused (saved hushfacebook_video_buffer=MAXIMUM)",
+                PatchFamily.reportLines(EnumSet.of(PatchFamily.VIDEO_BUFFER), true).get(0));
+        Settings.VIDEO_BUFFER.resetToDefault();
         // The theme runs with its switches off, and paused: only Black cards and the lines step back.
         assertEquals("AMOLED black theme: on (hushfacebook_amoled_flat_cards=off, hushfacebook_amoled_feed_gaps=off); "
                         + "stays in while paused: AMOLED black theme",

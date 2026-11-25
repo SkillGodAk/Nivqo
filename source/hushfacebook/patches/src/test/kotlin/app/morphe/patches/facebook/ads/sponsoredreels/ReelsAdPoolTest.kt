@@ -44,13 +44,14 @@ class ReelsAdPoolTest {
      * both vends one letter on. 585 moves the pool again (one per ABI) and the vends one more
      * letter, to A0V and A0X. 586 moves the pool once more, to one name on both ABIs, and keeps
      * the vends. 586's Android 9 build names the pool and both vends its own way. 587 gives the
-     * pool a name per ABI again and keeps the vends.
+     * pool a name per ABI again and keeps the vends. 588 moves the pool per ABI and the vends one
+     * letter on, to A0U and A0W.
      */
     private val expected = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to ("LX/06Id;" to listOf("A0T", "A0V")),
-            "armeabi-v7a" to ("LX/06Hz;" to listOf("A0T", "A0V")),
-            "arm64-v8a-minapi28-storeless" to ("LX/06LL;" to listOf("A0W", "A0Y")),
+            "arm64-v8a" to ("LX/06Oo;" to listOf("A0U", "A0W")),
+            "armeabi-v7a" to ("LX/06Op;" to listOf("A0U", "A0W")),
+            "arm64-v8a-minapi28-storeless" to ("LX/06Sp;" to listOf("A0V", "A0X")),
         ),
     )
 
@@ -119,14 +120,14 @@ class ReelsAdPoolTest {
 
     /**
      * The feed Reels row's pool (#216), its base, and which of the Reels pool's vends it overrides
-     * itself, by build and ABI. The rest get an override that calls the base. On 587 both ABIs
-     * override the same vend, A0V, under their own class names.
+     * itself, by build and ABI. The rest get an override that calls the base. On 588 both ABIs
+     * share the two class names and override the same vend, A0W.
      */
     private val rowPool = mapOf(
         AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf(
-            "arm64-v8a" to Triple("LX/04wt;", "LX/03Gw;", setOf("A0V")),
-            "armeabi-v7a" to Triple("LX/04wa;", "LX/03HA;", setOf("A0V")),
-            "arm64-v8a-minapi28-storeless" to Triple("LX/05Xq;", "LX/03FP;", setOf("A0Y")),
+            "arm64-v8a" to Triple("LX/05x2;", "LX/03Dt;", setOf("A0W")),
+            "armeabi-v7a" to Triple("LX/05x2;", "LX/03Dt;", setOf("A0W")),
+            "arm64-v8a-minapi28-storeless" to Triple("LX/062i;", "LX/03Ck;", setOf("A0X")),
         ),
     )
 

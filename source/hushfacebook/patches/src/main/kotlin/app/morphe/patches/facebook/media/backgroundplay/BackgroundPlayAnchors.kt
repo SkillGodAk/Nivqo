@@ -58,6 +58,20 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  *   "com.facebook.video.reels.pip.ACTION_SKIP_BACK" and building RemoteActions. It answers a play or
  *   pause alone for a live video, else rewind, play or pause, and forward, through two returns. Both
  *   reels window fragments, the inbox window and the window's arming ask it.
+ * - The window's buttons act on Facebook's current player (588 LX/0eI7;->Jt9 reads LX/04lR;->A0E(),
+ *   read 2026-11-18), since every window controller is made without a player of its own. The player's
+ *   activation, the one method of FbGrootPlayer holding "VideoStateManager.activateFbGrootPlayer"
+ *   (588 LX/05mn;->A1k), sets it: it reads the player's video state manager from its own field
+ *   (A1v), wraps the player through a static (Object)WeakReference call and puts that in the
+ *   manager's WeakReference field (A0S).
+ * - Next reel in the background (588, read 2026-11-22): the record's one constructor (LX/082O;)
+ *   takes (player type, trigger, PlayerOrigin, rich params LX/05m5;, String video id, J, Z, Z), the
+ *   rich params right after the PlayerOrigin. The handler's check builds its "background_playback"
+ *   player from those params, which only works for a reel the Reels viewer has bound to a player.
+ *   Every bind goes through one static void method of FbGrootPlayer (LX/05mn;->A0J) taking the
+ *   player, its PlayerOrigin, the trigger and the rich params among its 13 parameters. The handler's
+ *   return lets go of its player with two calls on it taking only the trigger: the pause (KMz) and
+ *   then the release (A1Z).
  */
 
 internal const val BACKGROUND_PLAY = "$EXTENSION_PACKAGE/media/BackgroundPlay;"
@@ -72,6 +86,13 @@ internal const val NOTIFICATION_ALLOWED = "$BACKGROUND_PLAY->notificationAllowed
 internal const val RETURNING = "$BACKGROUND_PLAY->returning(Ljava/lang/Object;)V"
 internal const val RETURNED = "$BACKGROUND_PLAY->returned()V"
 
+internal const val NEXT_REEL = "$EXTENSION_PACKAGE/media/NextReel;"
+internal const val CHECKING = "$NEXT_REEL->checking(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V"
+internal const val BOUND = "$NEXT_REEL->bound(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V"
+
+/** NextReel's stub the patch fills in: the name of the player's release. */
+internal const val RELEASE_METHOD = "releaseMethod"
+
 internal const val WINDOW_ACTIONS =
     "$EXTENSION_PACKAGE/media/BackgroundPlayButton;->windowActions(Ljava/util/List;)Ljava/util/List;"
 
@@ -81,11 +102,19 @@ internal const val REMOTE_ACTION = "Landroid/app/RemoteAction;"
 
 /**
  * The extension's stubs the patch fills in: the video id accessor's name, the name of the pause the
- * window's button calls and the handler's class.
+ * window's button calls, the handler's class, the player's field holding its video state manager and
+ * that manager's field holding its current player.
  */
 internal const val VIDEO_ID_METHOD = "videoIdMethod"
 internal const val PAUSE_METHOD = "pauseMethod"
 internal const val HANDLER_CLASS = "handlerClass"
+internal const val STATE_MANAGER_FIELD = "stateManagerField"
+internal const val CURRENT_PLAYER_FIELD = "currentPlayerField"
+
+/** The trace the player's activation, which makes it Facebook's current player, starts. */
+internal const val ACTIVATE_PLAYER = "VideoStateManager.activateFbGrootPlayer"
+internal const val WEAK_REFERENCE = "Ljava/lang/ref/WeakReference;"
+private const val ANY_OBJECT = "Ljava/lang/Object;"
 
 internal const val MANAGER = "Lcom/facebook/video/bgplayback/manager/BackgroundPlaybackManager;"
 internal const val MANAGER_ON_BACKGROUND = "BackgroundPlaybackManager.onBackground"
@@ -192,6 +221,47 @@ internal fun videoIdAccessor(helper: Method, callIndex: Int, player: String): St
     return call.name
 }
 
+/** The player's field holding Facebook's video state manager, and that manager's current player field. */
+internal class CurrentPlayer(val managerField: String, val currentField: String)
+
+/**
+ * The fields [activation] makes [player] Facebook's current player through: it reads the manager from
+ * a field of [player] whose type declares the current player field, wraps the same player through a
+ * static (Object)WeakReference call and puts the reference in that field of the manager. Null unless
+ * exactly one write has that shape.
+ */
+internal fun currentPlayerFields(activation: Method, player: String): CurrentPlayer? {
+    val instructions = activation.code()
+    fun writes(instruction: Instruction, register: Int) =
+        instruction.opcode.setsRegister() && (instruction as? OneRegisterInstruction)?.registerA == register
+    val found = (3 until instructions.size).mapNotNull { index ->
+        val put = instructions[index]
+        val current = (put as? ReferenceInstruction)?.reference as? FieldReference
+        if (put.opcode != Opcode.IPUT_OBJECT || current == null || current.type != WEAK_REFERENCE) return@mapNotNull null
+        put as TwoRegisterInstruction
+        val result = instructions[index - 1]
+        val wrap = instructions[index - 2]
+        val wrapped = wrap.call
+        if (result.opcode != Opcode.MOVE_RESULT_OBJECT || !writes(result, put.registerA) || wrap.opcode !in invokeStatic ||
+            wrapped == null || wrapped.returnType != WEAK_REFERENCE || wrapped.parameters() != listOf(ANY_OBJECT)
+        ) {
+            return@mapNotNull null
+        }
+        val wrappedPlayer = wrap.arguments().single()
+        val holder = (index - 3 downTo 0).firstOrNull { writes(instructions[it], put.registerB) } ?: return@mapNotNull null
+        val read = instructions[holder]
+        val manager = (read as? ReferenceInstruction)?.reference as? FieldReference
+        if (read.opcode != Opcode.IGET_OBJECT || manager == null || manager.definingClass != player ||
+            manager.type != current.definingClass || (read as TwoRegisterInstruction).registerB != wrappedPlayer ||
+            (holder + 1 until index - 2).any { writes(instructions[it], wrappedPlayer) }
+        ) {
+            return@mapNotNull null
+        }
+        CurrentPlayer(manager.name, current.name)
+    }
+    return found.singleOrNull()
+}
+
 /** Whether [classDef] is Facebook's background playback manager as the extension makes and fills it. */
 internal fun isBackgroundManager(classDef: ClassDef): Boolean =
     classDef.type == MANAGER &&
@@ -235,6 +305,39 @@ internal fun handlerChecks(handler: ClassDef, record: String): List<Method> = ha
 internal fun handlerReturns(handler: ClassDef, record: String): List<Method> = handler.methods.filter {
     !it.isStatic() && it.returnType == "V" && it.parameters() == listOf(ACTIVITY, SESSION, record) &&
         it.implementation != null
+}
+
+/**
+ * The type of the record's rich params: its one constructor of five or more parameters takes them
+ * right after the PlayerOrigin, an object that isn't a String. Null when that isn't so.
+ */
+internal fun recordParams(record: ClassDef): String? {
+    val made = record.methods.singleOrNull { it.name == "<init>" && it.parameterTypes.size >= 5 } ?: return null
+    val parameters = made.parameters()
+    val origin = parameters.indexOf(PLAYER_ORIGIN)
+    if (origin < 0) return null
+    return parameters.getOrNull(origin + 1)?.takeIf { it.startsWith("L") && it != STRING }
+}
+
+/** The static void methods of [owner], the player, taking the player, a PlayerOrigin, [trigger] and [params]. */
+internal fun binders(owner: ClassDef, trigger: String, params: String): List<Method> = owner.methods.filter {
+    val parameters = it.parameters()
+    it.isStatic() && it.returnType == "V" && it.implementation != null && owner.type in parameters &&
+        PLAYER_ORIGIN in parameters && trigger in parameters && params in parameters
+}
+
+/**
+ * The name of the release the handler's return [back] calls on its player after the pause: the
+ * second of its exactly two calls on [player] taking only [trigger]. Null when that isn't so.
+ */
+internal fun returnRelease(back: Method, player: String, trigger: String): String? {
+    val calls = back.code().mapNotNull { instruction ->
+        instruction.call?.takeIf {
+            instruction.opcode in invokeVirtual && it.definingClass == player && it.returnType == "V" &&
+                it.parameters() == listOf(trigger)
+        }
+    }
+    return if (calls.size == 2) calls[1].name else null
 }
 
 /** The instance fields of [record] of [type]. */

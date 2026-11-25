@@ -7,11 +7,12 @@ package app.morphe.patches.facebook.menu
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.executeBytecode
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -115,8 +116,8 @@ internal data class MenuSubpages(
  * pages it keeps working carry it. Warns and leaves the Menu as Facebook built it when any part
  * isn't found once.
  */
-internal val menuSubpagesPatch = bytecodePatch {
-    execute {
+internal val menuSubpagesPatch = patch {
+    executeBytecode {
         keepMenuSubpagesLive()
     }
 }
@@ -311,8 +312,8 @@ internal fun treeField(context: ClassDef): FieldReference? {
 
 /**
  * The stack's push and pop: its methods holding [PAGE_UPDATE] that read [reference] once, each with
- * the index of that read. Instance methods on 585, and on 587 the one static both call, taking the
- * stack alone (`LX/0B3f;->A00`, 32-bit `LX/0B37;->A00`).
+ * the index of that read. Instance methods on 585 and again on 588, and on 587 the one static both
+ * call, taking the stack alone (`LX/0B3f;->A00`, 32-bit `LX/0B37;->A00`).
  */
 internal fun pageChanges(stack: ClassDef, reference: FieldReference): List<Pair<Method, Int>> = stack.methods
     .filter { (!AccessFlags.STATIC.isSet(it.accessFlags) || takesStackAlone(stack, it)) && holds(it, PAGE_UPDATE) }

@@ -7,6 +7,7 @@
  */
 package app.morphe.patches.facebook.layout.theme
 
+import app.morphe.patcher.patch.patch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.enableStatus
@@ -20,12 +21,12 @@ import app.morphe.patches.facebook.misc.extension.FACEBOOK_APPLICATION
 import app.morphe.patches.facebook.misc.settings.declaredInHierarchy
 import app.morphe.patches.shared.misc.extension.EXTENSION_CLASS_DESCRIPTOR
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
-import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.colorOption
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.util.executeBytecode
+import app.morphe.util.onResources
 import com.android.tools.smali.dexlib2.AccessFlags
-import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.resource.ResourceType
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.util.addInstructionsAtControlFlowLabel
@@ -318,81 +319,84 @@ private const val NIGHT_COLORS = "res/values-night/colors.xml"
  * Facebook strips resource names and renames its classes about every two weeks, so a name is not an
  * anchor here. A value of this exact shape is a colour and nothing else.
  */
-private fun amoledThemeResourcePatch(background: () -> Int) = resourcePatch {
+private fun amoledThemeResourcePatch(background: () -> Int) = patch {
     // The FDS token names, for light mode's surfaces in the light style ([repointLightSurfaces]).
     dependsOn(fdsTokenNamesPatch)
 
+    // Built in a function, so the block is written here to carry this file's name (see PatchBodies.kt).
     execute {
-        val written = "#%08x".format(background())
-        var changed = 0
-        val rewritten = mutableMapOf<String, Int>()
-        val rewrittenAtNight = mutableSetOf<String>()
-        val references = mutableMapOf<String, String>()
-        val wrote = mutableSetOf<String>()
-        val wroteAtNight = mutableSetOf<String>()
-        val literals = mutableMapOf<String, Int>()
+        onResources {
+            val written = "#%08x".format(background())
+            var changed = 0
+            val rewritten = mutableMapOf<String, Int>()
+            val rewrittenAtNight = mutableSetOf<String>()
+            val references = mutableMapOf<String, String>()
+            val wrote = mutableSetOf<String>()
+            val wroteAtNight = mutableSetOf<String>()
+            val literals = mutableMapOf<String, Int>()
 
-        // Patcher 2.0 decodes only the files a patch asks for: an undecoded file does not exist yet.
-        // Every configuration's colours and the default styles, for light mode's surfaces below.
-        decode(DEFAULT_COLORS, NIGHT_COLORS, "res/values*/colors.xml", "res/values/style*.xml")
-        listOf(DEFAULT_COLORS, NIGHT_COLORS)
-            .filter { get(it, false).exists() }
-            .forEach { path ->
-                document(path).use { document ->
-                    val colors = document.getElementsByTagName("color")
-                    for (index in 0 until colors.length) {
-                        val color = colors.item(index) as? Element ?: continue
-                        val name = color.getAttribute("name")
-                        val value = color.textContent.trim()
-                        if (path == DEFAULT_COLORS && value.startsWith("@color/")) references[name] = value.removePrefix("@color/")
-                        if (path == DEFAULT_COLORS) argb(value)?.let { literals[name] = it }
-                        val text = routeTwoValue(value, written) ?: continue
-                        if (path == DEFAULT_COLORS) rewritten[name] = checkNotNull(argb(value)) else rewrittenAtNight += name
-                        if (argb(value) != BLACK) {
-                            if (path == DEFAULT_COLORS) wrote += name else wroteAtNight += name
+            // Patcher 2.0 decodes only the files a patch asks for: an undecoded file does not exist yet.
+            // Every configuration's colours and the default styles, for light mode's surfaces below.
+            decode(DEFAULT_COLORS, NIGHT_COLORS, "res/values*/colors.xml", "res/values/style*.xml")
+            listOf(DEFAULT_COLORS, NIGHT_COLORS)
+                .filter { get(it, false).exists() }
+                .forEach { path ->
+                    document(path).use { document ->
+                        val colors = document.getElementsByTagName("color")
+                        for (index in 0 until colors.length) {
+                            val color = colors.item(index) as? Element ?: continue
+                            val name = color.getAttribute("name")
+                            val value = color.textContent.trim()
+                            if (path == DEFAULT_COLORS && value.startsWith("@color/")) references[name] = value.removePrefix("@color/")
+                            if (path == DEFAULT_COLORS) argb(value)?.let { literals[name] = it }
+                            val text = routeTwoValue(value, written) ?: continue
+                            if (path == DEFAULT_COLORS) rewritten[name] = checkNotNull(argb(value)) else rewrittenAtNight += name
+                            if (argb(value) != BLACK) {
+                                if (path == DEFAULT_COLORS) wrote += name else wroteAtNight += name
+                            }
+                            color.textContent = text
+                            changed++
                         }
-                        color.textContent = text
-                        changed++
                     }
                 }
+
+            check(changed > 0) { "No dark colour resource found, so the theme would stay grey" }
+
+            // The page's colour as a resource of its own, which the token lookup hands a card with Black
+            // cards on (#191). Added after the rewrites, so none of them reads it.
+            if (get(DEFAULT_COLORS, false).exists()) document(DEFAULT_COLORS).use { addPageColour(it, written) }
+
+            // Light mode's surfaces get resources of their own, for the Light background color row
+            // (#214): Facebook's light style points them at whites its text and icons share.
+            val lightSurfaces = sortedMapOf<String, Int>()
+            if (get(DEFAULT_COLORS, false).exists()) {
+                val colours = readOnly(get(DEFAULT_COLORS)).colourValues()
+                val configured = get("res", false).listFiles().orEmpty()
+                    .filter { it.isDirectory && it.name != "values" && it.name.split('-').first() == "values" }
+                    .map { File(it, "colors.xml") }.filter { it.isFile }
+                    .flatMapTo(mutableSetOf()) { readOnly(it).colourValues().keys }
+                get("res/values", false).listFiles().orEmpty()
+                    .filter { it.name.startsWith("style") && it.name.endsWith(".xml") }.sortedBy { it.name }
+                    .filter { fdsThemeStyles(readOnly(it), tokenAttributeNames) != null }
+                    .forEach { file ->
+                        document("res/values/${file.name}").use { styles ->
+                            lightSurfaces += repointLightSurfaces(styles, tokenAttributeNames, colours, configured)
+                        }
+                    }
+                if (lightSurfaces.isNotEmpty()) document(DEFAULT_COLORS).use { addLightSurfaceColours(it, lightSurfaces) }
+            }
+            lightSurfaceColours = lightSurfacesTable(lightSurfaces)
+
+            routeTwoRestores = routeTwoTable(rewritten, rewrittenAtNight, references) { name ->
+                resourceIds.getOrNull(ResourceType.COLOR, name) ?: decodedColourId(name)
+            }
+            check(routeTwoRestores.isNotEmpty()) {
+                "No colour route two rewrote has a resource id, so light mode's Video tab would stay black"
             }
 
-        check(changed > 0) { "No dark colour resource found, so the theme would stay grey" }
-
-        // The page's colour as a resource of its own, which the token lookup hands a card with Black
-        // cards on (#191). Added after the rewrites, so none of them reads it.
-        if (get(DEFAULT_COLORS, false).exists()) document(DEFAULT_COLORS).use { addPageColour(it, written) }
-
-        // Light mode's surfaces get resources of their own, for the Light background color row
-        // (#214): Facebook's light style points them at whites its text and icons share.
-        val lightSurfaces = sortedMapOf<String, Int>()
-        if (get(DEFAULT_COLORS, false).exists()) {
-            val colours = readOnly(get(DEFAULT_COLORS)).colourValues()
-            val configured = get("res", false).listFiles().orEmpty()
-                .filter { it.isDirectory && it.name != "values" && it.name.split('-').first() == "values" }
-                .map { File(it, "colors.xml") }.filter { it.isFile }
-                .flatMapTo(mutableSetOf()) { readOnly(it).colourValues().keys }
-            get("res/values", false).listFiles().orEmpty()
-                .filter { it.name.startsWith("style") && it.name.endsWith(".xml") }.sortedBy { it.name }
-                .filter { fdsThemeStyles(readOnly(it), tokenAttributeNames) != null }
-                .forEach { file ->
-                    document("res/values/${file.name}").use { styles ->
-                        lightSurfaces += repointLightSurfaces(styles, tokenAttributeNames, colours, configured)
-                    }
-                }
-            if (lightSurfaces.isNotEmpty()) document(DEFAULT_COLORS).use { addLightSurfaceColours(it, lightSurfaces) }
-        }
-        lightSurfaceColours = lightSurfacesTable(lightSurfaces)
-
-        routeTwoRestores = routeTwoTable(rewritten, rewrittenAtNight, references) { name ->
-            resourceIds.getOrNull(ResourceType.COLOR, name) ?: decodedColourId(name)
-        }
-        check(routeTwoRestores.isNotEmpty()) {
-            "No colour route two rewrote has a resource id, so light mode's Video tab would stay black"
-        }
-
-        writtenColours = writtenColoursTable(wrote, wroteAtNight, literals, references) { name ->
-            resourceIds.getOrNull(ResourceType.COLOR, name) ?: decodedColourId(name)
+            writtenColours = writtenColoursTable(wrote, wroteAtNight, literals, references) { name ->
+                resourceIds.getOrNull(ResourceType.COLOR, name) ?: decodedColourId(name)
+            }
         }
     }
 }
@@ -578,7 +582,7 @@ private fun isDarkBackground(value: String): Boolean {
 }
 
 @Suppress("unused")
-val amoledThemePatch = bytecodePatch(
+val amoledThemePatch = patch(
     name = "AMOLED black theme",
     description = "Makes Facebook's dark mode black, or a dark color you pick, instead of dark gray, which can " +
         "save battery on OLED screens. Cards and menus stay a shade lighter than the page. Turn on Black cards in " +
@@ -613,7 +617,7 @@ val amoledThemePatch = bytecodePatch(
 
     dependsOn(facebookExtensionPatch)
 
-    execute {
+    executeBytecode {
         // Facebook's own answer for whether its dark mode is on, which every route asks: the Video
         // tab stays dark in light mode, from the same dark style and colour resources.
         hookDarkModeAnswer()
@@ -797,6 +801,10 @@ private const val COLOR_DRAWABLE_INIT = "Landroid/graphics/drawable/ColorDrawabl
  * it to a static decorator, `LX/05HY;->A01(LX/03Ej;...)LX/03Ej;`, which sets it. So the statics a
  * child builder hands a component to and gets one back from are hooked too ([decoratorsOf]). The
  * decorator's other caller is the template's photo component, also a Native Template.
+ *
+ * 588's Android 9 build (read 2026-11-20) sets backgroundColor (`LX/03Cc;->A0X`) in the builder
+ * `LX/04lx;->A00` and, for the child, in a static the decorator `LX/04wy;->A01` hands its component
+ * to and gets nothing back from ([componentSettersOf]), so those are hooked too.
  */
 internal fun BytecodePatchContext.hookNativeTemplateBackgrounds(target: String = AMOLED_BLOKS_FILL) {
     val builder = NativeTemplateBuilderFingerprint.method
@@ -822,7 +830,11 @@ internal fun BytecodePatchContext.hookNativeTemplateBackgrounds(target: String =
             }
         }
         .map { mutableMethodOf(it) }
-    val hooked = (listOf(builder) + children + decorators).sumOf { hookBackgroundColours(it, target) }
+    // 588's Android 9 build moved the decorator's background into a static it hands the component to.
+    val setters = (children + decorators).flatMap { componentSettersOf(it, builder.returnType) }.distinctBy { it.toString() }
+        .filter { classDefByOrNull(it.definingClass) != null }
+        .map { mutableMethodOf(it) }
+    val hooked = (listOf(builder) + children + decorators + setters).sumOf { hookBackgroundColours(it, target) }
     if (hooked == 0) throw PatchException("Native Templates' builders set no background colour")
 }
 
@@ -832,6 +844,17 @@ internal fun decoratorsOf(method: Method, component: String): List<MethodReferen
         .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
         .mapNotNull { (it as ReferenceInstruction).reference as? MethodReference }
         .filter { it.returnType == component && it.parameterTypes.firstOrNull()?.toString() == component }
+        .distinctBy { it.toString() }
+
+/**
+ * The statics [method] hands a [component] to that give nothing back: 588's Android 9 decorator
+ * (`LX/04wy;->A01`) sets the style's background in `LX/04wy;->A0A(LX/03Cc;LX/04x3;)V`.
+ */
+internal fun componentSettersOf(method: Method, component: String): List<MethodReference> =
+    method.implementation?.instructions?.toList().orEmpty()
+        .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+        .mapNotNull { (it as ReferenceInstruction).reference as? MethodReference }
+        .filter { it.returnType == "V" && it.parameterTypes.firstOrNull()?.toString() == component }
         .distinctBy { it.toString() }
 
 private fun BytecodePatchContext.mutableMethodOf(call: MethodReference): MutableMethod =
@@ -965,7 +988,7 @@ internal fun BytecodePatchContext.hookFeedGaps() {
 
 /**
  * Route one: the Mig dark scheme's resolver sends its colours to [mig], and the FDS resolvers send
- * theirs to [fds]: each resolver on FDSColors, its static copies and the [fdsThemeResolver]. Both themes run it, AMOLED
+ * theirs to [fds]: FDS's colour resolver and the [fdsThemeResolver]. Both themes run it, AMOLED
  * from its execute block and Material You after it.
  */
 internal fun BytecodePatchContext.hookColourResolvers(mig: String, fds: String) {
@@ -1197,65 +1220,19 @@ internal fun barColourHelpers(method: Method, painters: Set<String>): Set<String
 }
 
 /**
- * Hooks every FDS colour resolver on `FDSColors`: each instance method answering an int that takes
- * the colour token and asks the Integer-answering source itself.
- *
- * <p>577 had two of them, one for Litho and one from a Context. 580 split the Litho one into a
- * thin wrapper and a second Context resolver, so a fingerprint per resolver matched the wrong one
- * or none. The token type is read off the source's own signature, the one static method answering
- * `Integer` from a Context, the token and a palette. 586 (arm64 `LX/02LL`, read 2026-11-09) merged
- * the two Context resolvers into one (`A0A`), and the Litho one (`A0B`) only returns that one's
- * answer, so one resolver is hooked there and every colour still passes it. The [fdsStaticResolvers]
- * outside the class take the same hook.
+ * Hooks FDS's colour resolver, the [fdsColourSource]. 588 folded `FDSColors`' Integer source, its
+ * instance resolvers and their static copies into this one method: Litho's resolver, Compose's and
+ * the palette readers only return its answer, so hooking it here reaches their colours, a server
+ * palette's and a DSP theme's included (#141). Two places read a token's colour data themselves and
+ * stay outside, as they did on 587: a rounded background (`LX/0ZfZ;->A01`, behind two server flags)
+ * and three colours of a text style (a case of `LX/0bnO;->invoke`).
  */
 internal fun BytecodePatchContext.hookFdsColorsResolvers(target: String) {
-    val type = fdsColors()
-    val colors = mutableClassDefBy(type)
-    val tokenType = fdsColourSource(colors)!!.parameterTypes[1].toString()
-
-    val resolvers = colors.methods.filter { method ->
-        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "I" &&
-            method.parameterTypes.any { it.toString() == tokenType } &&
-            method.implementation?.instructions?.any { instruction ->
-                val reference = (instruction as? ReferenceInstruction)?.reference as? MethodReference
-                reference != null && reference.definingClass == type && reference.returnType == "Ljava/lang/Integer;"
-            } == true
-    }
-    check(resolvers.isNotEmpty()) { "No FDSColors resolver asks the Integer colour source" }
-    (resolvers + fdsStaticResolvers()).forEach { method ->
-        method.hookColorReturns(
-            tokenParameterIndex = method.parameterTypes.indexOfFirst { it.toString() == tokenType },
-            target = target,
-        )
-    }
-}
-
-/**
- * The static methods outside `FDSColors` that ask its colour source themselves and answer an int
- * from the token: a copy of its resolver (586 arm64 `LX/03A3;->A00`, read 2026-11-11, which Compose's
- * text fields and two Litho components call). It returns the source's answer or a DSP theme's own
- * colour as they are, so only its last fallback, the [fdsThemeResolver], went through route one
- * (#141's light mode reads DSP colours). None on a build without one.
- */
-internal fun BytecodePatchContext.fdsStaticResolvers(): List<MutableMethod> {
-    val type = fdsColors()
-    val source = fdsColourSource(classDefBy(type))!!
+    val colors = mutableClassDefBy(fdsColors())
+    val source = fdsColourSource(colors)!!
     val parameters = source.parameterTypes.map(CharSequence::toString)
-    val signature = { method: Method -> "${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}" }
-    val found = mutableListOf<Pair<String, String>>()
-    classDefForEachReferencing(types = listOf(type)) { classDef ->
-        if (classDef.type == type || classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEachReferencing
-        classDef.methods.filter { method ->
-            AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "I" &&
-                method.parameterTypes.any { it.toString() == parameters[1] } &&
-                method.implementation?.instructions?.any { instruction ->
-                    val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
-                    call?.definingClass == type && call.name == source.name &&
-                        call.parameterTypes.map(CharSequence::toString) == parameters
-                } == true
-        }.mapTo(found) { classDef.type to signature(it) }
-    }
-    return found.map { (owner, wanted) -> mutableClassDefBy(owner).methods.single { signature(it) == wanted } }
+    colors.methods.single { it.name == source.name && it.parameterTypes.map(CharSequence::toString) == parameters }
+        .hookColorReturns(tokenParameterIndex = 1, target = target)
 }
 
 /**

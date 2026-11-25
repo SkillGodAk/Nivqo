@@ -4,6 +4,8 @@
  */
 package app.morphe.extension.facebook.reels;
 
+import android.view.View;
+
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
@@ -63,7 +65,7 @@ public final class ReelCleanMode {
     }
 
     /** Whether the sidebar's Clean mode button (#391) is switched on, store or not. */
-    private static boolean buttonOn() {
+    static boolean buttonOn() {
         return Utils.settingsReady() && Settings.REEL_CLEAN_BUTTON.get();
     }
 
@@ -89,7 +91,7 @@ public final class ReelCleanMode {
     }
 
     @Nullable
-    private static Object keptStore() {
+    static Object keptStore() {
         WeakReference<Object> kept = store;
         return kept == null ? null : kept.get();
     }
@@ -119,9 +121,10 @@ public final class ReelCleanMode {
      * The sidebar button's tap. It sets the store's remembered choice the way Facebook's own menu
      * item does for accounts with sticky Clean mode, and the store tells the overlay, which hides the
      * sidebar. The choice then holds for each reel that follows, until Facebook's Clean mode button
-     * over a clean reel turns it off through {@link #stickyClean}. Never throws.
+     * over a clean reel turns it off through {@link #stickyClean}. Where [button], the view tapped,
+     * sat is where Facebook's way back out goes ({@link CleanExitSpot}). Never throws.
      */
-    public static void enterClean() {
+    public static void enterClean(@Nullable View button) {
         try {
             HookStatus.invoked(FAMILY);
             Object kept = keptStore();
@@ -132,6 +135,7 @@ public final class ReelCleanMode {
             switchStore(kept, null, true);
             HookStatus.bound(FAMILY, "Clean mode sidebar button");
             HookStatus.counted(FAMILY, ENTERED_FROM_SIDEBAR);
+            CleanExitSpot.tapped(button);
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "Clean mode sidebar button", failure);
             Logger.printException(() -> "Reel Clean mode: the sidebar button could not turn it on", failure);
@@ -202,15 +206,18 @@ public final class ReelCleanMode {
 
     /**
      * Injection point, the overlay's state update as it hears Clean mode switch, holding the new
-     * value as its only element. While the switch is on, a no becomes {@link #LEFT_CLEAN}. The same
-     * array comes back. Never throws.
+     * value as its only element. While the switch is on, a no becomes {@link #LEFT_CLEAN}. Back to
+     * Clean mode hears either answer ({@link ReelCleanReturn#heard}, #519). The same array comes
+     * back. Never throws.
      *
      * @param state Facebook's state update.
      */
     public static Object[] markLeftClean(Object[] state) {
         try {
-            if (state != null && state.length == 1 && Boolean.FALSE.equals(state[0]) && on()) {
-                state[0] = LEFT_CLEAN;
+            if (state != null && state.length == 1 && state[0] instanceof Boolean) {
+                boolean clean = (Boolean) state[0];
+                if (!clean && on()) state[0] = LEFT_CLEAN;
+                ReelCleanReturn.heard(clean);
             }
         } catch (Throwable failure) {
             Logger.printException(() -> "Reel Clean mode: could not mark a reel leaving it", failure);

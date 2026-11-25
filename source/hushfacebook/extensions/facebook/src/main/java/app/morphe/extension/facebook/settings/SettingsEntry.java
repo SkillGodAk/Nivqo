@@ -69,9 +69,12 @@ import app.morphe.extension.facebook.misc.OpeningPause;
 import app.morphe.extension.facebook.misc.RefreshRate;
 import app.morphe.extension.facebook.misc.ScreenTransitions;
 import app.morphe.extension.facebook.misc.TextSize;
+import app.morphe.extension.facebook.navigation.CenteredFeed;
+import app.morphe.extension.facebook.navigation.GroupTabBar;
 import app.morphe.extension.facebook.navigation.HiddenStatusBar;
 import app.morphe.extension.facebook.navigation.MarketplaceFilterButton;
 import app.morphe.extension.facebook.navigation.ReelsTab;
+import app.morphe.extension.facebook.navigation.ReelsTabBarHidden;
 import app.morphe.extension.facebook.navigation.TranslucentBars;
 import app.morphe.extension.facebook.notifications.PushDiagnostics;
 import app.morphe.extension.facebook.reels.BurnInGuard;
@@ -148,7 +151,7 @@ public final class SettingsEntry {
      * color each activity's resources take the accent's colour table. Also where the release
      * check, when it's on, asks at most once a day, on a worker, and where what a save cut short
      * by Android left behind is removed, on a worker too. Every process starts private push
-     * observations. Other processes also start Lock Facebook's watch ({@link AppLock#watch}). The
+     * observations and takes the In-app proxy ({@link InAppProxy}). Other processes also start Lock Facebook's watch ({@link AppLock#watch}). The
      * report's network count starts here too ({@link NetworkUsage}), and any Audience Network
      * component that's on goes back off ({@link AudienceNetwork#keepOff}). A start that the settings
      * screen's restart row asked for opens the screen again, on the page it was on.
@@ -158,12 +161,15 @@ public final class SettingsEntry {
             PushDiagnostics.initialize(context);
             if (!Utils.isMainProcess()) {
                 // Instant Games, the Audience Network ads and Facebook's crash screen have
-                // processes of their own. Only the lock watches their screens.
+                // processes of their own. Only the lock watches their screens, and their
+                // connections take the In-app proxy too.
+                InAppProxy.start(context);
                 AppLock.watch(context);
                 return;
             }
             // First, so a settings file an audit pushed is saved before anything below reads it.
             AuditMode.onApplicationCreate(context);
+            InAppProxy.start(context);
             NetworkUsage.start(context);
             if (context instanceof Application && !callbacksRegistered) {
                 ((Application) context).registerActivityLifecycleCallbacks(new OpenWhenResumed());
@@ -199,6 +205,10 @@ public final class SettingsEntry {
             if (SettingsStatus.bottomTabBar()) {
                 TranslucentBars.watch(context);
                 HiddenStatusBar.watch(context);
+                // Center the feed on big screens (#531): each main screen's lists as it lays out.
+                CenteredFeed.watch(context);
+                // Keep the tab bar in groups (#503): each group's page as it comes to the front.
+                GroupTabBar.watch(context);
             }
             // Open feed videos on their own, a Clean up Reels switch: which screen is in front.
             // And the top bar of the full-screen player, another (#311): looked through after each layout.
@@ -833,6 +843,7 @@ public final class SettingsEntry {
             WatchHistoryShortcut.refresh(activity);
             FreeStuffShortcut.refresh(activity);
             if (SettingsStatus.sponsoredMarketplace()) MarketplaceFilterButton.activityResumed(activity);
+            if (SettingsStatus.bottomTabBar()) ReelsTabBarHidden.activityShown(activity);
         }
 
         @Override
@@ -865,6 +876,7 @@ public final class SettingsEntry {
             ScreenTransitions.activityCreated(activity);
             if (SettingsStatus.storySeen()) StorySeenButton.activityCreated(activity);
             if (SettingsStatus.suggestedStories()) SuggestedStories.activityCreated(activity);
+            if (SettingsStatus.bottomTabBar()) ReelsTabBarHidden.activityShown(activity);
         }
 
         @Override

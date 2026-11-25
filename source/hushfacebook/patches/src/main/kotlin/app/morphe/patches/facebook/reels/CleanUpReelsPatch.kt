@@ -9,7 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
@@ -25,6 +25,7 @@ import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -106,18 +107,18 @@ private const val PATCH = "Clean up Reels"
  * nobody has seen it on a signed-in Reels feed yet.
  */
 @Suppress("unused")
-val cleanUpReelsPatch = bytecodePatch(
+val cleanUpReelsPatch = patch(
     name = "Clean up Reels",
     description = "Hides clutter on reels, such as the Follow button, comment previews, Remix and Use template " +
         "buttons and Threads cards between reels, so more of the video shows, and can play each reel once " +
-        "instead of over and over, keep its original audio instead of a Meta AI dub, drop the search suggestions under the caption, over the comments and at the top of a profile's reels, or hide the like, comment and share counts, the Like, Comment, Repost, Share, Save or speaker button, or the line naming the reel's sound. It can also keep the Reels tab to accounts you follow, open a video you tap in the feed on its own, with no reels after it, do the same for a reel you open from a link or a chat, keep the Add friend pop-up off a reel someone who isn't your friend sent you, play a feed video again right there when you tap Watch again instead of opening Reels, play a video you tap in Saved in the video player instead of Reels, go on to the next reel in Saved instead of a suggested one, keep reels playing without stopping to ask \"Are you still watching?\", fill a tall screen with a reel or a full-screen video instead of leaving black bars around it, with a pinch to see one reel whole, take the UP NEXT bar off the bottom of a video you open from the feed, hide the Fullscreen button under a wide video or the full-screen and picture-in-picture buttons on videos in the feed and search results, stop the \"This is taking a while\" message when a video is slow to load, and play whole reels in the feed's Reels row instead of the same second over and over, or keep the Comment button on reels with comments turned off so you can read them, and hide the one-tap Subscribe button some authors get instead of Follow, or Search and the button beside it at the top of a video you open and of the Reels tab, and show when a reel or video was posted. Its Burn-in guard can fade a reel's buttons, caption and bars when you leave them alone, so they don't burn into the screen. With Turn off HDR brightness patched too, it can show Reels in gray, video and all. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
+        "instead of over and over, keep its original audio instead of a Meta AI dub, drop the search suggestions under the caption, over the comments and at the top of a profile's reels, or hide the like, comment and share counts, the Like, Comment, Repost, Share, Save or speaker button, or the line naming the reel's sound. It can also keep the Reels tab to accounts you follow, open a video you tap in the feed on its own, with no reels after it, do the same for a reel you open from a link or a chat, keep the Add friend pop-up off a reel someone who isn't your friend sent you, play a feed video again right there when you tap Watch again instead of opening Reels, play a video you tap in Saved in the video player instead of Reels, go on to the next reel in Saved instead of a suggested one, keep reels playing without stopping to ask \"Are you still watching?\", fill a tall screen with a reel or a full-screen video instead of leaving black bars around it, with a pinch to see one reel whole, take the UP NEXT bar off the bottom of a video you open from the feed, hide the Fullscreen button under a wide video or the full-screen and picture-in-picture buttons on videos in the feed and search results, stop the \"This is taking a while\" message when a video is slow to load, and play whole reels in the feed's Reels row instead of the same second over and over, or keep the Comment button on reels with comments turned off so you can read them, and hide the one-tap Subscribe button some authors get instead of Follow, or Search and the button beside it at the top of a video you open and of the Reels tab, and show when a reel or video was posted, or take \"New for you\" off the line under a reel's author. Its Burn-in guard can fade a reel's buttons, caption and bars when you leave them alone, so they don't burn into the screen. With Turn off HDR brightness patched too, it can show Reels in gray, video and all. Starts off. Turn on the parts you want in Hushfacebook settings > Reels and Watch.",
 ) {
     category("Reels")
     dependsOn(settingsPatch)
     dependsOn(facebookExtensionPatch, reelLoopPatch, reelBindingPatch, feedVideoOpeningPatch, reelMidCardsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         filterChips()
         // #314: and "Made with Edits" under the caption, which isn't one of the chips.
         hideEditsLabel()
@@ -151,13 +152,43 @@ val cleanUpReelsPatch = bytecodePatch(
         val storyType = showReelPostDate()
         // #357: and in front of the song line, which takes that spot on most reels in the Reels tab.
         dateReelsTabAudioLine(audioLine, storyType)
+        // #503: and that song line holds still, so its scroll doesn't carry the date out of sight.
+        try {
+            stillAudioLine(audioLine)
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so a dated song line still scrolls the date out of sight.")
+        }
         // #496: and where a recommendation reason would push the date and every label off that line.
         keepPostDateBesideReason()
+        // #503: and the line under the author holds on the date instead of flipping to a location or New for you.
+        try {
+            holdFooterOnDate()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so the line under a reel's author still flips from the date to its other labels.")
+        }
+        // #503: and Facebook's own date after the caption stays out while that one shows.
+        try {
+            dropCaptionDate()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so accounts in Facebook's caption date test still see the date after the caption too.")
+        }
         // #496: and in front of a silent reel's "Reel has no sound", which takes the song line's place.
         try {
             dateSoundLabels(storyType)
         } catch (exception: PatchException) {
             patchLog.warning("${exception.message}, so a reel without sound shows no date beside its sound label.")
+        }
+        // #520: and after the poster's name on a group's video, whose author row has no date line.
+        try {
+            dateGroupPoster(storyType)
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so a group's video shows no date beside its poster.")
+        }
+        // #520: "New for you" and the reason Facebook picked a reel, slotted in at the top of that line.
+        try {
+            slotNewForYou()
+        } catch (exception: PatchException) {
+            patchLog.warning("${exception.message}, so Hide New for you on reels leaves that label where Facebook puts it.")
         }
         // #291: the Subscribe pill beside a video's author, in the viewer's row and wherever the shared builder's lands.
         hideSubscribePill()
@@ -270,9 +301,12 @@ internal fun BytecodePatchContext.reelsTabAudioLine(): MutableMethod {
     return mutableClassDefBy(owner).methods.first { it.sameSignatureAs(row) }
 }
 
-/** Asks [hook] first thing and answers null when it says so. v0 is free there, as in [answerWhen]. */
-internal fun MutableMethod.returnNullWhen(hook: String) {
-    requireLocals(PATCH, 1)
+/**
+ * Asks [hook] first thing and answers null when it says so. v0 is free there, as in [answerWhen].
+ * [patch] names the patch in the refusal when the method has no local to use.
+ */
+internal fun MutableMethod.returnNullWhen(hook: String, patch: String = PATCH) {
+    requireLocals(patch, 1)
     addInstructionsWithLabels(
         0,
         """
@@ -402,15 +436,18 @@ internal fun MutableMethod.returnTrueObjectForKeyWhen(keyField: FieldReference, 
 /** Asks [hook] first thing and answers true when it says so. */
 internal fun MutableMethod.returnTrueWhen(hook: String) = answerWhen(hook, true)
 
-/** Asks [hook] first thing and answers false when it says so. */
-internal fun MutableMethod.returnFalseWhen(hook: String) = answerWhen(hook, false)
+/**
+ * Asks [hook] first thing and answers false when it says so. [patch] names the patch in the refusal
+ * when the method has no local to use.
+ */
+internal fun MutableMethod.returnFalseWhen(hook: String, patch: String = PATCH) = answerWhen(hook, false, patch)
 
 /**
  * Asks [hook] first thing and answers [answer] when it says so. At the first instruction no local
  * holds anything yet, so v0 is free, and `const/4` and `return` both reach it.
  */
-private fun MutableMethod.answerWhen(hook: String, answer: Boolean) {
-    requireLocals(PATCH, 1)
+private fun MutableMethod.answerWhen(hook: String, answer: Boolean, patch: String = PATCH) {
+    requireLocals(patch, 1)
     addInstructionsWithLabels(
         0,
         """
@@ -441,11 +478,15 @@ private fun BytecodePatchContext.skipFooterQueries() {
     )
     // Found by their kept names, which reads no code, and changed once the walk is done.
     val hotComments = mutableListOf<Pair<ClassDef, Method>>()
-    val captionComments = mutableListOf<Pair<ClassDef, Method>>()
+    val captionRows = mutableListOf<ClassDef>()
     classDefForEach { classDef ->
         if (classDef.type.startsWith(EXTENSION_CLASSES)) return@classDefForEach
         namedRunnable(classDef, HOT_COMMENT_RUNNABLE)?.let { hotComments += classDef to it }
-        captionCommentRunnable(classDef)?.let { captionComments += classDef to it }
+        if (namedRunnable(classDef, CAPTION_ROW_RUNNABLE) != null) captionRows += classDef
+    }
+    // Read after the walk, since 588's asks a string table for its query's name.
+    val captionComments = captionRows.mapNotNull { owner ->
+        captionCommentRunnable(owner) { call -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }?.let { owner to it }
     }
     if (hotComments.isEmpty()) throw PatchException("$PATCH: expected a Runnable named $HOT_COMMENT_RUNNABLE and a number, found none")
     val caption = captionComments.singleOrNull() ?: throw PatchException(

@@ -987,10 +987,10 @@ val reviewedBouncyCastleRequests = setOf("1.77", "1.79", safeBouncyCastleVersion
 // Guarded by hand rather than with a synchronized collection wrapper: in a Kotlin build script
 // `java` is the Java extension, so the java.util package cannot be named here.
 val requestedBouncyCastleVersions = sortedSetOf<String>()
-// GHSA-xxph-c9ww-hj94 covers every Guava before 33.7.2. The implementation pin below only sets
-// the graphs this module compiles and tests with: the patcher and smali ask for 33.3.1 and
-// 33.5.0, and patcherProvidedClasspath, the graph of what the patcher brings, took those as
-// asked. Every request is rewritten to the catalog's release, as Bouncy Castle's are.
+// GHSA-xxph-c9ww-hj94 covers Guava 4.0 through 33.7.1 and GHSA-v5x9-67m3-7m56 13.0 through
+// 33.7.2. The implementation pin below only sets the graphs this module compiles and tests with:
+// the patcher and smali ask for 33.3.1 and 33.5.0, and patcherProvidedClasspath, the graph of
+// what the patcher brings, took those as asked. Every request is rewritten to the catalog's release, as Bouncy Castle's are.
 val safeGuavaVersion = libs.versions.guava.get()
 
 configurations.configureEach {
@@ -1008,7 +1008,7 @@ configurations.configureEach {
         }
         if (requested.group == "com.google.guava" && requested.name == "guava") {
             useVersion(safeGuavaVersion)
-            because("GHSA-xxph-c9ww-hj94 covers every Guava before 33.7.2.")
+            because("GHSA-v5x9-67m3-7m56 covers Guava 13.0 through 33.7.2.")
         }
     }
 }
@@ -1111,7 +1111,7 @@ dependencies {
     // exact version at run time; this puts it on the test compile classpath as well.
     testImplementation("com.android.tools.build:apksig:9.1.1")
     // Reads the resource tables of the fixtures, for the Material You theme's colour table. This is
-    // the module and commit the patcher brings at run time (2.4.0 pins 50418a07a8, 2.3.0 pinned
+    // the module and commit the patcher brings at run time (2.5.0 and 2.4.0 pin 50418a07a8, 2.3.0 pinned
     // 675bed2de3, 2.1.0 and 2.2.0 pinned 4695b583ef); it puts that copy on the test compile classpath
     // as well. Gradle keeps whichever of two commits sorts higher, so a stale pin here can silently
     // replace the patcher's: 675bed2de3 sorts above 50418a07a8, and left here it put the old
@@ -1266,10 +1266,13 @@ val verifyPatchTestSelection = tasks.register("verifyPatchTestSelection") {
 
 // The raw files the patch tests read beyond their classpath, for both partitions.
 tasks.withType<Test>().matching { it.name == "test" || it.name == "fixtureTest" }.configureEach {
-    // The README tests read the README and the patch list, both outside this module. Declare
-    // those inputs so Gradle reruns them when either changes.
+    // The README tests read the README, the patch table in docs/patches.md and the patch list,
+    // all outside this module. Declare those inputs so Gradle reruns them when one changes.
     inputs.file(rootProject.file("README.md"))
         .withPropertyName("readme")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(rootProject.file("docs/patches.md"))
+        .withPropertyName("patchTable")
         .withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(rootProject.file("patches-list.json"))
         .withPropertyName("patchList")

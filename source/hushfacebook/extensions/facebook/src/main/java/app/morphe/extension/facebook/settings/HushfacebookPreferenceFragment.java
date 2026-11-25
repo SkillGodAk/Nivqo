@@ -46,8 +46,10 @@ import java.util.TimeZone;
 import app.morphe.extension.facebook.coexist.FamilySignatureTrust;
 import app.morphe.extension.facebook.comments.CommentOrder;
 import app.morphe.extension.facebook.comments.CommentsHeight;
+import app.morphe.extension.facebook.reels.BurnInGuard;
 import app.morphe.extension.facebook.reels.BurnInMode;
 import app.morphe.extension.facebook.reels.BurnInWait;
+import app.morphe.extension.facebook.reels.CleanReturn;
 import app.morphe.extension.facebook.reels.GrayOver;
 import app.morphe.extension.facebook.reels.HoldReaction;
 import app.morphe.extension.facebook.reels.ReelDateStyle;
@@ -69,6 +71,7 @@ import app.morphe.extension.facebook.feed.ReactionCeiling;
 import app.morphe.extension.facebook.feed.TopicPacks;
 import app.morphe.extension.facebook.feed.TranslateLanguages;
 import app.morphe.extension.facebook.feed.SeenPosts;
+import app.morphe.extension.facebook.media.BufferSize;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.media.RecentlyWatched;
 import app.morphe.extension.facebook.media.SurfaceQuality;
@@ -113,9 +116,12 @@ import app.morphe.extension.facebook.settings.ValueRows.PauseLengthRow;
 import app.morphe.extension.facebook.settings.ValueRows.WatchedKeepRow;
 import app.morphe.extension.facebook.settings.ValueRows.BurnInGuardRow;
 import app.morphe.extension.facebook.settings.ValueRows.BurnInWaitRow;
+import app.morphe.extension.facebook.settings.ValueRows.CleanReturnRow;
 import app.morphe.extension.facebook.settings.ValueRows.FoldLinesRow;
+import app.morphe.extension.facebook.settings.ValueRows.VideoBufferRow;
 import app.morphe.extension.facebook.settings.ValueRows.HoldReactionRow;
 import app.morphe.extension.facebook.settings.ValueRows.NewRowMarkRow;
+import app.morphe.extension.facebook.settings.ValueRows.HeaderFontRow;
 import app.morphe.extension.facebook.settings.ValueRows.ReelDateStyleRow;
 import app.morphe.extension.facebook.settings.ValueRows.CommentsHeightRow;
 import app.morphe.extension.facebook.settings.ValueRows.AccentRow;
@@ -694,7 +700,7 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         if (!IconDensity.patchSharper(context)) return null;
         Preference row = info(context, L10n.t("Icons look soft on this screen"),
                 L10n.t("The Facebook you patched has no images made for this screen, so some icons are enlarged. "
-                        + "Patch Facebook again from the (arm64-v8a) (240-640dpi) bundle on APKMirror, which has "
+                        + "Patch Facebook again from the (arm64-v8a) (120-480dpi) bundle on APKMirror, which has "
                         + "images for every screen."));
         row.setKey(SOFT_ICONS);
         return row;
@@ -1974,6 +1980,50 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 + "stay faded.", burnInWaitLabel(wait));
     }
 
+    /** When a reel taken out of Clean mode goes back into it by itself (#519). */
+    static CleanReturnRow cleanReturnRow(Context context) {
+        CleanReturnRow row = new CleanReturnRow(context);
+        row.setKey(Settings.REEL_CLEAN_RETURN.key);
+        row.setTitle(L10n.t("Back to Clean mode"));
+        row.setDialogTitle(L10n.t("Back to Clean mode"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        CleanReturn[] choices = CleanReturn.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = cleanReturnLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.REEL_CLEAN_RETURN.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [choice]. */
+    static String cleanReturnLabel(CleanReturn choice) {
+        if (choice == CleanReturn.OFF) return L10n.t("Never");
+        if (choice == CleanReturn.WHEN_A_SHEET_CLOSES) return L10n.t("When the comments or a menu close");
+        return L10n.f("After %1$d seconds", (int) (choice.millis / 1000));
+    }
+
+    /** What the choice does, for the row's summary. */
+    static String cleanReturnSummary(CleanReturn choice) {
+        switch (choice) {
+            case WHEN_A_SHEET_CLOSES:
+                return L10n.t("When the comments or a menu close. A reel you took out of Clean mode goes back into it "
+                        + "once whatever you opened over it closes.");
+            case THREE_SECONDS:
+            case FIVE_SECONDS:
+            case TEN_SECONDS:
+                return L10n.f("%1$s. A reel you took out of Clean mode goes back into it once you haven't touched the "
+                        + "screen for that long. An open sheet holds the time.", cleanReturnLabel(choice));
+            case OFF:
+            default:
+                return L10n.t("Never. A reel you take out of Clean mode stays out until you put it back.");
+        }
+    }
+
     /** What a hold to react gives, right under its two switches (#454). */
     static HoldReactionRow holdReactionRow(Context context) {
         HoldReactionRow row = new HoldReactionRow(context);
@@ -2011,6 +2061,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 return L10n.t("Sad");
             case ANGRY:
                 return L10n.t("Angry");
+            case SLIDE:
+                return L10n.t("Slide to pick one");
             default:
                 return L10n.t("Pick one each time");
         }
@@ -2019,8 +2071,12 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     /** What the choice does, for the row's summary. */
     static String holdReactionSummary(HoldReaction reaction) {
         if (reaction == HoldReaction.PICK) {
-            return L10n.t("Pick one each time. The reactions open over the post, so slide to one and let go, or let go "
-                    + "and tap one.");
+            return L10n.t("Pick one each time. The reactions open by your finger, so slide to one and let go, or let go "
+                    + "and tap one. A tap anywhere else closes them.");
+        }
+        if (reaction == HoldReaction.SLIDE) {
+            return L10n.t("Slide to pick one. The reactions open by your finger, so slide to one and let go. Letting go "
+                    + "anywhere else closes them.");
         }
         return L10n.f("%1$s. Holding a post gives it straight away.", holdReactionLabel(reaction));
     }
@@ -2657,6 +2713,65 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
         return row;
     }
 
+    /**
+     * Header text font (#532): the font the Home header text draws in. Your font is offered when
+     * the build has the system font patch, whose Font file row picks the file it draws in.
+     */
+    static HeaderFontRow headerFontRow(Context context, boolean yourFont) {
+        HeaderFontRow row = new HeaderFontRow(context);
+        row.setKey(Settings.HEADER_TEXT_FONT.key);
+        row.setTitle(L10n.t("Header text font"));
+        row.setDialogTitle(L10n.t("Header text font"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        List<CharSequence> entries = new ArrayList<>();
+        List<CharSequence> values = new ArrayList<>();
+        for (HeaderFont font : HeaderFont.values()) {
+            if (font == HeaderFont.YOUR_FONT && !yourFont) continue;
+            entries.add(headerFontLabel(font));
+            values.add(font.name());
+        }
+        row.setEntries(entries.toArray(new CharSequence[0]));
+        row.setEntryValues(values.toArray(new CharSequence[0]));
+        row.setValue(Settings.HEADER_TEXT_FONT.savedValue().name());
+        return row;
+    }
+
+    /** What the list and the sentences about it call [font]. */
+    static String headerFontLabel(HeaderFont font) {
+        switch (font) {
+            case REGULAR:
+                return L10n.t("Regular");
+            case SERIF:
+                return L10n.t("Serif");
+            case SCRIPT:
+                return L10n.t("Script");
+            case MONOSPACE:
+                return L10n.t("Monospace");
+            case YOUR_FONT:
+                return L10n.t("Your font");
+            default:
+                return L10n.t("Bold");
+        }
+    }
+
+    /** What [font] looks like, for the row's summary. */
+    static String headerFontSummary(HeaderFont font) {
+        switch (font) {
+            case REGULAR:
+                return L10n.t("The phone's font at its regular weight.");
+            case SERIF:
+                return L10n.t("A bold font with serifs, like a newspaper's.");
+            case SCRIPT:
+                return L10n.t("Joined-up handwriting.");
+            case MONOSPACE:
+                return L10n.t("Every letter the same width, like a typewriter.");
+            case YOUR_FONT:
+                return L10n.t("The font file picked under Font file, in bold. Bold until one is picked.");
+            default:
+                return L10n.t("The bold font the words have always had.");
+        }
+    }
+
     /** The setting a Local profile counts row keeps its digits in. */
     static StringSetting countSetting(LocalProfileCounts.Count count) {
         switch (count) {
@@ -2742,6 +2857,61 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
     }
 
     /**
+     * The example address the In-app proxy row shows: v2rayNG's local port, whose Xray socks inbound
+     * takes HTTP proxy requests too.
+     */
+    static final String PROXY_EXAMPLE = "127.0.0.1:10808";
+
+    /**
+     * In-app proxy (#504): an HTTP proxy for Facebook's connections, as host:port, blank for none.
+     * What's saved is the address as {@link InAppProxy.Address} writes it; an address it can't read
+     * isn't saved, and a toast says what to type.
+     */
+    static ValueRows.ProxyRow proxyRow(Context context) {
+        StringSetting setting = Settings.IN_APP_PROXY;
+        ValueRows.ProxyRow row = new ValueRows.ProxyRow(context);
+        row.setKey(setting.key);
+        row.setTitle(L10n.t("In-app proxy"));
+        row.setDialogTitle(L10n.t("In-app proxy"));
+        row.setDialogMessage(L10n.f("The address and port of an HTTP proxy for Facebook's connections, like %1$s. "
+                + "The local proxy port of a VLESS or V2Ray app such as v2rayNG works here. "
+                + "Leave it blank to connect the way your phone does.",
+                PROXY_EXAMPLE));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        keepEditorInDialog(field, false);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        field.setFilters(new InputFilter[] {new InputFilter.LengthFilter(300)});
+        field.setHint(PROXY_EXAMPLE);
+        row.setText(setting.savedValue());
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString().trim();
+            if (raw.isEmpty()) return true;
+            InAppProxy.Address proxy = InAppProxy.parse(raw);
+            if (proxy == null) {
+                Utils.showToastLong(L10n.f("Type an HTTP proxy's address and port, like %1$s.", PROXY_EXAMPLE));
+                return false;
+            }
+            String clean = proxy.toString();
+            if (clean.equals(raw)) return true;
+            ((ValueRows.ProxyRow) preference).setText(clean);
+            return false;
+        });
+        return row;
+    }
+
+    /** What the In-app proxy row says for [text], the address saved there. */
+    static String proxySummary(String text) {
+        InAppProxy.Address proxy = InAppProxy.parse(text);
+        if (proxy == null) {
+            return L10n.t("Facebook connects the way your phone does. Type a proxy's address and port to send its "
+                    + "connections through it.");
+        }
+        return L10n.f("Facebook's connections go through the proxy at %1$s.", L10n.isolate(proxy.toString()));
+    }
+
+    /**
      * A row taking a percent for [setting] (#425): digits only, at most three, blank for [blank].
      * What's typed that isn't digits is saved as its digits.
      */
@@ -2806,6 +2976,25 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                     CaptionBackdrop.DEFAULT_DARKNESS);
         }
         return L10n.f("The dark boxes are %1$s percent black.", CaptionBackdrop.darknessPercent(text));
+    }
+
+    /** Burn-in guard's Dim to row: how much of the dimmed controls still shows (#523). */
+    static ValueRows.PercentRow burnInLevelRow(Context context) {
+        return percentRow(context, Settings.BURN_IN_LEVEL, L10n.t("Dim to"),
+                L10n.f("How much of the buttons, caption and bars still shows once they dim, in percent, from %1$s "
+                        + "to %2$s. Leave it blank for %3$s.", BurnInGuard.MIN_LEVEL, BurnInGuard.MAX_LEVEL,
+                        BurnInGuard.DEFAULT_LEVEL),
+                BurnInGuard.DEFAULT_LEVEL, HushfacebookPreferenceFragment::burnInLevelSummary);
+    }
+
+    /** What the Dim to row says for [text], the digits typed there. */
+    static String burnInLevelSummary(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return L10n.f("Once dimmed, the buttons, caption and bars show at %1$s percent. Type a number to "
+                    + "change it.", BurnInGuard.DEFAULT_LEVEL);
+        }
+        return L10n.f("Once dimmed, the buttons, caption and bars show at %1$s percent.",
+                BurnInGuard.levelPercent(text));
     }
 
     /** Rounded tab bar's Tab bar width row (#425). */
@@ -2929,6 +3118,57 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
                 : L10n.t("Video stories follow the Default quality row.");
     }
 
+    /**
+     * How much of a video loads before it plays and stays loaded ahead (#526), under the Video
+     * quality heading. Its values are the setting's own names, as the quality rows' are.
+     */
+    static VideoBufferRow videoBufferRow(Context context) {
+        VideoBufferRow row = new VideoBufferRow(context);
+        row.setKey(Settings.VIDEO_BUFFER.key);
+        row.setTitle(L10n.t("Video buffer"));
+        row.setDialogTitle(L10n.t("Video buffer"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        BufferSize[] choices = BufferSize.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = videoBufferLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.VIDEO_BUFFER.savedValue().name());
+        return row;
+    }
+
+    /** What the list and the import sentence call [size]. */
+    static String videoBufferLabel(BufferSize size) {
+        switch (size) {
+            case LOW:
+                return L10n.t("Low");
+            case MEDIUM:
+                return L10n.t("Medium");
+            case MAXIMUM:
+                return L10n.t("Maximum");
+            default:
+                return L10n.t("Facebook's choice");
+        }
+    }
+
+    /** What a video does with [size], for the row's summary. */
+    static String videoBufferSummary(BufferSize size) {
+        switch (size) {
+            case LOW:
+                return L10n.t("Videos start once half a second has loaded, and load less ahead.");
+            case MEDIUM:
+                return L10n.t("Videos wait for 1.5 seconds to load before they start, and load more ahead.");
+            case MAXIMUM:
+                return L10n.t("Videos wait for 3 seconds to load before they start, and load up to a minute ahead.");
+            default:
+                return L10n.t("Facebook decides how much of a video loads before and while it plays.");
+        }
+    }
+
     /** What the list calls [quality]: Auto, as Facebook's own quality menu calls it, and a ceiling by its label. */
     static String playbackQualityLabel(PlaybackQuality quality) {
         switch (quality) {
@@ -3034,10 +3274,14 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             ((BurnInGuardRow) listPreference).showSummary();
         } else if (listPreference instanceof BurnInWaitRow) {
             ((BurnInWaitRow) listPreference).showSummary();
+        } else if (listPreference instanceof CleanReturnRow) {
+            ((CleanReturnRow) listPreference).showSummary();
         } else if (listPreference instanceof HoldReactionRow) {
             ((HoldReactionRow) listPreference).showSummary();
         } else if (listPreference instanceof FoldLinesRow) {
             ((FoldLinesRow) listPreference).showSummary();
+        } else if (listPreference instanceof VideoBufferRow) {
+            ((VideoBufferRow) listPreference).showSummary();
         } else if (listPreference instanceof ReelDateStyleRow) {
             ((ReelDateStyleRow) listPreference).showSummary();
         } else if (listPreference instanceof CommentsHeightRow) {
@@ -3050,6 +3294,8 @@ public final class HushfacebookPreferenceFragment extends AbstractPreferenceFrag
             ((RefreshRateRow) listPreference).showSummary();
         } else if (listPreference instanceof NewRowMarkRow) {
             ((NewRowMarkRow) listPreference).showSummary();
+        } else if (listPreference instanceof HeaderFontRow) {
+            ((HeaderFontRow) listPreference).showSummary();
         } else if (listPreference instanceof AccentRow) {
             ((AccentRow) listPreference).showSummary();
         } else if (listPreference instanceof ReactionCeilingRow) {

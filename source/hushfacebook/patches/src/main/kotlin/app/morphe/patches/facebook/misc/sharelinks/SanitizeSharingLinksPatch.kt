@@ -7,7 +7,7 @@ package app.morphe.patches.facebook.misc.sharelinks
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.misc.extension.enableStatus
@@ -16,6 +16,7 @@ import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.executeBytecode
 import app.morphe.util.singleOrPatchException
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -41,17 +42,17 @@ private const val SANITIZE =
  *
  * Found by reading 580 and 577 (2026-09-25): ExternalShareTracker adds `mibextid` to Copy link and
  * to every share destination, and on some servers `extid`, a random id new on each share. Around
- * it, one appender adds `sfnsn` to WhatsApp shares, one `ref=share` to some stories, one `mibextid`
- * to a group's share link, and the live video dialog `sfnsn`. On 582, Copy link on a reel or a
- * post adds `s` and `fs` after the tracker has answered, in three methods, so the link each one
- * labels is passed through as well.
+ * it, one appender adds `sfnsn` to WhatsApp shares, one `ref=share` to some stories, and the live
+ * video dialog `sfnsn`. A group's share had a link builder of its own up to 587; since 588 it asks
+ * the tracker like every other share. On 582, Copy link on a reel or a post adds `s` and `fs` after
+ * the tracker has answered, in three methods, so the link each one labels is passed through as well.
  *
  * A second switch, off to start, answers the /share/ link itself (#98): with it on, the link a
  * share of a post hands out is the post's own address instead of the facebook.com/share/ link
  * Facebook made for that share. Its hook is ownPostLinkPatch's.
  */
 @Suppress("unused")
-val sanitizeSharingLinksPatch = bytecodePatch(
+val sanitizeSharingLinksPatch = patch(
     name = "Sanitize sharing links",
     description = "Takes Facebook's tracking tags off links you share or copy, so you share a clean link. A " +
         "facebook.com/share/ link is made for one share, so Facebook can still trace that kind back to you, and " +
@@ -64,7 +65,7 @@ val sanitizeSharingLinksPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.facebook())
     dependsOn(facebookExtensionPatch, ownPostLinkPatch)
 
-    execute {
+    executeBytecode {
         val tracker = mutableClassDefBy(ExternalShareTrackerFingerprint.method.definingClass)
         val trackerMethods = listOf(
             // The link a share hands out, with mibextid added for its source and destination.
@@ -78,7 +79,6 @@ val sanitizeSharingLinksPatch = bytecodePatch(
         (trackerMethods + listOf(
             SfnsnAppenderFingerprint.method,
             RefShareAppenderFingerprint.method,
-            GroupShareLinkFingerprint.method,
             LiveShareLinkFingerprint.method,
         )).forEach { it.sanitizeEveryReturn() }
 

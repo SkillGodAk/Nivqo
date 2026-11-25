@@ -33,8 +33,10 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  *
  * <p>Threads opens a post's web address, and its own {@code barcelona://mainfeed?injected_media_ids=}
  * link, as its home feed with the post on top. Only its {@code barcelona://media?id=} link opens the
- * post itself, so either of those goes over as that link: the first injected id, or the web address's
- * short code read back into the post's number.
+ * post itself, so either of those goes over as that link: the first injected id (Threads writes them as
+ * a bracketed list, {@code [id1,id2]}), or the web address's short code read back into the post's number.
+ * Facebook 588 hands a card over as {@code threads.com/inter_app/redirect} with the post in its
+ * {@code destination_url}, which Threads also lands on its home feed, so the post is read from there.
  *
  * <p>The new intent holds only the action, the address and the browsable category: no extras, no
  * clip data, no permissions the dropped intent may have carried. A family intent can carry sign-in
@@ -128,18 +130,51 @@ public final class FamilyLinkHandoff {
 
     /**
      * Threads' own link to the post [link] puts on top of its feed, or null when it names none:
-     * threads.com/@name/post/CODE, threads.net/t/CODE, or barcelona://mainfeed?injected_media_ids=ID.
+     * threads.com/@name/post/CODE, threads.net/t/CODE, barcelona://mainfeed?injected_media_ids=ID, or
+     * Facebook's threads.com/inter_app/redirect carrying one of those in its destination_url.
      */
     @Nullable
     static Uri threadsPost(Uri link) {
+        Uri destination = redirectDestination(link);
+        return post(destination != null ? destination : link);
+    }
+
+    /**
+     * The Threads link inside Facebook's family-app redirect,
+     * threads.com/inter_app/redirect?...&amp;destination_url=LINK, or null for any other link or a
+     * destination that isn't a Threads link. Threads lands the redirect itself on its home feed (#385).
+     */
+    @Nullable
+    private static Uri redirectDestination(Uri link) {
+        String scheme = link.getScheme();
+        if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) return null;
+        List<String> path = link.getPathSegments();
+        if (path.size() != 2 || !"inter_app".equals(path.get(0)) || !"redirect".equals(path.get(1))) return null;
+        String destination = link.getQueryParameter("destination_url");
+        if (destination == null || destination.trim().isEmpty()) return null;
+        Uri inner = Uri.parse(destination.trim());
+        String innerScheme = inner.getScheme();
+        if (THREADS_SCHEME.equalsIgnoreCase(innerScheme)) return inner;
+        boolean web = "https".equalsIgnoreCase(innerScheme) || "http".equalsIgnoreCase(innerScheme);
+        return web && THREADS.equals(appFor(inner.getHost())) ? inner : null;
+    }
+
+    /** The barcelona://media link for a post's web address or Threads' mainfeed link, or null. */
+    @Nullable
+    private static Uri post(Uri link) {
         String scheme = link.getScheme();
         String id = null;
         if (THREADS_SCHEME.equalsIgnoreCase(scheme)) {
             if (!"mainfeed".equalsIgnoreCase(link.getHost())) return null;
             String injected = link.getQueryParameter("injected_media_ids");
             if (injected == null) return null;
-            int comma = injected.indexOf(',');
-            String first = comma < 0 ? injected : injected.substring(0, comma);
+            // Threads writes the ids as a bracketed list, [id] or [id1,id2], and reads them the same
+            // way: brackets off, split on the comma, the first one (#385). A bare id still works.
+            String list = injected.trim();
+            if (list.startsWith("[")) list = list.substring(1);
+            if (list.endsWith("]")) list = list.substring(0, list.length() - 1);
+            int comma = list.indexOf(',');
+            String first = (comma < 0 ? list : list.substring(0, comma)).trim();
             if (MEDIA_ID.matcher(first).matches()) id = first;
         } else if ("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)) {
             List<String> path = link.getPathSegments();

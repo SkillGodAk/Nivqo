@@ -10,13 +10,14 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.comments.summaries.descriptor
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.methodsHolding
+import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.feed.reels.categoryNames
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
@@ -24,9 +25,11 @@ import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.extension.requireStatusMethod
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.shared.readsMobileConfig
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.RegisterLiveness
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation
@@ -86,10 +89,6 @@ private const val STRING = "Ljava/lang/String;"
 /** The kinds a filter declares, as the enum's constants are named; the kind class holds all of them. */
 internal val FILTER_KINDS = listOf("DATE_RANGE_PICKER", "MULTI_CHOICE", "TIME_PICKER")
 
-internal const val MOBILE_CONFIG = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;"
-
-private const val OBJECT = "Ljava/lang/Object;"
-
 /** How far after the kind may Facebook read the bottom sheet flag. */
 internal const val FLAG_REACH = 12
 
@@ -142,7 +141,7 @@ internal const val FLAG_REACH = 12
  * becomes the label.
  */
 @Suppress("unused")
-val searchDateRangePatch = bytecodePatch(
+val searchDateRangePatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Search date range",
     description = "Adds a from and to date picker to the Date posted filter in post search, in place of the list of " +
@@ -153,7 +152,7 @@ val searchDateRangePatch = bytecodePatch(
     dependsOn(settingsPatch, facebookExtensionPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         // Everything is found before anything changes, so a build missing one part is left as it was.
         requireStatusMethod("searchDateRange")
         val holders = classDefByStrings(TAP_FILTER, StringComparisonType.EQUALS)
@@ -172,7 +171,10 @@ val searchDateRangePatch = bytecodePatch(
             ?.let { picker -> pickerReturns(picker)?.let { picker to it } }
             ?: throw PatchException("$PATCH: $PICKER has no onCreateView handing back a view it can wrap")
         val opening = classDefByOrNull(PICKER)?.methods?.singleOrNull(::isPickerCreate)
-            ?.let { create -> pickerMonths(create)?.let { create to it } }
+            ?.let { create ->
+                pickerMonths(create) { call -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
+                    ?.let { create to it }
+            }
             ?: throw PatchException("$PATCH: $PICKER has no onCreate picking last month to this month where a hook can follow")
         val writes = classDefByStrings(RANGE_MONTHS, StringComparisonType.EQUALS)
             .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
@@ -259,10 +261,7 @@ internal fun kindRead(method: Method, classOf: (String) -> ClassDef?): KindRead?
         if (!categoryNames(kindClass).containsAll(FILTER_KINDS)) return@mapNotNull null
         val flagCall = (index + 2..minOf(code.size - 3, index + FLAG_REACH)).firstOrNull { at ->
             val candidate = code[at]
-            if (candidate.opcode != Opcode.INVOKE_STATIC) return@firstOrNull false
-            val target = (candidate as ReferenceInstruction).reference as? MethodReference ?: return@firstOrNull false
-            target.definingClass == MOBILE_CONFIG && target.returnType == "Z" &&
-                target.parameterTypes.map(CharSequence::toString) == listOf(OBJECT, "J") &&
+            candidate.opcode == Opcode.INVOKE_STATIC && readsMobileConfig(candidate, "Z", classOf) &&
                 code[at + 1].opcode == Opcode.MOVE_RESULT && code[at + 2].opcode == Opcode.IF_NEZ &&
                 (code[at + 1] as OneRegisterInstruction).registerA == (code[at + 2] as OneRegisterInstruction).registerA
         } ?: return@mapNotNull null
@@ -411,15 +410,22 @@ private class MonthWrite(val at: Int, val register: Int, val field: FieldReferen
  * jumps to the instruction after that last write, so a hook put in front of that instruction runs
  * only for a filter with none. Null unless the four are distinct int fields of the picker, the
  * picker's register and a free one are below v16, and something follows the start year's write.
+ *
+ * 588's Android 9 build reads the month through a static helper of the Calendar (`LX/0l7i;->A03`,
+ * which makes the `get(2)` call itself), so a static `(Calendar)I` call counts as a read when
+ * [resolve] finds a body that hands back its Calendar's get.
  */
-internal fun pickerMonths(method: Method): PickerMonths? {
+internal fun pickerMonths(method: Method, resolve: (MethodReference) -> Method? = { null }): PickerMonths? {
     val code = method.implementation?.instructions?.toList() ?: return null
     val self = method.localRegisterCount()
     if (self > 15) return null
     val gets = code.indices.filter { at ->
         val target = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
-        code[at].opcode == Opcode.INVOKE_VIRTUAL && target?.definingClass == "Ljava/util/Calendar;" &&
-            target.name == "get" && target.returnType == "I" && code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT
+        target != null && code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT && when (code[at].opcode) {
+            Opcode.INVOKE_VIRTUAL -> isCalendarGet(target)
+            Opcode.INVOKE_STATIC -> isCalendarReader(target) && resolve(target)?.let(::readsCalendarGet) == true
+            else -> false
+        }
     }
     if (gets.size < 2) return null
     val year = (code[gets[0] + 1] as OneRegisterInstruction).registerA
@@ -445,6 +451,28 @@ internal fun pickerMonths(method: Method): PickerMonths? {
     val live = RegisterLiveness.of(method).liveInto(after)
     val free = (0 until minOf(self, 16)).firstOrNull { it !in live } ?: return null
     return PickerMonths(after, endMonth.field, endYear.field, startMonth, startYear.field, self, free)
+}
+
+private fun isCalendarGet(target: MethodReference) = target.definingClass == "Ljava/util/Calendar;" &&
+    target.name == "get" && target.returnType == "I"
+
+/** Whether [target] is shaped like a static helper reading one field of a Calendar it's handed. */
+internal fun isCalendarReader(target: MethodReference) = target.returnType == "I" &&
+    target.parameterTypes.map(CharSequence::toString) == listOf("Ljava/util/Calendar;")
+
+/** Whether [helper], static, hands back what its Calendar parameter's get answers. */
+internal fun readsCalendarGet(helper: Method): Boolean {
+    if (!AccessFlags.STATIC.isSet(helper.accessFlags)) return false
+    val code = helper.implementation?.instructions?.toList() ?: return false
+    val calendar = helper.localRegisterCount()
+    val at = code.indices.singleOrNull { index ->
+        val target = (code[index] as? ReferenceInstruction)?.reference as? MethodReference
+        code[index].opcode == Opcode.INVOKE_VIRTUAL && target != null && isCalendarGet(target) &&
+            (code[index] as FiveRegisterInstruction).registerC == calendar
+    } ?: return false
+    val result = code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction ?: return false
+    val back = code.getOrNull(at + 2)?.takeIf { it.opcode == Opcode.RETURN } as? OneRegisterInstruction ?: return false
+    return back.registerA == result.registerA
 }
 
 /**

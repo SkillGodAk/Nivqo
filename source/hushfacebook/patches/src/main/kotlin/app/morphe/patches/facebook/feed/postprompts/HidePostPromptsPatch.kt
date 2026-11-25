@@ -11,13 +11,14 @@ package app.morphe.patches.facebook.feed.postprompts
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.filterBooleanReturns
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.executeBytecode
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -65,29 +66,38 @@ internal const val STORY_MODEL = "Lcom/facebook/graphql/model/GraphQLStory;"
  * buttons by having their one text builder give its zero answer (PostCounts.kt, #180). The fourth,
  * also off, leaves the reaction faces and the reactions count under a post undrawn, and blanks the
  * count text beside the faces (ReactionPreview.kt, #158). The fifth, also off, takes the X off the top
- * of feed posts by having the check that offers it answer no (PostXButton.kt, #389).
+ * of feed posts by having the check that offers it answer no (PostXButton.kt, #389). The sixth, also
+ * off, leaves out the friend bubbles Facebook lays over a post's photo or video by having their row's
+ * render answer null (ReactionBubbles.kt, #483). The seventh, also off, leaves out the line under a
+ * post that names who reacted. The server writes that sentence, so the config check its row asks
+ * answers no; where the app builds it instead, its builder answers nothing and the row's gate and
+ * the bling bar's two checks for those names answer no (ReactorNames.kt, #483).
  */
 @Suppress("unused")
-val hidePostPromptsPatch = bytecodePatch(
+val hidePostPromptsPatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Hide post prompts",
     description = "Removes the strip Facebook adds to some posts, like \"Are you interested in this post?\", " +
         "\"Show less\" or follow suggestions, so posts look less cluttered. No gap is left. On by default. Turn " +
-        "it off in Hushfacebook settings > News feed. Six more switches there, Hide the Follow link on posts, " +
-        "Hide the Subscribe link on posts, Hide the Join button on posts, Hide the X on posts, Hide counts on posts " +
-        "and Hide the reaction preview on posts, start off.",
+        "it off in Hushfacebook settings > News feed. Nine more switches there, Hide the Follow link on posts, " +
+        "Hide the Subscribe link on posts, Hide the Join button on posts, Hide the X on posts, Hide counts on posts, " +
+        "Hide the reaction preview on posts, Show reactions on the Like button, Hide friends' reactions on photos and videos and Hide who reacted " +
+        "under posts, start off.",
 ) {
     category("Feed")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         hidePromptChecks()
         hidePostJoinButton()
         hidePostX()
         hidePostCounts()
         hideReactionPreview()
+        reactionsOnLikeButton()
         hideReactionCount()
+        hideReactionBubbles()
+        hideReactorNames()
         enableStatus("postPrompts")
     }
 }

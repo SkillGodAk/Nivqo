@@ -10,8 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.patcher.patch.resourcePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.resource.ResourceType
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.misc.extension.enableStatus
@@ -20,6 +19,9 @@ import app.morphe.patches.facebook.misc.extension.patchLog
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
+import app.morphe.util.finalizeBytecode
+import app.morphe.util.finalizeResources
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -348,12 +350,12 @@ internal fun Document.colourValues(): Map<String, String> {
         .associate { it.getAttribute("name") to it.textContent.trim() }
 }
 
-private val materialYouResourcePatch = resourcePatch {
+private val materialYouResourcePatch = patch {
     dependsOn(fdsTokenAttributesPatch)
 
     // After every patch's own work, so AMOLED's black has gone in first and stays: black is no
     // tone this recolours.
-    finalize {
+    finalizeResources {
         // Patcher 2.0 decodes only the files a patch asks for: an undecoded file does not exist yet, so
         // the state list check below needs its folder decoded too.
         decode("res/values*/colors.xml", "res/values*/style*.xml", V31_STATE_LISTS)
@@ -420,7 +422,7 @@ private val materialYouResourcePatch = resourcePatch {
 }
 
 @Suppress("unused")
-val materialYouThemePatch = bytecodePatch(
+val materialYouThemePatch = patch(
     name = "Material You theme",
     description = "Gives Facebook the colors of your wallpaper on Android 12 and newer, so it matches your " +
         "phone. Dark mode takes them everywhere, and light mode on its grays, blues and selected tab. It isn't " +
@@ -435,14 +437,14 @@ val materialYouThemePatch = bytecodePatch(
 
     dependsOn(facebookExtensionPatch)
 
-    execute {
+    executeBytecode {
         enableStatus("materialYouTheme")
     }
 
     // After every patch's execute, so with AMOLED in the build its hooks and rewrites are already
     // there: each hook here goes after AMOLED's and gets AMOLED's colour, and AMOLED's black is no
     // dark-theme colour this recolours.
-    finalize {
+    finalizeBytecode {
         // The selected tab's reads are found first: a build without them fails before any hook
         // below goes in.
         val recolourSelectedTab = selectedTabColourHook()
@@ -584,12 +586,14 @@ val materialYouThemePatch = bytecodePatch(
  * `LX/0N8x;->A17` and five more) and the attachment footer's `LX/05X5;->A0B(FbUserSession, LX/01PR, Z)I`.
  * 586 had it at `0x1030731000203a8`, read 2026-11-08 by the same nine methods (arm64
  * `LX/099J;->render`, `LX/0OCK;->render`, `LX/0TJY;->A1E` and five more renders, and the footer's
- * `LX/09Ce;->A00`), each reading it through `MobileConfigUnsafeContext.A0H`. 587 moved it to the id
- * below, the same on both ABIs, read 2026-11-12 by nine methods again (arm64 `LX/0Hgy;->render`,
- * `LX/0HFH;->render`, `LX/0Pb1;->A19` and five more renders, and the footer's `LX/094a;->A00`; v7's
- * footer is `LX/094N;->A00`), found as the one config whose string seven `Color.parseColor` calls parse.
+ * `LX/09Ce;->A00`), each reading it through `MobileConfigUnsafeContext.A0H`. 587 had it at
+ * `0x1030725000203a4`, read by nine methods again. 588 moved it to the id below, the same on both
+ * ABIs, read 2026-11-18 by eight renders (arm64 `LX/08oV;->render`, `LX/0R9e;->render`,
+ * `LX/0RKt;->A1B` and five more) and the footer's `LX/082r;->A00` (v7's is `LX/082u;->A00`), each
+ * through a static helper (`LX/01BP;->A0z`) that casts the config and asks it. It's the one config
+ * whose string seven `Color.parseColor` calls parse.
  */
-internal const val LINK_BOX_COLOUR_CONFIG = 0x1030725000203a4L
+internal const val LINK_BOX_COLOUR_CONFIG = 0x103071f000203a2L
 
 /**
  * Every id the declared builds give the link box's colour config. Only declared builds' ids belong

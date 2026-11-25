@@ -4,6 +4,8 @@
  */
 package app.morphe.extension.facebook.feed;
 
+import android.graphics.drawable.Drawable;
+
 import app.morphe.extension.facebook.settings.FamilyNames;
 import app.morphe.extension.facebook.settings.Settings;
 import app.morphe.extension.shared.Logger;
@@ -414,6 +416,18 @@ public final class PostPrompts {
     }
 
     /**
+     * The hook the patch puts at the start of the stacked faces' draw, handed the faces themselves
+     * and whether they belong to a comment. Each surface answers to its own Hide switch as {@link
+     * #hideReactionPreview(boolean)} does, and a post's faces that switch keeps are then offered to
+     * Show reactions on the Like button, which holds them back while the row's Like button draws them
+     * (#541).
+     */
+    public static boolean hideReactionPreview(Drawable facepile, boolean comment) {
+        if (hideReactionPreview(comment)) return true;
+        return !comment && LikeButtonFaces.movedFrom(facepile);
+    }
+
+    /**
      * The hook, just before the reaction summary beside a post's buttons is built, handed its text:
      * the count next to the faces in Facebook's inline layout ("56"), or "Name and 55 others" in the
      * other one. With the post switch on it answers null, the text Facebook itself builds the
@@ -436,6 +450,64 @@ public final class PostPrompts {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "reaction count", failure);
             return text;
+        }
+    }
+
+    private static volatile boolean bubblesLogged;
+
+    /** Counted under the patch's name each time the friend bubbles over a post's media are left out. */
+    static final String BUBBLES_HIDDEN = "Friend reaction bubbles kept out";
+
+    /**
+     * The hook, first thing in the render of the bubble row Facebook lays over a post's photo or
+     * video: each friend who reacted, as their picture with their reaction on it (#483). True makes
+     * the render answer null, its own answer for a post with no bubbles, so nothing is drawn over the
+     * media. False, which is the answer while the switch is off, paused, before the settings are
+     * ready or when anything here fails, lets Facebook draw the row.
+     */
+    public static boolean hideReactionBubbles() {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!Utils.settingsReady() || !Settings.HIDE_REACTION_BUBBLES.get()) return false;
+            HookStatus.bound(FAMILY, "reaction bubbles");
+            HookStatus.counted(FAMILY, BUBBLES_HIDDEN);
+            if (!bubblesLogged) {
+                bubblesLogged = true;
+                Logger.printDebug(() -> "Post prompts: a post's friend reaction bubbles were left out");
+            }
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "reaction bubbles", failure);
+            return false;
+        }
+    }
+
+    private static volatile boolean reactorsLogged;
+
+    /** Counted under the patch's name each time the line naming who reacted to a post is left out. */
+    static final String REACTORS_HIDDEN = "Names of who reacted kept out";
+
+    /**
+     * The hook, first thing in the two checks the bar under a post's buttons uses to decide whether
+     * to name who reacted: the short "Name and others reacted" line and the "Name and 20 others"
+     * sentence (#483). True makes the check answer no, so the bar leaves that line out and keeps
+     * whatever else it shows. False, which is the answer while the switch is off, paused, before the
+     * settings are ready or when anything here fails, lets Facebook decide.
+     */
+    public static boolean hideReactorNames() {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (!Utils.settingsReady() || !Settings.HIDE_REACTOR_NAMES.get()) return false;
+            HookStatus.bound(FAMILY, "who reacted");
+            HookStatus.counted(FAMILY, REACTORS_HIDDEN);
+            if (!reactorsLogged) {
+                reactorsLogged = true;
+                Logger.printDebug(() -> "Post prompts: the line naming who reacted to a post was left out");
+            }
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "who reacted", failure);
+            return false;
         }
     }
 }

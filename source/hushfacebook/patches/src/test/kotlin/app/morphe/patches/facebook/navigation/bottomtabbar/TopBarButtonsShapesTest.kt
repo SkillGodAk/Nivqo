@@ -8,6 +8,8 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -326,6 +328,63 @@ class TopBarButtonsShapesTest {
         assertTrue(refused, "doesn't come from the hook on every way in" in refused)
     }
 
+    /** 588's Android 9+ render: the key and the count go to the badge through copies handed to a static. */
+    private fun outlined(count: String = "move v5, v3") = method(
+        """
+            iget-object v0, p0, Lfixture/Spec;->A0F:Ljava/lang/String;
+            iget-object v1, p0, Lfixture/Spec;->A09:$keyType
+            iget-object v2, p0, Lfixture/Spec;->A10:$store
+            invoke-interface { v2, v1 }, $store->Ccp($keyType)I
+            move-result v3
+            iget-object v4, p0, Lfixture/Spec;->A11:Landroid/content/res/Resources;
+            const/4 v5, 0x0
+            invoke-virtual { v4, v5, v3, v5 }, Landroid/content/res/Resources;->getQuantityString(II[Ljava/lang/Object;)Ljava/lang/String;
+            move-object v4, v1
+            $count
+            invoke-static { v4, v5 }, Lfixture/Bar;->A0G(${keyType}I)V
+            return-void
+        """,
+        registers = 7,
+    )
+
+    /** The static 588's Android 9+ build makes the badge in (LX/0Di9;->A0G): key in p0, count in p1. */
+    private fun maker(more: String = "") = MutableMethod(
+        ImmutableMethod(
+            "Lfixture/Bar;", "A0G", listOf(keyType, "I").map { ImmutableMethodParameter(it, null, null) }, "V",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value,
+            null, null, ImmutableMethodImplementation(4, emptyList(), null, null),
+        ),
+    ).apply {
+        addInstructionsWithLabels(
+            0,
+            """
+                new-instance v0, $badge
+                move-object v1, p0
+                invoke-direct { v0, v1, p1 }, $badge-><init>(${keyType}I)V
+                $more
+                return-void
+            """.trimIndent(),
+        )
+    }
+
+    private fun resolving(maker: Method): (MethodReference) -> Method? =
+        { call -> maker.takeIf { call.definingClass == it.definingClass && call.name == it.name } }
+
+    @Test
+    fun `a badge a static makes from copies of the key and the answer is the badge`() {
+        val site = specCountSites(outlined(), name, resolving(maker())).single()
+        assertEquals(listOf(4, 0, 3, 1), listOf(site.read, site.name, site.count, site.key))
+        assertEquals(badge, site.badge)
+        assertEquals("Lfixture/Bar;->A0G(${keyType}I)V", site.maker)
+        // Negative controls: the static unread, the key used again in it, and a count that isn't the answer's copy.
+        val unread = reason { specCountSites(outlined(), name) }
+        assertTrue(unread, "to one badge's constructor alone" in unread)
+        val reused = reason { specCountSites(outlined(), name, resolving(maker("invoke-static { p0 }, Lfixture/Other;->use($keyType)V"))) }
+        assertTrue(reused, "to one badge's constructor alone" in reused)
+        val other = reason { specCountSites(outlined(count = "const/4 v5, 0x2"), name, resolving(maker())) }
+        assertTrue(other, "doesn't come from the hook on every way in" in other)
+    }
+
     @Test
     fun `a worded count whose name can change refuses`() {
         val renamed = reason {
@@ -379,6 +438,48 @@ class TopBarButtonsShapesTest {
         """,
         parameters = listOf("Lfixture/Spec;"),
     )
+
+    /** 588's label helper: reads [plural] and words the label with [quantity] as the quantity. */
+    private fun labelHelper(plural: String, quantity: String = "p2") = method(
+        """
+            $plural
+            const/4 v0, 0x0
+            invoke-virtual { v0, v0, $quantity, v0 }, Landroid/content/res/Resources;->getQuantityString(II[Ljava/lang/Object;)Ljava/lang/String;
+            return-void
+        """,
+        parameters = listOf("Lfixture/Spec;", "I"),
+    )
+
+    /** 588's count observer: hands the helper the spec in p1 and the count in v0. */
+    private fun labelHelperCaller() = method(
+        """
+            const/4 v0, 0x1
+            invoke-static { p1, v0 }, Lfixture/BadgeListener;->A06(Lfixture/Spec;I)Ljava/lang/String;
+            move-result-object v1
+            return-void
+        """,
+        parameters = listOf("Lfixture/Spec;"),
+    )
+
+    private val helperPlural = "iget-object v1, p1, Lfixture/Spec;->A0B:Ljava/lang/Integer;"
+
+    @Test
+    fun `a label worder can read the spec's plural in the helper wording its label`() {
+        fun reads(helper: Method?) = readsSpecPlural(labelHelperCaller(), "Lfixture/Spec;") { helper }
+        assertTrue(reads(labelHelper(helperPlural)))
+        assertTrue("no helper found", !reads(null))
+        assertTrue("another class's plural", !reads(labelHelper("iget-object v1, p0, Lfixture/BadgeListener;->A0B:Ljava/lang/Integer;")))
+        assertTrue("a quantity that isn't its parameter", !reads(labelHelper(helperPlural, quantity = "v0")))
+    }
+
+    @Test
+    fun `a helper words a label only from the argument it takes its quantity from`() {
+        val call = labelHelperCaller().implementation!!.instructions.toList()[1]
+        val helper = labelHelper(helperPlural)
+        assertTrue("the count", wordsLabelFrom(call, 0) { helper })
+        assertTrue("the spec's register", !wordsLabelFrom(call, 5) { helper })
+        assertTrue("no helper found", !wordsLabelFrom(call, 0) { null })
+    }
 
     @Test
     fun `a label worder reading the spec's plural counts`() {

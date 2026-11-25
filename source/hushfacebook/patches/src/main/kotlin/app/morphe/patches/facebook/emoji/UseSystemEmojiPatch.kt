@@ -8,7 +8,7 @@ import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
@@ -16,6 +16,7 @@ import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.executeBytecode
 import app.morphe.util.findMutableMethodOf
 
 internal const val PATCH = "Use the phone's emoji"
@@ -40,18 +41,18 @@ internal const val SKIP_REMOTE_EMOJI = "$EXTENSION_PACKAGE/emoji/SystemEmoji;->s
  * Noto font and which only fills in an emoji the phone's font doesn't have.
  */
 @Suppress("unused")
-val useSystemEmojiPatch = bytecodePatch(
+val useSystemEmojiPatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Use the phone's emoji",
     description = "Draws emoji with your phone's own emoji font instead of Meta's, so emoji in posts, comments " +
         "and chats match your keyboard. Reactions and stickers stay as they are. Starts off. Turn it on in " +
-        "Hushfacebook settings > Appearance, then restart Facebook.",
+        "Hushfacebook settings > Appearance, where you can also pick an emoji font file, then restart Facebook.",
 ) {
     category("Theme")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         val providers = classDefByStrings(FORCE_SYSTEM_EMOJI_FONT, StringComparisonType.EQUALS)
             .filterNot { it.type.startsWith(EXTENSION_ROOT) }
             .flatMap { owner -> owner.methods.filter(::isEmojiTypefaceProvider) }

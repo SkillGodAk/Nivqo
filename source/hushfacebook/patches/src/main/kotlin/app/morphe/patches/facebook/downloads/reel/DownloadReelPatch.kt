@@ -8,6 +8,7 @@
 package app.morphe.patches.facebook.downloads.reel
 
 import app.morphe.patcher.StringComparisonType
+import app.morphe.patcher.patch.patch
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.feed.holdsString
 import app.morphe.patches.facebook.feed.refresh.enumConstant
@@ -32,12 +33,12 @@ import app.morphe.patches.facebook.misc.extension.requireParameterIntact
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.util.ControlFlow
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import app.morphe.util.singleOrPatchException
 import app.morphe.util.findMutableMethodOf
 import app.morphe.util.readsAfter
@@ -176,7 +177,7 @@ internal const val VERTICAL_UFI = "$HANDLER->verticalUfi(Z)Z"
  * reads a shared place saves the wrong one.
  */
 @Suppress("unused")
-val downloadReelPatch = bytecodePatch(
+val downloadReelPatch = patch(
     name = "Download any reel",
     description = "Adds a Download button beside every reel and a Download row to its More menu, so you can keep " +
         "reels on your phone. Videos save at the quality you set, best by default. The More menu also gets Copy " +
@@ -189,7 +190,7 @@ val downloadReelPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.facebook())
     dependsOn(facebookExtensionPatch)
 
-    execute {
+    executeBytecode {
         // ---- the Kotlin type the handler runs on ------------------------------------------------
         //
         // The handler is a Java class implementing Function1, and the extension carries no Kotlin
@@ -323,7 +324,6 @@ val downloadReelPatch = bytecodePatch(
         }
 
         val modeType = parameters[1]
-        val primaryType = parameters[2]
         val labelType = parameters[layout.label]
         val iconType = parameters[layout.icon]
 
@@ -442,7 +442,6 @@ val downloadReelPatch = bytecodePatch(
                 icon = icon,
                 iconWrapperClass = iconWrapper.definingClass,
                 iconEnumType = iconEnumType,
-                primaryType = primaryType,
                 labelType = labelType,
                 scopedType = scopedType,
                 contextField = contextField.name,
@@ -530,6 +529,13 @@ val downloadReelPatch = bytecodePatch(
         check(playerParameter != null || parking != null) { "The player of the item is not parked in $sidebarName" }
 
         val playerRegister = parking?.second ?: sidebar.parameterRegisterNumber(playerParameter!!)
+        // 588's Android 9 builder copies the player parameter to a local and later writes over the
+        // parameter in its button loop (LX/09wQ;->A01 copies v80 to v31 at 172, writes v80 at 413 and
+        // 416, and leaves the loop for the assembly's run at 472), so each copy is a second place the
+        // block may read it from ([playerHeldAt]).
+        val playerCopies = if (playerParameter == null) emptyList() else instructions.withIndex().filter { (_, instruction) ->
+            instruction.opcode in PLAYER_COPIES && (instruction as TwoRegisterInstruction).registerB == playerRegister
+        }.map { (index, instruction) -> index to (instruction as TwoRegisterInstruction).registerA }
 
         // The reel's own story is the props the sidebar was built from, and the assembly call
         // receives it too: the one argument, besides the session, whose type is also the type of
@@ -566,6 +572,7 @@ val downloadReelPatch = bytecodePatch(
             player = playerRegister,
             parkedAt = parking?.first,
             playerParameter = playerParameter,
+            playerCopies = playerCopies,
         )
 
         // The switch is asked first, every time a reel's sidebar is built. Off, paused, or before the
@@ -593,7 +600,7 @@ val downloadReelPatch = bytecodePatch(
         // while the button is on. The block's scratch registers include the flag's (v8 on 585), but
         // the block comes after the flag's one branch, where the flag is dead.
         try {
-            hookSidebarLayout(component.findMutableMethodOf(render), VERTICAL_UFI)
+            hookSidebarLayout(sidebarLayoutMethod(component.findMutableMethodOf(render), sidebar), VERTICAL_UFI)
         } catch (exception: PatchException) {
             patchLog.warning("${exception.message}, so reels Facebook draws with its older button layout keep Facebook's own buttons.")
         }
@@ -751,7 +758,8 @@ internal class SidebarBlockPlace(
  *
  * At that instruction each of the call's arguments the block reads ([argumentAt]) has to be
  * what the call gets, the player has to be what the builder parked in [player] ([requireParkedAt])
- * or the parameter it came in as, and six consecutive locals have to exist that nothing reads
+ * or the parameter it came in as, or one of [playerCopies] of it ([playerHeldAt]), and six
+ * consecutive locals have to exist that nothing reads
  * again and the block doesn't read either. A run for the block's own writes is needed because
  * 585's render holds a constant in v0 and the scoped context in v2 to the end, so no fixed
  * scratch registers are ever free there. The block never goes between a call and the instruction
@@ -767,6 +775,7 @@ internal fun Method.sidebarBlockPlace(
     player: Int,
     parkedAt: Int?,
     playerParameter: Int?,
+    playerCopies: List<Pair<Int, Int>> = emptyList(),
 ): SidebarBlockPlace {
     val code = implementation!!.instructions.toList()
     val locals = localRegisterCount()
@@ -776,8 +785,8 @@ internal fun Method.sidebarBlockPlace(
         try {
             val held = listOf(session, scoped, story, buttons, markers).map { argumentAt(index, assemblyIndex, it) }
             parkedAt?.let { requireParkedAt("$PATCH: the player", player, it, index) }
-            playerParameter?.let { requireParameterIntact("$PATCH: the player", it, listOf(index)) }
-            val reads = held + player
+            val playerAt = playerParameter?.let { playerHeldAt("$PATCH: the player", it, playerCopies, index) } ?: player
+            val reads = held + playerAt
             val live = liveAcrossInjection(index)
             // The block writes its six locals as 8-bit destinations (move-result, if-eqz,
             // move-object/from16), so the run has to end at v255 even in a bigger frame.
@@ -787,7 +796,7 @@ internal fun Method.sidebarBlockPlace(
                 "$PATCH: $definingClass->$name has no $SIDEBAR_BLOCK_ARGUMENTS consecutive locals at or below v255 " +
                     "that nothing reads after instruction $index",
             )
-            return SidebarBlockPlace(index, held[0], held[1], player, held[2], held[3], held[4], scratch)
+            return SidebarBlockPlace(index, held[0], held[1], playerAt, held[2], held[3], held[4], scratch)
         } catch (exception: PatchException) {
             refusals += "instruction $index: ${exception.message}"
         }
@@ -864,6 +873,33 @@ internal fun Method.requireParkedAt(what: String, register: Int, parkedAt: Int, 
                 "$parkedAt parks in v$register (it also writes v$register at ${writes.joinToString().ifEmpty { "no other instruction" }})",
         )
     }
+}
+
+/** The object moves a builder copies its player parameter to a local with. */
+private val PLAYER_COPIES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+/**
+ * The register holding declared parameter [parameter] at instruction [index]: its own, while nothing
+ * has written over it ([requireParameterIntact]), or else the first of [copies] (where a move copies
+ * it, the register it fills) made while the parameter was intact and parked there since
+ * ([requireParkedAt]). Throws the parameter's own refusal, naming [what], when neither holds.
+ */
+internal fun Method.playerHeldAt(what: String, parameter: Int, copies: List<Pair<Int, Int>>, index: Int): Int {
+    val refusal = try {
+        requireParameterIntact(what, parameter, listOf(index))
+        return parameterRegisterNumber(parameter)
+    } catch (exception: PatchException) {
+        exception
+    }
+    return copies.firstOrNull { (copiedAt, copy) ->
+        try {
+            requireParameterIntact(what, parameter, listOf(copiedAt))
+            requireParkedAt(what, copy, copiedAt, index)
+            true
+        } catch (_: PatchException) {
+            false
+        }
+    }?.second ?: throw refusal
 }
 
 /**
@@ -983,6 +1019,20 @@ internal fun BytecodePatchContext.hookSidebarLayout(render: MutableMethod, hook:
             move-result v${branch.register}
         """,
     )
+}
+
+/**
+ * Which of the side column's [render] and its [builder] reads the button layout's flag through
+ * [verticalUfiReader], so [hookSidebarLayout] goes there. 585's Android 9 build reads it in the render
+ * (LX/0B9q;->A15), 588's in the builder the render only hands its fields to (LX/09wQ;->A01, 184 to
+ * 193, called from LX/09wP;->A1A). The render when it reads the flag, or when neither does, so a
+ * refusal names it.
+ */
+internal fun <T : Method> BytecodePatchContext.sidebarLayoutMethod(render: T, builder: T): T {
+    if (render === builder) return render
+    val reader = verticalUfiReader().toString()
+    fun reads(method: Method) = method.instructions().any { it.methodReference()?.toString() == reader }
+    return if (!reads(render) && reads(builder)) builder else render
 }
 
 /** Where the render's layout flag is settled: the instruction both its writes run into, and its register. */
@@ -1121,7 +1171,9 @@ $it
  * arguments and an `iget` both take **4-bit** registers, so everything they touch has to sit in
  * `v0` to `v15`. The factory takes nineteen to twenty-one arguments, and thus needs as many
  * **consecutive** registers, so its block sits high at `v40` and each value is moved up once it is
- * built. 586's second accessibility action gets the same action as the first.
+ * built. The accessibility actions (two since 586) go in as null, as Facebook's own sidebar button
+ * passes them: an action makes the button long-clickable, and its long press opened an empty gray
+ * pop-up (#518).
  * `new-instance` and `const-string` take 8-bit registers, so those can write high directly.
  *
  * The six parameters are the session, the scoped context, the player, the reel's story and the
@@ -1138,7 +1190,6 @@ private fun buildButton(
     icon: String,
     iconWrapperClass: String,
     iconEnumType: String,
-    primaryType: String,
     labelType: String,
     scopedType: String,
     contextField: String,
@@ -1167,8 +1218,7 @@ ${handlers(hdField, sdField, manifestField, kind)}
         invoke-static { }, $label
         move-result-object v1
 
-        new-instance v2, $primaryType
-        invoke-direct { v2, v1, v8 }, $primaryType-><init>(Ljava/lang/String;$FUNCTION1)V
+        const/4 v2, 0x0
         move-object/from16 v42, v2
 ${(1..shift).joinToString("") { "        move-object/from16 v${42 + it}, v2\n" }}
         new-instance v2, $labelType
@@ -1226,15 +1276,15 @@ private fun trailingBooleanArguments(count: Int, first: Int): String =
     }
 
 /**
- * One handler for each slot the factory takes, each knowing which slot it is.
+ * One handler for each slot the factory takes past its accessibility actions, each knowing which
+ * slot it is. The actions (slot 0) stay null, as in Facebook's own button (#518).
  *
- * Only the tap slot saves. The others are still given a handler rather than null, because the
- * factory is not documented to accept null, and a handler that returns without a word costs
- * nothing. Each gets the player (v4), the context (v5) and the reel's story (v3), and the [kind] of
+ * Only the tap slot saves. The others are still given a handler, which returns without a word,
+ * and the touch slot's carries a long press on the button (#41, #449). Each gets the player (v4), the context (v5) and the reel's story (v3), and the [kind] of
  * button it belongs to: the Cast button's tap casts and the Clean mode button's hides the sidebar
  * instead of saving.
  */
-private fun handlers(hd: String, sd: String, manifest: String, kind: Int) = (0..6).joinToString("\n") { slot ->
+private fun handlers(hd: String, sd: String, manifest: String, kind: Int) = (1..6).joinToString("\n") { slot ->
     val saves = if (slot == TAP_SLOT) 1 else 0
 
     """
@@ -1265,11 +1315,30 @@ private fun handlers(hd: String, sd: String, manifest: String, kind: Int) = (0..
  * LX/0B7h;->A17) but moves the factory two calls away, into per-button classes, so the render
  * itself neither calls it nor a sibling that does. What it still does is name the sidebar and hand
  * the buttons, markers and story to the assembly call ([sidebarAssemblyIndex]), which no other
- * method naming the sidebar does. [siblings] are the methods of [method]'s class.
+ * method naming the sidebar does. 588's Android 9+ build (#102) folds those per-button classes into
+ * one static of the render's class (LX/09wQ;->A00), which names the sidebar and calls the factory
+ * itself, and the render (LX/09wQ;->A01) calls it at 281 and 358 and still assembles; so a method a
+ * sibling assembling the sidebar calls is that sibling's button maker, not the builder. [siblings]
+ * are the methods of [method]'s class.
  */
 internal fun isSidebarBuilder(method: Method, siblings: Iterable<Method>): Boolean =
-    method.instructions().any { it.stringReference() == SIDEBAR } &&
-        (sidebarAssemblyIndex(method.instructions()) >= 0 || buttonFactoryCallers(method, siblings).isNotEmpty())
+    namesSidebar(method) &&
+        (sidebarAssemblyIndex(method.instructions()) >= 0 || buttonFactoryCallers(method, siblings).isNotEmpty()) &&
+        siblings.none { outer -> outer.isNot(method) && namesSidebar(outer) && sidebarAssemblyIndex(outer.instructions()) >= 0 && outer.calls(method) }
+
+private fun namesSidebar(method: Method) = method.instructions().any { it.stringReference() == SIDEBAR }
+
+private fun Method.isNot(other: Method) =
+    name != other.name || returnType != other.returnType ||
+        parameterTypes.map(CharSequence::toString) != other.parameterTypes.map(CharSequence::toString)
+
+/** Whether [callee], a method of this one's class, is called from this one. */
+private fun Method.calls(callee: Method) = instructions().any { instruction ->
+    instruction.methodReference()?.let { call ->
+        call.definingClass == callee.definingClass && call.name == callee.name && call.returnType == callee.returnType &&
+            call.parameterTypes.map(CharSequence::toString) == callee.parameterTypes.map(CharSequence::toString)
+    } == true
+}
 
 /**
  * The index of the call that assembles the sidebar from its lists: the first call in [code] with

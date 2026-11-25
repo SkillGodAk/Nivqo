@@ -86,7 +86,7 @@ The settings file was saved, but it doesn't match what Hushfacebook wrote. Save 
 There's no app here that can open or share this saved file.	Nenhum app pode abrir ou compartilhar este arquivo salvo.
 # context: line at the top of a settings page while paused; Lock Facebook keeps working while paused
 Until you resume, every switch but Debug logging and Lock Facebook acts as if it were off. Changes made when you patched stay in.	Até você retomar, todas as opções, menos o Registro de depuração e “Bloquear o Facebook”, funcionam como se estivessem desligadas. O que foi definido ao aplicar os patches continua ativo.
-Shows your phone's own emoji instead of Facebook's. Reactions and stickers don't change. Restart Facebook to see the change.	Mostra os emojis do próprio celular em vez dos do Facebook. Reações e figurinhas não mudam. Reinicie o Facebook para ver a mudança.
+Shows your phone's own emoji instead of Facebook's, or the ones in a font file you choose below. Reactions and stickers don't change. Restart Facebook to see the change.	Mostra os emojis do próprio celular em vez dos do Facebook, ou os de um arquivo de fonte que você escolher abaixo. Reações e figurinhas não mudam. Reinicie o Facebook para ver a mudança.
 # context: switch title under Appearance; the tab bar is Facebook's row of tabs, Home, Video, Marketplace and the rest
 Tab bar at the bottom	Barra de abas embaixo
 # context: switch title under Appearance, next to Tab bar at the bottom; puts Facebook's row of tabs at the top of the screen
@@ -424,7 +424,7 @@ Leave calls and chats to Messenger	Deixar chamadas e conversas com o Messenger
 Facebook leaves calls and chat notifications to Messenger while Messenger is installed and enabled. Restart Facebook after changing this switch, or after installing, removing, enabling or disabling Messenger, so call routing updates. If you're signed out of Messenger, you'll miss calls and messages.	O Facebook deixa as chamadas e notificações de conversas para o Messenger enquanto ele estiver instalado e ativado. Reinicie o Facebook depois de mudar este botão ou de instalar, remover, ativar ou desativar o Messenger para atualizar o encaminhamento de chamadas. Se você estiver desconectado do Messenger, vai perder chamadas e mensagens.
 Playback	Reprodução
 Tap to play	Tocar para reproduzir
-Videos, reels, stories and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	Vídeos, reels, stories e músicas esperam o seu toque, em vez de tocar sozinhos. A configuração Reprodução automática do próprio Facebook mostra Desativada enquanto isto estiver ligado.
+Videos, reels and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	Vídeos, reels e músicas esperam o seu toque, em vez de tocar sozinhos. A configuração Reprodução automática do próprio Facebook mostra Desativada enquanto isto estiver ligado.
 Marketplace only	Só Marketplace
 # context: switch title under Opening Facebook, next to Marketplace only; Events is Facebook's tab and keeps its name
 Events only	Só Eventos
@@ -476,6 +476,10 @@ The comment box loses its GIF and sticker buttons. Typing, photos and posting wo
 # context: switch title under Comments: hides the Add a comment field at the bottom of the full-screen video viewer
 Hide the video comment box	Ocultar a caixa de comentário dos vídeos
 The Add a comment box under a full-screen video goes away. Comment boxes on posts stay.	A caixa para comentar embaixo de um vídeo em tela cheia some. As caixas de comentário nas publicações continuam.
+# context: switch title under Comments; the bar along the bottom of a live video holds its comment box and the reactions you tap to send
+Hide the live video comment bar	Ocultar a barra de comentários em vídeos ao vivo
+# context: description of that switch; the reactions are the Like, Love, Haha and other faces a tap sends to the live video
+The comment box and the row of reactions along the bottom of a live video go away, so a stray tap can't send one. The live comments stay.	A caixa de comentário e a fileira de reações na parte de baixo de um vídeo ao vivo somem, para que um toque sem querer não envie uma. Os comentários ao vivo continuam.
 # context: switch title under Comments; a reply thread is the replies under a comment, which Facebook folds behind View replies
 Open every reply thread	Abrir todas as respostas
 # context: summary of that switch; View replies is the link Facebook shows under a comment that has replies
@@ -534,6 +538,10 @@ Hide Share under posts	Ocultar Compartilhar abaixo das publicações
 Hide Send under posts	Ocultar Enviar abaixo das publicações
 # context: summary shared by those five switches
 Takes this button out of the row under posts in the feed. The other buttons stay, and a post with all of its buttons hidden shows no row.	Tira este botão da linha abaixo das publicações no feed. Os outros botões ficam, e uma publicação com todos os botões ocultos não mostra a linha.
+# context: switch title under News feed; the buttons are Like, Comment, Share and the others in the row under a post
+Ignore taps beside the buttons	Ignorar toques ao lado dos botões
+# context: description of that switch; the reaction icons are the small stacked emoji at the end of that row, and who reacted is the list of people who reacted
+A tap on the empty part of the row under a post, between the buttons and the reaction icons, does nothing instead of opening the comments or who reacted. The buttons work as before.	Um toque na parte vazia da linha abaixo de uma publicação, entre os botões e os ícones de reação, não faz nada em vez de abrir os comentários ou quem reagiu. Os botões funcionam como antes.
 Hushfacebook settings can't open here. Long-press the Facebook logo instead.	As configurações do Hushfacebook não podem ser abertas aqui. Toque e segure o logotipo do Facebook.
 Hide suggested groups	Ocultar grupos sugeridos
 Hides the row of groups to join between posts. Posts from groups you're in stay.	Oculta a fileira de grupos para participar entre as publicações. As publicações dos grupos dos quais você participa continuam.
@@ -1244,6 +1252,8 @@ Save photo	Salvar foto
 Save video	Salvar vídeo
 # context: menu item in a post's three-dot menu that saves every photo of a post with several photos
 Save all photos	Salvar todas as fotos
+# context: menu item in a post's three-dot menu that saves every video of a post with several videos
+Save all videos	Salvar todos os vídeos
 # context: short message shown when the photos of a post could not start saving
 Couldn't save this post's photos. Try again in a moment.	Não foi possível salvar as fotos desta publicação. Tente de novo em instantes.
 # context: row in a comment's long-press sheet that saves the GIF the comment holds; keep it short like Save photo
@@ -1544,7 +1554,7 @@ Facebook hasn't downloaded this screen to this phone, so a tap opens the Whiteha
 # context: toast when the Facebook version has no such screen
 This Facebook build has no Whitehat settings screen.	Esta versão do Facebook não tem a tela de configurações do Whitehat.
 Only the first reel waits	Só o primeiro reel espera
-With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed, Watch and stories always wait.	Com o botão acima ligado, depois que você toca um reel, os reels para os quais você desliza tocam sozinhos. O feed, o Watch e os stories sempre esperam.
+With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed and Watch always wait.	Com o botão acima ligado, depois que você toca um reel, os reels para os quais você desliza tocam sozinhos. O feed e o Watch sempre esperam.
 Slower speeds	Velocidades mais lentas
 Adds 0.1x and 0.25x to the speed menu of reels and of feed and Watch videos, for slowing down a fast moment.	Adiciona 0,1x e 0,25x ao menu de velocidade dos reels e dos vídeos do feed e do Watch, para desacelerar um momento rápido.
 Faster speeds	Velocidades mais rápidas
@@ -1735,8 +1745,10 @@ Picture-in-picture button	Botão de picture-in-picture
 Shows a small button at the left edge of a reel or video that has the window ready. Tap it to open the window right away. Works with Picture-in-picture on.	Mostra um botão pequeno na borda esquerda de um reel ou vídeo que tem a janela pronta. Toque nele para abrir a janela na hora. Funciona com Picture-in-picture ativado.
 # context: switch title under Playback; on, a video you started keeps its sound after you leave Facebook; also the label of a headphones button in the picture-in-picture window
 Keep playing in the background	Continuar tocando em segundo plano
+Next reel in the background	Próximo reel em segundo plano
+When a reel playing in the background ends, the next reel plays instead of the same one again. It goes through the reels Reels had loaded when you left. Works with Keep playing in the background on.	Quando um reel tocando em segundo plano termina, o próximo reel toca em vez do mesmo de novo. Ele passa pelos reels que o Reels tinha carregado quando você saiu. Funciona com Continuar tocando em segundo plano ativado.
 # context: summary of that switch; the notification is the one Facebook shows with the video's play and pause buttons
-A video you started with a tap keeps its sound after you leave Facebook, and its notification can pause it. Swiping the notification away or taking a call stops it.	Um vídeo que você começou com um toque continua com som depois que você sai do Facebook, e a notificação dele pode pausá-lo. Arrastar a notificação para fora ou atender uma ligação interrompe o vídeo.
+A video you started with a tap, or a reel you swiped to in Reels, keeps its sound after you leave Facebook, and its notification can pause it. Swiping the notification away or taking a call stops it.	Um vídeo que você começou com um toque, ou um reel a que você chegou deslizando no Reels, continua com som depois que você sai do Facebook, e a notificação dele pode pausá-lo. Arrastar a notificação para fora ou atender uma ligação interrompe o vídeo.
 # context: title of that notification when the video has none of its own
 Facebook video	Vídeo do Facebook
 # context: switch title under Playback; on, the small picture-in-picture window gets a headphones button that keeps the sound playing after the window closes
@@ -1846,6 +1858,10 @@ Puts the speaker button in the side column of reels, right above the three dots.
 Hide the reaction preview on posts	Ocultar a prévia de reações nas publicações
 # context: summary of that switch; "reactions" are Facebook's Like, Love, Haha and other reactions
 Hides the stacked reaction icons and the reactions count under posts. The space stays, so a tap where they were still opens the list of reactions. To take the number off the Like button too, turn on Hide counts on posts.	Oculta os ícones de reação empilhados e a contagem de reações abaixo das publicações. O espaço continua lá, então tocar onde eles estavam ainda abre a lista de reações. Para tirar também o número do botão Curtir, ative Ocultar os números nas publicações.
+# context: switch title under News feed; the reactions are the small stacked reaction icons (Like, Love, Haha) a post shows next to its count; the Like button is the button under a post, use Facebook's name for it
+Show reactions on the Like button	Mostrar as reações no botão Curtir
+# context: summary of that switch; the faces are those reaction icons; "Hide the reaction preview on posts" is another switch, match its own row
+Moves a post's reaction faces from the end of its button row onto the Like button, right before the count. The Like button likes and reacts as before. A video showing its views there gets one Like face, or your own reaction once you react. Hide the reaction preview on posts overrules it. A change shows on the posts drawn after it.	Move os ícones de reação de uma publicação do fim da fileira de botões para o botão Curtir, logo antes do número. O botão Curtir continua curtindo e reagindo como antes. Um vídeo que mostra ali as visualizações ganha um ícone de Curtir, ou a sua própria reação quando você reage. Ocultar a prévia de reações nas publicações tem prioridade. Uma mudança aparece nas publicações exibidas depois dela.
 # context: switch title under Comments; the reaction preview is the stack of reaction icons in the corner of a comment
 Hide the reaction preview on comments	Ocultar a prévia de reações nos comentários
 # context: summary of that switch; "reactions" are Facebook's Like, Love, Haha and other reactions
@@ -1946,6 +1962,8 @@ Comments will open where Facebook stops them.	Os comentários vão abrir onde o 
 Hide the status bar	Ocultar a barra de status
 # context: summary of that switch; a swipe down from the top edge shows the bar briefly
 Takes the phone's status bar, with the time and battery, off Facebook's main screen, so the app gets the whole screen. Swipe down from the top edge to see it for a moment.	Tira a barra de status do celular, com a hora e a bateria, da tela principal do Facebook, para que o app use a tela inteira. Deslize para baixo a partir da borda de cima para vê-la por um momento.
+Center the feed on big screens	Centralizar o feed em telas grandes
+On a tablet or an unfolded phone, the feed and Facebook's other lists stay in a column down the middle of the screen instead of stretching from edge to edge. Reels keep the whole screen.	Em um tablet ou um celular dobrável aberto, o feed e as outras listas do Facebook ficam em uma coluna no meio da tela, em vez de se esticarem de uma borda à outra. Os reels continuam com a tela inteira.
 # context: switch title under Reels and Watch; on, a video tapped in the news feed opens alone in the full-screen player instead of leading into endless reels
 Open feed videos on their own	Abrir vídeos do feed sozinhos
 # context: summary of that switch; the Reels tab itself still scrolls normally
@@ -2232,7 +2250,11 @@ Moves a feed video's seek bar closer to the bottom edge, along with Facebook's s
 Seek bar on the bottom edge	Barra de progresso na borda de baixo
 Puts a feed video's seek bar right on its bottom edge, so it's out of the way while you scroll. Facebook's speaker and tagged people buttons move up to sit above it. Wins over Lower the seek bar and speaker. Needs Seek bar on feed videos on.	Coloca a barra de progresso de um vídeo do feed bem na borda de baixo, para não atrapalhar quando você rola. Os botões de alto-falante e de pessoas marcadas do Facebook sobem para ficar acima dela. Tem prioridade sobre “Abaixar a barra de progresso e o alto-falante”. Precisa de “Barra de progresso nos vídeos do feed” ligado.
 Thin line seek bar	Barra de progresso em linha fina
-Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot or times until you drag it. Live videos get it too while they can be rewound. Let go at the far right end to go back to live. Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.	Mostra a barra de progresso de um vídeo do feed como uma linha fina bem na borda de baixo, como a do Instagram, sem bolinha nem tempos até você arrastar. Vídeos ao vivo também ganham a linha enquanto dá para voltar neles. Solte na ponta direita para voltar ao ao vivo. Os botões de alto-falante e de pessoas marcadas do Facebook sobem para ficar acima dela. Precisa de “Barra de progresso nos vídeos do feed” ligado.
+# context: switch title on the Video and audio page, under Thin line seek bar; while the thin seek bar of a feed video is dragged it stays on the video's bottom edge
+Drag along the bottom edge	Arrastar pela borda de baixo
+# context: description of that switch; Thin line seek bar is the switch title above it, keep it as translated there
+While you drag the thin line, it stays on the video's bottom edge like Instagram's, with the time in the middle, instead of rising into the full bar with a time bubble. Needs Thin line seek bar on.	Enquanto você arrasta a linha fina, ela fica na borda de baixo do vídeo como a do Instagram, com o tempo no meio, em vez de virar a barra inteira com um balão de tempo. Precisa de “Barra de progresso em linha fina” ligado.
+Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot until you drag it. Live videos get it too while they can be rewound. Let go at the far right end to go back to live. Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.	Mostra a barra de progresso de um vídeo do feed como uma linha fina bem na borda de baixo, como a do Instagram, sem bolinha até você arrastar. Vídeos ao vivo também ganham a linha enquanto dá para voltar neles. Solte na ponta direita para voltar ao ao vivo. Os botões de alto-falante e de pessoas marcadas do Facebook sobem para ficar acima dela. Precisa de “Barra de progresso nos vídeos do feed” ligado.
 Feed video position	Posição do vídeo do feed
 # context: title of the row that holds a color code for the count badges on the tabs
 Badge color	Cor dos selos
@@ -2290,6 +2312,7 @@ Holding a post's photo opens its reactions, as holding Like does. It comes befor
 Holding a post's video opens its reactions too. It comes before Long press opens comments. With Hold a feed video for 2x on, that one wins and the video plays fast.	Segurar o vídeo de uma publicação também abre as reações dela. Isso vem antes de Pressionar e segurar abre os comentários. Com Segurar um vídeo do feed para 2x ativado, ele vence e o vídeo toca rápido.
 Reaction	Reação
 Pick one each time	Escolher toda vez
+Slide to pick one	Deslizar para escolher
 Like	Curtir
 Love	Amei
 Care	Força
@@ -2297,9 +2320,11 @@ Haha	Haha
 Wow	Uau
 Sad	Triste
 Angry	Grr
-Pick one each time. The reactions open over the post, so slide to one and let go, or let go and tap one.	Escolher toda vez. As reações abrem sobre a publicação, então deslize até uma e solte, ou solte e toque em uma.
+Pick one each time. The reactions open by your finger, so slide to one and let go, or let go and tap one. A tap anywhere else closes them.	Escolher toda vez. As reações abrem perto do seu dedo, então deslize até uma e solte, ou solte e toque em uma. Um toque em qualquer outro lugar as fecha.
+Slide to pick one. The reactions open by your finger, so slide to one and let go. Letting go anywhere else closes them.	Deslizar para escolher. As reações abrem perto do seu dedo, então deslize até uma e solte. Soltar em qualquer outro lugar as fecha.
 %1$s. Holding a post gives it straight away.	%1$s. Segurar uma publicação já dá essa reação na hora.
 Holding a post to react will open the reactions to pick from.	Segurar uma publicação para reagir vai abrir as reações para escolher.
+Holding a post to react will open the reactions to slide to one.	Segurar uma publicação para reagir vai abrir as reações para deslizar até uma.
 Holding a post to react will give %1$s.	Segurar uma publicação para reagir vai dar %1$s.
 Select text	Selecionar texto
 Done	Concluído
@@ -2501,6 +2526,14 @@ After %1$d seconds	Depois de %1$d segundos
 # context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap
 Stay dim when I tap	Continuar escurecido quando eu tocar
 Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	Depois que a Proteção contra burn-in esmaece os botões, eles continuam esmaecidos no Reels, não importa o que você toque ou deslize, inclusive no próximo reel. Eles continuam funcionando. Sair do Reels traz os botões de volta.
+# context: Reels: Burn-in guard's row for how much of the dimmed buttons, caption and bars still shows, a percent typed in
+Dim to	Escurecer até
+How much of the buttons, caption and bars still shows once they dim, in percent, from %1$s to %2$s. Leave it blank for %3$s.	Quanto dos botões, da legenda e das barras ainda aparece depois de escurecer, em porcentagem, de %1$s a %2$s. Deixe em branco para %3$s.
+Once dimmed, the buttons, caption and bars show at %1$s percent. Type a number to change it.	Escurecidos, os botões, a legenda e as barras aparecem a %1$s por cento. Digite um número para mudar.
+Once dimmed, the buttons, caption and bars show at %1$s percent.	Escurecidos, os botões, a legenda e as barras aparecem a %1$s por cento.
+# context: Reels: Burn-in guard's switch that fades the buttons out and back in slowly instead of at once
+Smooth fade	Transição suave
+The buttons, caption and bars fade out slowly as they dim and fade back in when they return, rather than changing at once.	Os botões, a legenda e as barras escurecem devagar e voltam aos poucos, em vez de mudar de uma vez.
 # context: Reels: switch that shows the Reels screen and its video in black and white
 Show Reels in gray	Mostrar Reels em cinza
 Reels and their buttons show in black and white, which makes them easier to put down. Your feed, stories, photos and chats keep their colors. It starts from the next reel, and Reels use a little more battery.	Os Reels e os botões deles aparecem em preto e branco, o que facilita largar. Seu feed, stories, fotos e conversas mantêm as cores. Começa a partir do próximo reel, e o Reels gasta um pouco mais de bateria.
@@ -2574,6 +2607,10 @@ Hide the Join button on posts	Ocultar o botão Participar nas publicações
 Hides the Join button next to the group's name on posts from groups you haven't joined, and the Join group bar under their videos. A change shows on the posts drawn after it.	Oculta o botão Participar ao lado do nome do grupo nas publicações de grupos dos quais você não participa, e a barra Participar do grupo abaixo dos vídeos deles. A mudança aparece nas publicações carregadas depois dela.
 Hide the X on posts	Ocultar o X nas publicações
 Takes the X off the top corner of posts in your feed. The three-dot menu next to it stays. A change shows on the posts drawn after it.	Tira o X do canto superior das publicações do seu feed. O menu de três pontos ao lado continua. A mudança aparece nas publicações carregadas depois dela.
+Hide friends' reactions on photos and videos	Ocultar reações de amigos em fotos e vídeos
+Takes away the friend's picture with a reaction on it that Facebook puts on a photo or video when a friend reacted. A change shows on the posts drawn after it.	Tira a foto do amigo com a reação dele que o Facebook coloca sobre uma foto ou um vídeo quando um amigo reagiu. A mudança aparece nas publicações carregadas depois dela.
+Hide who reacted under posts	Ocultar quem reagiu nas publicações
+Takes away the line under a post that names who reacted, like "Name and others reacted". A change shows on the posts drawn after it.	Tira a linha embaixo de uma publicação que diz quem reagiu, como "Nome e outras pessoas reagiram". A mudança aparece nas publicações carregadas depois dela.
 Hide the Reels title	Ocultar o título Reels
 Takes the word Reels off the top of the Reels tab. The buttons beside it stay.	Tira a palavra Reels do topo da aba Reels. Os botões ao lado ficam.
 Hide Back on opened videos	Ocultar Voltar nos vídeos abertos
@@ -2608,9 +2645,9 @@ Hide pictures on the Blocked list	Ocultar fotos na lista de bloqueados
 People you've blocked show without their profile pictures on the Blocking page in Facebook's settings. Reopen the page if it's already open.	As pessoas que você bloqueou aparecem sem foto do perfil na página Bloqueio das configurações do Facebook. Abra a página de novo se ela já estiver aberta.
 Hide Up next on videos	Ocultar A seguir nos vídeos
 Takes the UP NEXT bar with the next video off the bottom of a video you open from the feed, and the empty space kept for it, so the seek bar stays at the bottom. A change shows from the next video you open.	Tira a barra A SEGUIR com o próximo vídeo da parte de baixo de um vídeo que você abre pelo feed, junto com o espaço vazio reservado para ela, então a barra de progresso fica embaixo. Uma mudança vale a partir do próximo vídeo que você abrir.
-Icons look soft on this screen. Repatch with the 240-640dpi bundle.	Os ícones parecem borrados nesta tela. Aplique o patch de novo com o pacote 240-640dpi.
+Icons look soft on this screen. Repatch with the 120-480dpi bundle.	Os ícones parecem borrados nesta tela. Aplique o patch de novo com o pacote 120-480dpi.
 Icons look soft on this screen	Os ícones parecem borrados nesta tela
-The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (240-640dpi) bundle on APKMirror, which has images for every screen.	O Facebook em que você aplicou o patch não tem imagens feitas para esta tela, então alguns ícones são ampliados. Aplique o patch de novo a partir do pacote (arm64-v8a) (240-640dpi) do APKMirror, que tem imagens para todas as telas.
+The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (120-480dpi) bundle on APKMirror, which has images for every screen.	O Facebook em que você aplicou o patch não tem imagens feitas para esta tela, então alguns ícones são ampliados. Aplique o patch de novo a partir do pacote (arm64-v8a) (120-480dpi) do APKMirror, que tem imagens para todas as telas.
 Let each post come back once	Deixar cada publicação voltar uma vez
 A post you scrolled past shows up one more time, and scrolling past it again hides it. Fewer posts go missing after a quick scroll.	Uma publicação pela qual você já rolou aparece mais uma vez, e rolar por ela de novo a oculta. Menos publicações se perdem depois de uma rolagem rápida.
 There's no Facebook link in what you shared.	Não há nenhum link do Facebook no que você compartilhou.
@@ -2634,11 +2671,23 @@ Takes the song and effect credits off the line under the poster's name on a stor
 Takes the row of suggested replies off the bottom of a story. The reply box stays. Applies from the next story you open.	Tira a fileira de respostas sugeridas da parte de baixo de um story. A caixa de resposta continua. Vale a partir do próximo story que você abrir.
 Hide the Subscribe button	Ocultar o botão Inscrever-se
 Takes the Subscribe button off the top of a story. Applies from the next story you open.	Tira o botão Inscrever-se da parte de cima de um story. Vale a partir do próximo story que você abrir.
+# context: switch title on the Stories page; the Follow button sits at the top of a story from someone you don't follow
+Hide the Follow button	Ocultar o botão Seguir
+Takes the Follow button off the top of a story from someone you don't follow. Applies from the next story you open.	Tira o botão Seguir da parte de cima de um story de alguém que você não segue. Vale a partir do próximo story que você abrir.
+# context: switch title on the Stories page; the reply bar is the row under someone else's story with the repost button, the Send message box and the quick reactions
+Hide the reply bar	Ocultar a barra de resposta
+# context: description of that switch; Send message is the text box Facebook shows in that row
+Takes the bar off the bottom of other people's stories, with the repost button, the Send message box and the quick reactions. Applies from the next story you open.	Tira a barra da parte de baixo dos stories de outras pessoas, com o botão de repostar, a caixa Enviar mensagem e as reações rápidas. Vale a partir do próximo story que você abrir.
+# context: switch title on the Stories page; Up next is the card Facebook shows over the next stories while it counts down before they play
+Hide the Up next card	Ocultar o cartão A seguir
+Starts the next stories right away, without the Up next card that counts down over the first one. Applies the next time you open stories.	Começa os próximos stories na hora, sem o cartão A seguir que faz uma contagem regressiva sobre o primeiro. Vale a partir da próxima vez que você abrir os stories.
 Hide create story cards	Ocultar cartões de criar story
-Takes out the card between stories that asks you to make one, including the ones built from photos in your gallery. Applies the next time you open stories.	Tira o cartão entre os stories que pede para você criar um, inclusive os feitos com fotos da sua galeria. Vale a partir da próxima vez que você abrir os stories.
+Takes out the cards between stories that ask you to make one, including the full screen card that asks you to continue the story with photos from your gallery. Applies the next time you open stories.	Tira os cartões entre os stories que pedem para você criar um, inclusive o cartão em tela cheia que pede para você continuar o story com fotos da sua galeria. Vale a partir da próxima vez que você abrir os stories.
 Progress bar at the bottom	Barra de progresso embaixo
 Shows a thin bar along the bottom of a story that fills as it plays, like the one on Reels.	Mostra uma barra fina na parte de baixo de um story que vai enchendo enquanto ele toca, como a do Reels.
 Seek bar on stories	Barra de progresso nos stories
+Plain slide between people	Deslizar simples entre pessoas
+Swiping to the next or previous person's stories slides them across instead of turning them like a cube. Applies from your next swipe.	Ao deslizar para os stories da próxima pessoa ou da anterior, eles passam de lado em vez de girar como um cubo. Vale a partir do próximo deslize.
 Fade the story seek bar	Esmaecer a barra de progresso dos stories
 Story position	Posição do story
 Shows a bar along the bottom of a video story that you drag to move through it. The story waits while you drag. Progress bar at the bottom makes way for it on video stories.	Mostra uma barra na parte de baixo de um story em vídeo que você arrasta para andar por ele. O story espera enquanto você arrasta. “Barra de progresso embaixo” dá lugar a ela nos stories em vídeo.
@@ -2719,10 +2768,20 @@ A small label at the top of Reels shows the minutes you've watched. Time on othe
 %1$d min	%1$d min
 Hide the tab bar on the Reels tab	Ocultar a barra de abas na aba Reels
 The tab bar goes away while the Reels tab is open, and the reel gets the whole screen. The other tabs keep the bar. Restart Facebook to see the change.	A barra de abas some enquanto a aba Reels está aberta, e o reel ocupa a tela inteira. As outras abas mantêm a barra. Reinicie o Facebook para ver a mudança.
+Hide the line along the tab bar	Ocultar a linha da barra de abas
+The thin line Facebook draws along the edge of the tab bar goes away on every tab. Tap a tab to see the change.	A linha fina que o Facebook desenha na borda da barra de abas some em todas as abas. Toque em uma aba para ver a mudança.
+# context: switch title on the tab bar settings page; a group is a Facebook group's page; the tab bar is the row of Home, Reels, Groups... tabs
+Keep the tab bar in groups	Manter a barra de abas nos grupos
+# context: summary of that switch; "along the bottom" means at the bottom edge of the screen
+A group you open keeps the tab bar along the bottom, so a tap takes you straight to another tab. Works while the tab bar is at the bottom. Open a group to see the change.	Um grupo que você abre mantém a barra de abas embaixo, então um toque leva você direto para outra aba. Funciona enquanto a barra de abas está embaixo. Abra um grupo para ver a mudança.
 Playback speed in the post menu	Velocidade de reprodução no menu da publicação
 A feed or Watch video's 3-dot menu gets Playback speed, from 0.5x to 3x, live videos too. Off by default, since it hasn't been tried on a real account yet.	O menu de três pontos de um vídeo do feed ou do Watch ganha Velocidade de reprodução, de 0,5x a 3x, inclusive em vídeos ao vivo. Desligado por padrão, porque ainda não foi testado em uma conta real.
 Double tap to skip on feed videos	Toque duplo para pular nos vídeos do feed
 Double tap the right side of a playing feed video to jump ahead 10 seconds, or the left side to go back 10. Keep tapping to go further. Live videos work too when they can be rewound. One tap on a side still opens the video, a moment later than usual. With Tap to play on, it needs Inline feed video controls on too.	Toque duas vezes no lado direito de um vídeo do feed em reprodução para avançar 10 segundos, ou no lado esquerdo para voltar 10. Continue tocando para ir mais longe. Vídeos ao vivo também funcionam quando dá para voltar neles. Um toque só em um lado ainda abre o vídeo, um pouco mais tarde que o normal. Com “Tocar para reproduzir” ligado, “Controles de vídeo no feed” também precisa estar ligado.
+# context: switch title under Video playback; a tap on a video in the news feed brings up a pause button in the middle of the video instead of opening it
+Tap shows a pause button on feed videos	Toque mostra um botão de pausa nos vídeos do feed
+# context: description of that switch; Reels is Facebook's full-screen video viewer, keep the name; the quoted switch names match their own rows
+Tapping a feed video shows a pause button in its middle and the video keeps playing, so a tap doesn't open it in Reels. Tap the button to pause or play. Tap the video again while the button shows to open it. Ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.	Tocar em um vídeo do feed mostra um botão de pausa no meio dele e o vídeo continua tocando, então um toque não abre o vídeo no Reels. Toque no botão para pausar ou reproduzir. Toque no vídeo de novo enquanto o botão aparece para abri-lo. Anúncios mantêm seus próprios controles. Com “Tocar para reproduzir” ligado, “Controles de vídeo no feed” também precisa estar ligado.
 Show only comments that match	Mostrar só os comentários que correspondem
 While the search box holds words, comments without them are hidden. Clearing the box brings them back.	Enquanto a caixa de pesquisa tiver palavras, os comentários sem elas ficam ocultos. Limpar a caixa traz todos de volta.
 Queue reel saves	Enfileirar downloads de Reels
@@ -2765,7 +2824,7 @@ Interested	Tenho interesse
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row asking for fewer posts like this one
 Not interested	Não tenho interesse
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that opens its feed preferences
-Manage your Feed	Gerenciar seu Feed
+Manage your Feed / Your algorithm	Gerenciar seu Feed / Seu algoritmo
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that reports the post
 Report	Denunciar
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that plays the video on a TV
@@ -2829,3 +2888,134 @@ Move seen stories to the end	Mover Stories vistos para o fim
 Stories you've already watched move to the end of the Stories tray, after the ones you haven't. Hide seen stories goes first while it's on. Applies when Facebook next loads the tray.	Os stories que você já viu vão para o fim da bandeja de stories, depois dos que você ainda não viu. Enquanto Ocultar Stories vistos estiver ligado, ele vem primeiro. Vale quando o Facebook carregar a bandeja de novo.
 Skip location prompts	Pular pedidos de localização
 Facebook's page asking you to allow Location Services, the one with Skip and Continue, doesn't show. Location you turn on yourself still works.	A tela do Facebook que pede para você permitir os Serviços de Localização, aquela com Pular e Continuar, não aparece. A localização que você mesmo ativa continua funcionando.
+# context: switch title under Stories; on, a tap on a reaction at the bottom of a story asks first
+Ask before reacting to a story	Perguntar antes de reagir a um story
+# context: summary of that switch
+A tap on a reaction at the bottom of a story asks first, and the story waits. Only Continue sends the reaction.	Tocar em uma reação na parte de baixo de um story pergunta antes, e o story espera. Só Continuar envia a reação.
+# context: the question shown after a tap on a reaction at the bottom of a story; Continue sends the reaction, Cancel leaves it
+React to this story?	Reagir a este story?
+# context: In-app proxy, an HTTP proxy address (host:port) Facebook's connections go through
+In-app proxy	Proxy no app
+The address and port of an HTTP proxy for Facebook's connections, like %1$s. The local proxy port of a VLESS or V2Ray app such as v2rayNG works here. Leave it blank to connect the way your phone does.	O endereço e a porta de um proxy HTTP para as conexões do Facebook, como %1$s. A porta de proxy local de um app VLESS ou V2Ray, como o v2rayNG, funciona aqui. Deixe em branco para conectar do jeito do seu celular.
+Type an HTTP proxy's address and port, like %1$s.	Digite o endereço e a porta de um proxy HTTP, como %1$s.
+Facebook connects the way your phone does. Type a proxy's address and port to send its connections through it.	O Facebook se conecta do jeito do seu celular. Digite o endereço e a porta de um proxy para passar as conexões por ele.
+Facebook's connections go through the proxy at %1$s.	As conexões do Facebook passam pelo proxy %1$s.
+# context: switch title on the Downloads page; on, a tap on a download button asks first
+Ask before downloading	Perguntar antes de baixar
+A reel's Download button, the Download button under a post and a video's Download to phone ask first, so a stray tap saves nothing. With Choose quality on each save on, a video's list of qualities does the asking.	O botão Baixar de um reel, o botão Baixar abaixo de uma publicação e o "Baixar no celular" de um vídeo perguntam primeiro, para um toque sem querer não salvar nada. Com "Escolher a qualidade a cada download" ativado, nos vídeos quem pergunta é a lista de qualidades.
+# context: the question over the screen after a tap on a download button, answered Continue or Cancel
+Start this download?	Iniciar este download?
+# context: the settings row that opens a file picker for a font holding emoji
+Emoji font file	Arquivo de fonte de emojis
+# context: the settings row that deletes the saved emoji font and goes back to the phone's emoji
+Remove emoji font file	Remover arquivo de fonte de emojis
+# context: under Remove emoji font file while Use the phone's emoji is on
+Removes the saved emoji font file. Restart Facebook to use your phone's emoji.	Remove o arquivo de fonte de emojis salvo. Reinicie o Facebook para usar os emojis do seu celular.
+# context: under Remove emoji font file while Use the phone's emoji is off
+Removes the saved emoji font file. Use the phone's emoji stays off.	Remove o arquivo de fonte de emojis salvo. "Usar os emojis do celular" continua desativado.
+# context: under Emoji font file with nothing picked; %1$d is a number of megabytes
+No file chosen. Choose a .ttf or .otf emoji font of up to %1$d MB.	Nenhum arquivo escolhido. Escolha uma fonte de emojis .ttf ou .otf de até %1$d MB.
+# context: under Emoji font file; %1$s is the file's name
+Selected %1$s. Emoji changes apply after restarting Facebook.	Selecionado %1$s. As alterações de emojis são aplicadas após reiniciar o Facebook.
+# context: under Emoji font file while the switch is off; %1$s is the file's name
+Selected %1$s. Use the phone's emoji is off. Turn it on and restart Facebook to use this file.	Selecionado %1$s. "Usar os emojis do celular" está desativado. Ative a opção e reinicie o Facebook para usar este arquivo.
+# context: toast after an emoji font is picked; %1$s is the file's name
+Selected %1$s. Restart Facebook to apply the emoji change.	Selecionado %1$s. Reinicie o Facebook para aplicar a alteração de emojis.
+# context: toast after an emoji font is picked while the switch is off; %1$s is the file's name
+Selected %1$s. Turn on Use the phone's emoji and restart Facebook to use it.	Selecionado %1$s. Ative "Usar os emojis do celular" e reinicie o Facebook para usar o arquivo.
+# context: under Emoji font file while the picked file is copied
+Copying the emoji font file	Copiando o arquivo de fonte de emojis
+# context: toast when the file picked as an emoji font isn't a font
+That isn't a .ttf or .otf font file. Your emoji didn't change.	Isso não é um arquivo de fonte .ttf ou .otf. Seus emojis não mudaram.
+# context: toast when the emoji font is too large; %1$d is a number of megabytes
+That font file is over %1$d MB. Your emoji didn't change.	Esse arquivo de fonte tem mais de %1$d MB. Seus emojis não mudaram.
+# context: toast when Android can't load the picked emoji font
+Android couldn't use that font file. Your emoji didn't change.	O Android não conseguiu usar esse arquivo de fonte. Seus emojis não mudaram.
+# context: toast when the font picked as an emoji font is a text font
+That font has no emoji in it. Your emoji didn't change.	Essa fonte não tem emojis. Seus emojis não mudaram.
+# context: toast when the picked emoji font can't be read
+Couldn't open that file. Your emoji didn't change.	Não foi possível abrir esse arquivo. Seus emojis não mudaram.
+# context: toast after Remove emoji font file
+Emoji font file cleared. Restart Facebook to apply the emoji change.	Arquivo de fonte de emojis removido. Reinicie o Facebook para aplicar a alteração de emojis.
+# context: toast when Remove emoji font file fails
+Couldn't go back to your phone's emoji. Try again.	Não foi possível voltar para os emojis do seu celular. Tente de novo.
+# context: toast when the app holding the emoji font doesn't answer in time
+The app holding that font file is taking too long, so Hushfacebook stopped waiting. Your emoji didn't change.	O app que guarda esse arquivo de fonte está demorando demais, então o Hushfacebook parou de esperar. Seus emojis não mudaram.
+Never	Nunca
+Back to Clean mode	Voltar ao modo limpo
+When the comments or a menu close	Quando os comentários ou um menu fecharem
+When the comments or a menu close. A reel you took out of Clean mode goes back into it once whatever you opened over it closes.	Quando os comentários ou um menu fecharem. Um reel que você tirou do modo limpo volta para ele assim que o que você abriu por cima fecha.
+%1$s. A reel you took out of Clean mode goes back into it once you haven't touched the screen for that long. An open sheet holds the time.	%1$s. Um reel que você tirou do modo limpo volta para ele quando você fica esse tempo sem tocar na tela. Uma folha aberta segura o tempo.
+Never. A reel you take out of Clean mode stays out until you put it back.	Nunca. Um reel que você tira do modo limpo fica fora até você colocá-lo de volta.
+A reel you take out of Clean mode will stay out until you put it back.	Um reel que você tirar do modo limpo vai ficar fora até você colocá-lo de volta.
+A reel you take out of Clean mode will go back into it when the comments or a menu close.	Um reel que você tirar do modo limpo vai voltar para ele quando os comentários ou um menu fecharem.
+A reel you take out of Clean mode will go back into it after %1$d seconds without a touch.	Um reel que você tirar do modo limpo vai voltar para ele depois de %1$d segundos sem toque.
+Hide New for you on reels	Ocultar “Novo para você” nos reels
+Takes "New for you", and other reasons Facebook gives for showing you a reel, off the line under its author, so the date and the song show right away. A change shows from the next reel.	Tira “Novo para você” e outros motivos que o Facebook dá para mostrar um reel da linha abaixo do nome de quem publicou, para que a data e a música apareçam na hora. A mudança aparece a partir do próximo reel.
+# context: switch title under Comments and writing; it turns Facebook's own comment translation on for every comment as it loads
+Translate every comment	Traduzir todos os comentários
+# context: description of that switch; See translation is the name of Facebook's own link under a comment that translates it on request
+Comments in another language show Facebook's translation as they load, as if you'd tapped See translation on each one.	Comentários em outro idioma mostram a tradução do Facebook ao carregar, como se você tivesse tocado em Ver tradução em cada um.
+# context: switch title under Downloads; holding a finger on a photo opened full screen from a Marketplace listing saves that photo to the phone
+Long press to save Marketplace photos	Toque longo para salvar fotos do Marketplace
+# context: description of that switch; Save any photo is the title of the Downloads switch it needs, Marketplace is Facebook's buy-and-sell section
+With Save any photo on, a long press on a photo you open from a Marketplace listing saves it.	Com Salvar qualquer foto ativado, um toque longo em uma foto que você abre de um anúncio do Marketplace salva a foto.
+# context: the eight switches under Hide posts with words you choose and Hide link posts that pick where each hides; Home, the Reels tab, the Groups tab and Pages are Facebook's own names for them
+Your words on Home	Suas palavras na Página inicial
+Your words on the Reels tab	Suas palavras na aba Reels
+Your words in groups	Suas palavras em grupos
+Your words on profiles and Pages	Suas palavras em perfis e Páginas
+Link posts on Home	Publicações com links na Página inicial
+Link reels on the Reels tab	Reels com links na aba Reels
+Link posts in groups	Publicações com links em grupos
+Link posts on profiles and Pages	Publicações com links em perfis e Páginas
+Posts on Home, the feed Facebook opens on.	Publicações na Página inicial, o feed que o Facebook abre primeiro.
+Reels on the Reels tab, going by their captions.	Reels da aba Reels, pela legenda.
+Posts in a group's feed, on the Groups tab and in a member's posts in a group. Posts waiting for an admin stay.	Publicações no feed de um grupo, na aba Grupos e nas publicações de um membro em um grupo. Publicações aguardando um administrador ficam.
+Posts on people's profiles and on Pages.	Publicações em perfis de pessoas e em Páginas.
+# context: the search results switches under Hide posts with words you choose and Hide link posts, which start off; search results is Facebook's own name for the page a search opens
+Your words in search results	Suas palavras nos resultados da pesquisa
+Link posts in search results	Publicações com links nos resultados da pesquisa
+Posts in search results. Off to begin with, so what you search for still shows.	Publicações nos resultados da pesquisa. Desativado no início, para que o que você pesquisa continue aparecendo.
+# context: title of the list under Video quality that picks how much of a video loads before it starts and while it plays
+Video buffer	Buffer de vídeo
+# context: the three sizes in the Video buffer list, from the least loaded ahead to the most
+Low	Baixo
+Medium	Médio
+Maximum	Máximo
+# context: the line under Video buffer for each size, and for Facebook's choice
+Videos start once half a second has loaded, and load less ahead.	Os vídeos começam assim que meio segundo é carregado e carregam menos à frente.
+Videos wait for 1.5 seconds to load before they start, and load more ahead.	Os vídeos esperam carregar 1,5 segundo antes de começar e carregam mais à frente.
+Videos wait for 3 seconds to load before they start, and load up to a minute ahead.	Os vídeos esperam carregar 3 segundos antes de começar e carregam até um minuto à frente.
+Facebook decides how much of a video loads before and while it plays.	O Facebook decide quanto de um vídeo carrega antes e durante a reprodução.
+# context: what importing a settings file will do to the Video buffer list; %1$s is Low, Medium or Maximum
+Facebook will decide how much of a video loads.	O Facebook vai decidir quanto de um vídeo carrega.
+Video buffer will be set to %1$s.	O buffer de vídeo será %1$s.
+Recently watched in the Menu	Assistidos recentemente no Menu
+Adds a Recently watched row at the end of Settings and privacy in Facebook's Menu. It opens the list that Remember what you watch keeps.	Adiciona uma linha Assistidos recentemente no fim de “Configurações e privacidade” no Menu do Facebook. Ela abre a lista que Lembrar o que você assiste guarda.
+Recently watched can't open here.	Assistidos recentemente não pode ser aberto aqui.
+Header text font	Fonte do texto do cabeçalho
+Bold	Negrito
+Regular	Normal
+Serif	Serifada
+Script	Cursiva
+Monospace	Monoespaçada
+Your font	Sua fonte
+The bold font the words have always had.	A fonte em negrito que o texto sempre teve.
+The phone's font at its regular weight.	A fonte do celular com espessura normal.
+A bold font with serifs, like a newspaper's.	Uma fonte em negrito com serifas, como a de um jornal.
+Joined-up handwriting.	Letra cursiva, escrita à mão.
+Every letter the same width, like a typewriter.	Todas as letras com a mesma largura, como numa máquina de escrever.
+The font file picked under Font file, in bold. Bold until one is picked.	O arquivo escolhido em Arquivo de fonte, em negrito. Negrito até você escolher um.
+Header text font will be set to %1$s.	A fonte do texto do cabeçalho será %1$s.
+Hide songs under names	Ocultar músicas abaixo dos nomes
+The line under the poster's name leaves out the song a post plays, with no gap where it was.	A linha abaixo do nome de quem publicou deixa de fora a música que a publicação toca, sem deixar um espaço onde ela estava.
+Bold post times	Horário da publicação em negrito
+The time or date under the poster's name is bold, like the name.	O horário ou a data abaixo do nome de quem publicou fica em negrito, como o nome.
+Show full names	Mostrar nomes completos
+A long name at the top of a post wraps onto the next line instead of ending in "...". A name that fits still takes one line.	Um nome longo no topo de uma publicação continua na linha seguinte em vez de terminar em "...". Um nome que cabe continua ocupando uma linha só.
+Dark box behind feed video names	Caixa escura atrás dos nomes em vídeos do feed
+When a video in your feed has the poster's name on top of the video, that name sits on the same dark box. A change shows on the posts drawn after it.	Quando um vídeo do seu feed mostra o nome de quem publicou em cima do vídeo, esse nome fica sobre a mesma caixa escura. A mudança aparece nas publicações carregadas depois.
+Quality settings	Configurações de qualidade
+Request community note	Solicitar nota da comunidade
+Something went wrong	Algo deu errado

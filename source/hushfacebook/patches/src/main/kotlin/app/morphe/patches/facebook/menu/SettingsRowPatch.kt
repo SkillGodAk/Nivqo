@@ -10,7 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
@@ -21,16 +21,19 @@ import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.extension.parameterRegister
+import app.morphe.patches.facebook.misc.extension.parameterRegisterNumber
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.RegisterLiveness
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -53,12 +56,13 @@ private const val COPY_OF = "$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMM
  * the settings, and the row's loggers leave it out. See SettingsRowAnchors.kt for the shapes.
  */
 @Suppress("unused")
-val hushfacebookInTheMenuPatch = bytecodePatch(
+val hushfacebookInTheMenuPatch = patch(
     name = "Hushfacebook in the Menu",
     description = "Adds a Hushfacebook settings row to Facebook's Menu, at the end of Settings and privacy, so " +
         "the settings are easy to find. A Saved row joins it while the Saved shortcut switch is on, a Watch " +
-        "history row while the Watch history shortcut switch is, and a Free stuff row, Marketplace's free listings, " +
-        "while the Free stuff shortcut switch under Marketplace is. On by default. Turn it off with Settings row in Menu in Hushfacebook settings > Menu, unless it's the last " +
+        "history row while the Watch history shortcut switch is, a Recently watched row while Recently watched in " +
+        "the Menu is, and a Free stuff row, Marketplace's free listings, while the Free stuff shortcut switch under " +
+        "Marketplace is. On by default. Turn it off with Settings row in Menu in Hushfacebook settings > Menu, unless it's the last " +
         "way into the settings still on.",
     default = true,
 ) {
@@ -66,7 +70,7 @@ val hushfacebookInTheMenuPatch = bytecodePatch(
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         val natives = classDefByStrings(NATIVE_SECTION_KEY, StringComparisonType.EQUALS)
             .filterNot { it.type.startsWith(EXTENSION_CLASSES) }
             .flatMap { classDef -> classDef.methods.filter(::isNativeSectionChildren) }
@@ -137,10 +141,11 @@ val hushfacebookInTheMenuPatch = bytecodePatch(
                 ?: throw PatchException("$ROW_PATCH: ${lambda.definingClass}->invoke changed before its tap could be hooked")
             lambda.skipInlinedRow(found)
             enableStatus("menuSettingsRow")
-            return@execute
+            return@executeBytecode
         }
         val owner = mutableClassDefBy(tap.definingClass)
-        // 582's 32-bit build has dropped both loggers, so there may be none to hook.
+        // 582's 32-bit build has dropped both loggers, so there may be none to hook. 588 folds them
+        // into a lambda of the row component, and there the logger class's own methods take the hook.
         val loggers = rowLoggers(owner, tap, item)
         val tapMethod = owner.findMutableMethodOf(tap)
         tapMethod.skipRow(tapMethod.parameterTypes.indexOfFirst { it.toString() == item }, id, tapToo = true)
@@ -148,8 +153,24 @@ val hushfacebookInTheMenuPatch = bytecodePatch(
             val mutable = owner.findMutableMethodOf(logger)
             mutable.skipRow(mutable.parameterTypes.indexOfFirst { it.toString() == item }, id, tapToo = false)
         }
+        if (loggers.isEmpty()) skipRowInLogCalls(owner, id)
         enableStatus("menuSettingsRow")
     }
+}
+
+/** Keeps the row out of each logger the row component's lambdas hand its [id] to ([rowLogCalls]). */
+private fun BytecodePatchContext.skipRowInLogCalls(owner: ClassDef, id: FieldReference) {
+    rowComponentCreations(owner)
+        .flatMap { type -> classDefByOrNull(type)?.methods?.filter(::isLambdaInvoke).orEmpty() }
+        .flatMap { rowLogCalls(it, id) }
+        .distinctBy { ImmutableMethodReference.of(it) }
+        .forEach { call ->
+            val parameters = call.parameterTypes.map { it.toString() }
+            val logger = mutableClassDefBy(call.definingClass).methods.firstOrNull {
+                it.name == call.name && it.parameterTypes.map(Any::toString) == parameters
+            } ?: throw PatchException("$ROW_PATCH: ${call.definingClass} has no ${call.name} to log the row with")
+            logger.skipRowLog()
+        }
 }
 
 /**
@@ -272,6 +293,29 @@ internal fun MutableMethod.skipRow(itemIndex: Int, id: FieldReference, tapToo: B
             move-object/from16 v0, ${parameterRegister(itemIndex)}
             iget-wide v1, v0, ${reference(id)}
         """.trimIndent() + "\n" + ask + "\n" + """
+            move-result v0
+            if-eqz v0, :facebook
+            return-void
+        """.trimIndent(),
+        ExternalLabel("facebook", getInstruction(0)),
+    )
+}
+
+/**
+ * First thing in a logger taking the row's id as its last argument: a yes from [IS_ROW] returns
+ * before it logs anything. Every other row's id goes on as before. The id is read where it arrived,
+ * through the range form since it can sit above v15.
+ */
+internal fun MutableMethod.skipRowLog() {
+    if (returnType != "V" || parameterTypes.lastOrNull()?.toString() != "J") {
+        throw PatchException("$ROW_PATCH: $definingClass->$name doesn't return nothing and end in the row's id")
+    }
+    requireLocals(ROW_PATCH, 1)
+    val id = parameterRegisterNumber(parameterTypes.lastIndex)
+    addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { v$id .. v${id + 1} }, $IS_ROW
             move-result v0
             if-eqz v0, :facebook
             return-void

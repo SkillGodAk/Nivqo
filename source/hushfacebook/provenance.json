@@ -192,12 +192,39 @@
     },
     {
       "paths": [
+        "patches/src/main/kotlin/app/morphe/util/PatchBodies.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for Morphe patcher 2.5.0: runs a patch body written against a bytecode or resource context inside patch()'s execute and finalize blocks, so the patches leave the deprecated bytecodePatch and resourcePatch builders with their bodies unchanged."
+    },
+    {
+      "paths": [
         "patches/src/main/kotlin/app/morphe/patches/facebook/feed/postprompts/PostXButton.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook from Facebook 585 (#389): finds the check that asks whether a feed post's header draws its X and sends its answer through a switch."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/postprompts/ReactionBubbles.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook from Facebook 587 (#483): finds the render of the friend bubble row over feed media and has it answer null while a switch is on."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/postprompts/ReactorNames.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook from Facebook 587 (#483): finds the bling bar's two checks for the line naming who reacted and has them answer false while a switch is on."
     },
     {
       "paths": [
@@ -227,8 +254,10 @@
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/SaveTo.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/SendLink.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/VideoMenuItem.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/ViewerVideoItem.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/video/DownloadVideoPatch.kt",
-        "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/video/Fingerprints.kt"
+        "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/video/Fingerprints.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/video/ViewerVideoMenu.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
@@ -688,6 +717,15 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/emoji/OwnEmoji.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #513: draws emoji from a font file picked in the settings."
+    },
+    {
+      "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/emoji/**",
         "patches/src/main/kotlin/app/morphe/patches/facebook/emoji/**"
       ],
@@ -827,12 +865,13 @@
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/PostDownloadButton.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/feed/PostSaveButton.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/feed/actionrow/ActionRowAnchors.kt",
-        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/actionrow/PostActionButtonsPatch.kt"
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/actionrow/PostActionButtonsPatch.kt",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/actionrow/RowTaps.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook: Save and Download buttons in the row under a post. In Facebook 584 the row's button types come from the one static method answering a List that loads XFBUFIButtonWithFallbackOptions, and its class builds one button from a type enum, the row's state and a Map in the static method whose cases load \"Save\". Every list the type method returns goes through the extension, which adds the enum's SAVE constant while its switch is on. The row method seals its lists of buttons with a static call taking a List and answering an ImmutableList, the last argument of a constructor taking only ImmutableLists; before each seal a generated helper reads the post from the state the way Save's case reads it, asks the extension for a Download button, and builds it with the constructors Save's case uses: the icon from the icon enum's DOWNLOAD and the style enum's OUTLINE, the two texts, the label taking a String and a Function1, the tag, and the button."
+      "changes": "Written for Hushfacebook: Save and Download buttons in the row under a post. In Facebook 584 the row's button types come from the one static method answering a List that loads XFBUFIButtonWithFallbackOptions, and its class builds one button from a type enum, the row's state and a Map in the static method whose cases load \"Save\". Every list the type method returns goes through the extension, which adds the enum's SAVE constant while its switch is on. The row method seals its lists of buttons with a static call taking a List and answering an ImmutableList, the last argument of a constructor taking only ImmutableLists; before each seal a generated helper reads the post from the state the way Save's case reads it, asks the extension for a Download button, and builds it with the constructors Save's case uses: the icon from the icon enum's DOWNLOAD and the style enum's OUTLINE, the two texts, the label taking a String and a Function1, the tag, and the button. In Facebook 588 the row's wrapper component, whose layout loads the feedback flyout launcher component by type check before it loads the ufi_feedback_wrapper key, asks the extension first and jumps straight to that key while the row tap switch is on, so the wrapper never takes a tap on the row's free space."
     },
     {
       "paths": [
@@ -956,6 +995,15 @@
     },
     {
       "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/confirm/StoryReactions.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #502: a question before a tap on a story reaction goes through. In Facebook 587 every reaction from the story viewer's reply bar, its long press, the suggested footer, a swipe up and the single reaction button goes through one instance method of the shape taking the view, the view group, the StoryBucket, the StoryCard, the reaction, a source name and an int, the one of that shape holding the story_reaction name. The single reaction button's own click is the arm of a merged Kotlin lambda holding the single_entry_reaction_component name. The patch hooks both the way Ask before a like hooks its handlers. Facebook pauses a story for its own dialogs through small toggles that get the pauser from the story viewer's environment and pause or resume it under the ALERT_DIALOG_OPEN reason, and the patch reads that route off those toggles to fill three extension stubs, so the question pauses the story the same way."
+    },
+    {
+      "paths": [
         "patches/src/main/kotlin/app/morphe/patches/facebook/feed/postprompts/PostJoinButton.kt"
       ],
       "origin": "original",
@@ -980,6 +1028,15 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: the reaction preview on comments. Comments draw the same facepile drawable as posts, so the patch marks the FDSInlineReactions component a comment builds (found by the kept strings FDSComment and inline_reaction_transition_key) and copies that mark onto the drawable the one paired method makes from it, letting the drawable's draw ask the comment switch instead of the post switch."
+    },
+    {
+      "paths": [
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/postprompts/ReactionsOnLikeButton.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #541: a post's reaction faces drawn on its Like button. In Facebook 588 the compact Like button of the feed footer is built by two statics of LikeButtonFeedUFIFooterItemPlugin (a kept class name) that take a Context, the session, the plugin, the reaction and the button text, and return the button's look: a style, a text color, an icon and the text. The litho footer builds the same look itself, in the one other method that takes the reaction and calls the look's constructor. The patch adds a helper to the plugin that hands the extension each look's icon and the face it stands for, and calls it on every look those three build. The footer's renderer only puts the count into the look later, so a second helper runs first thing in the constructors of the button renderer that takes the finished look, and swaps an icon the extension knows for one holding its faces drawable when the text has a count. That renderer's one method that draws a drawable icon builds its image with a square size, so the patch gives a faces drawable a wider box there. The facepile drawable's own draw already asks the extension, and now hands it the drawable, so the faces it would draw at the end of the row move onto that row's Like button."
     },
     {
       "paths": [
@@ -1209,6 +1266,17 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: Skip silent parts, for issue #144, from Facebook 582. Each of the two ExoPlayer copies Facebook ships has a DefaultAudioSink that hands its processor chain, a field of its own, the skip-silence flag and then calls the kept-name AudioSink.Listener method onSkipSilenceEnabledChanged. The patch finds each method calling that name after handing one boolean to such a chain, asks the extension for the flag into a register nothing reads there, and hands the chain that answer, leaving the sink's stored flag alone. The listener's own dispatch, which hands nothing on, is left out. The extension answers yes while its switch is on."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/BufferSize.java",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/media/VideoBuffer.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/media/buffer/VideoBufferPatch.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook: Video buffer, for issue #526, from Facebook 588. Facebook's players ask a load control two things over and over: whether enough of a video has loaded to start or to play on after a stall, and whether to load more. HeroPlayer's own load control, found by the shouldContinueLoading trace its keep-loading check opens with, and ExoPlayer's DefaultLoadControl, found by the warning its keep-loading check gives, each have a start check beside it taking the same parameters and loading C.TIME_UNSET. The start check's hook goes on the nearest jump target at or before that constant, where every way to the wait meets, under that spot's label so the jumps there run it too, and hands the extension the wait that the following Math.min caps with the parameters' first boolean, the after-a-stall flag. HeroPlayer's keep-loading check stores its final low mark in a wide field of its own once, and the low and high marks go to the extension right after that store, which is made again with the answer. ExoPlayer's raises its low mark with its one Math.max and compares against a high mark loaded as a constant right before that compare, so the low mark goes after the Math.max and the high one at its compare. Each check is found and checked before any is changed, and a check of another shape keeps Facebook's numbers with a warning. The extension's VideoBuffer caps every number at the Low size's and raises them to the Medium and Maximum sizes', never puts the high mark under the low one, and hands every number back as it came at Facebook's choice, while paused, before the settings are ready, or when anything in it fails. The byte and memory caps on what a player may hold are left alone."
     },
     {
       "paths": [
@@ -1655,6 +1723,16 @@
     },
     {
       "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/ListingPhoto.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/photo/ListingPhotoAnchors.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #515: Long press to save Marketplace photos. React Native's image manager on Fresco Vito (a kept name), which draws every photo on a Marketplace listing, in its photo strip and full screen, hands the extension its view and the array of sources first thing in its typed setSource and setSrc. The extension keeps the biggest web address among the sources (width times height, read through the bridge's ReadableArray and ReadableMap by reflection) and puts a touch listener on that view, an ImageView with no touch handling of its own, taking it off when the view's next photo keeps no address. The listener only notes a finger going down and never takes it, since React Native's responder takes the press from the photo for the listing's pressable. The rest of the press comes from React Native's touch dispatcher (obfuscated, found as the one method logging \"Got DOWN touch before receiving UP or CANCEL from last gesture\"), which each React Native root view hands every touch from onInterceptTouchEvent and which hands the extension each touch first thing. A finger held still for the long-press time on a photo at least two thirds of the screen wide saves it through Download any photo's save, then sends the window a cancel so React Native ends the press and the lift opens nothing. A move past the touch slop, a second finger, a lift, a cancel, a lost window focus, a smaller image or a press the root never heard saves nothing, and a tap or a swipe still reaches the listing."
+    },
+    {
+      "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/ReelMenuDownload.java",
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/ReelSidebarDiagnostics.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/downloads/reel/ReelMoreSheet.kt"
@@ -1752,12 +1830,14 @@
       "paths": [
         "extensions/facebook/src/main/java/app/morphe/extension/facebook/comments/CommentSheetOptions.java",
         "patches/src/main/kotlin/app/morphe/patches/facebook/comments/options/CommentSheetOptionsPatch.kt",
-        "patches/src/main/kotlin/app/morphe/patches/facebook/comments/options/CommenterBadges.kt"
+        "patches/src/main/kotlin/app/morphe/patches/facebook/comments/options/CommenterBadges.kt",
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/comments/LiveCommentBar.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/comments/options/LiveCommentBar.kt"
       ],
       "origin": "original",
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
-      "changes": "Written for Hushfacebook from Facebook 577, 580 and 581: the comment box's attachment button socket is found by the name it gives itself, its name table by the GIF and sticker button plugins it names, and its per-button check, in another class, by the plugin numbers it shares with the table. The extension answers no for those two buttons while the switch is on. The reaction picker a long press on Like opens is found as the method that builds the kept RopeStyleUFIDockView and logs reactions_dock, and it returns early while Like only is on. The comment section is found by the name it gives itself, its reply flag through the expandReplySection update's arm of its state's update switch, and the extension's answer is written into that flag as the initial state finishes. The settings row opens Facebook's own fb://facebook_settings route. A commenter's badge (Top fan, Subscriber) is found through the two sockets that draw a commenter's name, by the names they give themselves and the badge plugins' kept class names, and its number is held first in each socket's check. No Facebook patch source in the ledger describes these."
+      "changes": "Written for Hushfacebook from Facebook 577, 580 and 581: the comment box's attachment button socket is found by the name it gives itself, its name table by the GIF and sticker button plugins it names, and its per-button check, in another class, by the plugin numbers it shares with the table. The extension answers no for those two buttons while the switch is on. The reaction picker a long press on Like opens is found as the method that builds the kept RopeStyleUFIDockView and logs reactions_dock, and it returns early while Like only is on. The comment section is found by the name it gives itself, its reply flag through the expandReplySection update's arm of its state's update switch, and the extension's answer is written into that flag as the initial state finishes. The settings row opens Facebook's own fb://facebook_settings route. A commenter's badge (Top fan, Subscriber) is found through the two sockets that draw a commenter's name, by the names they give themselves and the badge plugins' kept class names, and its number is held first in each socket's check. No Facebook patch source in the ledger describes these. In Facebook 588 a live video's player lays one bar of views under its live comments: the comment box, which tags itself LiveEventCommentComposer as it's built, and the row of reactions a tap sends to the stream. The bar is the one view whose (Context, AttributeSet, int) constructor casts a child to the comment box's class; every return of that constructor hands the bar to the extension, which holds it gone before each frame while its switch is on."
     },
     {
       "paths": [
@@ -1825,6 +1905,16 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook: Turn off auto-translation. Posts: the one getter of the post translatability model's translation_type (a no-argument BaseModelWithTree method returning the enum whose static setup names AUTO_TRANSLATION and SEE_TRANSLATION, reading the field's key with getCachedEnum) hands its answer to the extension, which turns AUTO_TRANSLATION into SEE_TRANSLATION while the switch is on, so the feed picks its See translation plugin over its auto-translate one. Reels: the two reads of the caption's translatable flag in the class that records FbShortsViewerFooterComponent.updateAutoTranslateTriggered go through the extension, which answers false while the switch is on, so the footer never asks for a caption translation. Comments: the two reads of the comment's translation type (the enum whose static setup names AUTO_TRANSLATE, MACHINE_TRANSLATION and ORIGINAL) in the class that records CommentBodyComponent.updateIsTranslated, one for its starting state and one for its render, go through the extension, which answers ORIGINAL while the switch is on, so a comment starts in its own words and See translation fetches the translation on a tap."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/feed/TranslateComments.java",
+        "patches/src/main/kotlin/app/morphe/patches/facebook/feed/autotranslation/CommentTranslationLink.kt"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #522: Translate every comment. In the class that records CommentBodyComponent.updateIsTranslated, the render's one call that builds the See translation click handler (a builder whose last argument is the click id the event method also checks) hands the handler and the body's class to the extension as soon as it lands. Two helpers join the body: one passes the handler on, and one reads the comment's state the way the event method does (handler scope, component context, state with lazy updates applied) and, when neither of its two flags is set, sends the handler an event, which Facebook takes as a tap on See translation. While the switch is on, the extension calls that tap helper on the main thread, so a comment in another language shows Facebook's translation as it loads, through Facebook's own translation path."
     },
     {
       "paths": [
@@ -1913,6 +2003,15 @@
       "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
       "license": "GPL-3.0-only",
       "changes": "Written for Hushfacebook for issue #404: Play saved videos in a row, a switch of Clean up Reels. Facebook 585 has no route that plays Saved in order (its saved reels link bounces to the main screen, and Saved and Your library both play the tapped reel, then suggestions). The patch puts a static call first in the touch dispatch of FbFragmentActivity and of DelegatingFbFragmentFrameworkActivity, the base of the Saved page and its viewer, whose own dispatch hands touches to its delegate without running FbFragmentActivity's. The extension keeps the card a press landed on (a child of a scrolling list with a same-width sibling), starts a chain when the Reels viewer opens with a saved:: player origin soon after, and when the reel ends or a second player binds after the viewer settles, finishes the viewer, waits for the Saved page to resume, scrolls the next card into view if it has to and taps it with a synthesized finger press through the page's own dispatch."
+    },
+    {
+      "paths": [
+        "extensions/facebook/src/main/java/app/morphe/extension/facebook/download/AskBeforeDownload.java"
+      ],
+      "origin": "original",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "license": "GPL-3.0-only",
+      "changes": "Written for Hushfacebook for issue #511: Ask before downloading. With the switch on, a reel's Download button, the Download button under a post and a video's Download to phone ask first, and only Continue starts the save."
     },
     {
       "paths": [

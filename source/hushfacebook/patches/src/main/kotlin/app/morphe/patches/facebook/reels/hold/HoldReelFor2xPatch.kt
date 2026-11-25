@@ -11,7 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.media.reelspeed.originGetters
@@ -30,6 +30,7 @@ import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -59,10 +60,10 @@ private val foundAnchors = WeakHashMap<BytecodePatchContext, ReelHoldAnchors>()
  * Declared before Hold a reel for 2x, whose dependsOn would otherwise read it as null while this
  * file initializes.
  */
-internal val reelLiftGuardPatch = bytecodePatch {
+internal val reelLiftGuardPatch = patch {
     dependsOn(settingsPatch)
 
-    execute {
+    executeBytecode {
         val anchors = findReelHoldAnchors()
         synchronized(foundAnchors) { foundAnchors[this] = anchors }
         applyReelLiftGuard(anchors)
@@ -95,7 +96,7 @@ internal val reelLiftGuardPatch = bytecodePatch {
  * a feed video has no long press: see [applyFeedVideoHold].
  */
 @Suppress("unused")
-val holdReelFor2xPatch = bytecodePatch(
+val holdReelFor2xPatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Hold a reel for 2x",
     description = "Hold a reel to play it at double speed, and let go to go back to normal. Handy for skimming. " +
@@ -107,7 +108,7 @@ val holdReelFor2xPatch = bytecodePatch(
     dependsOn(settingsPatch, reelLiftGuardPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         // The guard found every anchor, and checked every flag call's answer, before anything changed.
         val anchors = synchronized(foundAnchors) { foundAnchors[this] }
             ?: refuse("the release guard it depends on didn't run first")
@@ -463,7 +464,8 @@ internal class ReelHoldAnchors(
     val speedUpPaths: List<Method>,
     /**
      * The hold speed's getter (587 armeabi-v7a: a static one taking the config's answer); on 587
-     * arm64-v8a, which inlined it, null and [inlinedSpeeds] instead.
+     * arm64-v8a, which inlined it, null and [inlinedSpeeds] instead. Null with no inlined reads on
+     * 588, whose speed-ups set a fixed 2x ([fixedHoldSpeeds]).
      */
     val holdSpeed: Method?,
     val inlinedSpeeds: List<HoldSpeedRead>,
@@ -542,7 +544,8 @@ internal fun BytecodePatchContext.findReelHoldAnchors(): ReelHoldAnchors {
             ?: refuseGuard("expected the long-press handlers to call one edge check or make one lambda holding it, found ${inlined.size}")
     }
 
-    // FbGrootPlayer's speed setter, and the one double the speed-ups read from the config and set it to.
+    // FbGrootPlayer's speed setter, and the one double the speed-ups read from the config and set it
+    // to, or on 588 the fixed 2x they set it to, which leaves the extension nothing to answer.
     val plays = classDefByStrings(GROOT_PLAY, StringComparisonType.EQUALS)
         .filterNot { it.type.startsWith(EXTENSION_CLASSES) }.flatMap(::grootPlays)
     val player = classDefBy(plays.singleOrNull()?.definingClass ?: refuseGuard("expected one player play holding \"$GROOT_PLAY\", found ${plays.size}"))
@@ -553,8 +556,12 @@ internal fun BytecodePatchContext.findReelHoldAnchors(): ReelHoldAnchors {
     val speedUpComponents = SPEED_UP_COMPONENTS.flatMap { classDefByStrings(it, StringComparisonType.EQUALS) }.distinctBy { it.type }
     val speedReads = speedUpComponents.flatMap { component -> component.methods.flatMap { holdSpeedReads(it, setterKey, configAnswers) } }
     val speedKey = speedReads.map { it.key }.toSet().singleOrNull()
-        ?: refuseGuard("expected the speed-ups to set the speed from one read of the config, found ${speedReads.map { it.key }.toSet()}")
-    val speedRead = speedReads.first().getter
+    val fixedSpeed = speedReads.isEmpty() &&
+        speedUpComponents.sumOf { component -> component.methods.sumOf { fixedHoldSpeeds(it, setterKey).size } } == SPEED_UP_COMPONENTS.size
+    if (speedKey == null && !fixedSpeed) {
+        refuseGuard("expected the speed-ups to set the speed from one read of the config or a fixed 2x, found ${speedReads.map { it.key }.toSet()}")
+    }
+    val speedRead = speedReads.firstOrNull()?.getter
     val holdSpeed = speedRead?.let { read ->
         classDefByOrNull(read.definingClass)?.methods?.singleOrNull { isMethod(it, read) }
             ?: refuseGuard("the hold speed $read has no body in this build")
@@ -564,7 +571,7 @@ internal fun BytecodePatchContext.findReelHoldAnchors(): ReelHoldAnchors {
     }
     // 587's arm64 build inlined the getter, so every read of the same config value in the speed-ups' components,
     // the compares included, takes the extension's answer where the getter's returns did.
-    val inlinedSpeeds = if (holdSpeed != null) emptyList() else {
+    val inlinedSpeeds = if (holdSpeed != null || fixedSpeed) emptyList() else {
         speedUpComponents.flatMap { component -> component.methods.flatMap { inlinedConfigReads(it, configAnswers) } }
             .filter { it.key == speedKey }
     }

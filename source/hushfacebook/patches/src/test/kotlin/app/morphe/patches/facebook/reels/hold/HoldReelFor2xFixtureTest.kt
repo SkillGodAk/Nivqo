@@ -50,7 +50,7 @@ import java.io.File
  * a handler calls (583: inlined into a lambda the handler makes); and nothing else in the build
  * asking either flag but three places the patch
  * leaves alone, none of which makes a handler or a listener; and a speed-up in each speed-up
- * component, setting FbGrootPlayer's speed from one read of the config; and every release listener
+ * component, setting FbGrootPlayer's speed from one read of the config (588: to a fixed 2x); and every release listener
  * reading the player's speed with one public getter. Then the patch itself, run on those
  * classes: every flag call's answer through the extension in the same register before its branch,
  * every answer of the edge check and return of the hold speed (587 on arm64-v8a: each read inlined
@@ -80,16 +80,25 @@ class HoldReelFor2xFixtureTest {
     private fun Method.code(): List<Instruction> = implementation!!.instructions.toList()
 
     /**
-     * The builds whose speed-up inlines the hold speed's getter, and how many reads of it it makes:
-     * 587's arm64-v8a LX/08kZ;->A0X sets the speed from one and compares the player's with two.
+     * The builds whose speed-up inlines the hold speed's getter, and how many reads of it it makes.
+     * 587's arm64-v8a LX/08kZ;->A0X set the speed from one and compared the player's with two.
      */
-    private val inlinedHoldSpeeds = mapOf("587.0.0.39.55-arm64-v8a" to 3)
+    private val inlinedHoldSpeeds = emptyMap<String, Int>()
+
+    /**
+     * The builds whose speed-up reads no hold speed and sets a fixed 2x (588: LX/08n7;->A0b on
+     * arm64-v8a, LX/08rx;->A0Z on the Android 9 build).
+     */
+    private val fixedHoldSpeedBuilds = setOf(
+        "588.0.0.42.55-arm64-v8a", "588.0.0.42.55-armeabi-v7a", "588.0.0.42.55-arm64-v8a-minapi28-storeless",
+    )
 
     /**
      * The phone builds that inline the feed video 2x tip's check into the player's setup, as 586's
-     * Android 9 build does: 587 dropped LX/05dZ;->A00 and reads the flag in LX/05iD;->A1D.
+     * Android 9 build does: 587 dropped LX/05dZ;->A00 and read the flag in LX/05iD;->A1D. 588 has
+     * the check back (LX/05xv;->A00), so no declared build inlines it now.
      */
-    private val inlinedHoldNux = setOf("587.0.0.39.55-arm64-v8a", "587.0.0.39.55-armeabi-v7a")
+    private val inlinedHoldNux = emptySet<String>()
 
     /** The ten instructions before [taken] in [code], as their opcodes with what they reference or load, registers left out. */
     private fun readShape(code: List<Instruction>, taken: Int): List<String> = code.subList(maxOf(0, taken - 10), taken).map {
@@ -98,19 +107,49 @@ class HoldReelFor2xFixtureTest {
 
     /**
      * The block an if-eqz on [read]'s value skips, once the value is moved to the register the render
-     * keeps it in: the types it makes and the resource ids (0x7f......) it loads.
+     * keeps it in: the types it makes and the resource ids (0x7f......) it loads. 588's Android 9 render
+     * tests neither flag itself but hands both to its spec's builder (LX/05m3;->A05), which tests the
+     * parameter; there [callee] gives the method the value goes into, and the block is read from it.
      */
-    private fun gatedBlock(code: List<Instruction>, read: Int): Pair<Set<String>, Set<Int>> {
-        val address = IntArray(code.size + 1)
-        for (index in code.indices) address[index + 1] = address[index] + code[index].codeUnits
+    private fun gatedBlock(code: List<Instruction>, read: Int, callee: (MethodReference) -> Method?): Pair<Set<String>, Set<Int>> {
         var register = (code[read] as OneRegisterInstruction).registerA
         val moved = code[read + 1]
         if (moved.opcode in setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16) && (moved as TwoRegisterInstruction).registerB == register) {
             register = moved.registerA
         }
-        val test = (read + 1 until code.size).first {
+        val test = (read + 1 until code.size).firstOrNull {
             code[it].opcode == Opcode.IF_EQZ && (code[it] as OneRegisterInstruction).registerA == register
         }
+        if (test != null) return gatedBlockAt(code, test)
+        val holding = mutableSetOf(register)
+        for (at in read + 1 until code.size) {
+            val next = code[at]
+            if (next.opcode in setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16) && (next as TwoRegisterInstruction).registerB in holding) {
+                holding += next.registerA
+                continue
+            }
+            val passed = when (next) {
+                is RegisterRangeInstruction -> (next.startRegister until next.startRegister + next.registerCount).toList()
+                is FiveRegisterInstruction -> listOf(next.registerC, next.registerD, next.registerE, next.registerF, next.registerG).take(next.registerCount)
+                else -> continue
+            }
+            val reference = (next as? ReferenceInstruction)?.reference as? MethodReference ?: continue
+            val slot = passed.indexOfFirst { it in holding }
+            if (slot < 0) continue
+            val target = callee(reference) ?: throw AssertionError("the render hands the flag to $reference, which isn't in the build")
+            val targetCode = target.code()
+            val parameter = target.implementation!!.registerCount - passed.size + slot
+            val targetTest = targetCode.indices.first {
+                targetCode[it].opcode == Opcode.IF_EQZ && (targetCode[it] as OneRegisterInstruction).registerA == parameter
+            }
+            return gatedBlockAt(targetCode, targetTest)
+        }
+        throw AssertionError("no if-eqz tests the flag read at $read, and it goes into no call")
+    }
+
+    private fun gatedBlockAt(code: List<Instruction>, test: Int): Pair<Set<String>, Set<Int>> {
+        val address = IntArray(code.size + 1)
+        for (index in code.indices) address[index + 1] = address[index] + code[index].codeUnits
         val end = address.indexOf(address[test] + (code[test] as OffsetInstruction).codeOffset)
         val block = code.subList(test + 1, end)
         val made = block.filter { it.opcode == Opcode.NEW_INSTANCE }.map { ((it as ReferenceInstruction).reference as TypeReference).type }
@@ -219,23 +258,28 @@ class HoldReelFor2xFixtureTest {
                 val configClass = FixtureDex.classes(bundle, setOf(config)).values.single()
                 val configAnswers = configClass.methods.filter { it.parameterTypes.isEmpty() }.map { it.returnType }.toSet()
                 val speedUpClasses = SPEED_UP_COMPONENTS.flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
-                val reads = speedUpClasses.flatMap { c ->
-                    c.methods.flatMap { m -> holdSpeedReads(m, "${player.type}->${setter.name}(F)V", configAnswers) }
-                }
+                val setterKey = "${player.type}->${setter.name}(F)V"
+                val reads = speedUpClasses.flatMap { c -> c.methods.flatMap { m -> holdSpeedReads(m, setterKey, configAnswers) } }
+                val build = name.removePrefix("facebook-").removeSuffix(".apkm")
+                val fixedSpeed = build in fixedHoldSpeedBuilds
                 assertEquals("$name: speed-ups setting the speed from a read of the config: ${reads.map { key(it.method) }}",
-                    SPEED_UP_COMPONENTS.size, reads.size)
-                assertEquals("$name: the speed-ups' components", SPEED_UP_COMPONENTS.size, reads.map { it.method.definingClass }.toSet().size)
-                val speedRead = reads.map { it.key }.toSet().single()
-                val getter = reads.first().getter
-                val inlinedCount = inlinedHoldSpeeds[name.removePrefix("facebook-").removeSuffix(".apkm")] ?: 0
-                assertEquals("$name: whether the speed-ups call a getter of the hold speed", inlinedCount == 0, getter != null)
+                    if (fixedSpeed) 0 else SPEED_UP_COMPONENTS.size, reads.size)
+                val fixedSets = speedUpClasses.flatMap { c -> c.methods.flatMap { m -> fixedHoldSpeeds(m, setterKey).map { m } } }
+                if (fixedSpeed) assertEquals("$name: speed-ups setting a fixed 2x", SPEED_UP_COMPONENTS.size, fixedSets.size)
+                val speedUps = if (fixedSpeed) fixedSets.map { it.definingClass } else reads.map { it.method.definingClass }
+                assertEquals("$name: the speed-ups' components", SPEED_UP_COMPONENTS.size, speedUps.toSet().size)
+                val speedRead = reads.map { it.key }.toSet().singleOrNull()
+                assertEquals("$name: one read of the hold speed", !fixedSpeed, speedRead != null)
+                val getter = reads.firstOrNull()?.getter
+                val inlinedCount = inlinedHoldSpeeds[build] ?: 0
+                assertEquals("$name: whether the speed-ups call a getter of the hold speed", !fixedSpeed && inlinedCount == 0, getter != null)
                 val speedClass = getter?.let { FixtureDex.classes(bundle, setOf(it.definingClass)).values.single() }
                 val holdSpeed = getter?.let { g -> speedClass!!.methods.single { isMethod(it, g) } }
                 // Where the getter is inlined, every read of it: the instructions before the double is
                 // taken match those before the read the setter gets, references and constants alike.
-                val fed = reads.first()
-                val fedShape = readShape(fed.method.code(), fed.taken)
-                val inlinedSites = if (getter != null) emptyList() else speedUpClasses.flatMap { c ->
+                val fed = reads.firstOrNull()
+                val fedShape = fed?.let { readShape(it.method.code(), it.taken) }
+                val inlinedSites = if (getter != null || fed == null) emptyList() else speedUpClasses.flatMap { c ->
                     c.methods.filter { it.implementation != null }.flatMap { m ->
                         val code = m.code()
                         code.indices.filter { code[it].opcode == Opcode.MOVE_RESULT_WIDE && readShape(code, it) == fedShape }.map { m to it }
@@ -346,8 +390,14 @@ class HoldReelFor2xFixtureTest {
                 val tipReads = flagReads(chipRender, tipFlag)
                 assertEquals("$name: ${key(chipRender)}'s reads of the 2x tip's flag", 1, tipReads.size)
                 // Apart from the anchors: each flag skips a block building the same chip from its own string.
-                val chipBlock = gatedBlock(chipRender.code(), chipRead)
-                val tipBlock = gatedBlock(chipRender.code(), tipReads.single())
+                val handedTo = { ref: MethodReference ->
+                    FixtureDex.classes(bundle, setOf(ref.definingClass)).values.singleOrNull()?.methods?.singleOrNull {
+                        it.name == ref.name && it.returnType == ref.returnType &&
+                            it.parameterTypes.map(CharSequence::toString) == ref.parameterTypes.map(CharSequence::toString)
+                    }
+                }
+                val chipBlock = gatedBlock(chipRender.code(), chipRead, handedTo)
+                val tipBlock = gatedBlock(chipRender.code(), tipReads.single(), handedTo)
                 assertTrue("$name: the hold's chip flag gates nothing made", chipBlock.first.isNotEmpty())
                 assertEquals("$name: what the hold's chip and the 2x tip blocks make", tipBlock.first, chipBlock.first)
                 assertEquals("$name: resource strings in the hold's chip block", 1, chipBlock.second.size)

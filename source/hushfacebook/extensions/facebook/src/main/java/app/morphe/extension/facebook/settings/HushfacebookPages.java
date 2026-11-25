@@ -108,6 +108,14 @@ final class HushfacebookPages {
             tabs.addPreference(toggle(context, Settings.HIDE_REELS_TAB_BAR,
                     L10n.t("The tab bar goes away while the Reels tab is open, and the reel gets the whole screen. "
                             + "The other tabs keep the bar. Restart Facebook to see the change.")));
+            // Facebook restyles the bar each time a tab is selected, so a change shows on the next tab.
+            tabs.addPreference(toggle(context, Settings.HIDE_TAB_BAR_LINE,
+                    L10n.t("The thin line Facebook draws along the edge of the tab bar goes away on every tab. "
+                            + "Tap a tab to see the change.")));
+            // Asked as each group's page comes to the front, so a change shows on the next group opened.
+            tabs.addPreference(toggle(context, Settings.TAB_BAR_IN_GROUPS,
+                    L10n.t("A group you open keeps the tab bar along the bottom, so a tap takes you straight to another "
+                            + "tab. Works while the tab bar is at the bottom. Open a group to see the change.")));
             subheading(tabs, L10n.t("Top bar"));
             // Asked each time Facebook moves the top bar, so it takes effect on the next scroll.
             tabs.addPreference(toggle(context, Settings.KEEP_TOP_BAR,
@@ -185,8 +193,13 @@ final class HushfacebookPages {
         if (build.contains(PatchFamily.SYSTEM_EMOJI)) {
             // The quick emoji picker keeps the first typeface it's given until Facebook restarts.
             appearance.addPreference(toggle(context, Settings.USE_SYSTEM_EMOJI,
-                    L10n.t("Shows your phone's own emoji instead of Facebook's. Reactions and stickers don't change. Restart "
-                            + "Facebook to see the change.")));
+                    L10n.t("Shows your phone's own emoji instead of Facebook's, or the ones in a font file you choose "
+                            + "below. Reactions and stickers don't change. Restart Facebook to see the change.")));
+            FontRow chooseEmoji = new FontRow(page, context, FontFilePreference.CHOOSE, FontFilePreference.Slot.EMOJI);
+            chooseEmoji.wayBack = new FontRow(page, context, FontFilePreference.PHONE_FONT, FontFilePreference.Slot.EMOJI);
+            appearance.addPreference(chooseEmoji);
+            appearance.addPreference(chooseEmoji.wayBack);
+            chooseEmoji.show();
         }
         subheading(appearance, L10n.t("Colors and theme"));
         if (build.contains(PatchFamily.ACCENT_COLOR)) {
@@ -249,6 +262,12 @@ final class HushfacebookPages {
             appearance.addPreference(toggle(context, Settings.HIDE_STATUS_BAR,
                     L10n.t("Takes the phone's status bar, with the time and battery, off Facebook's main screen, so "
                             + "the app gets the whole screen. Swipe down from the top edge to see it for a moment.")));
+            // Asked as the main screen lays itself out and gets its focus back, so a change shows
+            // when these settings close (#531).
+            appearance.addPreference(toggle(context, Settings.CENTER_FEED_ON_BIG_SCREENS,
+                    L10n.t("On a tablet or an unfolded phone, the feed and Facebook's other lists stay in a column down "
+                            + "the middle of the screen instead of stretching from edge to edge. Reels keep the whole "
+                            + "screen.")));
             // Asked each time the Reels tab shows, so a change shows on the next visit to the tab.
             appearance.addPreference(toggle(context, Settings.LIGHT_REELS_TAB_BARS,
                     L10n.t("In light mode, the Reels tab keeps the same light status bar, top bar and tab bar as the "
@@ -291,6 +310,9 @@ final class HushfacebookPages {
         if (build.contains(PatchFamily.HEADER_TEXT)) {
             // Facebook builds the Home header once, so a change waits for a restart.
             appearance.addPreference(HushfacebookPreferenceFragment.headerTextRow(context));
+            // Your font draws in the file the system font patch's Font file row picks.
+            appearance.addPreference(HushfacebookPreferenceFragment.headerFontRow(context,
+                    build.contains(PatchFamily.SYSTEM_FONT)));
             appearance.addPreference(HushfacebookPreferenceFragment.logoEmojiRow(context));
             PictureRow picture = new PictureRow(page, context, HeaderPicturePreference.CHOOSE);
             picture.wayBack = new PictureRow(page, context, HeaderPicturePreference.REMOVE);

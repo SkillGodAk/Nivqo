@@ -10,7 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.comments.summaries.POST_SOCKET
@@ -35,6 +35,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import app.morphe.util.namedRegisters
 import app.morphe.util.readsAfter
 import app.morphe.util.writersReaching
@@ -245,6 +246,9 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * resource (0x7f1413dc read through `LX/02Hq;->A08`), so its constant, [VIEWER_GIF_ACTION] (`A02`
  * there), picks it out, and the children go to `LX/01U2;->A00`, which still skips a missing one.
  *
+ * Hide the live video comment bar (#537): a live video's player has its own bar, built by views
+ * rather than Litho; LiveCommentBar.kt finds it and hands it to the extension as it's built.
+ *
  * Hide the video comment box (#213): those buttons are only the box's inner row. The whole bar is
  * another component, the one class naming [VIDEO_COMMENT_BAR] that builds the row's class (583
  * `LX/98j;`, whose `A0G` builds `LX/ALy`). First thing in its render the extension is asked, and
@@ -398,19 +402,19 @@ internal const val GRAPHQL_COMMENT = "Lcom/facebook/graphql/model/GraphQLComment
  * In the default selection with every switch off, so nothing changes until one is turned on.
  */
 @Suppress("unused")
-val commentSheetOptionsPatch = bytecodePatch(
+val commentSheetOptionsPatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Comment sheet options",
     description = "Small fixes for comments. Stop a long press on Like from opening reactions, hide the GIF and " +
         "sticker buttons, show every reply without tapping View replies, load a whole reply thread as you " +
-        "scroll, close an open reply thread with a Hide replies button, open more replies with a tap anywhere on their row, hide the comments under feed posts, hide the thumbs-down on comments or turn it into a Block button, put Block on reaction lists, hide Like on comments, hide Reply on comments, hide badges like Top fan on comments, hide Related groups under group posts, hide comments with shop links or your words, show only the comments a search matches, hide who is typing and the new comments pop-up, keep every reaction beside a comment's count, hide the emoji row over the comment box, hide the line over the comment box, and hide the comment box under full-screen videos. Starts off. Turn on the parts you want in " +
+        "scroll, close an open reply thread with a Hide replies button, open more replies with a tap anywhere on their row, hide the comments under feed posts, hide the thumbs-down on comments or turn it into a Block button, put Block on reaction lists, hide Like on comments, hide Reply on comments, hide badges like Top fan on comments, hide Related groups under group posts, hide comments with shop links or your words, show only the comments a search matches, hide who is typing and the new comments pop-up, keep every reaction beside a comment's count, hide the emoji row over the comment box, hide the line over the comment box, hide the comment box under full-screen videos, and hide the comment box and reactions along the bottom of live videos. Starts off. Turn on the parts you want in " +
         "Hushfacebook settings > Comments and writing.",
 ) {
     category("Comments")
     dependsOn(settingsPatch, facebookExtensionPatch, incomingCommentTypingPatch, newCommentsPillPatch, commentBlockPatch, reactorBlockPatch, commentReactionRowPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         // Everything is found before anything changes, so a build missing one part is left as it was.
         requireStatusMethod("commentSheetOptions")
         val buttons = buttonSocket(
@@ -475,7 +479,7 @@ val commentSheetOptionsPatch = bytecodePatch(
             replyRow.render, feedReplyRow.render, threadPager.render, viewer.render, videoBar, inlineBar?.render,
             filter?.build, filter?.apply, filter?.listEqual, filter?.equal,
         ).map { it.descriptor() }.toSet()
-        listOf(band.builder, band.root, band.list).firstOrNull { it.descriptor() in hooked }?.let {
+        (listOf(band.builder, band.root, band.list) + band.chained.map { it.render }).firstOrNull { it.descriptor() in hooked }?.let {
             refuse("${it.descriptor()} holds the video comment band and another hook")
         }
 
@@ -552,6 +556,8 @@ val commentSheetOptionsPatch = bytecodePatch(
             mutable(part.method).insertAll(part.insertions)
         }
         filter?.let { filterComments(it) }
+        // #537: the live video's bar, on its own; a build without it warns and keeps the rest.
+        hideLiveCommentBar(PATCH)
         enableStatus("commentSheetOptions")
     }
 }
@@ -626,7 +632,9 @@ private fun receiver(instruction: Instruction): Int? = when (instruction) {
  * constructor naming it, and in it each [BACKGROUND_SETTERS] call made on the box itself, that is
  * on a register holding what the superclass constructor was called on (585 `LX/07tV;-><init>`:
  * setBackground with the theme's drawable, and setBackgroundResource of `sutro_top_border` when
- * the theme has none or a MobileConfig check is off). A build where that moved keeps the rest of
+ * the theme has none or a MobileConfig check is off). Where the constructor makes neither call
+ * itself, they're the ones in the one private helper it calls on the box that makes them on its
+ * own this, and `init` is that helper (588's Android 9 build). A build where that moved keeps the rest of
  * the patch, with Hide the line over the comment box left doing nothing and a warning saying why.
  */
 internal fun commentBoxBackground(holders: List<ClassDef>): CommentBoxBackground? {
@@ -650,8 +658,38 @@ internal fun commentBoxBackground(holders: List<ClassDef>): CommentBoxBackground
             called(index)?.let { it.definingClass == VIEW && it.name in BACKGROUND_SETTERS } == true &&
             receiver(code[index]) == box && init.writersReaching(index, box) == boxWriters
     }
-    if (calls.isEmpty()) return skip("${init.descriptor()} sets no background on the box")
-    return CommentBoxBackground(init, box, calls)
+    if (calls.isNotEmpty()) return CommentBoxBackground(init, box, calls)
+    // 588's Android 9 build moves both calls into a private helper the constructor calls on the box
+    // last (`LX/08jc;->A01(Landroid/util/AttributeSet;)V`), which sets them on its own this.
+    val helpers = (superCall + 1 until code.size).mapNotNull { index ->
+        val call = called(index)?.takeIf {
+            code[index].opcode.let { it == Opcode.INVOKE_DIRECT || it == Opcode.INVOKE_DIRECT_RANGE } &&
+                it.definingClass == owner.type && it.name != "<init>" &&
+                receiver(code[index]) == box && init.writersReaching(index, box) == boxWriters
+        } ?: return@mapNotNull null
+        owner.methods.singleOrNull { method ->
+            method.name == call.name && method.returnType == call.returnType &&
+                method.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString) &&
+                AccessFlags.PRIVATE.isSet(method.accessFlags) && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+                method.implementation != null
+        }
+    }.distinct().mapNotNull { helper -> commentBoxHelperBackground(helper) }
+    return helpers.singleOrNull() ?: skip(
+        "${init.descriptor()} sets no background on the box, and ${helpers.size} of its private helpers called on the box do",
+    )
+}
+
+/** [helper]'s [BACKGROUND_SETTERS] calls on its own this, still the one it was called on, or null when it makes none. */
+private fun commentBoxHelperBackground(helper: Method): CommentBoxBackground? {
+    val self = helper.localRegisterCount()
+    val body = helper.implementation!!.instructions.toList()
+    val calls = body.indices.filter { index ->
+        body[index].opcode.let { it == Opcode.INVOKE_VIRTUAL || it == Opcode.INVOKE_VIRTUAL_RANGE } &&
+            ((body[index] as? ReferenceInstruction)?.reference as? MethodReference)
+                ?.let { it.definingClass == VIEW && it.name in BACKGROUND_SETTERS } == true &&
+            receiver(body[index]) == self && helper.writersReaching(index, self) == listOf(-1)
+    }
+    return if (calls.isEmpty()) null else CommentBoxBackground(helper, self, calls)
 }
 
 /**
@@ -1271,9 +1309,26 @@ internal fun MutableMethod.loadWholeReplyThreads(list: ReplyList) {
 internal class ReplyRowTap(val render: Method, val kept: Int, val flag: Int)
 
 /**
+ * The render behind [named], a method of [owner] naming its row. 588 moves the feed row's tap
+ * wrapper, and the name with it, into a static of the row's class (arm64 `LX/06Yv;->A0A`) that the
+ * render calls, so a static with one caller in its class stands for that caller.
+ */
+private fun rowRender(owner: ClassDef, named: Method): Method {
+    if (!AccessFlags.STATIC.isSet(named.accessFlags)) return named
+    val parameters = named.parameterTypes.map { it.toString() }
+    return owner.methods.filter { caller ->
+        calls(caller).any { call ->
+            call.definingClass == owner.type && call.name == named.name && call.returnType == named.returnType &&
+                call.parameterTypes.map { it.toString() } == parameters
+        }
+    }.singleOrNull() ?: named
+}
+
+/**
  * A View more replies row, from [holders], the classes loading [name] ([VIEW_MORE_REPLIES] or
  * [FEED_VIEW_MORE_REPLIES]). Its render is the one method naming it that answers an object, the
- * constructor and the feed row's other method answering nothing. It finishes the row with one
+ * constructor and the feed row's other method answering nothing, or the method calling that one
+ * when it's a static of the row's class ([rowRender]). It finishes the row with one
  * static call made in two places, one on each side of checks of the same boolean: an `if-eqz`
  * that falls through to the call (the boolean true, where only the words take a tap) and an
  * `if-eqz` that jumps to it (the boolean false, where the whole row is wrapped as the tap
@@ -1283,8 +1338,9 @@ internal class ReplyRowTap(val render: Method, val kept: Int, val flag: Int)
  * there. Refuses unless each holds.
  */
 internal fun replyRowTap(holders: List<ClassDef>, name: String = VIEW_MORE_REPLIES): ReplyRowTap {
-    val renders = holders.flatMap { methodsHolding(it, name) }.filter { it.returnType.startsWith("L") }
-        .distinctBy { it.descriptor() }
+    val renders = holders.flatMap { owner ->
+        methodsHolding(owner, name).filter { it.returnType.startsWith("L") }.map { rowRender(owner, it) }
+    }.distinctBy { it.descriptor() }
     val render = renders.singleOrNull()
         ?: refuse("expected one method naming \"$name\" that answers an object, found ${renders.size}")
     val where = render.descriptor()
@@ -1556,7 +1612,10 @@ private fun hideInSender(sender: Method, senderKind: SenderKind): Pair<Int, List
     val (wanted) = lowFreeRegisters(sender, switch, 1, setOf(on))
     // 585's Android 9 build sends from a merged lambda (`LX/0D8q;->invoke`) with one low register
     // free there, so the number is then compared by subtracting it, which needs no second register.
-    val free = lowRegistersFree(sender, build, setOf(number, self))
+    // 588's arm (arm64 `LX/0HFT;->A0I`) has all three locals in use, but the switch's own number is
+    // spent by then, so that argument can hold the kind.
+    val spent = listOf(on).filter { it != number && it != self && it !in RegisterLiveness.of(sender).liveInto(build) }
+    val free = (lowRegistersFree(sender, build, setOf(number, self)) + spent).distinct()
     val read = free.firstOrNull() ?: refuse("$where has no free low register at instruction $build")
     val compare = free.getOrNull(1)?.let { sent ->
         """

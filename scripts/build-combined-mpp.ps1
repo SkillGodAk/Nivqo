@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.3.0",
+    [string]$Version = "1.4.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -162,7 +162,7 @@ try {
         $ErrorActionPreference = $oldPreference
     }
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git add failed" }
-    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.3.0 combined source"
+    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.4.0 combined source"
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git commit failed" }
     Push-Location $temp
     try {
@@ -208,7 +208,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 224 -or $facebookCount -ne 126 -or $messengerCount -ne 98 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 225 -or $facebookCount -ne 127 -or $messengerCount -ne 98 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

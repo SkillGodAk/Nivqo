@@ -16,6 +16,7 @@ import java.util.Set;
 import app.morphe.extension.facebook.feed.SeenPosts;
 import app.morphe.extension.facebook.misc.AppLock;
 import app.morphe.extension.facebook.notifications.PushDiagnostics;
+import app.morphe.extension.facebook.reels.BurnInGuard;
 import app.morphe.extension.facebook.reels.BurnInMode;
 import app.morphe.extension.facebook.theme.MaterialYouTheme;
 import app.morphe.extension.shared.L10n;
@@ -62,14 +63,18 @@ public enum PatchFamily {
             Settings.HIDE_AI_DETECTED_POSTS, Settings.HIDE_AI_LABELLED_POSTS, Settings.HIDE_AI_DETECTED_REELS,
             Settings.HIDE_META_AI_FEED_UNITS, Settings.HIDE_AI_CHARACTER_POSTS),
     POST_WORDS(FamilyNames.POST_WORDS, "postWords", null,
-            Settings.HIDE_POSTS_WITH_WORDS, Settings.POST_WORDS_WHOLE_WORDS, Settings.HIDE_POSTS_FROM_SOURCES,
+            Settings.HIDE_POSTS_WITH_WORDS, Settings.POST_WORDS_WHOLE_WORDS, Settings.POST_WORDS_ON_FEED,
+            Settings.POST_WORDS_ON_REELS, Settings.POST_WORDS_IN_GROUPS, Settings.POST_WORDS_ON_TIMELINES,
+            Settings.POST_WORDS_IN_SEARCH, Settings.HIDE_POSTS_FROM_SOURCES,
             Settings.HIDE_PHOTO_POSTS, Settings.HIDE_VIDEO_POSTS, Settings.HIDE_LINK_POSTS,
-            Settings.HIDE_BACKGROUND_POSTS, Settings.HIDE_REPOSTS, Settings.HIDE_PAGE_POSTS,
+            Settings.LINK_POSTS_ON_FEED, Settings.LINK_POSTS_ON_REELS, Settings.LINK_POSTS_IN_GROUPS,
+            Settings.LINK_POSTS_ON_TIMELINES, Settings.LINK_POSTS_IN_SEARCH, Settings.HIDE_BACKGROUND_POSTS, Settings.HIDE_REPOSTS, Settings.HIDE_PAGE_POSTS,
             Settings.ONLY_FRIENDS_POSTS, Settings.HIDE_OTHER_LANGUAGES),
     POST_PROMPTS(FamilyNames.POST_PROMPTS, "postPrompts", null,
             Settings.HIDE_POST_PROMPTS, Settings.HIDE_POST_FOLLOW_LINK, Settings.HIDE_POST_SUBSCRIBE_LINK,
             Settings.HIDE_POST_JOIN_BUTTON, Settings.HIDE_POST_X,
-            Settings.HIDE_POST_COUNTS, Settings.HIDE_POST_REACTIONS, Settings.HIDE_COMMENT_REACTIONS),
+            Settings.HIDE_POST_COUNTS, Settings.HIDE_POST_REACTIONS, Settings.HIDE_COMMENT_REACTIONS,
+            Settings.REACTIONS_ON_LIKE_BUTTON, Settings.HIDE_REACTION_BUBBLES, Settings.HIDE_REACTOR_NAMES),
     PROFILE_PICTURES(FamilyNames.PROFILE_PICTURES, "profilePictures", null,
             Settings.HIDE_FEED_PROFILE_PICTURES, Settings.HIDE_COMMENT_PROFILE_PICTURES),
     SEEN_POSTS(FamilyNames.SEEN_POSTS, "seenPosts", null,
@@ -77,11 +82,11 @@ public enum PatchFamily {
     META_AI_QUESTIONS(FamilyNames.META_AI_QUESTIONS, "metaAiQuestions", null,
             Settings.HIDE_META_AI_QUESTIONS),
     POST_DATES(FamilyNames.POST_DATES, "postDates", null,
-            Settings.KEEP_POST_DATES),
+            Settings.KEEP_POST_DATES, Settings.HIDE_POST_SONGS, Settings.BOLD_POST_TIMES),
     FULL_POST_TEXT(FamilyNames.FULL_POST_TEXT, "fullPostText", null,
             Settings.SHOW_FULL_POST_TEXT, Settings.SHOW_FULL_REEL_CAPTIONS, Settings.DIM_OPEN_REEL_CAPTIONS,
-            Settings.DIM_FOLDED_REEL_CAPTIONS, Settings.DIM_REEL_NAMES, Settings.DIM_STORY_NAMES,
-            Settings.SOFT_TEXT_BOXES),
+            Settings.DIM_FOLDED_REEL_CAPTIONS, Settings.DIM_REEL_NAMES, Settings.DIM_FEED_VIDEO_NAMES,
+            Settings.SHOW_FULL_NAMES, Settings.DIM_STORY_NAMES, Settings.SOFT_TEXT_BOXES),
     /** Set by its two lists, posts and comments, which start at Facebook's own fold (#497). */
     FOLD_LONG_TEXT(FamilyNames.FOLD_LONG_TEXT, "foldLongText", Settings.FOLD_POST_TEXT),
     TRANSLATE_POSTS(FamilyNames.TRANSLATE_POSTS, "translatePosts", null,
@@ -91,7 +96,7 @@ public enum PatchFamily {
     PHOTO_CAROUSEL(FamilyNames.PHOTO_CAROUSEL, "photoCarousel", null,
             Settings.PHOTO_CAROUSEL),
     AUTO_TRANSLATION(FamilyNames.AUTO_TRANSLATION, "autoTranslation", null,
-            Settings.TURN_OFF_AUTO_TRANSLATION),
+            Settings.TURN_OFF_AUTO_TRANSLATION, Settings.TRANSLATE_EVERY_COMMENT),
     FEEDS_HEADER(FamilyNames.FEEDS_HEADER, "feedsHeader", null,
             Settings.HIDE_FEEDS_HEADER),
     SPONSORED_STORIES(FamilyNames.SPONSORED_STORIES, "sponsoredStories", null,
@@ -114,7 +119,8 @@ public enum PatchFamily {
             Settings.STORY_PLAY_BUTTON, Settings.STORY_DOUBLE_TAP),
     STORY_VIEWER_CLEANUP(FamilyNames.STORY_VIEWER_CLEANUP, "storyViewerCleanup", null,
             Settings.HIDE_STORY_CREDITS, Settings.HIDE_STORY_REPLY_SUGGESTIONS, Settings.HIDE_STORY_SUBSCRIBE,
-            Settings.HIDE_STORY_CREATE_CARDS, Settings.STORY_PROGRESS_BAR),
+            Settings.HIDE_STORY_FOLLOW, Settings.HIDE_STORY_REPLY_BAR, Settings.HIDE_STORY_UP_NEXT,
+            Settings.HIDE_STORY_CREATE_CARDS, Settings.STORY_PROGRESS_BAR, Settings.STORY_FLAT_SLIDE),
     STORY_RINGS(FamilyNames.STORY_RINGS, "storyRings", null,
             Settings.HIDE_FEED_STORY_RINGS, Settings.HIDE_COMMENT_STORY_RINGS, Settings.HIDE_PROFILE_STORY_RINGS),
     PINCH_TO_ZOOM(FamilyNames.PINCH_TO_ZOOM, "pinchToZoom", null,
@@ -133,7 +139,7 @@ public enum PatchFamily {
     POST_ACTION_BUTTONS(FamilyNames.POST_ACTION_BUTTONS, "postActionButtons", null,
             Settings.POST_SAVE_BUTTON, Settings.POST_DOWNLOAD_BUTTON, Settings.HIDE_POST_LIKE_BUTTON,
             Settings.HIDE_POST_COMMENT_BUTTON, Settings.HIDE_POST_REPOST_BUTTON, Settings.HIDE_POST_SHARE_BUTTON,
-            Settings.HIDE_POST_SEND_BUTTON),
+            Settings.HIDE_POST_SEND_BUTTON, Settings.IGNORE_POST_ROW_TAPS),
     SPONSORED_MARKETPLACE(FamilyNames.SPONSORED_MARKETPLACE, "sponsoredMarketplace", null,
             Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS, Settings.MARKETPLACE_ADVANCED_SEARCH,
             Settings.MARKETPLACE_FILTERS_BUTTON, Settings.MARKETPLACE_LISTING_DATE),
@@ -147,12 +153,12 @@ public enum PatchFamily {
             Settings.FOLLOWED_REELS_ONLY,
             Settings.REEL_CLEAN_MODE, Settings.REEL_CLEAN_BUTTON, Settings.PLAY_REELS_ONCE,
             Settings.ORIGINAL_AUDIO, Settings.HIDE_REEL_SEARCH_PILL, Settings.HIDE_VIEWER_TOP_BUTTONS, Settings.HIDE_REELS_TAB_TITLE,
-            Settings.HIDE_VIEWER_BACK_BUTTON, Settings.BURN_IN_STAY_DIM,
+            Settings.HIDE_VIEWER_BACK_BUTTON, Settings.BURN_IN_STAY_DIM, Settings.BURN_IN_FADE,
             Settings.GRAY_REELS, Settings.REELS_MINUTES, Settings.HIDE_REEL_COUNTS,
             Settings.HIDE_REEL_SAVE_BUTTON, Settings.HIDE_REEL_WHATSAPP_BUTTON, Settings.HIDE_REEL_LIKE_BUTTON,
             Settings.HIDE_REEL_COMMENT_BUTTON, Settings.HIDE_REEL_REPOST_BUTTON, Settings.HIDE_REEL_SHARE_BUTTON,
             Settings.SHOW_REEL_COMMENT_BUTTON,
-            Settings.SHOW_REEL_POST_DATE,
+            Settings.SHOW_REEL_POST_DATE, Settings.HIDE_REEL_NEW_FOR_YOU,
             Settings.HIDE_REEL_SOUND_BUTTON, Settings.REEL_SPEAKER_ABOVE_MENU, Settings.HIDE_REEL_AUDIO_LINE,
             Settings.HIDE_SLOW_CONNECTION_MESSAGE, Settings.HIDE_UP_NEXT, Settings.HIDE_REEL_FULLSCREEN_PILL, Settings.HIDE_FEED_VIDEO_BUTTONS,
             Settings.FEED_VIDEOS_ALONE, Settings.SHARED_REELS_ALONE, Settings.HIDE_SHARED_REEL_FRIEND_SHEET,
@@ -170,7 +176,8 @@ public enum PatchFamily {
             Settings.TURN_OFF_DOUBLE_TAP_LIKE),
     ASK_BEFORE_LIKE(FamilyNames.ASK_BEFORE_LIKE, "askBeforeLike", null,
             Settings.ASK_BEFORE_LIKING_POSTS, Settings.ASK_BEFORE_LIKING_REELS, Settings.ASK_BEFORE_LIKING_COMMENTS,
-            Settings.ASK_BEFORE_FOLLOWING_POSTS, Settings.ASK_BEFORE_FOLLOWING_REELS),
+            Settings.ASK_BEFORE_FOLLOWING_POSTS, Settings.ASK_BEFORE_FOLLOWING_REELS,
+            Settings.ASK_BEFORE_REACTING_TO_STORIES),
     DOUBLE_TAP_SKIP(FamilyNames.DOUBLE_TAP_SKIP, "doubleTapSkip", null,
             Settings.DOUBLE_TAP_SKIP, Settings.HIDE_SKIP_SECONDS),
     TAP_SHOWS_CONTROLS(FamilyNames.TAP_SHOWS_CONTROLS, "tapShowsControls", null,
@@ -194,7 +201,7 @@ public enum PatchFamily {
             Settings.LOAD_WHOLE_REPLY_THREADS, Settings.HIDE_REPLIES_BUTTON, Settings.HIDE_RELATED_GROUPS_UNDER_COMMENTS,
             Settings.HIDE_SHOP_LINK_COMMENTS, Settings.HIDE_COMMENTS_WITH_WORDS,
             Settings.HIDE_INCOMING_COMMENT_TYPING, Settings.HIDE_NEW_COMMENTS_PILL, Settings.SHOW_EVERY_COMMENT_REACTION,
-            Settings.HIDE_VIDEO_COMMENT_COMPOSER, Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES,
+            Settings.HIDE_VIDEO_COMMENT_COMPOSER, Settings.HIDE_LIVE_COMMENT_BAR, Settings.TAP_ANYWHERE_ON_VIEW_MORE_REPLIES,
             Settings.HIDE_POST_COMMENT_PREVIEWS, Settings.HIDE_COMMENT_DOWNVOTE_BUTTON,
             Settings.HIDE_COMMENT_LIKE_BUTTON, Settings.HIDE_COMMENT_REPLY_BUTTON, Settings.HIDE_COMMENTER_BADGES,
             Settings.HIDE_COMMENT_EMOJI_ROW, Settings.HIDE_COMMENT_BOX_LINE,
@@ -211,12 +218,14 @@ public enum PatchFamily {
             Settings.INLINE_FEED_VIDEO_CONTROLS,
             Settings.FEED_VIDEO_CAST_BUTTON, Settings.FEED_VIDEO_SEEK_BAR, Settings.FEED_VIDEO_SEEK_BAR_FADE,
             Settings.FEED_VIDEO_SEEK_BAR_LOWER, Settings.FEED_VIDEO_SEEK_BAR_EDGE, Settings.FEED_VIDEO_SEEK_BAR_TIMES,
-            Settings.FEED_VIDEO_SEEK_BAR_LENGTH, Settings.FEED_VIDEO_SEEK_BAR_THIN,
+            Settings.FEED_VIDEO_SEEK_BAR_LENGTH, Settings.FEED_VIDEO_SEEK_BAR_THIN, Settings.FEED_VIDEO_SEEK_BAR_FLAT_DRAG,
             Settings.FEED_VIDEO_FULL_PLAYER_BUTTON, Settings.FEED_VIDEO_FULL_PLAYER_CORNER,
-            Settings.FEED_VIDEO_SKIP_BUTTONS, Settings.FEED_VIDEO_DOUBLE_TAP_SKIP, Settings.FEED_VIDEO_SPEED_BUTTON,
+            Settings.FEED_VIDEO_SKIP_BUTTONS, Settings.FEED_VIDEO_DOUBLE_TAP_SKIP, Settings.FEED_VIDEO_TAP_SHOWS_PAUSE,
+            Settings.FEED_VIDEO_SPEED_BUTTON,
             Settings.CENTER_FULL_SCREEN_VIDEOS, Settings.STORY_SEEK_BAR, Settings.STORY_SEEK_BAR_FADE),
     RESUME_LONG_VIDEOS(FamilyNames.RESUME_LONG_VIDEOS, "resumeLongVideos", null,
-            Settings.RESUME_LONG_VIDEOS, Settings.RECENTLY_WATCHED, Settings.BREAK_AFTER_REELS),
+            Settings.RESUME_LONG_VIDEOS, Settings.RECENTLY_WATCHED, Settings.RECENTLY_WATCHED_MENU_ROW,
+            Settings.BREAK_AFTER_REELS),
     FRAME_STEP(FamilyNames.FRAME_STEP, "frameStep", null,
             Settings.FRAME_STEP),
     PLAYBACK_QUALITY(FamilyNames.PLAYBACK_QUALITY, "defaultPlaybackQuality", null,
@@ -224,11 +233,13 @@ public enum PatchFamily {
     PICTURE_IN_PICTURE(FamilyNames.PICTURE_IN_PICTURE, "pictureInPicture", null,
             Settings.PICTURE_IN_PICTURE, Settings.PICTURE_IN_PICTURE_FROM_MENU, Settings.PICTURE_IN_PICTURE_BUTTON),
     BACKGROUND_PLAY(FamilyNames.BACKGROUND_PLAY, "backgroundPlay", null,
-            Settings.KEEP_PLAYING_IN_BACKGROUND, Settings.BACKGROUND_PLAY_BUTTON),
+            Settings.KEEP_PLAYING_IN_BACKGROUND, Settings.NEXT_REEL_IN_BACKGROUND, Settings.BACKGROUND_PLAY_BUTTON),
     HDR_BRIGHTNESS(FamilyNames.HDR_BRIGHTNESS, "turnOffHdrBrightness", null,
             Settings.TURN_OFF_HDR_BRIGHTNESS, Settings.PREFER_SDR_RENDITIONS, Settings.DRAW_VIDEOS_WITH_THE_SCREEN),
     SKIP_SILENCE(FamilyNames.SKIP_SILENCE, "skipSilentParts", null,
             Settings.SKIP_SILENT_PARTS),
+    /** Set by its list, which starts at Facebook's choice (#526). */
+    VIDEO_BUFFER(FamilyNames.VIDEO_BUFFER, "videoBuffer", Settings.VIDEO_BUFFER),
     KEEP_FEED_VIDEOS_MUTED(FamilyNames.KEEP_FEED_VIDEOS_MUTED, "keepFeedVideosMuted", null,
             Settings.KEEP_FEED_VIDEOS_MUTED, Settings.MUTE_STORIES, Settings.RESTORE_FEED_SOUND),
     PROGRESS_BAR(FamilyNames.PROGRESS_BAR, "keepProgressBar", null,
@@ -262,7 +273,8 @@ public enum PatchFamily {
             Settings.DOWNLOAD_VIDEOS, Settings.CLIPBOARD_DOWNLOAD, Settings.POST_MENU_DOWNLOAD_FIRST,
             Settings.OPEN_IN_ANOTHER_APP),
     PHOTO_DOWNLOAD(FamilyNames.PHOTO_DOWNLOAD, "photoDownload", null,
-            Settings.DOWNLOAD_PHOTOS, Settings.POST_MENU_PHOTO_SAVE, Settings.POST_MENU_PHOTO_SEARCH),
+            Settings.DOWNLOAD_PHOTOS, Settings.POST_MENU_PHOTO_SAVE, Settings.POST_MENU_PHOTO_SEARCH,
+            Settings.MARKETPLACE_PHOTO_SAVE),
     START_TAB(FamilyNames.START_TAB, "startTab", null,
             Settings.OPEN_ON_CHOSEN_TAB),
     FOLLOWING_HOME(FamilyNames.FOLLOWING_HOME, "followingHome", null,
@@ -291,8 +303,8 @@ public enum PatchFamily {
             Settings.BOTTOM_TAB_BAR, Settings.TOP_TAB_BAR, Settings.TAB_BAR_SCROLL_AWAY, Settings.KEEP_TAB_BAR,
             Settings.KEEP_TOP_BAR,
             Settings.PHONE_LAYOUT_ON_BIG_SCREENS, Settings.TRANSLUCENT_BARS, Settings.ROUNDED_TAB_BAR, Settings.HIDE_STATUS_BAR,
-            Settings.LIGHT_REELS_TAB_BARS, Settings.HIDE_REELS_TAB_BAR,
-            Settings.HIDE_MESSENGER_BUTTON, Settings.HIDE_MESSENGER_COUNT, Settings.HIDE_FACEBOOK_LOGO,
+            Settings.CENTER_FEED_ON_BIG_SCREENS, Settings.LIGHT_REELS_TAB_BARS, Settings.HIDE_REELS_TAB_BAR, Settings.HIDE_TAB_BAR_LINE,
+            Settings.TAB_BAR_IN_GROUPS, Settings.HIDE_MESSENGER_BUTTON, Settings.HIDE_MESSENGER_COUNT, Settings.HIDE_FACEBOOK_LOGO,
             Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SEARCH_BUTTON, Settings.SEARCH_WITH_PICTURE),
     FORCE_DARK_MODE(FamilyNames.FORCE_DARK_MODE, "forceDarkMode", null,
             Settings.FORCE_DARK_MODE),
@@ -424,13 +436,13 @@ public enum PatchFamily {
      * The switches the download patches share and none of them owns: each shapes what every
      * save picks, a story's, a reel's or a feed video's, so it's on the screen under Downloads
      * whenever one of them is in the build. Today that's saves other apps can open, converting to
-     * keep the full size, quiet saves, and choosing the quality on each save.
+     * keep the full size, quiet saves, choosing the quality on each save, and asking first.
      * Pause turns them off like a family's switches, and a paused Facebook makes no Hushfacebook
      * saves anyway.
      */
     static final List<BooleanSetting> DOWNLOAD_SWITCHES = Collections.unmodifiableList(
             java.util.Arrays.asList(Settings.DOWNLOAD_COMPATIBLE, Settings.DOWNLOAD_CONVERT, Settings.DOWNLOAD_QUIET,
-                    Settings.DOWNLOAD_QUALITY_ASK));
+                    Settings.DOWNLOAD_QUALITY_ASK, Settings.ASK_BEFORE_DOWNLOAD));
 
     /** The families whose saves read {@link #DOWNLOAD_SWITCHES}. */
     static final Set<PatchFamily> DOWNLOADS = Collections.unmodifiableSet(
@@ -614,7 +626,7 @@ public enum PatchFamily {
         if (this == TAP_TO_PLAY) anyOn = Settings.TAP_TO_PLAY.savedValue() || Settings.INLINE_FEED_VIDEO_CONTROLS.savedValue()
                 || Settings.FEED_VIDEO_CAST_BUTTON.savedValue() || Settings.FEED_VIDEO_SEEK_BAR.savedValue()
                 || Settings.FEED_VIDEO_FULL_PLAYER_BUTTON.savedValue() || Settings.FEED_VIDEO_SKIP_BUTTONS.savedValue()
-                || Settings.FEED_VIDEO_DOUBLE_TAP_SKIP.savedValue()
+                || Settings.FEED_VIDEO_DOUBLE_TAP_SKIP.savedValue() || Settings.FEED_VIDEO_TAP_SHOWS_PAUSE.savedValue()
                 || Settings.FEED_VIDEO_SPEED_BUTTON.savedValue() || Settings.CENTER_FULL_SCREEN_VIDEOS.savedValue();
         // The time switch starts on, and does nothing without the bar kept; Tap the bar to seek works alone.
         if (this == PROGRESS_BAR) anyOn = Settings.KEEP_PROGRESS_BAR.savedValue() || Settings.TAP_TO_SEEK.savedValue();
@@ -624,11 +636,13 @@ public enum PatchFamily {
                 if (setting != Settings.NOTIFICATION_QUIET_HOURS) anyOn |= setting.savedValue();
             }
         }
-        // Burn-in guard runs by its list; Stay dim when I tap does nothing with the guard off (#288).
+        // Burn-in guard runs by its list; Stay dim when I tap and Smooth fade do nothing with the guard off (#288, #523).
         if (this == REEL_DECLUTTER) {
             anyOn = Settings.BURN_IN_GUARD.savedValue() != BurnInMode.OFF;
             for (BooleanSetting setting : switches) {
-                if (setting != Settings.BURN_IN_STAY_DIM) anyOn |= setting.savedValue();
+                if (setting != Settings.BURN_IN_STAY_DIM && setting != Settings.BURN_IN_FADE) {
+                    anyOn |= setting.savedValue();
+                }
             }
         }
         if (this == POST_WORDS) {
@@ -647,16 +661,23 @@ public enum PatchFamily {
         for (int i = 0; i < switches.size(); i++) {
             if (i > 0) line.append(", ");
             BooleanSetting setting = switches.get(i);
-            // Burn-in guard's two lists, which no switch holds, sit before its switch (#288).
+            // Burn-in guard's two lists and its Dim to percent, which no switch holds, sit before its switch (#288, #523).
             if (setting == Settings.BURN_IN_STAY_DIM) {
                 line.append(Settings.BURN_IN_GUARD.key).append('=').append(Settings.BURN_IN_GUARD.savedValue()).append(", ")
-                        .append(Settings.BURN_IN_WAIT.key).append('=').append(Settings.BURN_IN_WAIT.savedValue()).append(", ");
+                        .append(Settings.BURN_IN_WAIT.key).append('=').append(Settings.BURN_IN_WAIT.savedValue()).append(", ")
+                        .append(Settings.BURN_IN_LEVEL.key).append('=')
+                        .append(BurnInGuard.levelPercent(Settings.BURN_IN_LEVEL.savedValue())).append(", ");
             }
             line.append(setting.key).append(setting.savedValue() ? "=on" : "=off");
             // How the post date is worded follows its switch (#357).
             if (setting == Settings.SHOW_REEL_POST_DATE) {
                 line.append(", ").append(Settings.REEL_POST_DATE_STYLE.key).append('=')
                         .append(Settings.REEL_POST_DATE_STYLE.savedValue());
+            }
+            // When a reel goes back into Clean mode follows Clean mode's two switches (#519).
+            if (setting == Settings.REEL_CLEAN_BUTTON) {
+                line.append(", ").append(Settings.REEL_CLEAN_RETURN.key).append('=')
+                        .append(Settings.REEL_CLEAN_RETURN.savedValue());
             }
             // What a hold gives follows its two switches, once after the second (#454).
             if (setting == Settings.HOLD_VIDEO_TO_REACT) {

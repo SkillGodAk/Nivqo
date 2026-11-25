@@ -81,6 +81,7 @@ public class ReelDeclutterTest {
         Settings.HIDE_REEL_SHARE_BUTTON.resetToDefault();
         Settings.SHOW_REEL_COMMENT_BUTTON.resetToDefault();
         Settings.SHOW_REEL_POST_DATE.resetToDefault();
+        Settings.HIDE_REEL_NEW_FOR_YOU.resetToDefault();
         Settings.REEL_POST_DATE_STYLE.resetToDefault();
         Settings.HIDE_VIDEO_SUBSCRIBE_BUTTON.resetToDefault();
         Settings.HIDE_REEL_SOUND_BUTTON.resetToDefault();
@@ -247,6 +248,30 @@ public class ReelDeclutterTest {
         assertEquals(ReelDeclutter.EDITS_ROUTE + ": 5 lists, 5 items, 1 removed. Last reason: " + ReelDeclutter.EDITS_LABEL
                 + ". Removed: " + ReelDeclutter.EDITS_LABEL + " 1. Kinds: " + ReelDeclutter.EDITS_LABEL + " 5",
                 line(ReelDeclutter.EDITS_ROUTE));
+    }
+
+    /**
+     * The "Made with Edits" pill over a feed video (#314) goes with the same chips switch as the
+     * caption line, under a route of its own, and comes back paused, before the settings are ready
+     * and once the switch is off.
+     */
+    @Test
+    public void theEditsPillGoesWithTheChipsSwitch() {
+        Settings.HIDE_REEL_CHIPS.save(false);
+        Settings.HIDE_REEL_AUDIO_LINE.save(true);
+        assertFalse("the audio line switch took the Edits pill", ReelDeclutter.hideEditsPill());
+        Settings.HIDE_REEL_CHIPS.save(true);
+        assertTrue(ReelDeclutter.hideEditsPill());
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("the Edits pill went while paused", ReelDeclutter.hideEditsPill());
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("the Edits pill went before the settings were ready",
+                ReelDeclutter.hideEditsPill()));
+        Settings.HIDE_REEL_CHIPS.save(false);
+        assertFalse("turning the switch off didn't bring the Edits pill back", ReelDeclutter.hideEditsPill());
+        assertEquals(ReelDeclutter.EDITS_PILL_ROUTE + ": 5 lists, 5 items, 1 removed. Last reason: " + ReelDeclutter.EDITS_PILL
+                + ". Removed: " + ReelDeclutter.EDITS_PILL + " 1. Kinds: " + ReelDeclutter.EDITS_PILL + " 5",
+                line(ReelDeclutter.EDITS_PILL_ROUTE));
     }
 
     /** A chips switch that can't be read draws the Edits line, and the report names the hook. */
@@ -565,6 +590,33 @@ public class ReelDeclutterTest {
     }
 
     /**
+     * #503: Facebook's own date after a reel's caption keeps the server's answer until the post date
+     * is on, then stays out so the date shows under the author only, and comes back paused, before
+     * the settings are ready, once the switch is off and when it can't be read. A no stays no.
+     */
+    @Test
+    public void theCaptionDateStaysOutWhileThePostDateShows() {
+        assertTrue("the caption date went with the switch off", ReelDeclutter.captionDateShows(true));
+        assertFalse(ReelDeclutter.captionDateShows(false));
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertFalse("the date showed under the caption as well as under the author", ReelDeclutter.captionDateShows(true));
+        assertFalse(ReelDeclutter.captionDateShows(false));
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertTrue("the caption date went while paused", ReelDeclutter.captionDateShows(true));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertTrue("the caption date went before the settings were ready", ReelDeclutter.captionDateShows(true)));
+        SettingReadsForTests.breakReads(Settings.SHOW_REEL_POST_DATE);
+        try {
+            assertTrue("a switch that can't be read took the caption date", ReelDeclutter.captionDateShows(true));
+        } finally {
+            SettingReadsForTests.mend(Settings.SHOW_REEL_POST_DATE);
+        }
+        Settings.SHOW_REEL_POST_DATE.save(false);
+        assertTrue("turning the switch off didn't bring the caption date back", ReelDeclutter.captionDateShows(true));
+    }
+
+    /**
      * A reel's recommendation reason took the whole line under the author when Facebook's flag said so,
      * date included, so one reel showed its date and the next didn't (#496). With the switch on the
      * flag reads no and the date stays; off, paused, before the settings are ready and when the switch
@@ -591,6 +643,63 @@ public class ReelDeclutterTest {
         }
         Settings.SHOW_REEL_POST_DATE.save(false);
         assertTrue("turning the switch off didn't give the reason its line back", ReelDeclutter.reasonAlone(true));
+    }
+
+    /**
+     * "New for you", the reason Facebook picked a reel, went in at the top of the line under the
+     * author, so it showed first and the date only once the line turned over (#520). With Hide New
+     * for you on reels it's left out, with the date on and the hide off it goes last, and otherwise,
+     * paused, before the settings are ready or with a switch that can't be read it goes where
+     * Facebook put it.
+     */
+    @Test
+    public void newForYouGoesWhereTheSwitchesSay() {
+        assertFalse(Settings.HIDE_REEL_NEW_FOR_YOU.defaultValue);
+        assertFalse("asked as each reel's footer is built, so no restart", Settings.HIDE_REEL_NEW_FOR_YOU.rebootApp);
+        assertEquals("[nfy, date, song]", slotted(0));
+        assertEquals("[date, nfy, song]", slotted(1));
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertEquals("the date still came after New for you", "[date, song, nfy]", slotted(0));
+        assertEquals("[date, song, nfy]", slotted(2));
+        Settings.HIDE_REEL_NEW_FOR_YOU.save(true);
+        assertEquals("New for you stayed on the line", "[date, song]", slotted(0));
+        Settings.SHOW_REEL_POST_DATE.save(false);
+        assertEquals("[date, song]", slotted(1));
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertEquals("New for you went missing while paused", "[nfy, date, song]", slotted(0));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertEquals("New for you went missing before the settings were ready", "[nfy, date, song]", slotted(0)));
+        SettingReadsForTests.breakReads(Settings.HIDE_REEL_NEW_FOR_YOU);
+        try {
+            assertEquals("a switch that can't be read hid New for you", "[nfy, date, song]", slotted(0));
+        } finally {
+            SettingReadsForTests.mend(Settings.HIDE_REEL_NEW_FOR_YOU);
+        }
+        Settings.HIDE_REEL_NEW_FOR_YOU.save(false);
+        assertEquals("turning the switch off didn't bring New for you back", "[nfy, date, song]", slotted(0));
+    }
+
+    /**
+     * With New for you hidden, Facebook's flag that leaves the reason alone on the line reads no, or
+     * the line would lose the date and every other label for a reason that isn't drawn (#520).
+     */
+    @Test
+    public void aHiddenNewForYouNeverTakesTheLineAlone() {
+        Settings.HIDE_REEL_NEW_FOR_YOU.save(true);
+        assertFalse("the hidden reason still took the line", ReelDeclutter.reasonAlone(true));
+        assertFalse(ReelDeclutter.reasonAlone(false));
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertTrue("the reason lost its line while paused", ReelDeclutter.reasonAlone(true));
+        PauseForTests.resume();
+        Settings.HIDE_REEL_NEW_FOR_YOU.save(false);
+        assertTrue(ReelDeclutter.reasonAlone(true));
+    }
+
+    private static String slotted(int at) {
+        List<Object> line = new ArrayList<>(Arrays.asList("date", "song"));
+        ReelDeclutter.slotNewForYou(line, at, "nfy");
+        return line.toString();
     }
 
     private static final long NOW = 1793620800_000L; // 2026-11-02 12:00 UTC
@@ -700,6 +809,140 @@ public class ReelDeclutterTest {
         PauseForTests.resume();
         SettingsContextRule.withoutContext(() ->
                 assertSame("dated before the settings were ready", song, ReelDeclutter.audioLineText(song, story)));
+    }
+
+    /**
+     * The song chip scrolls its line sideways, which carried the date in front of the song out of
+     * sight (#503). While the date's switch is on the chip holds still; off, paused or before the
+     * settings are ready it scrolls the way Facebook asked, and a chip that wasn't going to scroll
+     * never starts.
+     */
+    @Test
+    public void aDatedSongLineHoldsStill() {
+        assertTrue("off by default, the line scrolls", ReelDeclutter.audioLineScrolls(1));
+        assertFalse(ReelDeclutter.audioLineScrolls(0));
+        assertNull(line(ReelDeclutter.DATE_ROUTE));
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertFalse("the date shows, the line holds still", ReelDeclutter.audioLineScrolls(1));
+        assertTrue(line(ReelDeclutter.DATE_ROUTE), line(ReelDeclutter.DATE_ROUTE).contains(ReelDeclutter.DATE_SONG_STILL));
+        assertFalse("any non-zero flag is yes", ReelDeclutter.audioLineScrolls(-1));
+        assertFalse("a still chip stays still", ReelDeclutter.audioLineScrolls(0));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertTrue("held still while paused", ReelDeclutter.audioLineScrolls(1));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertTrue("held still before the settings were ready", ReelDeclutter.audioLineScrolls(1)));
+    }
+
+    /**
+     * The line under a reel's author flips between its rows, the date first, so the date gave way to
+     * a location or "New for you" after a few seconds (#503). While the date's switch is on and the
+     * date row the helper answered is among the rows, the line gets that row alone. Rows that are only
+     * equal to it, a single row, a footer with no date row kept, the switch off, a pause and unready
+     * settings keep the rows, and the kept row is used up once the rows come by.
+     */
+    @Test
+    public void theLineUnderTheAuthorHoldsOnTheDate() {
+        Object date = new SameAsEveryRow();
+        Object location = new Object();
+        Object newForYou = new Object();
+        List<Object> rows = new ArrayList<>(Arrays.asList(date, location, newForYou));
+
+        ReelDeclutter.footerDateRow(date);
+        assertSame("off by default, the rows stay", rows, ReelDeclutter.footerRows(rows));
+        assertNull(line(ReelDeclutter.DATE_ROUTE));
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertSame("no date row kept", rows, ReelDeclutter.footerRows(rows));
+        ReelDeclutter.footerDateRow(date);
+        List<Object> held = ReelDeclutter.footerRows(rows);
+        assertEquals("the date row alone", Collections.singletonList(date), held);
+        assertSame(date, held.get(0));
+        assertEquals("Facebook's rows aren't touched", 3, rows.size());
+        assertTrue(line(ReelDeclutter.DATE_ROUTE), line(ReelDeclutter.DATE_ROUTE).contains(ReelDeclutter.DATE_HELD));
+        assertSame("the kept row is used up", rows, ReelDeclutter.footerRows(rows));
+
+        ReelDeclutter.footerDateRow(date);
+        List<Object> later = new ArrayList<>(Arrays.asList(location, date));
+        assertSame("found wherever it sits", date, ReelDeclutter.footerRows(later).get(0));
+
+        ReelDeclutter.footerDateRow(new SameAsEveryRow());
+        assertSame("a row only equal to the date's", rows, ReelDeclutter.footerRows(rows));
+        ReelDeclutter.footerDateRow(null);
+        assertSame("a helper that drew no date", rows, ReelDeclutter.footerRows(rows));
+        ReelDeclutter.footerDateRow(date);
+        List<Object> one = new ArrayList<>(Collections.singletonList(date));
+        assertSame("a single row already holds", one, ReelDeclutter.footerRows(one));
+        ReelDeclutter.footerDateRow(date);
+        assertNull("no rows stay no rows", ReelDeclutter.footerRows(null));
+
+        ReelDeclutter.footerDateRow(date);
+        for (int i = 0; i < ReelDeclutter.FOOTER_DATES_KEPT * 3; i++) ReelDeclutter.footerDateRow(new Object());
+        assertSame("only the newest few rows are kept", rows, ReelDeclutter.footerRows(rows));
+        ReelDeclutter.footerDateRow(date);
+        for (int i = 0; i < ReelDeclutter.FOOTER_DATES_KEPT - 1; i++) ReelDeclutter.footerDateRow(new Object());
+        assertSame("and those are", date, ReelDeclutter.footerRows(rows).get(0));
+
+        ReelDeclutter.footerDateRow(date);
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame("held while paused", rows, ReelDeclutter.footerRows(rows));
+        PauseForTests.resume();
+        ReelDeclutter.footerDateRow(date);
+        SettingsContextRule.withoutContext(() ->
+                assertSame("held before the settings were ready", rows, ReelDeclutter.footerRows(rows)));
+    }
+
+    /** A row equal to every other, so only the date row itself can be the one held. */
+    private static final class SameAsEveryRow {
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof SameAsEveryRow;
+        }
+
+        @Override
+        public int hashCode() {
+            return 1;
+        }
+    }
+
+    /**
+     * A group's video in the full-screen viewer shows the group's name over the poster's and no date
+     * line (#520), so the date goes after the poster's name, worded the same way. A blank name, a time
+     * that can't be a post's, a story that holds none, the switch off, a pause and unready settings
+     * all keep the name.
+     */
+    @Test
+    public void theDateGoesAfterAGroupVideosPoster() {
+        String poster = "Ana Lima";
+        long threeWeeks = NOW / 1000 - 21L * 24 * 60 * 60;
+        assertEquals(poster + ReelDeclutter.DOT + "3 weeks ago",
+                ReelDeclutter.groupPoster(poster, threeWeeks, NOW, ReelDateStyle.AGO, Locale.US, UTC));
+        assertEquals(poster + ReelDeclutter.DOT + "Oct 12",
+                ReelDeclutter.groupPoster(poster, 1791817200L, NOW, ReelDateStyle.DATE, Locale.US, UTC));
+        assertSame("a blank name", "", ReelDeclutter.groupPoster("", threeWeeks, NOW, ReelDateStyle.AGO, Locale.US, UTC));
+        for (ReelDateStyle style : ReelDateStyle.values()) {
+            assertSame(poster, ReelDeclutter.groupPoster(poster, 0, NOW, style, Locale.US, UTC));
+            assertSame(poster, ReelDeclutter.groupPoster(poster, NOW / 1000 + 3600, NOW, style, Locale.US, UTC));
+        }
+
+        long posted = System.currentTimeMillis() / 1000 - 21L * 24 * 60 * 60;
+        TreeJNI story = new TreeJNI().with("creation_time", posted);
+        assertSame("off by default, the name stays", poster, ReelDeclutter.groupPosterText(poster, story));
+        assertNull(line(ReelDeclutter.DATE_ROUTE));
+        Settings.SHOW_REEL_POST_DATE.save(true);
+        assertEquals(poster + ReelDeclutter.DOT + "3 weeks ago", ReelDeclutter.groupPosterText(poster, story));
+        assertTrue(line(ReelDeclutter.DATE_ROUTE), line(ReelDeclutter.DATE_ROUTE).contains(ReelDeclutter.DATE_BESIDE_POSTER));
+        assertSame("a story with no time", poster, ReelDeclutter.groupPosterText(poster, new TreeJNI()));
+        assertSame("a story that isn't a tree", poster, ReelDeclutter.groupPosterText(poster, "story"));
+        assertSame("no story", poster, ReelDeclutter.groupPosterText(poster, null));
+        assertNull("no name stays no name", ReelDeclutter.groupPosterText(null, story));
+        assertSame("a blank name stays blank", "", ReelDeclutter.groupPosterText("", story));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame("dated while paused", poster, ReelDeclutter.groupPosterText(poster, story));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() ->
+                assertSame("dated before the settings were ready", poster, ReelDeclutter.groupPosterText(poster, story)));
     }
 
     /**

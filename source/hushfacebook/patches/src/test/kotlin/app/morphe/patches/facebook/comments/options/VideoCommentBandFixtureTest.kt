@@ -48,7 +48,9 @@ import java.io.File
  * extension first thing that a render starts, hands it the bar its pick got back and the viewer's
  * config right after the pick, and reads one band height (the static that adds 44 dp) twice for the
  * seek bar; after the hook each read hands the extension its dp, and only the read reaches that hook.
- * The config is loaded once, on every path before the pick, and no other write of its register gets
+ * 588's Android 9+ build picks through a method handing the builder's bar straight back, which stays
+ * Facebook's, and its root hands the config to a private helper that makes both reads, so the read
+ * hooks go there. The config is loaded once, on every path before the pick, and no other write of its register gets
  * back to the pick (587's armv7 root reuses it on the way to a return). The one caller of vddVideoSlotHeightPx,
  * the viewer's list root, reads the same band height once, the dp it gets is what reaches the height
  * function's band, and after the hook that read hands the extension its dp and the config. The height
@@ -77,12 +79,18 @@ class VideoCommentBandFixtureTest {
 
     /**
      * How many times each declared build's root writes its config's register besides the load, read
-     * 2026-11-13: none on 587's arm64 root, once on its armv7 root (LX/0B29;->render 1380,
-     * `move-object v13, v7` for a builder argument on the way to a return).
+     * 2026-11-18: once on both 588 roots (arm64 LX/0Alc;->render 1387, armv7 LX/0Alf;->render 1386,
+     * `move-object v13, v0` for a builder argument on the way to a return), and once on the Android 9+
+     * build's (LX/0AtF;->render 1085, `move-object v13, v1`, read 2026-11-19).
      */
     private val configOverwrites = mapOf(
-        AppCompatibilities.FACEBOOK_TARGET_VERSION to mapOf("arm64-v8a" to 0, "armeabi-v7a" to 1),
+        AppCompatibilities.FACEBOOK_TARGET_VERSION to
+            mapOf("arm64-v8a" to 1, "armeabi-v7a" to 1, "arm64-v8a-minapi28-storeless" to 1),
     )
+
+    /** How [method] is named in a call of it. */
+    private fun called(method: Method) =
+        "${method.definingClass}->${method.name}(${method.params().joinToString("")})${method.returnType}"
 
     private fun configOverwrites(version: String, bundle: String): Int {
         val abi = bundle.substringAfter("-$version-").substringBefore(".apkm")
@@ -189,13 +197,17 @@ class VideoCommentBandFixtureTest {
                 assertTrue("$name: no class names \"$VIDEO_COMMENT_BAR\"", bars.isNotEmpty())
                 val held = holders(bundle, bars)
 
-                val handOffs = held.flatMap { classDef ->
-                    classDef.methods.flatMap { method ->
-                        (videoCommentBarReturns(method, bars) + videoCommentBarJumps(method, bars)).map { Triple(classDef, method, it) }
-                    }
+                fun handOffs(find: (Method, Set<String>) -> List<Int>) = held.flatMap { classDef ->
+                    classDef.methods.flatMap { method -> find(method, bars).map { Triple(classDef, method, it) } }
                 }
-                assertEquals("$name: methods handing on a comment bar they just built", 1, handOffs.size)
-                val (builderOwner, builder, at) = handOffs.single()
+                val returned = handOffs(::videoCommentBarReturns)
+                val jumped = handOffs(::videoCommentBarJumps)
+                val handOff = returned.ifEmpty { jumped }
+                assertEquals("$name: methods handing on a comment bar they just built", 1, handOff.size)
+                val (builderOwner, builder, at) = handOff.single()
+                // 588 builds the bar in a second root too, the post chained into the viewer.
+                val chained = if (returned.isEmpty()) emptyList() else jumped
+                assertEquals("$name: other roots building the bar for themselves", 1, chained.size)
                 // 586 builds the bar inside the root's render and jumps to where the picks meet.
                 val inline = builder.body()[at].opcode != Opcode.RETURN_OBJECT
                 assertTrue("$name: the bar the builder hands on is one it makes",
@@ -207,6 +219,8 @@ class VideoCommentBandFixtureTest {
                 val root: Method
                 val merge: Int
                 val bar: Int
+                // 588's Android 9+ build picks through a method that hands the builder's bar straight back.
+                var picker = builder
                 // 587 calls its picker from two branches that jump to one spot where the picks meet.
                 var picksMeet = false
                 if (inline) {
@@ -226,17 +240,29 @@ class VideoCommentBandFixtureTest {
                     // Negative control: the spot where the picks meet doesn't come right after a bar's constructor.
                     assertTrue("$name: the merge passed for a bar's hand-off", videoBarHolders(root, merge).isEmpty())
                 } else {
-                    val roots = videoBarPickerCallers(builderOwner, builder)
+                    val builderCallers = videoBarPickerCallers(builderOwner, builder)
+                    assertEquals("$name: callers of the bar builder in its class", 1, builderCallers.size)
+                    val caller = builderCallers.single()
+                    val callerCode = caller.body()
+                    val passes = callerCode.indices.filter { callerCode[it].called() == called(builder) }.all { call ->
+                        callerCode[call + 1].opcode == Opcode.MOVE_RESULT_OBJECT && callerCode[call + 2].opcode == Opcode.RETURN_OBJECT &&
+                            (callerCode[call + 1] as OneRegisterInstruction).registerA == (callerCode[call + 2] as OneRegisterInstruction).registerA
+                    }
+                    if (passes) picker = caller
+                    assertEquals("$name: the patch's method handing the bar straight back",
+                        if (passes) caller.descriptor() else null, videoBarPasser(builderOwner, builder)?.descriptor())
+                    val roots = videoBarPickerCallers(builderOwner, picker)
                     assertEquals("$name: callers of the bar picker in its class", 1, roots.size)
                     root = roots.single()
+                    // Negative control: the root goes on with the bar, so it doesn't pass for one handing it back.
+                    assertNull("$name: the root passed for a method handing the bar straight back", videoBarPasser(builderOwner, picker))
                     val code = root.body()
-                    val calls = code.indices.filter { code[it].called() == "${builder.definingClass}->${builder.name}(" +
-                        "${builder.params().joinToString("")})${builder.returnType}" }
+                    val calls = code.indices.filter { code[it].called() == called(picker) }
                     assertTrue("$name: the root never calls the picker", calls.isNotEmpty())
                     for (pick in calls) {
                         assertEquals("$name: the root keeps the bar it picks at $pick", Opcode.MOVE_RESULT_OBJECT, code[pick + 1].opcode)
                     }
-                    assertEquals("$name: the patch's picks", calls, videoBarPicks(root, builder))
+                    assertEquals("$name: the patch's picks", calls, videoBarPicks(root, picker))
                     if (calls.size == 1) {
                         merge = calls.single() + 1
                         bar = (code[merge] as OneRegisterInstruction).registerA
@@ -263,7 +289,14 @@ class VideoCommentBandFixtureTest {
                 }
                 val rootCode = root.body()
                 val kept = merge + 1
-                val bandClasses = FixtureDex.classes(bundle, staticCallees(root) - held.map { it.type }.toSet())
+                // The private methods of the root's class it calls, where 588's Android 9+ build reads the band
+                // height; its picker is one too and reads it for the reply bar.
+                val helpers = builderOwner.methods.filter { method ->
+                    AccessFlags.PRIVATE.isSet(method.accessFlags) && method.descriptor() != root.descriptor() &&
+                        method.descriptor() != picker.descriptor() && rootCode.any { it.called() == called(method) }
+                }
+                val bandClasses = FixtureDex.classes(bundle,
+                    (staticCallees(root) + helpers.flatMap(::staticCallees)) - held.map { it.type }.toSet())
                 val classes = held + bandClasses.values
                 val bandHeights = classes.flatMap { classDef -> classDef.methods.filter(::isVideoBandHeight) }
                 fun isBand(call: MethodReference) = bandHeights.any {
@@ -271,18 +304,54 @@ class VideoCommentBandFixtureTest {
                 }
                 val afterMerge = reachable(root, merge)
                 val allReads = videoBandReads(root, ::isBand)
-                val reads = allReads.filter { it in afterMerge }
-                assertEquals("$name: the root's reads of the band height after its pick", 2, reads.size)
+                val ownReads = allReads.filter { it in afterMerge }
                 // 586's reply bar reads the band height for itself on its way to the merge, and 587 on the
                 // way to its first pick.
-                assertEquals("$name: the root's other reads of the band height", if (inline || picksMeet) 1 else 0, allReads.size - reads.size)
-                assertTrue("$name: the root reads the band height after its pick", reads.all { it > kept })
-                val bandHeight = reads.map { rootCode[it].called() }.toSet()
+                assertEquals("$name: the root's other reads of the band height", if (inline || picksMeet) 1 else 0, allReads.size - ownReads.size)
+                val seekBar: Method
+                val seekBarCall: Int?
+                if (ownReads.isEmpty()) {
+                    val reading = helpers.filter { videoBandReads(it, ::isBand).isNotEmpty() }
+                    assertEquals("$name: the root's helpers reading the band height", 1, reading.size)
+                    seekBar = reading.single()
+                    val helperCalls = rootCode.indices.filter { rootCode[it].called() == called(seekBar) }
+                    assertEquals("$name: the root's calls of ${seekBar.descriptor()}", 1, helperCalls.size)
+                    seekBarCall = helperCalls.single()
+                    assertTrue("$name: the root calls ${seekBar.descriptor()} after its pick", seekBarCall in afterMerge && seekBarCall > kept)
+                    assertEquals("$name: ${seekBar.descriptor()}'s callers in its class", listOf(root.descriptor()),
+                        videoBarPickerCallers(builderOwner, seekBar).map { it.descriptor() })
+                    // Negative control: a call the pick doesn't reach isn't the seek bar's.
+                    assertNull("$name: a helper call before the pick passed for the seek bar's",
+                        outlinedBandReads(builderOwner, root, picker, emptySet(), ::isBand))
+                    // Negative control: the picker reads the band height for the reply bar, and isn't the seek bar's.
+                    assertNull("$name: the picker passed for the seek bar's helper",
+                        outlinedBandReads(builderOwner, root, builder, afterMerge, ::isBand))
+                } else {
+                    seekBar = root
+                    seekBarCall = null
+                }
+                val seekBarCode = seekBar.body()
+                val reads = if (seekBarCall == null) ownReads else videoBandReads(seekBar, ::isBand)
+                assertEquals("$name: the seek bar's reads of the band height after the pick", 2, reads.size)
+                if (seekBarCall == null) assertTrue("$name: the root reads the band height after its pick", reads.all { it > kept })
+                val bandHeight = reads.map { seekBarCode[it].called() }.toSet()
                 assertEquals("$name: every read is of the one band height", 1, bandHeight.size)
-                val configs = reads.map { rootCode[it].handed() }.toSet()
+                val configs = reads.map { seekBarCode[it].handed() }.toSet()
                 assertEquals("$name: every read is handed the one config", 1, configs.size)
-                val config = configs.single()
-                val configType = (((rootCode[reads.first()] as ReferenceInstruction).reference as MethodReference).parameterTypes.single()).toString()
+                val config = if (seekBarCall == null) configs.single() else {
+                    // The helper hands every read one of its parameters, which it never writes, and the root hands that the config.
+                    val handed = configs.single()
+                    val implementation = seekBar.implementation!!
+                    val words = seekBar.params().map { if (it == "J" || it == "D") 2 else 1 }.sum() +
+                        if (AccessFlags.STATIC.isSet(seekBar.accessFlags)) 0 else 1
+                    val slot = handed - (implementation.registerCount - words)
+                    assertTrue("$name: ${seekBar.descriptor()} hands its reads v$handed, not a parameter", slot >= 0)
+                    assertTrue("$name: ${seekBar.descriptor()} writes its config v$handed", seekBarCode.none {
+                        it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == handed
+                    })
+                    rootCode[seekBarCall].handedAll()[slot]
+                }
+                val configType = (((seekBarCode[reads.first()] as ReferenceInstruction).reference as MethodReference).parameterTypes.single()).toString()
                 val writes = rootCode.indices.filter {
                     rootCode[it].opcode.setsRegister() && (rootCode[it] as? OneRegisterInstruction)?.registerA == config
                 }
@@ -351,6 +420,8 @@ class VideoCommentBandFixtureTest {
                 assertEquals("$name: the patch found another bar hand-off", at, band.at)
                 assertEquals("$name: the patch found another form", inline, band.jumps)
                 assertEquals("$name: the patch found another root", root.descriptor(), band.root.descriptor())
+                assertEquals("$name: the patch found another picker", picker.descriptor(), band.picker.descriptor())
+                assertEquals("$name: the patch found another seek bar", seekBar.descriptor(), band.seekBar.descriptor())
                 assertEquals("$name: the patch found another pick", kept, band.kept)
                 assertEquals("$name: the patch found another config", config, band.config)
                 assertEquals("$name: the patch found another kept bar", bar, band.bar)
@@ -358,7 +429,44 @@ class VideoCommentBandFixtureTest {
                 assertEquals("$name: the patch found another height", slot.descriptor(), band.slot.descriptor())
                 assertEquals("$name: the patch found another list", list.descriptor(), band.list.descriptor())
                 assertEquals("$name: the patch found another list read", listRead, band.listRead)
+                assertEquals("$name: the patch found other roots building the bar",
+                    chained.map { it.second.descriptor() to it.third }, band.chained.map { it.render.descriptor() to it.at })
                 with(context) { dropVideoCommentBand(band) }
+
+                for (found in band.chained) {
+                    val where = "$name: ${found.render.descriptor()}"
+                    val original = found.render.body()
+                    val hooked = context.mutableClassDefBy(found.owner.type).methods.single { it.descriptor() == found.render.descriptor() }
+                    val patched = hooked.body()
+                    val flow = ControlFlow.of(hooked)
+                    val hook = found.at
+                    val free = found.free
+                    val barThere = found.bar
+                    val merge = ControlFlow.of(found.render).normal[hook].single()
+                    assertEquals("$where: it asks right before the bar goes on", DROPS_SHORTS_COMMENT_BAR, patched[hook].called())
+                    assertEquals("$where: only the bar's constructor reaches the ask", listOf(hook - 1),
+                        patched.indices.filter { hook in flow.normal[it] || hook in flow.exceptional[it] })
+                    assertEquals("$where: its answer is kept", listOf(Opcode.MOVE_RESULT, free),
+                        (patched[hook + 1] as OneRegisterInstruction).let { listOf(it.opcode, it.registerA) })
+                    assertNotEquals("$where: the answer overwrote the bar", barThere, free)
+                    assertTrue("$where: the hook writes v$free, which isn't a local", free < hooked.localRegisterCount())
+                    assertFalse("$where: it reads v$free after the goto", free in RegisterLiveness.of(found.render).liveInto(hook))
+                    assertEquals("$where: tests the answer", listOf(Opcode.IF_EQZ, free),
+                        (patched[hook + 2] as OneRegisterInstruction).let { listOf(it.opcode, it.registerA) })
+                    assertEquals("$where: a yes leaves null in the bar's register", listOf(Opcode.CONST_4, barThere, 0),
+                        patched[hook + 3].let { listOf(it.opcode, (it as OneRegisterInstruction).registerA, (it as NarrowLiteralInstruction).narrowLiteral) })
+                    assertEquals("$where: a no goes straight to Facebook's goto", setOf(hook + 3, hook + 4), flow.normal[hook + 2].toSet())
+                    assertEquals("$where: the goto still lands where it did", setOf(if (merge > hook) merge + 4 else merge), flow.normal[hook + 4].toSet())
+                    assertEquals("$where: the rest is Facebook's", original.opcodes(),
+                        (patched.subList(0, hook) + patched.drop(hook + 4)).opcodes())
+                    // Facebook's own no-bar path brings null to the same spot in the same register.
+                    val before = ControlFlow.of(found.render)
+                    assertTrue("$where: no path of its own brings null to $merge in v$barThere", original.indices.any { nulled ->
+                        nulled != hook && merge in before.normal[nulled] && original[nulled].opcode == Opcode.CONST_4 &&
+                            (original[nulled] as OneRegisterInstruction).registerA == barThere &&
+                            (original[nulled] as NarrowLiteralInstruction).narrowLiteral == 0
+                    })
+                }
 
                 if (!inline) {
                     val hookedBuilder = context.mutableClassDefBy(builderOwner.type).methods
@@ -395,7 +503,16 @@ class VideoCommentBandFixtureTest {
                 assertEquals("$name: the root tells the extension a render starts", PICKING_SHORTS_BAR, rootPatched[0].called())
                 val others = mutableMapOf(0 to 1, kept to 1)
                 if (inline) others[at] = 4
-                val inserted = assertBandHooked(name, "the root", root, hookedRoot, reads, SHORTS_SEEK_BAR_BAND, false, others)
+                val inserted = assertBandHooked(name, "the root", root, hookedRoot,
+                    if (seekBarCall == null) reads else emptyList(), SHORTS_SEEK_BAR_BAND, false, others)
+                if (seekBarCall != null) {
+                    val hookedHelper = context.mutableClassDefBy(builderOwner.type).methods.single { it.descriptor() == seekBar.descriptor() }
+                    assertBandHooked(name, "the root's helper", seekBar, hookedHelper, reads, SHORTS_SEEK_BAR_BAND, false, emptyMap())
+                }
+                if (picker.descriptor() != builder.descriptor()) {
+                    val hookedPasser = context.mutableClassDefBy(builderOwner.type).methods.single { it.descriptor() == picker.descriptor() }
+                    assertEquals("$name: the method handing the bar back is Facebook's", picker.body().opcodes(), hookedPasser.body().opcodes())
+                }
                 val met = moved(merge, inserted)
                 assertEquals("$name: where the root keeps its pick stays", rootCode[merge].opcode, rootPatched[met].opcode)
                 assertEquals("$name: the root hands over the bar it got back and its config", KEPT_SHORTS_BAR, rootPatched[met + 1].called())
@@ -422,8 +539,8 @@ class VideoCommentBandFixtureTest {
                     assertEquals("$name: the goto still takes the bar to where the picks meet", setOf(met), rootFlow.normal[goto].toSet())
                 }
                 if (picksMeet) {
-                    val picks = videoBarPicks(hookedRoot, builder)
-                    assertEquals("$name: the root's picks after the hooks", videoBarPicks(root, builder).size, picks.size)
+                    val picks = videoBarPicks(hookedRoot, picker)
+                    assertEquals("$name: the root's picks after the hooks", videoBarPicks(root, picker).size, picks.size)
                     for (pick in picks) {
                         assertEquals("$name: the pick at $pick still takes its bar to where the picks meet", setOf(met), rootFlow.normal[pick + 2].toSet())
                     }

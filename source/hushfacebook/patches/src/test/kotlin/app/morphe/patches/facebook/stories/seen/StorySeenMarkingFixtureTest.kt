@@ -37,8 +37,8 @@ private const val NAVIGATE_TO_CARD = "StoryViewerNavigationDelegate.navigateToCa
 
 /**
  * What marking a watched bucket on the phone hooks and calls (#61), on every declared build: the
- * seen helper's per-card method hands its bucket, card, helper and peek flag to the extension as a
- * range; there's one way of publishing the bucket's flag; StoryBucket's members are there;
+ * seen helper's per-card method hands its bucket, card, helper and the helper's launch source to the
+ * extension as a range; there's one way of publishing the bucket's flag; StoryBucket's members are there;
  * RegularStoryBucket's one straight constructor takes the bucket hook in front of its return; and
  * every publishing call is public in a public class, so the extension in another package can make
  * it. Reads the fixture bundles from HUSHFACEBOOK_FIXTURE_DIR and skips without it.
@@ -73,26 +73,33 @@ class StorySeenMarkingFixtureTest {
             method.implementation?.instructions?.toList().orEmpty().filter(::isStringTableCall).mapNotNull { it.call?.definingClass }
         }.toSet()
         val tables = FixtureDex.classes(bundle, tableOwners)
-        val helper = seenHelper(callers, sender) { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
+        val resolve: (MethodReference) -> Method? = { call -> tables[call.definingClass]?.let { resolveStatic(it, call) } }
+        val helper = seenHelper(callers, sender, resolve)
+        val launch = launchSource(helper, resolve)
+        assertTrue("$name: the launch config ${launch.config} isn't the helper's", launch.config.startsWith("${helper.type}->"))
+        assertTrue("$name: the launch config ${launch.config} isn't a $LAUNCH_CONFIG", launch.config.endsWith(":$LAUNCH_CONFIG"))
+        assertTrue("$name: the launch source ${launch.source} isn't the config's", launch.source.startsWith("$LAUNCH_CONFIG->"))
+        assertTrue("$name: the launch source ${launch.source} isn't a String", launch.source.endsWith(":Ljava/lang/String;"))
         val card = cardSeen(helper)
-        val first = card.parameterRegisterNumber(1)
-        assertEquals("$name: the bucket, card, helper and peek flag aren't side by side", first + 3, card.parameterRegisterNumber(4))
 
         val code = card.implementation!!.instructions.toList()
         val patched = MutableMethod(card).apply {
             reportCard()
-            hearViewedCards()
+            hearViewedCards(launch)
         }
         val after = patched.implementation!!.instructions.toList()
-        assertEquals("$name: instructions added to the per-card method", code.size + 2, after.size)
-        val viewed = after[0]
+        assertEquals("$name: instructions added to the per-card method", code.size + 8, after.size)
+        assertEquals("$name: the helper's launch config read", Opcode.IGET_OBJECT, after[3].opcode)
+        assertEquals("$name: the launch config's null check", Opcode.IF_EQZ, after[4].opcode)
+        assertEquals("$name: the launch source read", Opcode.IGET_OBJECT, after[5].opcode)
+        val viewed = after[6]
         assertEquals("$name: the viewed hook's form", Opcode.INVOKE_STATIC_RANGE, viewed.opcode)
         assertEquals("$name: the viewed hook", VIEWED, viewed.call!!.smali())
-        assertEquals("$name: the viewed hook's first register", first, (viewed as RegisterRangeInstruction).startRegister)
+        assertEquals("$name: the viewed hook's first register", 0, (viewed as RegisterRangeInstruction).startRegister)
         assertEquals("$name: the viewed hook's registers", 4, viewed.registerCount)
-        assertEquals("$name: the card hook stays", ON_CARD, after[1].call!!.smali())
+        assertEquals("$name: the card hook stays", ON_CARD, after[7].call!!.smali())
         for (index in code.indices) {
-            assertEquals("$name: per-card instruction $index changed", code[index].opcode, after[index + 2].opcode)
+            assertEquals("$name: per-card instruction $index changed", code[index].opcode, after[index + 8].opcode)
         }
     }
 
@@ -179,11 +186,12 @@ class StorySeenMarkingFixtureTest {
     fun `each declared build has one story start check and it takes the watched-here hook first`() = bundles { bundle ->
         val name = bundle.name
         val owners = mutableListOf<ClassDef>()
+        val classOf = { type: String -> FixtureDex.classes(bundle, setOf(type))[type] }
         FixtureDex.forEach(bundle) { dex ->
-            dex.classes.filter { startCheck(it) != null }.mapTo(owners) { ImmutableClassDef.of(it) }
+            dex.classes.filter { startCheck(it, classOf) != null }.mapTo(owners) { ImmutableClassDef.of(it) }
         }
         assertEquals("$name: story start checks", 1, owners.size)
-        val check = startCheck(owners.single())!!
+        val check = startCheck(owners.single(), classOf)!!
 
         // The viewer asks for it through the interface the check implements.
         val interfaces = owners.single().interfaces.toSet()
@@ -208,6 +216,7 @@ class StorySeenMarkingFixtureTest {
         assertEquals("$name: the start hook", WATCHED_HERE, hook.call!!.smali())
         assertEquals("$name: the start hook reads the card", card, (hook as RegisterRangeInstruction).startRegister)
         assertEquals("$name: the start hook's registers", 1, hook.registerCount)
+        assertTrue("$name: the start hook's answer overwrites the card", (after[1] as OneRegisterInstruction).registerA != card)
         assertEquals(
             "$name: the start hook's answer",
             listOf(Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN),
@@ -218,7 +227,7 @@ class StorySeenMarkingFixtureTest {
         }
 
         // Its two calls, getMedia() and the seen flag, are public on StoryCard for the stubs (#218).
-        val calls = startCalls(check)
+        val calls = startCalls(check, classOf)
         assertEquals("$name: the start check's calls", 2, calls.size)
         for (call in calls) assertEquals("$name: ${call.name} isn't on StoryCard", STORY_CARD, call.definingClass)
 
@@ -247,11 +256,22 @@ class StorySeenMarkingFixtureTest {
     @Test
     fun `each declared build's viewer asks the extension where a bucket opens once its loading stand-in is replaced`() = bundles { bundle ->
         val name = bundle.name
-        val found = FixtureDex.classesHolding(bundle, DATA_CHANGED).flatMap { owner ->
-            owner.methods.filter { loads(it, DATA_CHANGED) }.mapNotNull { method -> loadingSwap(method)?.let { method to it } }
+        val holders = FixtureDex.classesHolding(bundle, DATA_CHANGED)
+        // The statics onDataChanged calls, where 588's store-less build keeps its work.
+        val called = holders.flatMap { it.methods }.filter { loads(it, DATA_CHANGED) }.flatMap { method ->
+            method.implementation!!.instructions.filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+                .mapNotNull { it.call?.definingClass }
+        }.toSet()
+        val statics = FixtureDex.classes(bundle, called)
+        val resolve = { call: MethodReference -> statics[call.definingClass]?.let { resolveStatic(it, call) } }
+        val found = holders.flatMap { owner ->
+            owner.methods.filter { loads(it, DATA_CHANGED) }.mapNotNull { method ->
+                (loadingSwap(method)?.let { method to it } ?: outlinedLoadingSwap(owner, method, resolve))?.let { owner to it }
+            }
         }
         assertEquals("$name: onDataChanged methods shaped for the loading swap", 1, found.size)
-        val (method, swap) = found.single()
+        val (delegate, shaped) = found.single()
+        val (method, swap) = shaped
         val code = method.implementation!!.instructions.toList()
         fun static(returns: String, vararg types: String) = code.indices.filter { i ->
             code[i].opcode == Opcode.INVOKE_STATIC && code[i].call!!.returnType == returns &&
@@ -266,10 +286,17 @@ class StorySeenMarkingFixtureTest {
         assertTrue("$name: the old card is looked up again after the card check", lookups.any { it > swap.check && (code[it] as FiveRegisterInstruction).registerD == swap.card })
         val move = code[swap.navigate] as FiveRegisterInstruction
         val navigate = code[swap.navigate].call!!
-        assertEquals("$name: the viewer moves on its own delegate", method.definingClass, navigate.definingClass)
-        val navigators = FixtureDex.classesHolding(bundle, NAVIGATE_TO_CARD).filter { it.type == method.definingClass }
+        if (method.definingClass == delegate.type) {
+            assertEquals("$name: the viewer moves on its own delegate", method.definingClass, navigate.definingClass)
+        } else {
+            assertTrue("$name: the helper is static", AccessFlags.STATIC.isSet(method.accessFlags))
+            assertEquals("$name: the helper moves the viewer through the delegate it's handed", Opcode.INVOKE_INTERFACE, code[swap.navigate].opcode)
+        }
+        val navigators = FixtureDex.classesHolding(bundle, NAVIGATE_TO_CARD).filter { it.type == delegate.type }
             .flatMap { owner -> owner.methods.filter { loads(it, NAVIGATE_TO_CARD) } }
-        assertEquals("$name: the call is the delegate's navigateToCard", listOf(navigate.name), navigators.map { it.name })
+        assertEquals("$name: the call is the delegate's navigateToCard",
+            listOf(navigate.name to navigate.parameterTypes.map(Any::toString)),
+            navigators.map { it.name to it.parameterTypes.map(Any::toString) })
         assertEquals("$name: the index moved to", swap.index, move.registerE)
         val after = MutableMethod(method).apply { openAfterLoading(swap) }.implementation!!.instructions.toList()
         assertEquals("$name: instructions added to onDataChanged", code.size + 6, after.size)
@@ -318,7 +345,7 @@ class StorySeenMarkingFixtureTest {
         }
         val obj = "Ljava/lang/Object;"
         val string = "Ljava/lang/String;"
-        assertTrue("StorySeen has no viewed hook", has("viewed", "V", obj, obj, obj, "Z"))
+        assertTrue("StorySeen has no viewed hook", has("viewed", "V", obj, obj, obj, obj))
         assertTrue("StorySeen has no bucketMade hook", has("bucketMade", "V", obj))
         assertTrue("StorySeen has no watchedHere hook", has("watchedHere", "Z", obj))
         assertTrue("StorySeen has no readsWatched hook", has("readsWatched", "Z", obj))

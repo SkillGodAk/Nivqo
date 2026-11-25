@@ -70,6 +70,7 @@ import app.morphe.extension.facebook.download.ClipboardLinkForTests;
 import app.morphe.extension.facebook.download.CommentGifForTests;
 import app.morphe.extension.facebook.download.CommentPhotoForTests;
 import app.morphe.extension.facebook.download.CommentVideoForTests;
+import app.morphe.extension.facebook.download.ListingPhotoForTests;
 import app.morphe.extension.facebook.download.MediaDownload;
 import app.morphe.extension.facebook.download.PhotoMenuItemForTests;
 import app.morphe.extension.facebook.download.PhotoSave;
@@ -101,10 +102,12 @@ import app.morphe.extension.facebook.feed.MetaAiQuestions;
 import app.morphe.extension.facebook.feed.NotificationFooter;
 import app.morphe.extension.facebook.feed.PostDates;
 import app.morphe.extension.facebook.feed.PostPrompts;
+import app.morphe.extension.facebook.feed.LikeButtonFaces;
 import app.morphe.extension.facebook.feed.AskBeforeLike;
 import app.morphe.extension.facebook.feed.ProfilePictures;
 import app.morphe.extension.facebook.feed.ProfileSuggestionsForTests;
 import app.morphe.extension.facebook.feed.RelatedPosts;
+import app.morphe.extension.facebook.feed.TranslateCommentsForTests;
 import app.morphe.extension.facebook.misc.AppLockForTests;
 import app.morphe.extension.facebook.feed.TypedFeedUnit;
 import app.morphe.extension.facebook.feed.WhoSharedForTests;
@@ -113,6 +116,7 @@ import app.morphe.extension.facebook.comments.DefaultCommentOrderForTests;
 import app.morphe.extension.facebook.comments.CommentBlock;
 import app.morphe.extension.facebook.comments.CommentSheetOptions;
 import app.morphe.extension.facebook.comments.FullHeightComments;
+import app.morphe.extension.facebook.comments.LiveCommentBar;
 import app.morphe.extension.facebook.comments.MetaAiSummaries;
 import app.morphe.extension.facebook.comments.ReactorBlock;
 import app.morphe.extension.facebook.composer.TagSuggestionsForTests;
@@ -380,6 +384,8 @@ public class PausedHooksTest {
         probes.put(Settings.DOWNLOAD_QUIET, SaveRulesForTests::finishesQuietly);
         // A reel's or a video's save asks for the quality before it starts.
         probes.put(Settings.DOWNLOAD_QUALITY_ASK, SaveRulesForTests::asksForTheQuality);
+        // A tap on a download button asks before it saves.
+        probes.put(Settings.ASK_BEFORE_DOWNLOAD, SaveRulesForTests::asksBeforeDownloading);
         return probes;
     }
 
@@ -551,8 +557,24 @@ public class PausedHooksTest {
                 // The reaction preview is left undrawn only while the patch runs.
                 PostPrompts::hideReactionPreview,
                 () -> PostPrompts.hideReactionPreview(true),
+                // A Like button's icon is noted, and with a count it takes the post's faces (#541).
+                // Hide the reaction preview on posts overrules it, so it's off for this probe.
+                () -> {
+                    Settings.HIDE_POST_REACTIONS.save(false);
+                    try {
+                        Object thumb = new Object();
+                        LikeButtonFaces.remember(thumb, null);
+                        return LikeButtonFaces.remembering() && LikeButtonFaces.facesFor(thumb, "12") != null;
+                    } finally {
+                        Settings.HIDE_POST_REACTIONS.save(true);
+                    }
+                },
                 // So is the count beside a post's faces.
-                () -> PostPrompts.reactionCount("56") == null));
+                () -> PostPrompts.reactionCount("56") == null,
+                // The friend bubbles over a post's media are left out.
+                PostPrompts::hideReactionBubbles,
+                // So is the line naming who reacted.
+                PostPrompts::hideReactorNames));
         // A post header gets no person to draw a picture from, and a comment row no picture to add.
         probes.put(PatchFamily.PROFILE_PICTURES, Arrays.asList(
                 () -> ProfilePictures.feedPicture("person") == null,
@@ -589,10 +611,12 @@ public class PausedHooksTest {
         probes.put(PatchFamily.PHOTO_CAROUSEL, Arrays.asList(() -> PhotoCarousel.carousel(0),
                 () -> PhotoCarousel.skipLayout("com.facebook.feedplugins.attachments.album.PhotoLayoutFramePlugin")));
         // A post marked for automatic translation reads as one to translate on request, the reels
-        // footer hears a caption can't be translated by itself, so it asks for nothing, and an
-        // auto-translated comment reads as one shown as written.
+        // footer hears a caption can't be translated by itself, so it asks for nothing, an
+        // auto-translated comment reads as one shown as written, and a comment's See translation
+        // handler is tapped once the main thread is free.
         probes.put(PatchFamily.AUTO_TRANSLATION, Arrays.asList(AutoTranslationForTests::keepsThePost,
-                AutoTranslationForTests::keepsTheCaption, AutoTranslationForTests::keepsTheComment));
+                AutoTranslationForTests::keepsTheCaption, AutoTranslationForTests::keepsTheComment,
+                TranslateCommentsForTests::tapsTheLink));
         // The Feeds tab's yes to a title row is answered as a no, its filters go to a container
         // that's never on screen, and its posts get no room for them. The room follows what the
         // tab did with its filters, so that probe builds a tab first.
@@ -630,12 +654,18 @@ public class PausedHooksTest {
         probes.put(PatchFamily.STORY_TAPS,
                 Collections.singletonList(app.morphe.extension.facebook.stories.StoryTapsForTests::holdsATap));
         // A story's credit line leaves its credits out, its suggested replies draw nothing, the "Add to
-        // story" card stays out of the list and its card gets a progress bar.
+        // story" card stays out of the list, the viewer's list loses every create card (#521), its
+        // card gets a progress bar and the cube between people stays flat (#521).
         probes.put(PatchFamily.STORY_VIEWER_CLEANUP, Arrays.asList(
                 app.morphe.extension.facebook.stories.StoryViewerCleanup::hideCredits,
                 app.morphe.extension.facebook.stories.StoryViewerCleanup::hideReplySuggestions,
                 app.morphe.extension.facebook.stories.StoryViewerCleanup::hideCreateStoryCard,
-                app.morphe.extension.facebook.stories.StoryProgressBarForTests::drawsABar));
+                app.morphe.extension.facebook.stories.StoryViewerCleanup::hideFollow,
+                app.morphe.extension.facebook.stories.StoryViewerCleanup::hideReplyBar,
+                () -> !app.morphe.extension.facebook.stories.StoryViewerCleanup.showUpNext(true),
+                app.morphe.extension.facebook.stories.StoryViewerCleanupForTests::dropsACreateCard,
+                app.morphe.extension.facebook.stories.StoryProgressBarForTests::drawsABar,
+                app.morphe.extension.facebook.stories.StoryViewerCleanupForTests::flattensACubeTurn));
         // A profile picture in the feed, beside a comment and on a profile draws without its ring.
         probes.put(PatchFamily.STORY_RINGS, Arrays.asList(
                 () -> !app.morphe.extension.facebook.stories.StoryRings.feedRing(1),
@@ -670,11 +700,13 @@ public class PausedHooksTest {
         // Your own profile's count line shows the number you typed.
         probes.put(PatchFamily.LOCAL_PROFILE_COUNTS,
                 Collections.singletonList(app.morphe.extension.facebook.profile.LocalProfileCountsForTests::swapsAFriendsCount));
-        // A post's row gets Save and loses Like, and a video post's row gets Download.
+        // A post's row gets Save and loses Like, a video post's row gets Download, and the row goes
+        // without its own tap.
         probes.put(PatchFamily.POST_ACTION_BUTTONS, Arrays.asList(
                 PostActionButtonsForTests::addsSave,
                 PostActionButtonsForTests::hidesLike,
-                PostActionButtonsForTests::addsDownload));
+                PostActionButtonsForTests::addsDownload,
+                PostActionButtonsForTests::leavesTheTapOff));
         // Marketplace's feed query asks to skip its ads, an ads-only query isn't sent, and a search
         // answer loses its ad.
         probes.put(PatchFamily.SPONSORED_MARKETPLACE, Arrays.asList(
@@ -702,6 +734,8 @@ public class PausedHooksTest {
                 ReelDeclutter::hideAudioLine,
                 // And "Made with Edits" under the caption.
                 ReelDeclutter::hideEditsLabel,
+                // And the "Made with Edits" pill over a feed video (#314).
+                ReelDeclutter::hideEditsPill,
                 // A stalled video's slow connection message.
                 ReelDeclutter::hideSlowConnectionMessage,
                 // A feed or search video's full-screen and picture-in-picture buttons (#478).
@@ -809,15 +843,16 @@ public class PausedHooksTest {
                 DoubleTapLike::holdBackTap,
                 () -> DoubleTapLike.holdBackFeedTap(null),
                 DoubleTapLike::holdBackFeedLike));
-        // A tap on Like under a post, beside a reel or under a comment, or on Follow in a post or
-        // beside a reel, is held while a question goes up.
+        // A tap on Like under a post, beside a reel or under a comment, on Follow in a post or
+        // beside a reel, or on a story's reaction, is held while a question goes up.
         probes.put(PatchFamily.ASK_BEFORE_LIKE, Arrays.asList(
                 () -> asksBeforeALike(AskBeforeLike.POST_FOOTER),
                 () -> asksBeforeALike(AskBeforeLike.REEL),
                 () -> asksBeforeALike(AskBeforeLike.COMMENT),
                 () -> asksBeforeALike(AskBeforeLike.POST_TOUCH),
                 () -> asksBeforeALike(AskBeforeLike.POST_FOLLOW),
-                () -> asksBeforeALike(AskBeforeLike.REEL_COLLAB_FOLLOW)));
+                () -> asksBeforeALike(AskBeforeLike.REEL_COLLAB_FOLLOW),
+                () -> asksBeforeALike(AskBeforeLike.STORY_REACTION)));
         // Facebook's double-tap skip test, read as off, is answered on, and the seconds it shows stay hidden.
         probes.put(PatchFamily.DOUBLE_TAP_SKIP, Arrays.asList(
                 () -> DoubleTapSkip.flag(false),
@@ -892,7 +927,9 @@ public class PausedHooksTest {
         // A long video picks up where it was left, and a reel played on and a story viewed go on the
         // Recently watched list (#183).
         probes.put(PatchFamily.RESUME_LONG_VIDEOS, Arrays.asList(ResumePlaybackForTests::resumesALongVideo,
-                RecentlyWatchedForTests::keepsAWatchedReel, StorySeenForTests::keepsAViewedStory));
+                RecentlyWatchedForTests::keepsAWatchedReel, StorySeenForTests::keepsAViewedStory,
+                // Facebook's Menu gets a Recently watched row (#529).
+                PausedHooksTest::addsTheRecentlyWatchedMenuRow));
         // A tap on the right third of a video you paused steps it a frame.
         probes.put(PatchFamily.FRAME_STEP, Collections.singletonList(FrameStepForTests::stepsAPausedVideo));
         // A new video's first choice plays the chosen quality rather than Facebook's.
@@ -938,22 +975,25 @@ public class PausedHooksTest {
         // the newer one so it has the button too, and a reel whose caption was seen gets Copy caption.
         probes.put(PatchFamily.REEL_DOWNLOAD, Arrays.asList(ReelDownload::showsButton,
                 () -> ReelDownload.verticalUfi(false), ReelCaptionForTests::addsTheRow));
-        // A video post's menu gets Download to phone, a video comment's sheet gets Save video, and
-        // the video recorder keeps a player. Its copied-link option reads the clipboard as a screen
-        // comes to the front.
+        // A video post's menu and the viewer's menu get Download to phone, a video comment's sheet
+        // gets Save video, and the video recorder keeps a player. Its copied-link option reads the
+        // clipboard as a screen comes to the front.
         probes.put(PatchFamily.VIDEO_DOWNLOAD, Arrays.asList(
                 VideoMenuItemForTests::addsAnItem,
                 VideoMenuItemForTests::addsTheOpenItem,
+                VideoMenuItemForTests::addsTheViewerRow,
                 CommentVideoForTests::addsARow,
                 PlayerSourcesForTests::recordsAVideoPlayer,
                 ClipboardLinkForTests::readsTheClipboard));
         // Every photo the viewer opens offers Save photo, a photo post's menu gets Save photo, a GIF
-        // comment's sheet gets Save GIF, and a photo comment's sheet gets Save photo.
+        // comment's sheet gets Save GIF, a photo comment's sheet gets Save photo, and a Marketplace
+        // listing's full-screen photo keeps its address for a long press to save.
         probes.put(PatchFamily.PHOTO_DOWNLOAD, Arrays.asList(
                 () -> PhotoSave.offersSave(false),
                 PhotoMenuItemForTests::addsAnItem,
                 CommentGifForTests::addsARow,
-                CommentPhotoForTests::addsARow));
+                CommentPhotoForTests::addsARow,
+                ListingPhotoForTests::keepsTheAddress));
         // A start from the launcher icon asks Facebook for the chosen tab.
         probes.put(PatchFamily.START_TAB, Collections.singletonList(StartTabRouteForTests::routes));
         // Home's request for its feed goes out for the most recent feed.
@@ -1068,6 +1108,12 @@ public class PausedHooksTest {
                 () -> CommentSheetOptions.incomingTypers(3) == 0,
                 () -> CommentSheetOptions.newCommentsPill("3 new comments").isEmpty(),
                 CommentSheetOptions::holdsEmojiRow,
+                () -> {
+                    // The bar along the bottom of a live video is held gone (#537).
+                    View bar = new View(RuntimeEnvironment.getApplication());
+                    LiveCommentBar.barBuilt(bar);
+                    return bar.getVisibility() == View.GONE;
+                },
                 () -> {
                     // The line along the top of the comment box is taken off its background (#344).
                     View box = new View(RuntimeEnvironment.getApplication());
@@ -1316,6 +1362,17 @@ public class PausedHooksTest {
             if (!family.switches.isEmpty()) switched.add(family);
         }
         return switched;
+    }
+
+    /** The Menu asks for the Recently watched row, from a build with Resume long videos in it. */
+    private static boolean addsTheRecentlyWatchedMenuRow() {
+        Set<PatchFamily> before = PatchFamily.inBuildForTests;
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.RESUME_LONG_VIDEOS);
+        try {
+            return RecentlyWatchedScreen.menuRowWanted();
+        } finally {
+            PatchFamily.inBuildForTests = before;
+        }
     }
 
     /** The scrubber takes the next reel with its bar where the last reel stopped. */

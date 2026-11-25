@@ -10,6 +10,7 @@ package app.morphe.extension.facebook.download;
 import android.content.Context;
 import android.os.SystemClock;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewConfiguration;
 
 import app.morphe.extension.facebook.reels.ReelCleanMode;
@@ -43,8 +44,9 @@ import kotlin.jvm.functions.Function1;
  * got one of these with its own number, and the events they received named them. The touch
  * slot fires twice per press with a {@code MotionEvent}. A visibility slot fires on its own. One
  * slot fires once per press with an event that carries nothing but the {@code View}. That last one
- * is the tap, and it is the only slot that saves. The others are kept rather than left null. The
- * factory is not documented to accept null, and a silent handler costs nothing.
+ * is the tap, and it is the only slot that saves. The others keep a silent handler. The
+ * accessibility actions get none: Facebook's own button passes null there, and an action made the
+ * button long-clickable, so a long press opened an empty gray pop-up (#518).
  *
  * <p>The same class sits behind the Cast button the patch adds under it (#182). A cast handler's
  * tap hands the reel's file to a casting app ({@link OpenInAnotherApp#castReel}) instead of saving.
@@ -354,11 +356,10 @@ public final class ReelDownload implements Function1<Object, Object> {
                 return null;
             }
             if (kind == CLEAN) {
-                if (saves) ReelCleanMode.enterClean();
+                if (saves) ReelCleanMode.enterClean(viewOf(argument));
                 return null;
             }
-            // Only the tap slot saves. The others get the same object, so that no parameter of
-            // the factory is null, and they return without a word. They fire on every touch and
+            // Only the tap slot saves. The others get the same object and return without a word. They fire on every touch and
             // every visibility change, which buries the log that this feature needs. While links
             // are sent, the touch slot's lift after a long press copies the link (#41).
             if (!saves) {
@@ -409,6 +410,13 @@ public final class ReelDownload implements Function1<Object, Object> {
             return;
         }
 
+        // With Ask before downloading on, only Continue goes on to the save (#511).
+        if (AskBeforeDownload.askForVideo(context, () -> saveFrom(source))) return;
+        saveFrom(source);
+    }
+
+    /** The save of this reel from [source], through the queue or the list of qualities when they're on. */
+    private void saveFrom(Object source) {
         String videoId = videoIdOf(playerParams);
         PostDetails details = PostDetails.read(videoId, story);
         // With Queue reel saves on, the tap adds the reel to the queue, which saves it in its turn
@@ -503,6 +511,24 @@ public final class ReelDownload implements Function1<Object, Object> {
             }
         } catch (Throwable ignored) {
             // An event this can't read is a touch that copies nothing.
+        }
+        return null;
+    }
+
+    /** The View [argument] is, or holds in a field of its own, as the tap slot's event does, or null. Never throws. */
+    static View viewOf(Object argument) {
+        if (argument instanceof View) return (View) argument;
+        if (argument == null) return null;
+        try {
+            for (java.lang.reflect.Field field : argument.getClass().getDeclaredFields()) {
+                if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+                if (!View.class.isAssignableFrom(field.getType())) continue;
+                field.setAccessible(true);
+                Object value = field.get(argument);
+                return value instanceof View ? (View) value : null;
+            }
+        } catch (Throwable ignored) {
+            // An event this can't read leaves the way out of Clean mode where Facebook puts it.
         }
         return null;
     }

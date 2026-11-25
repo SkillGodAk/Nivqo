@@ -139,6 +139,13 @@ final class AppPages {
             return true;
         });
         menu.addPreference(watched);
+        // Beside the other Menu rows, though Resume long videos owns it, so a pause takes it too (#529).
+        // The Menu asks for its rows each time it builds them, so no restart is needed.
+        if (build.contains(PatchFamily.MENU_SETTINGS_ROW) && build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
+            menu.addPreference(toggle(context, Settings.RECENTLY_WATCHED_MENU_ROW,
+                    L10n.t("Adds a Recently watched row at the end of Settings and privacy in Facebook's Menu. It opens "
+                            + "the list that Remember what you watch keeps.")));
+        }
         // The settings entry's own, so every build has it, and a pause leaves it as it is (#146).
         // Three ways into the settings, each with a switch. The last one still on stays on and greyed out.
         boolean rowInBuild = build.contains(PatchFamily.MENU_SETTINGS_ROW);
@@ -624,6 +631,8 @@ final class AppPages {
         privacy.addPreference(toggle(context, Settings.HIDE_BLOCKED_LIST_PICTURES,
                 L10n.t("People you've blocked show without their profile pictures on the Blocking page in Facebook's "
                         + "settings. Reopen the page if it's already open.")));
+        // The settings entry's own too: each of Facebook's processes sets it as it starts (#504).
+        privacy.addPreference(HushfacebookPreferenceFragment.proxyRow(context));
         if (build.contains(PatchFamily.ANALYTICS_UPLOADS)) {
             // XAnalytics resumes its uploader once, as Facebook starts.
             privacy.addPreference(toggle(context, Settings.HOLD_ANALYTICS_UPLOADS,

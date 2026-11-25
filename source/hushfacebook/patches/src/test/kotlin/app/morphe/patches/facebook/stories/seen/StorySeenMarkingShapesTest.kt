@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -127,10 +128,55 @@ class StorySeenMarkingShapesTest {
         assertNull(seenPublisher(onSeen(withConsistency = false)))
     }
 
-    private fun queue() = method(
-        helperType, "A00", listOf(FB_USER_SESSION, STORY_BUCKET, STORY_CARD, helperType, "Z"), "V", 8, listOf(returnVoid),
+    private fun queue(registers: Int = 9) = method(
+        helperType, "A00", listOf(FB_USER_SESSION, STORY_BUCKET, STORY_CARD, helperType, "Z"), "V", registers, listOf(returnVoid),
         flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
     )
+
+    private val configField = ImmutableFieldReference(helperType, "A0A", LAUNCH_CONFIG)
+    private val stringEquals = ImmutableMethodReference(string, "equals", listOf("Ljava/lang/Object;"), "Z")
+
+    /**
+     * The seen helper's flush (588 A02): its launch config, the config's [source] String (none when
+     * null), then "story_preview" to compare it with.
+     */
+    private fun flush(source: String? = "A0h", name: String = "A02") = method(
+        helperType, name, emptyList(), "V", 3,
+        listOfNotNull(
+            ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 2, configField),
+            source?.let { ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 0, ImmutableFieldReference(LAUNCH_CONFIG, it, string)) },
+            text(1, SEEN_HELPER_LITERAL),
+            invoke(Opcode.INVOKE_VIRTUAL, stringEquals, 1, 0),
+            returnVoid,
+        ),
+    )
+
+    /** The seen helper with [configs] launch config fields and [methods]. */
+    private fun seenHelper(vararg methods: Method, configs: Int = 1): ClassDef = ImmutableClassDef(
+        helperType, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null,
+        List(configs) { ImmutableField(helperType, "A0${'A' + it}", LAUNCH_CONFIG, AccessFlags.PUBLIC.value, null, null, null) },
+        methods.toList(),
+    )
+
+    private val launch = LaunchSource("$helperType->A0A:$LAUNCH_CONFIG", "$LAUNCH_CONFIG->A0h:$string")
+
+    @Test
+    fun `the launch source is the config String the flush reads right before naming story_preview`() {
+        val found = launchSource(seenHelper(flush(), queue()))
+        assertEquals(launch.config, found.config)
+        assertEquals(launch.source, found.source)
+    }
+
+    @Test
+    fun `a helper whose launch source isn't clear gives none`() {
+        // Negative controls: no config field, two of them, a literal with no config String read
+        // before it, two places naming the literal after different Strings, and no literal at all.
+        assertThrows(PatchException::class.java) { launchSource(seenHelper(flush(), configs = 0)) }
+        assertThrows(PatchException::class.java) { launchSource(seenHelper(flush(), configs = 2)) }
+        assertThrows(PatchException::class.java) { launchSource(seenHelper(flush(source = null))) }
+        assertThrows(PatchException::class.java) { launchSource(seenHelper(flush(), flush(source = "A0g", name = "A03"))) }
+        assertThrows(PatchException::class.java) { launchSource(seenHelper(queue())) }
+    }
 
     private val bucketType = STORY_BUCKET
     private val regularType = REGULAR_BUCKET
@@ -221,20 +267,39 @@ class StorySeenMarkingShapesTest {
     private fun MutableMethod.at(index: Int) = implementation!!.instructions.elementAt(index)
 
     @Test
-    fun `the queue hands its bucket, card, helper and peek flag to the extension first thing`() {
+    fun `the queue hands its bucket, card, helper and the helper's launch source to the extension first thing`() {
         val queue = MutableMethod(queue())
-        queue.hearViewedCards()
-        val hook = queue.at(0)
+        queue.hearViewedCards(launch)
+        val code = queue.implementation!!.instructions.toList()
+        assertEquals(8, code.size)
+        // Nine registers, five parameters: p1 to p3, the bucket, the card and the helper, are v5 to v7.
+        listOf(5, 6, 7).forEachIndexed { local, parameter ->
+            assertEquals(Opcode.MOVE_OBJECT_FROM16, code[local].opcode)
+            assertEquals(local, (code[local] as TwoRegisterInstruction).registerA)
+            assertEquals(parameter, (code[local] as TwoRegisterInstruction).registerB)
+        }
+        assertEquals(Opcode.IGET_OBJECT, code[3].opcode)
+        assertEquals("the helper's launch config", "A0A", ((code[3] as ReferenceInstruction).reference as FieldReference).name)
+        assertEquals("read off the helper", 2, (code[3] as TwoRegisterInstruction).registerB)
+        assertEquals(Opcode.IF_EQZ, code[4].opcode)
+        assertEquals(3, (code[4] as OneRegisterInstruction).registerA)
+        assertEquals("no config hands the call null", 6, (code[4] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("the config's source", "A0h", ((code[5] as ReferenceInstruction).reference as FieldReference).name)
+        val hook = code[6]
         assertEquals(Opcode.INVOKE_STATIC_RANGE, hook.opcode)
         val reference = (hook as ReferenceInstruction).reference as MethodReference
         assertEquals("Lapp/morphe/extension/facebook/stories/StorySeen;", reference.definingClass)
         assertEquals("viewed", reference.name)
-        assertEquals(listOf("Ljava/lang/Object;", "Ljava/lang/Object;", "Ljava/lang/Object;", "Z"),
+        assertEquals("no boolean goes in as the peek (#165)", List(4) { "Ljava/lang/Object;" },
             reference.parameterTypes.map { it.toString() })
-        // Eight registers, five parameters: p1 to p4, the bucket to the peek flag, are v4 to v7.
-        assertEquals(4, (hook as RegisterRangeInstruction).startRegister)
+        assertEquals(0, (hook as RegisterRangeInstruction).startRegister)
         assertEquals(4, hook.registerCount)
-        assertEquals(Opcode.RETURN_VOID, queue.at(1).opcode)
+        assertEquals(Opcode.RETURN_VOID, code[7].opcode)
+
+        // Negative control: a queue with three locals isn't changed.
+        val tight = MutableMethod(queue(registers = 8))
+        assertThrows(PatchException::class.java) { tight.hearViewedCards(launch) }
+        assertEquals(1, tight.implementation!!.instructions.count())
     }
 
     /** RegularStoryBucket's constructor: the super call, a field set, and [extra] before its return. */
@@ -311,12 +376,44 @@ class StorySeenMarkingShapesTest {
     private fun starter(vararg methods: Method): ClassDef =
         ImmutableClassDef(starterType, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods.toList())
 
+    private fun checkIn(owner: ClassDef): Method? = startCheck(owner) { null }
+
+    private val cardChecksType = "Lfixture/CardChecks;"
+
+    /** 588's start check (arm64 `LX/0BAD;->ILp`): no local, the card cast and handed to a static helper. */
+    private fun bridge(lead: List<Instruction> = emptyList()) = method(
+        starterType, "ILp", listOf("Ljava/lang/Object;"), "Z", 2,
+        lead + listOf(
+            ImmutableInstruction21c(Opcode.CHECK_CAST, 1, ImmutableTypeReference(STORY_CARD)),
+            // Seven code units on, to the const.
+            ImmutableInstruction21t(Opcode.IF_EQZ, 1, 7),
+            invoke(Opcode.INVOKE_STATIC, ImmutableMethodReference(cardChecksType, "A00", listOf(STORY_CARD), "Z"), 1),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0),
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0),
+        ),
+    )
+
+    /** The class of that helper (arm64 `LX/0BAF;`), which asks the card for getMedia() and the seen flag, then [extra]. */
+    private fun cardChecks(extra: List<Instruction> = emptyList()): ClassDef = ImmutableClassDef(
+        cardChecksType, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+        listOf(
+            method(
+                cardChecksType, "A00", listOf(STORY_CARD), "Z", 2,
+                listOf(invoke(Opcode.INVOKE_VIRTUAL, getMedia, 1), result(0), invoke(Opcode.INVOKE_VIRTUAL, seenFlag, 1)) + extra +
+                    listOf(ImmutableInstruction11x(Opcode.MOVE_RESULT, 0), ImmutableInstruction11x(Opcode.RETURN, 0)),
+                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
+            ),
+        ),
+    )
+
     @Test
     fun `the start check is the card check beside the bucket index method`() {
-        assertEquals("Cfw", startCheck(starter(check(), bucketIndex()))?.name)
+        assertEquals("Cfw", checkIn(starter(check(), bucketIndex()))?.name)
         // The null check Kotlin puts first in the methods beside it (584 LX/0eX;->A0H) is let by.
         val nullCheck = invoke(Opcode.INVOKE_STATIC, ImmutableMethodReference("Lfixture/Checks;", "A0H", listOf("Ljava/lang/Object;", "I"), "V"), 2, 1)
-        assertEquals("Cfw", startCheck(starter(check(lead = listOf(nullCheck)), bucketIndex()))?.name)
+        assertEquals("Cfw", checkIn(starter(check(lead = listOf(nullCheck)), bucketIndex()))?.name)
     }
 
     @Test
@@ -324,14 +421,43 @@ class StorySeenMarkingShapesTest {
         // Negative controls: the other implementer (584 LX/B6O;) casts its bucket to another type,
         // a check of another card type, a static one, one making a third virtual call, one calling a
         // constructor, and no index method.
-        assertNull(startCheck(starter(check(), bucketIndex(cast = "Lfixture/OtherBucket;"))))
-        assertNull(startCheck(starter(check(cast = "Lfixture/OtherCard;"), bucketIndex())))
-        assertNull(startCheck(starter(check(flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value), bucketIndex())))
+        assertNull(checkIn(starter(check(), bucketIndex(cast = "Lfixture/OtherBucket;"))))
+        assertNull(checkIn(starter(check(cast = "Lfixture/OtherCard;"), bucketIndex())))
+        assertNull(checkIn(starter(check(flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value), bucketIndex())))
         val third = invoke(Opcode.INVOKE_VIRTUAL, ImmutableMethodReference(STORY_CARD, "A1e", emptyList(), "Z"), 2)
-        assertNull(startCheck(starter(check(extra = listOf(third)), bucketIndex())))
+        assertNull(checkIn(starter(check(extra = listOf(third)), bucketIndex())))
         val made = invoke(Opcode.INVOKE_DIRECT, ImmutableMethodReference("Lfixture/Media;", "<init>", emptyList(), "V"), 0)
-        assertNull(startCheck(starter(check(lead = listOf(made)), bucketIndex())))
-        assertNull(startCheck(starter(check())))
+        assertNull(checkIn(starter(check(lead = listOf(made)), bucketIndex())))
+        assertNull(checkIn(starter(check())))
+    }
+
+    @Test
+    fun `a start check handing its card to a static helper is read through the helper`() {
+        val owner = starter(bridge(), bucketIndex())
+        val classOf = { type: String -> cardChecks().takeIf { it.type == type } }
+        val check = startCheck(owner, classOf)
+        assertEquals("ILp", check?.name)
+        assertEquals(listOf(getMedia.name, seenFlag.name), startCalls(check!!, classOf).map { it.name })
+        // Negative controls: a helper nothing can find, and one asking the card something more.
+        assertNull(checkIn(owner))
+        val third = invoke(Opcode.INVOKE_VIRTUAL, ImmutableMethodReference(STORY_CARD, "A1e", emptyList(), "Z"), 1)
+        assertNull(startCheck(owner) { cardChecks(listOf(third)) })
+    }
+
+    @Test
+    fun `a start check with no local borrows the this it never reads`() {
+        val start = MutableMethod(bridge())
+        start.skipWatchedCards()
+        // Two registers, no local: this is v0 and the card v1.
+        assertEquals(1, (start.at(0) as RegisterRangeInstruction).startRegister)
+        assertEquals(0, (start.at(1) as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.CHECK_CAST, start.at(5).opcode)
+
+        // One that does read this leaves nothing to borrow, so it's refused and left alone.
+        val readsThis = invoke(Opcode.INVOKE_VIRTUAL, ImmutableMethodReference(starterType, "A00", emptyList(), "V"), 0)
+        val refused = MutableMethod(bridge(lead = listOf(readsThis)))
+        assertThrows(PatchException::class.java) { refused.skipWatchedCards() }
+        assertEquals(8, refused.implementation!!.instructions.count())
     }
 
     @Test

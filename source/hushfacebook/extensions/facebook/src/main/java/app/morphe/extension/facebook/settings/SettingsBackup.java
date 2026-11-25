@@ -35,6 +35,7 @@ import app.morphe.extension.facebook.comments.CommentOrder;
 import app.morphe.extension.facebook.comments.CommentsHeight;
 import app.morphe.extension.facebook.reels.BurnInMode;
 import app.morphe.extension.facebook.reels.BurnInWait;
+import app.morphe.extension.facebook.reels.CleanReturn;
 import app.morphe.extension.facebook.reels.GrayOver;
 import app.morphe.extension.facebook.reels.HoldReaction;
 import app.morphe.extension.facebook.reels.ReelDateStyle;
@@ -48,6 +49,7 @@ import app.morphe.extension.facebook.feed.FeedTypeNames;
 import app.morphe.extension.facebook.feed.PostSources;
 import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.menu.MenuTiles;
+import app.morphe.extension.facebook.media.BufferSize;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.media.RecentlyWatched;
 import app.morphe.extension.facebook.media.SurfaceQuality;
@@ -165,9 +167,19 @@ public final class SettingsBackup {
             Settings.HIDE_POSTS_WITH_WORDS,
             Settings.HIDE_POSTS_FROM_SOURCES,
             Settings.POST_WORDS_WHOLE_WORDS,
+            Settings.POST_WORDS_ON_FEED,
+            Settings.POST_WORDS_ON_REELS,
+            Settings.POST_WORDS_IN_GROUPS,
+            Settings.POST_WORDS_ON_TIMELINES,
+            Settings.POST_WORDS_IN_SEARCH,
             Settings.HIDE_PHOTO_POSTS,
             Settings.HIDE_VIDEO_POSTS,
             Settings.HIDE_LINK_POSTS,
+            Settings.LINK_POSTS_ON_FEED,
+            Settings.LINK_POSTS_ON_REELS,
+            Settings.LINK_POSTS_IN_GROUPS,
+            Settings.LINK_POSTS_ON_TIMELINES,
+            Settings.LINK_POSTS_IN_SEARCH,
             Settings.HIDE_BACKGROUND_POSTS,
             Settings.HIDE_REPOSTS,
             Settings.HIDE_PAGE_POSTS,
@@ -181,17 +193,24 @@ public final class SettingsBackup {
             Settings.HIDE_POST_COUNTS,
             Settings.HIDE_POST_REACTIONS,
             Settings.HIDE_COMMENT_REACTIONS,
+            Settings.REACTIONS_ON_LIKE_BUTTON,
+            Settings.HIDE_REACTION_BUBBLES,
+            Settings.HIDE_REACTOR_NAMES,
             Settings.HIDE_FEED_PROFILE_PICTURES,
             Settings.HIDE_COMMENT_PROFILE_PICTURES,
             Settings.HIDE_SEEN_POSTS,
             Settings.SEEN_POSTS_COME_BACK_ONCE,
             Settings.HIDE_META_AI_QUESTIONS,
             Settings.KEEP_POST_DATES,
+            Settings.HIDE_POST_SONGS,
+            Settings.BOLD_POST_TIMES,
             Settings.SHOW_FULL_POST_TEXT,
+            Settings.SHOW_FULL_NAMES,
             Settings.SHOW_FULL_REEL_CAPTIONS,
             Settings.DIM_OPEN_REEL_CAPTIONS,
             Settings.DIM_FOLDED_REEL_CAPTIONS,
             Settings.DIM_REEL_NAMES,
+            Settings.DIM_FEED_VIDEO_NAMES,
             Settings.DIM_STORY_NAMES,
             Settings.SOFT_TEXT_BOXES,
             Settings.TRANSLATE_POST_LINK,
@@ -199,6 +218,7 @@ public final class SettingsBackup {
             Settings.SEE_WHO_SHARED,
             Settings.PHOTO_CAROUSEL,
             Settings.TURN_OFF_AUTO_TRANSLATION,
+            Settings.TRANSLATE_EVERY_COMMENT,
             Settings.HIDE_FEEDS_HEADER,
             Settings.HIDE_SPONSORED_STORIES,
             Settings.HIDE_SUGGESTED_STORIES,
@@ -222,8 +242,12 @@ public final class SettingsBackup {
             Settings.HIDE_STORY_CREDITS,
             Settings.HIDE_STORY_REPLY_SUGGESTIONS,
             Settings.HIDE_STORY_SUBSCRIBE,
+            Settings.HIDE_STORY_FOLLOW,
+            Settings.HIDE_STORY_REPLY_BAR,
+            Settings.HIDE_STORY_UP_NEXT,
             Settings.HIDE_STORY_CREATE_CARDS,
             Settings.STORY_PROGRESS_BAR,
+            Settings.STORY_FLAT_SLIDE,
             Settings.HIDE_FEED_STORY_RINGS,
             Settings.HIDE_COMMENT_STORY_RINGS,
             Settings.HIDE_PROFILE_STORY_RINGS,
@@ -244,6 +268,7 @@ public final class SettingsBackup {
             Settings.HIDE_POST_REPOST_BUTTON,
             Settings.HIDE_POST_SHARE_BUTTON,
             Settings.HIDE_POST_SEND_BUTTON,
+            Settings.IGNORE_POST_ROW_TAPS,
             Settings.HIDE_SPONSORED_MARKETPLACE_LISTINGS,
             Settings.MARKETPLACE_ADVANCED_SEARCH,
             Settings.MARKETPLACE_FILTERS_BUTTON,
@@ -270,6 +295,7 @@ public final class SettingsBackup {
             Settings.HIDE_REELS_TAB_TITLE,
             Settings.HIDE_VIEWER_BACK_BUTTON,
             Settings.BURN_IN_STAY_DIM,
+            Settings.BURN_IN_FADE,
             Settings.GRAY_REELS,
             Settings.REELS_MINUTES,
             Settings.HIDE_REEL_COUNTS,
@@ -281,6 +307,7 @@ public final class SettingsBackup {
             Settings.HIDE_REEL_SHARE_BUTTON,
             Settings.SHOW_REEL_COMMENT_BUTTON,
             Settings.SHOW_REEL_POST_DATE,
+            Settings.HIDE_REEL_NEW_FOR_YOU,
             Settings.HIDE_REEL_SOUND_BUTTON,
             Settings.REEL_SPEAKER_ABOVE_MENU,
             Settings.HIDE_REEL_AUDIO_LINE,
@@ -322,6 +349,7 @@ public final class SettingsBackup {
             Settings.ASK_BEFORE_LIKING_COMMENTS,
             Settings.ASK_BEFORE_FOLLOWING_POSTS,
             Settings.ASK_BEFORE_FOLLOWING_REELS,
+            Settings.ASK_BEFORE_REACTING_TO_STORIES,
             Settings.DOUBLE_TAP_SKIP,
             Settings.HIDE_SKIP_SECONDS,
             Settings.TAP_SHOWS_CONTROLS,
@@ -367,6 +395,7 @@ public final class SettingsBackup {
             Settings.HIDE_NEW_COMMENTS_PILL,
             Settings.SHOW_EVERY_COMMENT_REACTION,
             Settings.HIDE_VIDEO_COMMENT_COMPOSER,
+            Settings.HIDE_LIVE_COMMENT_BAR,
             Settings.PAUSE_REELS_UNDER_COMMENTS,
             Settings.TAP_REELS_ABOVE_COMMENTS,
             Settings.SEARCH_COMMENTS,
@@ -383,24 +412,28 @@ public final class SettingsBackup {
             Settings.FEED_VIDEO_SEEK_BAR_LOWER,
             Settings.FEED_VIDEO_SEEK_BAR_EDGE,
             Settings.FEED_VIDEO_SEEK_BAR_THIN,
+            Settings.FEED_VIDEO_SEEK_BAR_FLAT_DRAG,
             Settings.FEED_VIDEO_SEEK_BAR_TIMES,
             Settings.FEED_VIDEO_SEEK_BAR_LENGTH,
             Settings.FEED_VIDEO_FULL_PLAYER_BUTTON,
             Settings.FEED_VIDEO_FULL_PLAYER_CORNER,
             Settings.FEED_VIDEO_SKIP_BUTTONS,
             Settings.FEED_VIDEO_DOUBLE_TAP_SKIP,
+            Settings.FEED_VIDEO_TAP_SHOWS_PAUSE,
             Settings.FEED_VIDEO_SPEED_BUTTON,
             Settings.CENTER_FULL_SCREEN_VIDEOS,
             Settings.STORY_SEEK_BAR,
             Settings.STORY_SEEK_BAR_FADE,
             Settings.RESUME_LONG_VIDEOS,
             Settings.RECENTLY_WATCHED,
+            Settings.RECENTLY_WATCHED_MENU_ROW,
             Settings.FRAME_STEP,
             Settings.DEFAULT_PLAYBACK_QUALITY,
             Settings.PICTURE_IN_PICTURE,
             Settings.PICTURE_IN_PICTURE_FROM_MENU,
             Settings.PICTURE_IN_PICTURE_BUTTON,
             Settings.KEEP_PLAYING_IN_BACKGROUND,
+            Settings.NEXT_REEL_IN_BACKGROUND,
             Settings.BACKGROUND_PLAY_BUTTON,
             Settings.TURN_OFF_HDR_BRIGHTNESS,
             Settings.PREFER_SDR_RENDITIONS,
@@ -434,12 +467,14 @@ public final class SettingsBackup {
             Settings.DOWNLOAD_PHOTOS,
             Settings.POST_MENU_PHOTO_SAVE,
             Settings.POST_MENU_PHOTO_SEARCH,
+            Settings.MARKETPLACE_PHOTO_SAVE,
             Settings.OPEN_IN_ANOTHER_APP,
             Settings.POST_MENU_DOWNLOAD_FIRST,
             Settings.DOWNLOAD_COMPATIBLE,
             Settings.DOWNLOAD_CONVERT,
             Settings.DOWNLOAD_QUIET,
             Settings.DOWNLOAD_QUALITY_ASK,
+            Settings.ASK_BEFORE_DOWNLOAD,
             Settings.OPEN_ON_CHOSEN_TAB,
             Settings.FOLLOWING_FEED_HOME,
             Settings.SAVED_SHORTCUT,
@@ -489,9 +524,12 @@ public final class SettingsBackup {
             Settings.KEEP_TOP_BAR,
             Settings.PHONE_LAYOUT_ON_BIG_SCREENS,
             Settings.HIDE_REELS_TAB_BAR,
+            Settings.HIDE_TAB_BAR_LINE,
+            Settings.TAB_BAR_IN_GROUPS,
             Settings.TRANSLUCENT_BARS,
             Settings.ROUNDED_TAB_BAR,
             Settings.HIDE_STATUS_BAR,
+            Settings.CENTER_FEED_ON_BIG_SCREENS,
             Settings.LIGHT_REELS_TAB_BARS,
             Settings.HIDE_MESSENGER_BUTTON,
             Settings.HIDE_MESSENGER_COUNT,
@@ -660,6 +698,13 @@ public final class SettingsBackup {
     static final StringSetting HEADER_TEXT = Settings.HEADER_TEXT;
 
     /**
+     * Header text font (#532), held in a file as its {@link HeaderFont#fileValue}. Anything else
+     * refuses the whole file, as a text size does. Your font comes in without the font file, which a
+     * file can't carry, and draws in bold until one is picked on the new phone.
+     */
+    static final EnumSetting<HeaderFont> HEADER_FONT = Settings.HEADER_TEXT_FONT;
+
+    /**
      * The emoji after the logo, held in a file as its row keeps it: blank, or text {@link LogoEmoji}
      * leaves as it is. Text written any other way refuses the whole file.
      */
@@ -703,6 +748,12 @@ public final class SettingsBackup {
      */
     static final EnumSetting<BurnInMode> BURN_IN = Settings.BURN_IN_GUARD;
     static final EnumSetting<BurnInWait> BURN_IN_WAIT = Settings.BURN_IN_WAIT;
+
+    /**
+     * Back to Clean mode (#519), held in a file as its {@link CleanReturn#fileValue}. Anything else
+     * refuses the whole file, as a Dim after wait does.
+     */
+    static final EnumSetting<CleanReturn> CLEAN_RETURN = Settings.REEL_CLEAN_RETURN;
 
     /**
      * Hold to react's Reaction (#454), held in a file as its {@link HoldReaction#fileValue}.
@@ -779,6 +830,12 @@ public final class SettingsBackup {
     static final EnumSetting<FoldLines> FOLD_COMMENTS = Settings.FOLD_COMMENTS;
 
     /**
+     * Video buffer's size (#526), held in a file as its {@link BufferSize#fileValue}. Anything else
+     * refuses the whole file, as a fold does.
+     */
+    static final EnumSetting<BufferSize> VIDEO_BUFFER = Settings.VIDEO_BUFFER;
+
+    /**
      * How large Facebook's text is, held in a file as its {@link TextSize.Scale#fileValue}, the
      * percentage. Anything else refuses the whole file, as a lock time does.
      */
@@ -848,8 +905,8 @@ public final class SettingsBackup {
 
     /** The settings a file carries that aren't switches, in the order Settings declares them. */
     static final List<Setting<?>> VALUES = Collections.unmodifiableList(
-            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, FEED_TYPES, CEILING, BURN_IN, BURN_IN_WAIT, GRAY_OVER, DATE_STYLE, REELS_ORDER, HOLD_REACTION, COMMENTS_HEIGHT, WATCHED_KEEP, SHARE_ITEMS, POST_MENU_ITEMS, MENU_TILES, HOME_FEED, TAB_ORDER, BACKGROUND, LIGHT_BACKGROUND, HEADER_TEXT, SEEN_KEEP, FOLD_POSTS, FOLD_COMMENTS, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
-                    FILE_NAME, PHOTO_NAME, ACTION, APP, START, SUBTAB, ORDER, PLAYBACK, REELS_QUALITY, STORIES_QUALITY,
+            Arrays.<Setting<?>>asList(HIDDEN, KEPT, SOURCES, FEED_TYPES, CEILING, CLEAN_RETURN, BURN_IN, BURN_IN_WAIT, GRAY_OVER, DATE_STYLE, REELS_ORDER, HOLD_REACTION, COMMENTS_HEIGHT, WATCHED_KEEP, SHARE_ITEMS, POST_MENU_ITEMS, MENU_TILES, HOME_FEED, TAB_ORDER, BACKGROUND, LIGHT_BACKGROUND, HEADER_TEXT, HEADER_FONT, SEEN_KEEP, FOLD_POSTS, FOLD_COMMENTS, TO, FOLDER, VIDEO_SUBFOLDER, PHOTO_SUBFOLDER, QUALITY,
+                    FILE_NAME, PHOTO_NAME, ACTION, APP, START, SUBTAB, ORDER, PLAYBACK, REELS_QUALITY, STORIES_QUALITY, VIDEO_BUFFER,
                     QUIET_FROM, QUIET_UNTIL, LOCK_AFTER, PAUSE_LENGTH, BREAK_AFTER, BREAK_LENGTH, TEXT_SIZE, REFRESH_RATE, NEW_ROW_MARK, ACCENT, ACCENT_CUSTOM, LOGO_EMOJI,
                     BADGE, LOGO, TAB));
 
@@ -972,14 +1029,17 @@ public final class SettingsBackup {
         private static final String LOGO_NAME = "logo_color";
         private static final String TAB_NAME = "tab_color";
         private static final String HEADER_TEXT_NAME = "header_text";
+        private static final String HEADER_FONT_NAME = "header_text_font";
         private static final String LOGO_EMOJI_NAME = "logo_emoji";
         private static final String ACCENT_CUSTOM_NAME = "accent_custom";
         private static final String REELS_ORDER_NAME = "reels_order";
         private static final String BURN_IN_NAME = "burn_in_guard";
         private static final String BURN_IN_WAIT_NAME = "burn_in_wait";
+        private static final String CLEAN_RETURN_NAME = "reel_clean_return";
         private static final String HOLD_REACTION_NAME = "hold_reaction";
         private static final String FOLD_POSTS_NAME = "fold_post_text";
         private static final String FOLD_COMMENTS_NAME = "fold_comments";
+        private static final String VIDEO_BUFFER_NAME = "video_buffer";
         private static final String GRAY_OVER_NAME = "gray_reels_over";
         private static final String NEW_ROW_MARK_NAME = "new_row_mark";
         private static final String REFRESH_RATE_NAME = "refresh_rate";
@@ -1111,6 +1171,9 @@ public final class SettingsBackup {
         /** The Home header text the file holds, the same way. */
         @Nullable
         String headerText;
+        /** The Header text font the file holds, or null when it names none. Set once, as it's read. */
+        @Nullable
+        HeaderFont headerFont;
         /** The emoji after the logo the file holds, the same way. */
         @Nullable
         String logoEmoji;
@@ -1126,6 +1189,9 @@ public final class SettingsBackup {
         /** The Dim after wait the file holds, the same way. */
         @Nullable
         BurnInWait burnInWait;
+        /** The Back to Clean mode choice the file holds, the same way. */
+        @Nullable
+        CleanReturn cleanReturn;
         /** The Hold to react choice the file holds, the same way. */
         @Nullable
         HoldReaction holdReaction;
@@ -1135,6 +1201,9 @@ public final class SettingsBackup {
         /** The Fold long comments choice the file holds, the same way. */
         @Nullable
         FoldLines foldComments;
+        /** The Video buffer choice the file holds, the same way. */
+        @Nullable
+        BufferSize videoBuffer;
         /** The Turn gray over choice the file holds, the same way. */
         @Nullable
         GrayOver grayOver;
@@ -1388,6 +1457,8 @@ public final class SettingsBackup {
             if (tabChange != null) changes.put(TAB, tabChange);
             String headerTextChange = headerTextChange();
             if (headerTextChange != null) changes.put(HEADER_TEXT, headerTextChange);
+            HeaderFont headerFontChange = headerFontChange();
+            if (headerFontChange != null) changes.put(HEADER_FONT, headerFontChange);
             String logoEmojiChange = logoEmojiChange();
             if (logoEmojiChange != null) changes.put(LOGO_EMOJI, logoEmojiChange);
             String accentCustomChange = accentCustomChange();
@@ -1398,12 +1469,16 @@ public final class SettingsBackup {
             if (burnInChange != null) changes.put(BURN_IN, burnInChange);
             BurnInWait burnInWaitChange = burnInWaitChange();
             if (burnInWaitChange != null) changes.put(BURN_IN_WAIT, burnInWaitChange);
+            CleanReturn cleanReturnChange = cleanReturnChange();
+            if (cleanReturnChange != null) changes.put(CLEAN_RETURN, cleanReturnChange);
             HoldReaction holdReactionChange = holdReactionChange();
             if (holdReactionChange != null) changes.put(HOLD_REACTION, holdReactionChange);
             FoldLines foldPostsChange = foldPostsChange();
             if (foldPostsChange != null) changes.put(FOLD_POSTS, foldPostsChange);
             FoldLines foldCommentsChange = foldCommentsChange();
             if (foldCommentsChange != null) changes.put(FOLD_COMMENTS, foldCommentsChange);
+            BufferSize videoBufferChange = videoBufferChange();
+            if (videoBufferChange != null) changes.put(VIDEO_BUFFER, videoBufferChange);
             GrayOver grayOverChange = grayOverChange();
             if (grayOverChange != null) changes.put(GRAY_OVER, grayOverChange);
             NewRowMark newRowMarkChange = newRowMarkChange();
@@ -1677,6 +1752,12 @@ public final class SettingsBackup {
             return headerText.equals(HEADER_TEXT.savedValue()) ? null : headerText;
         }
 
+        /** The Header text font after this file, or null when it names none or the one already set. */
+        @Nullable
+        HeaderFont headerFontChange() {
+            return headerFont == null || headerFont == HEADER_FONT.savedValue() ? null : headerFont;
+        }
+
         /** The emoji after the logo this file sets, or null when it names none or the one already set. */
         @Nullable
         String logoEmojiChange() {
@@ -1715,6 +1796,12 @@ public final class SettingsBackup {
             return burnInWait == null || burnInWait == BURN_IN_WAIT.savedValue() ? null : burnInWait;
         }
 
+        /** The Back to Clean mode choice after this file, the same way. */
+        @Nullable
+        CleanReturn cleanReturnChange() {
+            return cleanReturn == null || cleanReturn == CLEAN_RETURN.savedValue() ? null : cleanReturn;
+        }
+
         /** The Hold to react choice after this file, the same way. */
         @Nullable
         HoldReaction holdReactionChange() {
@@ -1731,6 +1818,12 @@ public final class SettingsBackup {
         @Nullable
         FoldLines foldCommentsChange() {
             return foldComments == null || foldComments == FOLD_COMMENTS.savedValue() ? null : foldComments;
+        }
+
+        /** The Video buffer choice after this file, the same way. */
+        @Nullable
+        BufferSize videoBufferChange() {
+            return videoBuffer == null || videoBuffer == VIDEO_BUFFER.savedValue() ? null : videoBuffer;
         }
 
         /** The Turn gray over choice after this file, the same way. */
@@ -1818,14 +1911,17 @@ public final class SettingsBackup {
             if (logo != null) state.putString(LOGO_NAME, logo);
             if (tab != null) state.putString(TAB_NAME, tab);
             if (headerText != null) state.putString(HEADER_TEXT_NAME, headerText);
+            if (headerFont != null) state.putString(HEADER_FONT_NAME, headerFont.fileValue);
             if (logoEmoji != null) state.putString(LOGO_EMOJI_NAME, logoEmoji);
             if (accentCustom != null) state.putString(ACCENT_CUSTOM_NAME, accentCustom);
             if (reelsOrder != null) state.putString(REELS_ORDER_NAME, reelsOrder.fileValue);
             if (burnIn != null) state.putString(BURN_IN_NAME, burnIn.fileValue);
             if (burnInWait != null) state.putString(BURN_IN_WAIT_NAME, burnInWait.fileValue);
+            if (cleanReturn != null) state.putString(CLEAN_RETURN_NAME, cleanReturn.fileValue);
             if (holdReaction != null) state.putString(HOLD_REACTION_NAME, holdReaction.fileValue);
             if (foldPosts != null) state.putString(FOLD_POSTS_NAME, foldPosts.fileValue);
             if (foldComments != null) state.putString(FOLD_COMMENTS_NAME, foldComments.fileValue);
+            if (videoBuffer != null) state.putString(VIDEO_BUFFER_NAME, videoBuffer.fileValue);
             if (grayOver != null) state.putString(GRAY_OVER_NAME, grayOver.fileValue);
             if (newRowMark != null) state.putString(NEW_ROW_MARK_NAME, newRowMark.fileValue);
             if (refreshRate != null) state.putString(REFRESH_RATE_NAME, refreshRate.fileValue);
@@ -1907,9 +2003,11 @@ public final class SettingsBackup {
             read.reelsOrder = ReelsOrder.fromFile(state.get(REELS_ORDER_NAME));
             read.burnIn = BurnInMode.fromFile(state.get(BURN_IN_NAME));
             read.burnInWait = BurnInWait.fromFile(state.get(BURN_IN_WAIT_NAME));
+            read.cleanReturn = CleanReturn.fromFile(state.get(CLEAN_RETURN_NAME));
             read.holdReaction = HoldReaction.fromFile(state.get(HOLD_REACTION_NAME));
             read.foldPosts = FoldLines.fromFile(state.get(FOLD_POSTS_NAME));
             read.foldComments = FoldLines.fromFile(state.get(FOLD_COMMENTS_NAME));
+            read.videoBuffer = BufferSize.fromFile(state.get(VIDEO_BUFFER_NAME));
             read.grayOver = GrayOver.fromFile(state.get(GRAY_OVER_NAME));
             read.newRowMark = NewRowMark.fromFile(state.get(NEW_ROW_MARK_NAME));
             read.refreshRate = RefreshRate.Rate.fromFile(state.get(REFRESH_RATE_NAME));
@@ -1928,6 +2026,7 @@ public final class SettingsBackup {
             Object headerText = state.get(HEADER_TEXT_NAME);
             read.headerText = HeaderText.isClean(headerText instanceof String ? (String) headerText : null)
                     ? (String) headerText : null;
+            read.headerFont = HeaderFont.fromFile(state.get(HEADER_FONT_NAME));
             Object logoEmoji = state.get(LOGO_EMOJI_NAME);
             read.logoEmoji = LogoEmoji.isClean(logoEmoji instanceof String ? (String) logoEmoji : null)
                     ? (String) logoEmoji : null;
@@ -1990,9 +2089,11 @@ public final class SettingsBackup {
             switches.put(REELS_ORDER.key, of(REELS_ORDER).fileValue);
             switches.put(BURN_IN.key, of(BURN_IN).fileValue);
             switches.put(BURN_IN_WAIT.key, of(BURN_IN_WAIT).fileValue);
+            switches.put(CLEAN_RETURN.key, of(CLEAN_RETURN).fileValue);
             switches.put(HOLD_REACTION.key, of(HOLD_REACTION).fileValue);
             switches.put(FOLD_POSTS.key, of(FOLD_POSTS).fileValue);
             switches.put(FOLD_COMMENTS.key, of(FOLD_COMMENTS).fileValue);
+            switches.put(VIDEO_BUFFER.key, of(VIDEO_BUFFER).fileValue);
             switches.put(GRAY_OVER.key, of(GRAY_OVER).fileValue);
             switches.put(DATE_STYLE.key, of(DATE_STYLE).fileValue);
             switches.put(COMMENTS_HEIGHT.key, of(COMMENTS_HEIGHT).fileValue);
@@ -2033,6 +2134,7 @@ public final class SettingsBackup {
             String tab = MarkColors.stored(of(TAB));
             switches.put(TAB.key, tab == null ? "" : tab);
             switches.put(HEADER_TEXT.key, HeaderText.clean(of(HEADER_TEXT)));
+            switches.put(HEADER_FONT.key, of(HEADER_FONT).fileValue);
             switches.put(LOGO_EMOJI.key, LogoEmoji.clean(of(LOGO_EMOJI)));
             String accentCustom = AccentColor.customStored(of(ACCENT_CUSTOM));
             switches.put(ACCENT_CUSTOM.key, accentCustom == null ? "" : accentCustom);
@@ -2181,14 +2283,17 @@ public final class SettingsBackup {
         String logo = null;
         String tab = null;
         String headerText = null;
+        HeaderFont headerFont = null;
         String logoEmoji = null;
         String accentCustom = null;
         ReelsOrder reelsOrder = null;
         BurnInMode burnIn = null;
         BurnInWait burnInWait = null;
+        CleanReturn cleanReturn = null;
         HoldReaction holdReaction = null;
         FoldLines foldPosts = null;
         FoldLines foldComments = null;
+        BufferSize videoBuffer = null;
         GrayOver grayOver = null;
         NewRowMark newRowMark = null;
         RefreshRate.Rate refreshRate = null;
@@ -2308,6 +2413,11 @@ public final class SettingsBackup {
                 headerText = (String) value;
                 continue;
             }
+            if (HEADER_FONT.key.equals(name)) {
+                headerFont = HeaderFont.fromFile(values.opt(name));
+                if (headerFont == null) throw new Rejected(Reason.VALUE, "Not a header text font: " + name);
+                continue;
+            }
             if (LOGO_EMOJI.key.equals(name)) {
                 Object value = values.opt(name);
                 if (!(value instanceof String) || !LogoEmoji.isClean((String) value)) {
@@ -2354,6 +2464,11 @@ public final class SettingsBackup {
                 if (burnInWait == null) throw new Rejected(Reason.VALUE, "Not a dim after wait: " + name);
                 continue;
             }
+            if (CLEAN_RETURN.key.equals(name)) {
+                cleanReturn = CleanReturn.fromFile(values.opt(name));
+                if (cleanReturn == null) throw new Rejected(Reason.VALUE, "Not a back to Clean mode choice: " + name);
+                continue;
+            }
             if (HOLD_REACTION.key.equals(name)) {
                 holdReaction = HoldReaction.fromFile(values.opt(name));
                 if (holdReaction == null) throw new Rejected(Reason.VALUE, "Not a hold reaction: " + name);
@@ -2367,6 +2482,11 @@ public final class SettingsBackup {
             if (FOLD_COMMENTS.key.equals(name)) {
                 foldComments = FoldLines.fromFile(values.opt(name));
                 if (foldComments == null) throw new Rejected(Reason.VALUE, "Not a comment fold: " + name);
+                continue;
+            }
+            if (VIDEO_BUFFER.key.equals(name)) {
+                videoBuffer = BufferSize.fromFile(values.opt(name));
+                if (videoBuffer == null) throw new Rejected(Reason.VALUE, "Not a video buffer: " + name);
                 continue;
             }
             if (GRAY_OVER.key.equals(name)) {
@@ -2591,14 +2711,17 @@ public final class SettingsBackup {
         read.logo = logo;
         read.tab = tab;
         read.headerText = headerText;
+        read.headerFont = headerFont;
         read.logoEmoji = logoEmoji;
         read.accentCustom = accentCustom;
         read.reelsOrder = reelsOrder;
         read.burnIn = burnIn;
         read.burnInWait = burnInWait;
+        read.cleanReturn = cleanReturn;
         read.holdReaction = holdReaction;
         read.foldPosts = foldPosts;
         read.foldComments = foldComments;
+        read.videoBuffer = videoBuffer;
         read.grayOver = grayOver;
         read.newRowMark = newRowMark;
         read.refreshRate = refreshRate;

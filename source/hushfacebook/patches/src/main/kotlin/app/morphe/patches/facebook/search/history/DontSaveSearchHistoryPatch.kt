@@ -9,7 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.comments.summaries.descriptor
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
@@ -23,6 +23,7 @@ import app.morphe.patches.facebook.misc.extension.requireStatusMethod
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
+import app.morphe.util.executeBytecode
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
@@ -52,6 +53,8 @@ internal const val PROFILE_VISIT = "profile_engagement"
 
 private const val MAP = "Ljava/util/Map;"
 private const val MAP_PUT = "$MAP->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
+private const val ENUM_MAP = "Ljava/util/EnumMap;"
+private const val ABSTRACT_MAP_PUT = "Ljava/util/AbstractMap;->put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
 
 /** How far before the put the load of its map may sit. */
 internal const val MAP_LOAD_REACH = 4
@@ -87,7 +90,7 @@ internal const val MAP_LOAD_REACH = 4
  * In the default selection with its switch off, so nothing changes until it's turned on.
  */
 @Suppress("unused")
-val dontSaveSearchHistoryPatch = bytecodePatch(
+val dontSaveSearchHistoryPatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Don't save search history",
     description = "Stops Facebook from adding what you search for, and the pages and profiles you open from a " +
@@ -98,7 +101,7 @@ val dontSaveSearchHistoryPatch = bytecodePatch(
     dependsOn(settingsPatch, facebookExtensionPatch, analyticsEventsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         // Everything is found before anything changes, so a build missing one part is left as it was.
         requireStatusMethod("searchHistory")
         val holders = classDefByStrings(ADD_RECENT_SEARCH, StringComparisonType.EQUALS)
@@ -168,10 +171,23 @@ internal fun skipRegister(save: Method): Int {
 }
 
 /**
- * Where [save] puts the Recent list into its own class's map: the one `Map.put` whose map register
- * was last loaded, at most [MAP_LOAD_REACH] instructions before, from a Map field of [save]'s class,
- * with no jump or handler landing in between, and whose answer nothing reads. Null unless there's
- * exactly one.
+ * The type a map field must have for [call] to be a put into it: a Map asked through `Map.put`, or,
+ * from 588, an EnumMap, whose put is called on AbstractMap. Null when [call] is neither.
+ */
+private fun recentMapFieldFor(call: Instruction): String? {
+    val reference = (call as? ReferenceInstruction)?.reference?.toString() ?: return null
+    return when (call.opcode) {
+        Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE -> MAP.takeIf { reference == MAP_PUT }
+        Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE -> ENUM_MAP.takeIf { reference == ABSTRACT_MAP_PUT }
+        else -> null
+    }
+}
+
+/**
+ * Where [save] puts the Recent list into its own class's map: the one put whose map register was
+ * last loaded, at most [MAP_LOAD_REACH] instructions before, from a field of [save]'s class of the
+ * type that put goes with ([recentMapFieldFor]), with no jump or handler landing in between, and
+ * whose answer nothing reads. Null unless there's exactly one.
  */
 internal fun recentListPut(save: Method): Int? {
     val instructions = save.implementation?.instructions?.toList() ?: return null
@@ -179,8 +195,7 @@ internal fun recentListPut(save: Method): Int? {
     val landings = instructions.indices.flatMap { from -> flow.normal[from].filter { it != from + 1 } + flow.exceptional[from] }.toSet()
     val puts = instructions.indices.filter { index ->
         val put = instructions[index]
-        if (put.opcode != Opcode.INVOKE_INTERFACE && put.opcode != Opcode.INVOKE_INTERFACE_RANGE) return@filter false
-        if ((put as ReferenceInstruction).reference.toString() != MAP_PUT) return@filter false
+        val fieldType = recentMapFieldFor(put) ?: return@filter false
         if (instructions.getOrNull(index + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT) return@filter false
         val map = callRegisters(put).first()
         val load = (index - 1 downTo maxOf(0, index - MAP_LOAD_REACH)).firstOrNull { before ->
@@ -193,7 +208,7 @@ internal fun recentListPut(save: Method): Int? {
         if ((load + 1..index).any { it in landings }) return@filter false
         val field = (instructions[load] as? ReferenceInstruction)?.reference as? FieldReference
         instructions[load].opcode == Opcode.IGET_OBJECT && field != null &&
-            field.definingClass == save.definingClass && field.type == MAP
+            field.definingClass == save.definingClass && field.type == fieldType
     }
     return puts.singleOrNull()
 }

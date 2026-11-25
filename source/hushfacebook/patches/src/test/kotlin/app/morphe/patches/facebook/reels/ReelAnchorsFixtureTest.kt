@@ -42,6 +42,7 @@ class ReelAnchorsFixtureTest {
         var immutableList: ClassDef? = null
         val dumpers = mutableListOf<Method>()
         val hotComments = mutableListOf<Method>()
+        val captionRows = mutableListOf<ClassDef>()
         val captionComments = mutableListOf<Method>()
         val bubbles = mutableListOf<Method>()
         var footerHelperClasses = 0
@@ -54,7 +55,7 @@ class ReelAnchorsFixtureTest {
      * picks over the plain query's, and 587's `$2` (arm64 LX/0CT7;) hands a lambda the plain or XAR
      * query beside the MFC `$1` (LX/0WKq;), with no query name of its own (#464).
      */
-    private val hotCommentRunnables = mapOf("586.0.0.52.53" to 2, "587.0.0.39.55" to 2)
+    private val hotCommentRunnables = mapOf("586.0.0.52.53" to 2, "588.0.0.42.55" to 2)
 
     /** One pass over the bundle for everything but the Follow getter's readers. */
     private fun scan(bundle: File): Found {
@@ -76,11 +77,19 @@ class ReelAnchorsFixtureTest {
                     classDef.methods.filter { holdsString(it, WATCH_FEED_DUMP) }.mapTo(found.dumpers) { ImmutableMethod.of(it) }
                 }
                 namedRunnable(classDef, HOT_COMMENT_RUNNABLE)?.let { found.hotComments += ImmutableMethod.of(it) }
-                captionCommentRunnable(classDef)?.let { found.captionComments += ImmutableMethod.of(it) }
+                if (namedRunnable(classDef, CAPTION_ROW_RUNNABLE) != null) found.captionRows += ImmutableClassDef.of(classDef)
                 if (VIDEO_ID in present) {
                     footerRunnable(classDef, SOCIAL_BUBBLES_RUNNABLE, VIDEO_ID)?.let { found.bubbles += ImmutableMethod.of(it) }
                 }
             }
+        }
+        // 588's caption runnable asks a string table for its query's name.
+        val captionTables = FixtureDex.classes(bundle, found.captionRows.flatMap { it.methods }.flatMap { method ->
+            method.implementation?.instructions?.toList().orEmpty().filter(::isStringTableCall)
+                .mapNotNull { ((it as ReferenceInstruction).reference as? MethodReference)?.definingClass }
+        }.toSet())
+        found.captionRows.mapNotNullTo(found.captionComments) { row ->
+            captionCommentRunnable(row) { call -> captionTables[call.definingClass]?.let { resolveStatic(it, call) } }
         }
         // The builder can ask a string table for a chip (582's armeabi-v7a one does), so the tables
         // the candidates call are read before the builder is picked, the way the patch reads them.
@@ -170,8 +179,11 @@ class ReelAnchorsFixtureTest {
                         "586.0.0.52.53 arm64-v8a" to "LX/0A3w;:134:A18 LX/0A3h;:198:A0Q",
                         "586.0.0.52.53 armeabi-v7a" to "LX/0A3w;:134:A18 LX/0A3h;:198:A0Q",
                         "586.0.0.52.53 arm64-v8a-minapi28-storeless" to "LX/0A5H;:52:A0A LX/0A4q;:118:invoke",
-                        "587.0.0.39.55 arm64-v8a" to "LX/0CxW;:19:A0N LX/0A59;:120:A0V",
-                        "587.0.0.39.55 armeabi-v7a" to "LX/0A4x;:67:A0G LX/0A4w;:96:A0W",
+                        // 588 puts both flags back in one lambda class, as 583 and 584 did.
+                        "588.0.0.42.55 arm64-v8a" to "LX/09w5;:56:A08 LX/09w5;:57:A0f",
+                        "588.0.0.42.55 armeabi-v7a" to "LX/09w8;:56:A08 LX/09w8;:57:A0f",
+                        // Its Android 9 build keeps them apart, the second flag read in a lambda's invoke as on 586's.
+                        "588.0.0.42.55 arm64-v8a-minapi28-storeless" to "LX/0A0p;:85:A09 LX/0A0s;:68:invoke",
                     )["$version $abi"]
                     assertEquals(name, pinned, follow.flags.joinToString(" ") { "${it.lambda}:${it.key}:${it.reader.name}" })
                 } else {
@@ -286,6 +298,34 @@ class ReelAnchorsFixtureTest {
                 assertEquals("$name: $lines", 1, lines.size)
                 assertTrue("$name: the line has no local for the hook", locals(lines.single()) >= 1)
                 checked[version] = lines.single().definingClass
+            }
+        }
+        assertEquals("a declared build went unchecked: $checked", versions.toSet(), checked.keys)
+    }
+
+    /**
+     * The "Made with Edits" pill over a feed video (#314), found the way the patch finds it: a static
+     * boolean asking the Edits getter, with a local for its hook. 588 has exactly one on each build.
+     */
+    @Test
+    fun `every declared build has one Made with Edits pill check, with a local for its hook`() {
+        val versions = AppCompatibilities.facebook().single().targets.mapNotNull { it.version }
+        assertTrue("the bundle declares no Facebook build", versions.isNotEmpty())
+        val checked = mutableMapOf<String, String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apkm" && it.name.contains("-$version-") }) {
+                val name = bundle.name
+                val getters = mutableSetOf<String>()
+                FixtureDex.forEach(bundle) { dex -> dex.classes.forEach { getters += editsGetterCalls(it) } }
+                val checks = mutableListOf<Method>()
+                FixtureDex.forEach(bundle) { dex ->
+                    for (classDef in dex.classes) {
+                        classDef.methods.filter { isEditsPillCheck(it, getters) }.mapTo(checks) { ImmutableMethod.of(it) }
+                    }
+                }
+                assertEquals("$name: $checks", 1, checks.size)
+                assertTrue("$name: the check has no local for the hook", locals(checks.single()) >= 1)
+                checked[version] = checks.single().definingClass
             }
         }
         assertEquals("a declared build went unchecked: $checked", versions.toSet(), checked.keys)

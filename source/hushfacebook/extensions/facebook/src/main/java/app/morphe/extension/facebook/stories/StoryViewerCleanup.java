@@ -4,8 +4,12 @@
  */
 package app.morphe.extension.facebook.stories;
 
+import android.view.View;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import app.morphe.extension.facebook.settings.FamilyNames;
@@ -24,9 +28,17 @@ import app.morphe.extension.shared.diagnostics.HookStatus;
  * pill of its own with a "Try it" button, and the same switch draws nothing in its place.
  *
  * <p>The reply suggestions switch takes the row of suggested replies off the bottom of a story,
- * leaving the reply box, and the Subscribe switch the Subscribe pill under the name. The create
+ * leaving the reply box, and the Subscribe switch the Subscribe pill under the name. The Follow
+ * switch takes the Follow button off a story from someone you don't follow (#543), the reply bar
+ * switch the whole bar under someone else's story: the repost button, the Send message box and the
+ * quick reactions (#542). The Up next switch opens the next people's stories without the "Up next"
+ * card that holds the first one still while it counts down (#544). The create
  * cards switch keeps out the "Add to story" card Facebook puts between other people's stories, the
- * plain one and the ones built from the gallery (#439).
+ * plain one and the ones built from the gallery (#439), and the full screen "continue the story"
+ * card built from recent gallery photos, which the viewer's finished list loses on its way out (#521).
+ *
+ * <p>The flat slide switch keeps the cube Facebook turns between people's stories square to the
+ * screen, so the pages slide across instead (#521).
  *
  * <p>Off, paused, settings that aren't ready yet or a failure in here, and Facebook draws its own.
  */
@@ -45,6 +57,15 @@ public final class StoryViewerCleanup {
 
     /** Counted each time a story's Subscribe pill isn't drawn. */
     static final String SUBSCRIBE_HIDDEN = "story Subscribe pill hidden";
+
+    /** Counted each time a story's Follow button isn't drawn (#543). */
+    static final String FOLLOW_HIDDEN = "story Follow button hidden";
+
+    /** Counted each time a story's page opens without the "Up next" card counting down over it (#544). */
+    static final String UP_NEXT_SKIPPED = "story Up next card skipped";
+
+    /** Counted each time the bar under a story isn't drawn (#542). */
+    static final String REPLY_BAR_HIDDEN = "story reply bar hidden";
 
     /** Counted each time the viewer's list of stories is built without the "Add to story" card. */
     static final String CREATE_CARDS_HIDDEN = "story create cards left out";
@@ -110,6 +131,57 @@ public final class StoryViewerCleanup {
         }
     }
 
+    /** Injection point, first thing in the story Follow button's layout: whether to draw nothing (#543). Never throws. */
+    public static boolean hideFollow() {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_VIEWER_CLEANUP);
+            HookStatus.bound(FamilyNames.STORY_VIEWER_CLEANUP, "story Follow button");
+            if (!Utils.settingsReady() || !Settings.HIDE_STORY_FOLLOW.get()) return false;
+            HookStatus.counted(FamilyNames.STORY_VIEWER_CLEANUP, FOLLOW_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_VIEWER_CLEANUP, "story Follow button", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injection point, where a story's page sets up its first state: whether it opens on the "Up next"
+     * card, which holds the story still while it counts down (#544). Facebook's own answer comes in,
+     * and with the switch on a yes turns into a no, as if the card had been dismissed already, so the
+     * story plays straight away. Never throws.
+     */
+    public static boolean showUpNext(boolean show) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_VIEWER_CLEANUP);
+            HookStatus.bound(FamilyNames.STORY_VIEWER_CLEANUP, "story Up next card");
+            if (!show || !Utils.settingsReady() || !Settings.HIDE_STORY_UP_NEXT.get()) return show;
+            HookStatus.counted(FamilyNames.STORY_VIEWER_CLEANUP, UP_NEXT_SKIPPED);
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_VIEWER_CLEANUP, "story Up next card", failure);
+            return show;
+        }
+    }
+
+    /**
+     * Injection point, first thing in both of the bars under someone else's story, the one with the
+     * repost button, the Send message box and the quick reactions, and its newer feedback bar: whether
+     * to draw nothing (#542). Never throws.
+     */
+    public static boolean hideReplyBar() {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_VIEWER_CLEANUP);
+            HookStatus.bound(FamilyNames.STORY_VIEWER_CLEANUP, "story reply bar");
+            if (!Utils.settingsReady() || !Settings.HIDE_STORY_REPLY_BAR.get()) return false;
+            HookStatus.counted(FamilyNames.STORY_VIEWER_CLEANUP, REPLY_BAR_HIDDEN);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_VIEWER_CLEANUP, "story reply bar", failure);
+            return false;
+        }
+    }
+
     /** Injection point, first thing in both credit line renders: whether to leave the credits out. Never throws. */
     public static boolean hideCredits() {
         try {
@@ -153,5 +225,90 @@ public final class StoryViewerCleanup {
             HookStatus.threw(FamilyNames.STORY_VIEWER_CLEANUP, "story create card", failure);
             return false;
         }
+    }
+
+    /** Counted for each card taken out of the viewer's finished list of stories (#521). */
+    static final String CREATE_CARDS_DROPPED = "story create cards dropped";
+
+    /** Which of the viewer's buckets is a card asking you to make a story. */
+    interface CreateCards {
+        boolean isCard(Object bucket);
+    }
+
+    /** Facebook's own card, asked about through the question the patch fills in. */
+    private static final CreateCards PATCHED = new CreateCards() {
+        @Override
+        public boolean isCard(Object bucket) {
+            return isCreateCard(bucket);
+        }
+    };
+
+    /**
+     * Injection point, where the viewer's list runner is done with its story list sources: the list
+     * to show without the cards asking you to make a story, the full screen "continue the story" one
+     * included (#521). The list comes back as it came when there's nothing to take out. Never throws.
+     */
+    public static List<?> withoutCreateCards(List<?> buckets) {
+        return withoutCreateCards(buckets, PATCHED);
+    }
+
+    static List<?> withoutCreateCards(List<?> buckets, CreateCards cards) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_VIEWER_CLEANUP);
+            HookStatus.bound(FamilyNames.STORY_VIEWER_CLEANUP, "story create card list");
+            if (buckets == null || buckets.isEmpty() || !Utils.settingsReady()
+                    || !Settings.HIDE_STORY_CREATE_CARDS.get()) {
+                return buckets;
+            }
+            List<Object> kept = null;
+            int dropped = 0;
+            for (int i = 0; i < buckets.size(); i++) {
+                Object bucket = buckets.get(i);
+                if (cards.isCard(bucket)) {
+                    if (kept == null) kept = new ArrayList<>(buckets.subList(0, i));
+                    dropped++;
+                } else if (kept != null) {
+                    kept.add(bucket);
+                }
+            }
+            if (kept == null) return buckets;
+            for (int i = 0; i < dropped; i++) {
+                HookStatus.counted(FamilyNames.STORY_VIEWER_CLEANUP, CREATE_CARDS_DROPPED);
+            }
+            return kept;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_VIEWER_CLEANUP, "story create card list", failure);
+            return buckets;
+        }
+    }
+
+    /**
+     * Whether a bucket of the viewer's list is Facebook's card asking you to make a story. The patch
+     * fills this in with an instance-of on that card's class, the one whose id falls back to
+     * "story-end-card-bucket"; unpatched, nothing is a card.
+     */
+    public static boolean isCreateCard(Object bucket) {
+        return false;
+    }
+
+    /** What the hook binds as, and the name a failure in it is reported under (#521). */
+    static final String CUBE_TURN = "story cube turn";
+
+    /**
+     * Injection point, for each turn the stories pager's cube positioner gives a page as you swipe
+     * between people (#521): the patch hands it every setRotationY that positioner makes. With the
+     * flat slide switch on the page stays square to the screen. Read on each frame of a swipe, so
+     * nothing is counted here.
+     */
+    public static void cubeTurn(View page, float degrees) {
+        float turn = degrees;
+        try {
+            HookStatus.invoked(FamilyNames.STORY_VIEWER_CLEANUP);
+            HookStatus.bound(FamilyNames.STORY_VIEWER_CLEANUP, CUBE_TURN);
+            if (Utils.settingsReady() && Settings.STORY_FLAT_SLIDE.get()) turn = 0f;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_VIEWER_CLEANUP, CUBE_TURN, failure);
+        }
+        page.setRotationY(turn);
     }
 }

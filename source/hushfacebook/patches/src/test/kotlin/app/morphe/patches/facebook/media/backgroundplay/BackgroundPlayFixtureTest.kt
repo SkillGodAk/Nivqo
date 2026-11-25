@@ -109,6 +109,17 @@ class BackgroundPlayFixtureTest {
                 assertTrue("$name: the player keeps isPlaying()Z",
                     groot.methods.any { it.name == "isPlaying" && it.parameterTypes.isEmpty() && it.returnType == "Z" })
 
+                // The activation, which makes the player the one the window's buttons act on.
+                val activations = groot.methods.filter { holdsString(it, ACTIVATE_PLAYER) }
+                assertEquals("$name: the player's activations", 1, activations.size)
+                val currentFields = currentPlayerFields(activations.single(), groot.type)
+                assertNotNull("$name: the activation's current player", currentFields)
+                val stateType = groot.fields.firstOrNull { it.name == currentFields!!.managerField }?.type
+                assertNotNull("$name: the player declares the manager's field itself", stateType)
+                val stateClass = FixtureDex.classes(fixture, setOf(stateType!!)).getValue(stateType)
+                assertTrue("$name: the manager keeps its current player in a WeakReference",
+                    stateClass.fields.any { it.name == currentFields!!.currentField && it.type == WEAK_REFERENCE })
+
                 // Facebook's manager and its fullscreen handler.
                 val managers = holders[MANAGER_ON_BACKGROUND].orEmpty()
                 assertEquals("$name: classes holding \"$MANAGER_ON_BACKGROUND\"", listOf(MANAGER), managers.map { it.type })
@@ -132,6 +143,16 @@ class BackgroundPlayFixtureTest {
                 assertEquals("$name: the record's Strings", 1, recordFields(recordClass, STRING).size)
                 assertEquals("$name: the record's triggers", 1, recordFields(recordClass, trigger).size)
 
+                // Next reel in the background: the record's rich params, the player's one binder and the
+                // release the handler's return lets go of its player with, after the window button's pause.
+                val params = recordParams(recordClass)
+                assertNotNull("$name: the record's rich params", params)
+                val binders = binders(groot, trigger, params!!)
+                assertEquals("$name: the player's binders", 1, binders.size)
+                val release = returnRelease(handlerReturns(handler, record).single(), groot.type, trigger)
+                assertNotNull("$name: the return's release", release)
+                assertTrue("$name: the release is the window button's pause", release != windowPause!!.name)
+
                 // The check: every way to its no is one the patch knows, as many of each as expected.
                 val read = readHandlerCheck(checks.single(), record)
                 assertEquals("$name: the notification's starter", 9, read.starter.parameterTypes.size)
@@ -154,7 +175,7 @@ class BackgroundPlayFixtureTest {
                 // The patch, on this build's own classes.
                 val base = listOf(groot, classes.getValue(trigger), manager, handler, recordClass, starterClass,
                     classes.getValue(FRAGMENT_ACTIVITY), ExtensionDex.classDef(SETTINGS_STATUS),
-                    ExtensionDex.classDef(BACKGROUND_PLAY)) + holders.getValue(GROOT_PLAY).filter { it !== groot } +
+                    ExtensionDex.classDef(BACKGROUND_PLAY), ExtensionDex.classDef(NEXT_REEL)) + holders.getValue(GROOT_PLAY).filter { it !== groot } +
                     helperClasses.filter { helperClass -> holders.getValue(GROOT_PLAY).none { it.type == helperClass.type } }
                 val context = PatchContexts.of(base + windowHolders.filter { holder -> base.none { it.type == holder.type } })
                 backgroundPlayPatch.execute(context)
@@ -169,6 +190,28 @@ class BackgroundPlayFixtureTest {
                     .implementation!!.instructions.first().let { ((it as ReferenceInstruction).reference as StringReference).string }
                 assertEquals("$name: the accessor's name", accessor, stub(VIDEO_ID_METHOD))
                 assertEquals("$name: the handler's class", binaryName(handler.type), stub(HANDLER_CLASS))
+                assertEquals("$name: the player's manager", currentFields!!.managerField, stub(STATE_MANAGER_FIELD))
+                assertEquals("$name: the manager's current player", currentFields.currentField, stub(CURRENT_PLAYER_FIELD))
+                val releaseStub = context.mutableClassDefBy(NEXT_REEL).methods.single { it.name == RELEASE_METHOD }
+                    .implementation!!.instructions.first().let { ((it as ReferenceInstruction).reference as StringReference).string }
+                assertEquals("$name: the release's name", release, releaseStub)
+
+                // The binder hands the player, its origin and the rich params over before its own code.
+                val binder = binders.single()
+                val bound = patched(binder).implementation!!.instructions.toList()
+                val binderTypes = binder.parameterTypes.map(CharSequence::toString)
+                assertEquals("$name: the binder's hand over",
+                    listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC),
+                    bound.take(4).map { it.opcode })
+                listOf(groot.type, PLAYER_ORIGIN, params).forEachIndexed { at, handed ->
+                    val copy = bound[at] as TwoRegisterInstruction
+                    assertEquals("$name: the binder's copy of $handed", listOf(at, binder.parameterRegisterNumber(binderTypes.indexOf(handed))),
+                        listOf(copy.registerA, copy.registerB))
+                }
+                assertTrue("$name: the binder tells Next reel", bound[3].callsTo(BOUND))
+                assertEquals(listOf(0, 1, 2), bound[3].namedRegisters())
+                assertEquals("$name: the binder's own first instruction after the hand over",
+                    binder.implementation!!.instructions.first().opcode, bound[4].opcode)
 
                 // The play and the inner pause tell the extension first with p0 and p1.
                 listOf(play to STARTED, pause to PAUSING).forEach { (original, tell) ->
@@ -180,21 +223,25 @@ class BackgroundPlayFixtureTest {
                         listOf(told.localRegisterCount(), told.localRegisterCount() + 1), first.namedRegisters())
                 }
 
-                // The check: the decision first, then Facebook's own code.
+                // The check: Next reel gets the handler, the session and the record, then the decision,
+                // then Facebook's own code.
                 val check = patched(checks.single())
                 val code = check.implementation!!.instructions.toList()
+                assertTrue("$name: Next reel's look at the record", code[0].callsTo(CHECKING))
+                val locals = check.localRegisterCount()
+                assertEquals(listOf(locals, locals + 1, locals + 2), code[0].namedRegisters())
                 assertEquals("$name: the check's decision",
                     listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.MOVE_OBJECT_FROM16,
                         Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN),
-                    code.take(9).map { it.opcode })
+                    code.drop(1).take(9).map { it.opcode })
                 assertEquals("$name: the record's copy", check.parameterRegisterNumber(1),
-                    (code[0] as TwoRegisterInstruction).registerB)
-                val fields = listOf(code[1], code[2]).map { ((it as ReferenceInstruction).reference as FieldReference) }
+                    (code[1] as TwoRegisterInstruction).registerB)
+                val fields = listOf(code[2], code[3]).map { ((it as ReferenceInstruction).reference as FieldReference) }
                 assertEquals("$name: the record's video id and trigger", listOf(STRING, trigger), fields.map { it.type })
-                assertTrue("$name: the decision", code[4].callsTo(DECIDING))
-                assertEquals(listOf(0, 1, 2), code[4].namedRegisters())
+                assertTrue("$name: the decision", code[5].callsTo(DECIDING))
+                assertEquals(listOf(0, 1, 2), code[5].namedRegisters())
                 assertEquals("$name: Facebook's first instruction after the decision",
-                    checks.single().implementation!!.instructions.first().opcode, code[9].opcode)
+                    checks.single().implementation!!.instructions.first().opcode, code[10].opcode)
 
                 // Four checks skipped, two names filled in, and every answer told.
                 val flow = ControlFlow.of(check)

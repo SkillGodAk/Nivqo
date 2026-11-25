@@ -8,7 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patches.facebook.feed.aidetected.EXTENSION_CLASSES
 import app.morphe.patches.facebook.media.taptoplay.MOTION_EVENT
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
@@ -20,6 +20,7 @@ import app.morphe.patches.facebook.shared.MOBILE_CONFIG
 import app.morphe.patches.facebook.shared.readsMobileConfig
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import app.morphe.util.findMutableMethodOf
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -243,8 +244,12 @@ internal fun BytecodePatchContext.skipLabelField(invoke: Method): FieldReference
 
 /**
  * The setVisibility calls on [label] in [method]: for each write of the field, from the read of
- * the field into the same register (or the write, when there's none) to the next instruction that
- * puts something else there, can't fall through or ends the method.
+ * the field into the same register (when there's one) and from the write itself, to the next
+ * instruction that puts something else there, can't fall through or ends the method.
+ *
+ * Walking from the write too covers a read that's null-checked first: 588's Android 9 build
+ * (`LX/0p28;->invoke`) reads the label, makes one into the same register when it's null (which
+ * ends the walk from the read), stores it, and only shows it after the store.
  */
 internal fun labelShowsIn(method: Method, label: FieldReference): List<LabelShow> {
     val code = method.code()
@@ -252,15 +257,17 @@ internal fun labelShowsIn(method: Method, label: FieldReference): List<LabelShow
     code.forEachIndexed { put, instruction ->
         if (instruction.opcode != Opcode.IPUT_OBJECT || !instruction.isField(label)) return@forEachIndexed
         val view = (instruction as TwoRegisterInstruction).registerA
-        val start = (put - 1 downTo 0).firstOrNull {
+        val read = (put - 1 downTo 0).firstOrNull {
             code[it].opcode == Opcode.IGET_OBJECT && code[it].isField(label) && (code[it] as OneRegisterInstruction).registerA == view
-        } ?: put
-        for (at in start + 1 until code.size) {
-            val next = code[at]
-            if (next.isSetVisibility() && next.registers().firstOrNull() == view) {
-                shows += LabelShow(method, at, next.registers(), next.opcode == Opcode.INVOKE_VIRTUAL_RANGE)
+        }
+        for (start in listOfNotNull(read, put)) {
+            for (at in start + 1 until code.size) {
+                val next = code[at]
+                if (next.isSetVisibility() && next.registers().firstOrNull() == view) {
+                    shows += LabelShow(method, at, next.registers(), next.opcode == Opcode.INVOKE_VIRTUAL_RANGE)
+                }
+                if (!next.opcode.canContinue() || next.writes(view)) break
             }
-            if (!next.opcode.canContinue() || next.writes(view)) break
         }
     }
     return shows.distinctBy { it.index }
@@ -295,7 +302,7 @@ internal fun BytecodePatchContext.askBeforeShowingSkipLabel(shows: List<LabelSho
  * In Morphe Manager's default selection with the switch off, so nothing changes until it's turned on.
  */
 @Suppress("unused")
-val doubleTapSkipPatch = bytecodePatch(
+val doubleTapSkipPatch = patch(
     name = "Double tap to skip",
     description = "A double tap on the left or right edge of a reel or video skips back or forward 10 seconds, or 5 " +
         "on one under 30 seconds. Starts off. Turn it on in Hushfacebook settings > Reels and Watch. Hide the skip " +
@@ -305,7 +312,7 @@ val doubleTapSkipPatch = bytecodePatch(
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         requireStatusMethod("doubleTapSkip")
         val reads = findSkipFlagReads()
         val labelShows = try {

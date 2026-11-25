@@ -90,7 +90,7 @@ The settings file was saved, but it doesn't match what Hushfacebook wrote. Save 
 There's no app here that can open or share this saved file.	目前沒有應用程式可以開啟或分享這個已儲存檔案。
 # context: line at the top of a settings page while paused; Lock Facebook keeps working while paused
 Until you resume, every switch but Debug logging and Lock Facebook acts as if it were off. Changes made when you patched stay in.	恢復前，除「除錯紀錄」與「鎖定 Facebook」外的開關都會暫時停用；修補時已套用的修改仍然有效。
-Shows your phone's own emoji instead of Facebook's. Reactions and stickers don't change. Restart Facebook to see the change.	使用手機系統的 Emoji 取代 Facebook 內建 Emoji，表情反應與貼圖不變。變更後請重新啟動 Facebook。
+Shows your phone's own emoji instead of Facebook's, or the ones in a font file you choose below. Reactions and stickers don't change. Restart Facebook to see the change.	顯示手機的表情符號，取代 Facebook 的表情符號，也可改用你在下方選擇的字型檔。心情與貼圖不受影響。重新啟動 Facebook 後生效。
 # context: switch title under Appearance; the tab bar is Facebook's row of tabs, Home, Video, Marketplace and the rest
 Tab bar at the bottom	分頁列置底
 # context: switch title under Appearance, next to Tab bar at the bottom; puts Facebook's row of tabs at the top of the screen
@@ -451,7 +451,7 @@ Playback	播放
 # context: switch title; on, videos and music wait for a tap before they play
 Tap to play	點擊播放
 # context: summary of that switch; Autoplay and Off are the name and value of Facebook's own setting, as Facebook shows them in this language
-Videos, reels, stories and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	影片、錄影、故事和音樂都等待著你們的音樂,而不是自己演奏。Facebook的自動播放設定在開機時播放。
+Videos, reels and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	影片、Reels 與音樂會等你點按後才播放，不再自動播放。啟用時，Facebook 本身的「自動播放」設定會顯示為關閉。
 # context: switch title under Opening Facebook; Marketplace is Facebook's tab and keeps its name
 Marketplace only	僅保留 Marketplace
 # context: switch title under Opening Facebook, next to Marketplace only; Events is Facebook's tab and keeps its name
@@ -519,6 +519,10 @@ The comment box loses its GIF and sticker buttons. Typing, photos and posting wo
 # context: switch title under Comments: hides the Add a comment field at the bottom of the full-screen video viewer
 Hide the video comment box	隱藏影片留言框
 The Add a comment box under a full-screen video goes away. Comment boxes on posts stay.	移除全螢幕影片下方的「新增留言」框。貼文上的留言框仍會保留。
+# context: switch title under Comments; the bar along the bottom of a live video holds its comment box and the reactions you tap to send
+Hide the live video comment bar	隱藏直播視訊的留言列
+# context: description of that switch; the reactions are the Like, Love, Haha and other faces a tap sends to the live video
+The comment box and the row of reactions along the bottom of a live video go away, so a stray tap can't send one. The live comments stay.	直播視訊底部的留言框和那排心情會消失，這樣誤觸就不會送出心情。直播留言仍然保留。
 # context: switch title under Comments; a reply thread is the replies under a comment, which Facebook folds behind View replies
 Open every reply thread	開啟每個回覆線索
 # context: summary of that switch; View replies is the link Facebook shows under a comment that has replies
@@ -592,6 +596,10 @@ Hide Share under posts	隱藏貼文下方的分享
 Hide Send under posts	隱藏貼文下方的傳送
 # context: summary shared by those five switches
 Takes this button out of the row under posts in the feed. The other buttons stay, and a post with all of its buttons hidden shows no row.	從動態消息中貼文下方的按鈕列移除這個按鈕。其他按鈕保留，所有按鈕都隱藏的貼文不顯示按鈕列。
+# context: switch title under News feed; the buttons are Like, Comment, Share and the others in the row under a post
+Ignore taps beside the buttons	忽略按鈕旁邊的點按
+# context: description of that switch; the reaction icons are the small stacked emoji at the end of that row, and who reacted is the list of people who reacted
+A tap on the empty part of the row under a post, between the buttons and the reaction icons, does nothing instead of opening the comments or who reacted. The buttons work as before.	點按貼文下方那一列的空白處（按鈕和心情圖示之間）不會有任何反應，而不是開啟留言或誰傳達了心情。按鈕照常可用。
 # context: what stays in while Hushfacebook is paused, followed by the patch name in brackets; the row in Facebook's own Menu that opens Hushfacebook settings
 # context: a short message when the Hushfacebook row in Facebook's Menu couldn't open the settings
 Hushfacebook settings can't open here. Long-press the Facebook logo instead.	無法從此處開啟 Hushfacebook 設定。請改為長按 Facebook 標誌。
@@ -1360,6 +1368,8 @@ Couldn't get this photo. Try again in a moment.	無法取得這張相片。請�
 Save photo	儲存圖片
 # context: menu item in a post's three-dot menu that saves every photo of a post with several photos
 Save all photos	儲存所有照片
+# context: menu item in a post's three-dot menu that saves every video of a post with several videos
+Save all videos	儲存所有影片
 # context: short message shown when the photos of a post could not start saving
 Couldn't save this post's photos. Try again in a moment.	無法儲存這篇文章的照片,再試一次
 # context: row in a comment's long-press sheet that saves the GIF the comment holds; keep it short like Save photo
@@ -1660,7 +1670,7 @@ Facebook hasn't downloaded this screen to this phone, so a tap opens the Whiteha
 # context: toast when the Facebook version has no such screen
 This Facebook build has no Whitehat settings screen.	Facebook架構沒有Whitehat設定螢幕.
 Only the first reel waits	只有第一部電影等著
-With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed, Watch and stories always wait.	開啟上面的開關,玩完一盤後,你就可以自己玩的一盤。種子、觀察和故事總是等待。
+With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed and Watch always wait.	啟用上方開關後，播放過一則 Reels，接著滑到的 Reels 就會自動播放。動態消息與 Watch 一律等待點按。
 Slower speeds	較慢速度
 Adds 0.1x and 0.25x to the speed menu of reels and of feed and Watch videos, for slowing down a fast moment.	將0.1x和0.25x加到膠捲以及飼料和Watch影片的速率選單中,以減慢一個快速瞬間.
 Faster speeds	更快的播放速度
@@ -1851,8 +1861,10 @@ Picture-in-picture button	子母畫面按鈕
 Shows a small button at the left edge of a reel or video that has the window ready. Tap it to open the window right away. Works with Picture-in-picture on.	在已準備好小視窗的 Reels 或影片左側邊緣顯示小按鈕，點按即可立即開啟視窗。需啟用「子母畫面」。
 # context: switch title under Playback; on, a video you started keeps its sound after you leave Facebook; also the label of a headphones button in the picture-in-picture window
 Keep playing in the background	在背景繼續播放
+Next reel in the background	在背景播放下一個 Reels
+When a reel playing in the background ends, the next reel plays instead of the same one again. It goes through the reels Reels had loaded when you left. Works with Keep playing in the background on.	在背景播放的 Reels 結束後，會播放下一個，而不是重複播放同一個。會依序播放你離開時 Reels 已載入的內容。需啟用「在背景繼續播放」。
 # context: summary of that switch; the notification is the one Facebook shows with the video's play and pause buttons
-A video you started with a tap keeps its sound after you leave Facebook, and its notification can pause it. Swiping the notification away or taking a call stops it.	你點按開始播放的影片在離開 Facebook 後仍會繼續播放聲音，可透過其通知暫停。滑掉通知或接聽來電會停止播放。
+A video you started with a tap, or a reel you swiped to in Reels, keeps its sound after you leave Facebook, and its notification can pause it. Swiping the notification away or taking a call stops it.	你點按開始播放的影片，或在 Reels 中滑到的短片，在離開 Facebook 後仍會繼續播放聲音，可透過其通知暫停。滑掉通知或接聽來電會停止播放。
 # context: title of that notification when the video has none of its own
 Facebook video	Facebook 影片
 # context: switch title under Playback; on, the small picture-in-picture window gets a headphones button that keeps the sound playing after the window closes
@@ -1962,6 +1974,10 @@ Puts the speaker button in the side column of reels, right above the three dots.
 Hide the reaction preview on posts	隱藏貼文上的心情預覽
 # context: summary of that switch; "reactions" are Facebook's Like, Love, Haha and other reactions
 Hides the stacked reaction icons and the reactions count under posts. The space stays, so a tap where they were still opens the list of reactions. To take the number off the Like button too, turn on Hide counts on posts.	隱藏貼文下方重疊的心情圖示與心情數量。空間仍會保留，點按原本的位置仍可開啟心情清單。若也要移除「讚」按鈕上的數字，請啟用「隱藏貼文上的計數」。
+# context: switch title under News feed; the reactions are the small stacked reaction icons (Like, Love, Haha) a post shows next to its count; the Like button is the button under a post, use Facebook's name for it
+Show reactions on the Like button	在「讚」按鈕上顯示心情
+# context: summary of that switch; the faces are those reaction icons; "Hide the reaction preview on posts" is another switch, match its own row
+Moves a post's reaction faces from the end of its button row onto the Like button, right before the count. The Like button likes and reacts as before. A video showing its views there gets one Like face, or your own reaction once you react. Hide the reaction preview on posts overrules it. A change shows on the posts drawn after it.	把貼文的心情圖示從按鈕列的末端移到「讚」按鈕上，緊接在數字前面。「讚」按鈕仍像以前一樣按讚和表達心情。在那裡顯示觀看次數的影片會顯示一個「讚」圖示，你表達心情後則顯示你自己的心情。「隱藏貼文上的心情預覽」優先。變更會在之後顯示的貼文上生效。
 # context: switch title under Comments; the reaction preview is the stack of reaction icons in the corner of a comment
 Hide the reaction preview on comments	隱藏留言上的心情預覽
 # context: summary of that switch; "reactions" are Facebook's Like, Love, Haha and other reactions
@@ -2062,6 +2078,8 @@ Comments will open where Facebook stops them.	留言將在 Facebook 預設的位
 Hide the status bar	隱藏狀態列
 # context: summary of that switch; a swipe down from the top edge shows the bar briefly
 Takes the phone's status bar, with the time and battery, off Facebook's main screen, so the app gets the whole screen. Swipe down from the top edge to see it for a moment.	從 Facebook 主畫面移除顯示時間與電量的手機狀態列，讓應用程式使用整個螢幕。從頂端邊緣向下滑動可暫時顯示。
+Center the feed on big screens	在大螢幕將動態消息置中
+On a tablet or an unfolded phone, the feed and Facebook's other lists stay in a column down the middle of the screen instead of stretching from edge to edge. Reels keep the whole screen.	在平板或展開的摺疊手機上，動態消息和 Facebook 的其他清單會保持在螢幕中間的一欄，而不是從一邊延伸到另一邊。Reels 仍佔滿整個螢幕。
 # context: switch title under Reels and Watch; on, a video tapped in the news feed opens alone in the full-screen player instead of leading into endless reels
 Open feed videos on their own	單獨開啟動態消息影片
 # context: summary of that switch; the Reels tab itself still scrolls normally
@@ -2350,7 +2368,11 @@ Moves a feed video's seek bar closer to the bottom edge, along with Facebook's s
 Seek bar on the bottom edge	進度列貼齊底邊
 Puts a feed video's seek bar right on its bottom edge, so it's out of the way while you scroll. Facebook's speaker and tagged people buttons move up to sit above it. Wins over Lower the seek bar and speaker. Needs Seek bar on feed videos on.	把動態影片的進度列放在底邊上，滑動時比較不會誤觸。Facebook 的喇叭和標註的人按鈕會上移到它上方。優先於「降低進度列和喇叭按鈕」。需要開啟「動態影片上的進度列」。
 Thin line seek bar	細線進度列
-Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot or times until you drag it. Live videos get it too while they can be rewound. Let go at the far right end to go back to live. Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.	把動態影片的進度列顯示成貼齊底邊的一條細線，和 Instagram 的一樣，拖曳之前不顯示圓點和時間。直播影片在可以倒轉時也會顯示。在最右端放開即可回到直播。Facebook 的喇叭和標註的人按鈕會上移到它上方。需要開啟「動態影片上的進度列」。
+# context: switch title on the Video and audio page, under Thin line seek bar; while the thin seek bar of a feed video is dragged it stays on the video's bottom edge
+Drag along the bottom edge	沿底邊拖曳
+# context: description of that switch; Thin line seek bar is the switch title above it, keep it as translated there
+While you drag the thin line, it stays on the video's bottom edge like Instagram's, with the time in the middle, instead of rising into the full bar with a time bubble. Needs Thin line seek bar on.	拖曳細線時，它會像 Instagram 那樣留在影片底邊，時間顯示在中間，而不會升起變成帶時間氣泡的完整進度列。需要開啟「細線進度列」。
+Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot until you drag it. Live videos get it too while they can be rewound. Let go at the far right end to go back to live. Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.	把動態影片的進度列顯示成貼齊底邊的一條細線，和 Instagram 的一樣，拖曳之前不顯示圓點。直播影片在可以倒轉時也會顯示。在最右端放開即可回到直播。Facebook 的喇叭和標註的人按鈕會上移到它上方。需要開啟「動態影片上的進度列」。
 Feed video position	動態影片播放位置
 # context: title of the row that holds a color code for the count badges on the tabs
 Badge color	徽章顏色
@@ -2408,6 +2430,7 @@ Holding a post's photo opens its reactions, as holding Like does. It comes befor
 Holding a post's video opens its reactions too. It comes before Long press opens comments. With Hold a feed video for 2x on, that one wins and the video plays fast.	長按貼文的影片也會開啟它的心情選項。它優先於「長按開啟留言」。開啟「長按動態消息影片以 2 倍速播放」時，以該開關為準，影片會快速播放。
 Reaction	心情
 Pick one each time	每次都選擇
+Slide to pick one	滑動選擇
 Like	讚
 Love	大心
 Care	加油
@@ -2415,9 +2438,11 @@ Haha	哈
 Wow	哇
 Sad	嗚
 Angry	怒
-Pick one each time. The reactions open over the post, so slide to one and let go, or let go and tap one.	每次都選擇。心情選項會在貼文上方開啟，滑到其中一個後放開，或放開後點一個。
+Pick one each time. The reactions open by your finger, so slide to one and let go, or let go and tap one. A tap anywhere else closes them.	每次都選擇。心情選項會在手指旁開啟，滑到其中一個後放開，或放開後點一個。點其他任何地方會關閉它們.
+Slide to pick one. The reactions open by your finger, so slide to one and let go. Letting go anywhere else closes them.	滑動選擇。心情選項會在手指旁開啟，滑到其中一個後放開。在其他地方放開會關閉它們.
 %1$s. Holding a post gives it straight away.	%1$s。長按貼文會立即傳達這個心情。
 Holding a post to react will open the reactions to pick from.	長按貼文來傳達心情將開啟心情選項讓你選擇。
+Holding a post to react will open the reactions to slide to one.	長按貼文來傳達心情將開啟心情選項讓你滑動選擇.
 Holding a post to react will give %1$s.	長按貼文來傳達心情將傳達%1$s。
 Select text	選取文字
 Done	完成
@@ -2619,6 +2644,14 @@ After %1$d seconds	%1$d 秒後
 # context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap
 Stay dim when I tap	點擊時保持淡化
 Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	防烙印保護淡化按鈕後，無論在 Reels 點擊或滑動什麼，按鈕都會維持淡化，下一則 Reel 也一樣。按鈕仍可操作，離開 Reels 後會恢復顯示。
+# context: Reels: Burn-in guard's row for how much of the dimmed buttons, caption and bars still shows, a percent typed in
+Dim to	淡化程度
+How much of the buttons, caption and bars still shows once they dim, in percent, from %1$s to %2$s. Leave it blank for %3$s.	按鈕、說明文字與列淡化後仍顯示的程度，以百分比計，範圍 %1$s 到 %2$s。留空則使用 %3$s。
+Once dimmed, the buttons, caption and bars show at %1$s percent. Type a number to change it.	淡化後，按鈕、說明文字與列以百分之 %1$s 顯示。輸入數字即可變更。
+Once dimmed, the buttons, caption and bars show at %1$s percent.	淡化後，按鈕、說明文字與列以百分之 %1$s 顯示。
+# context: Reels: Burn-in guard's switch that fades the buttons out and back in slowly instead of at once
+Smooth fade	平滑淡化
+The buttons, caption and bars fade out slowly as they dim and fade back in when they return, rather than changing at once.	按鈕、說明文字與列會慢慢淡化，再慢慢恢復，而不是立即切換。
 # context: Reels: switch that shows the Reels screen and its video in black and white
 Show Reels in gray	以灰階顯示 Reels
 Reels and their buttons show in black and white, which makes them easier to put down. Your feed, stories, photos and chats keep their colors. It starts from the next reel, and Reels use a little more battery.	Reels 及其按鈕以黑白顯示，讓你更容易放下手機。你的動態、限時動態、相片和聊天保持原本的顏色。從下一則 reel 開始生效，Reels 會稍微多耗一點電。
@@ -2692,6 +2725,10 @@ Hide the Join button on posts	隱藏貼文上的加入按鈕
 Hides the Join button next to the group's name on posts from groups you haven't joined, and the Join group bar under their videos. A change shows on the posts drawn after it.	隱藏來自你尚未加入的社團的貼文中，社團名稱旁邊的加入按鈕，以及這些社團影片下方的「加入社團」列。變更會在之後載入的貼文上生效。
 Hide the X on posts	隱藏貼文上的 X
 Takes the X off the top corner of posts in your feed. The three-dot menu next to it stays. A change shows on the posts drawn after it.	移除動態中貼文右上角的 X，旁邊的三點選單保留。變更會在之後載入的貼文上生效。
+Hide friends' reactions on photos and videos	隱藏相片和影片上的朋友心情
+Takes away the friend's picture with a reaction on it that Facebook puts on a photo or video when a friend reacted. A change shows on the posts drawn after it.	移除朋友表達心情後 Facebook 放在相片或影片上的朋友大頭貼和心情圖示。變更會在之後載入的貼文上生效。
+Hide who reacted under posts	隱藏貼文下方的心情表達者
+Takes away the line under a post that names who reacted, like "Name and others reacted". A change shows on the posts drawn after it.	移除貼文下方顯示誰表達了心情的那一行，例如「某人和其他人表達了心情」。變更會在之後載入的貼文上生效。
 Hide the Reels title	隱藏 Reels 標題
 Takes the word Reels off the top of the Reels tab. The buttons beside it stay.	移除 Reels 分頁頂部的 Reels 字樣。旁邊的按鈕會保留。
 Hide Back on opened videos	隱藏已開啟影片的返回按鈕
@@ -2726,9 +2763,9 @@ Hide pictures on the Blocked list	隱藏封鎖名單中的大頭貼照
 People you've blocked show without their profile pictures on the Blocking page in Facebook's settings. Reopen the page if it's already open.	你封鎖的人在 Facebook 設定的封鎖頁面上不會顯示大頭貼照。如果該頁面已開啟，請重新開啟。
 Hide Up next on videos	隱藏影片上的「接下來播放」
 Takes the UP NEXT bar with the next video off the bottom of a video you open from the feed, and the empty space kept for it, so the seek bar stays at the bottom. A change shows from the next video you open.	移除從動態消息開啟的影片底部顯示下一部影片的「接下來播放」列，以及為它保留的空白，讓進度列留在底部。變更會從你開啟的下一部影片起生效。
-Icons look soft on this screen. Repatch with the 240-640dpi bundle.	此螢幕上的圖示看起來模糊。請用 240-640dpi 套件重新修補。
+Icons look soft on this screen. Repatch with the 120-480dpi bundle.	此螢幕上的圖示看起來模糊。請用 120-480dpi 套件重新修補。
 Icons look soft on this screen	此螢幕上的圖示看起來模糊
-The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (240-640dpi) bundle on APKMirror, which has images for every screen.	你修補的 Facebook 沒有適合此螢幕的圖片，因此部分圖示被放大。請使用 APKMirror 上的 (arm64-v8a) (240-640dpi) 套件重新修補 Facebook，它包含適合所有螢幕的圖片。
+The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (120-480dpi) bundle on APKMirror, which has images for every screen.	你修補的 Facebook 沒有適合此螢幕的圖片，因此部分圖示被放大。請使用 APKMirror 上的 (arm64-v8a) (120-480dpi) 套件重新修補 Facebook，它包含適合所有螢幕的圖片。
 Let each post come back once	讓每則貼文再出現一次
 A post you scrolled past shows up one more time, and scrolling past it again hides it. Fewer posts go missing after a quick scroll.	你捲動瀏覽過的貼文會再出現一次，再次捲過後才會隱藏。快速捲動後錯過的貼文會更少。
 There's no Facebook link in what you shared.	你分享的內容中沒有 Facebook 連結。
@@ -2752,11 +2789,23 @@ Takes the song and effect credits off the line under the poster's name on a stor
 Takes the row of suggested replies off the bottom of a story. The reply box stays. Applies from the next story you open.	移除限時動態底部那一排建議回覆。回覆框會保留。從你開啟的下一則限時動態開始生效。
 Hide the Subscribe button	隱藏訂閱按鈕
 Takes the Subscribe button off the top of a story. Applies from the next story you open.	移除限時動態頂部的訂閱按鈕。從你開啟的下一則限時動態開始生效。
+# context: switch title on the Stories page; the Follow button sits at the top of a story from someone you don't follow
+Hide the Follow button	隱藏追蹤按鈕
+Takes the Follow button off the top of a story from someone you don't follow. Applies from the next story you open.	移除你沒追蹤的人的限時動態頂部的追蹤按鈕。從你開啟的下一則限時動態開始生效。
+# context: switch title on the Stories page; the reply bar is the row under someone else's story with the repost button, the Send message box and the quick reactions
+Hide the reply bar	隱藏回覆列
+# context: description of that switch; Send message is the text box Facebook shows in that row
+Takes the bar off the bottom of other people's stories, with the repost button, the Send message box and the quick reactions. Applies from the next story you open.	移除別人限時動態底部的那一列，連同轉發按鈕、傳送訊息框和快速心情回應。從你開啟的下一則限時動態開始生效。
+# context: switch title on the Stories page; Up next is the card Facebook shows over the next stories while it counts down before they play
+Hide the Up next card	隱藏「接下來」卡片
+Starts the next stories right away, without the Up next card that counts down over the first one. Applies the next time you open stories.	立即開始播放接下來的限時動態，不再顯示在第一則上倒數的「接下來」卡片。下次開啟限時動態時生效。
 Hide create story cards	隱藏建立限時動態卡片
-Takes out the card between stories that asks you to make one, including the ones built from photos in your gallery. Applies the next time you open stories.	移除限時動態之間邀請你發佈限時動態的卡片，包括用你相簿照片產生的卡片。下次開啟限時動態時生效。
+Takes out the cards between stories that ask you to make one, including the full screen card that asks you to continue the story with photos from your gallery. Applies the next time you open stories.	移除限時動態之間邀請你發佈限時動態的卡片，包括邀請你用相簿照片繼續限時動態的全螢幕卡片。下次開啟限時動態時生效。
 Progress bar at the bottom	底部進度列
 Shows a thin bar along the bottom of a story that fills as it plays, like the one on Reels.	在限時動態底部顯示一條隨播放逐漸填滿的細條，和 Reels 上的一樣。
 Seek bar on stories	限時動態上的進度列
+Plain slide between people	不同人之間改為平移切換
+Swiping to the next or previous person's stories slides them across instead of turning them like a cube. Applies from your next swipe.	滑到下一位或上一位的限時動態時，畫面會平移過去，而不是像立方體那樣轉動。從你下一次滑動開始生效。
 Fade the story seek bar	淡化限時動態進度列
 Story position	限時動態播放位置
 Shows a bar along the bottom of a video story that you drag to move through it. The story waits while you drag. Progress bar at the bottom makes way for it on video stories.	在影片限時動態底部顯示一條可以拖曳的進度列，用來在限時動態裡前後移動。拖曳時限時動態會等你放開。在影片限時動態上，「底部進度列」會讓位給它。
@@ -2837,10 +2886,20 @@ A small label at the top of Reels shows the minutes you've watched. Time on othe
 %1$d min	%1$d 分鐘
 Hide the tab bar on the Reels tab	在 Reels 分頁隱藏分頁列
 The tab bar goes away while the Reels tab is open, and the reel gets the whole screen. The other tabs keep the bar. Restart Facebook to see the change.	開啟 Reels 分頁時分頁列會消失，Reels 佔滿整個螢幕。其他分頁保留分頁列。重新啟動 Facebook 後生效.
+Hide the line along the tab bar	隱藏分頁列邊上的線
+The thin line Facebook draws along the edge of the tab bar goes away on every tab. Tap a tab to see the change.	Facebook 沿分頁列邊緣畫的細線會在所有分頁消失。點一下任一分頁即可看到變更.
+# context: switch title on the tab bar settings page; a group is a Facebook group's page; the tab bar is the row of Home, Reels, Groups... tabs
+Keep the tab bar in groups	在社團中保留分頁列
+# context: summary of that switch; "along the bottom" means at the bottom edge of the screen
+A group you open keeps the tab bar along the bottom, so a tap takes you straight to another tab. Works while the tab bar is at the bottom. Open a group to see the change.	開啟的社團會在底部保留分頁列，點一下就能直接切換到其他分頁。只在分頁列位於底部時有效。開啟一個社團即可看到變更.
 Playback speed in the post menu	貼文選單中的播放速度
 A feed or Watch video's 3-dot menu gets Playback speed, from 0.5x to 3x, live videos too. Off by default, since it hasn't been tried on a real account yet.	動態消息或 Watch 影片的三點選單會加入播放速度，從 0.5 倍到 3 倍，直播影片也適用。預設停用，因為尚未使用真實帳號測試。
 Double tap to skip on feed videos	動態影片雙擊跳轉
 Double tap the right side of a playing feed video to jump ahead 10 seconds, or the left side to go back 10. Keep tapping to go further. Live videos work too when they can be rewound. One tap on a side still opens the video, a moment later than usual. With Tap to play on, it needs Inline feed video controls on too.	在播放中的動態影片右側點兩下可快轉 10 秒，左側點兩下可倒轉 10 秒。繼續點按可以跳得更遠。直播影片在可以倒轉時也適用。點一下側邊仍會開啟影片，只是比平常稍晚一點。開啟「點按播放」時，也需要開啟「動態消息影片控制項」。
+# context: switch title under Video playback; a tap on a video in the news feed brings up a pause button in the middle of the video instead of opening it
+Tap shows a pause button on feed videos	點按動態影片顯示暫停按鈕
+# context: description of that switch; Reels is Facebook's full-screen video viewer, keep the name; the quoted switch names match their own rows
+Tapping a feed video shows a pause button in its middle and the video keeps playing, so a tap doesn't open it in Reels. Tap the button to pause or play. Tap the video again while the button shows to open it. Ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.	點按動態影片會在中間顯示暫停按鈕，影片繼續播放，這樣點按不會在 Reels 中開啟它。點按按鈕可暫停或播放。按鈕顯示時再次點按影片即可開啟。廣告保留原有控制項。開啟「點按播放」時，也需要開啟「動態消息影片控制項」。
 Show only comments that match	只顯示相符的留言
 While the search box holds words, comments without them are hidden. Clearing the box brings them back.	搜尋框中有文字時，不含這些文字的留言會被隱藏。清空搜尋框即可恢復。
 Queue reel saves	排隊儲存 Reels
@@ -2883,7 +2942,7 @@ Interested	有興趣
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row asking for fewer posts like this one
 Not interested	沒興趣
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that opens its feed preferences
-Manage your Feed	管理你的動態
+Manage your Feed / Your algorithm	管理你的動態 / 你的演算法
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that reports the post
 Report	檢舉
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that plays the video on a TV
@@ -2947,6 +3006,140 @@ Move seen stories to the end	將已看過的限時動態移到最後
 Stories you've already watched move to the end of the Stories tray, after the ones you haven't. Hide seen stories goes first while it's on. Applies when Facebook next loads the tray.	你已看過的限時動態會移到橫幅最後，排在還沒看過的後面。開啟「隱藏已看過的限時動態」時，它優先生效。從 Facebook 下次載入橫幅起生效。
 Skip location prompts	略過位置提示
 Facebook's page asking you to allow Location Services, the one with Skip and Continue, doesn't show. Location you turn on yourself still works.	Facebook 要求你允許定位服務、帶有略過和繼續按鈕的畫面不會再顯示。你自己開啟的定位照常可用。
+# context: switch title under Stories; on, a tap on a reaction at the bottom of a story asks first
+Ask before reacting to a story	對限時動態留下心情前先詢問
+# context: summary of that switch
+A tap on a reaction at the bottom of a story asks first, and the story waits. Only Continue sends the reaction.	點按限時動態底部的心情會先詢問，限時動態會暫停等待。只有點「繼續」才會送出心情。
+# context: the question shown after a tap on a reaction at the bottom of a story; Continue sends the reaction, Cancel leaves it
+React to this story?	要對這則限時動態留下心情嗎？
+# context: In-app proxy, an HTTP proxy address (host:port) Facebook's connections go through
+In-app proxy	應用程式內代理
+The address and port of an HTTP proxy for Facebook's connections, like %1$s. The local proxy port of a VLESS or V2Ray app such as v2rayNG works here. Leave it blank to connect the way your phone does.	Facebook 連線所用 HTTP 代理的位址和連接埠，例如 %1$s。v2rayNG 等 VLESS 或 V2Ray 應用程式的本機代理連接埠可以用在這裡。留空則依手機自己的方式連線。
+Type an HTTP proxy's address and port, like %1$s.	請輸入 HTTP 代理的位址和連接埠，例如 %1$s。
+Facebook connects the way your phone does. Type a proxy's address and port to send its connections through it.	Facebook 依手機自己的方式連線。輸入代理的位址和連接埠，讓它的連線經過該代理。
+Facebook's connections go through the proxy at %1$s.	Facebook 的連線經過代理 %1$s。
+# context: switch title on the Downloads page; on, a tap on a download button asks first
+Ask before downloading	下載前先詢問
+A reel's Download button, the Download button under a post and a video's Download to phone ask first, so a stray tap saves nothing. With Choose quality on each save on, a video's list of qualities does the asking.	Reels 的下載按鈕、貼文下方的下載按鈕和影片的「下載到手機」會先詢問，誤觸不會儲存任何內容。開啟「每次儲存時選擇畫質」後，影片由畫質清單來詢問。
+# context: the question over the screen after a tap on a download button, answered Continue or Cancel
+Start this download?	要開始這次下載嗎？
+# context: the settings row that opens a file picker for a font holding emoji
+Emoji font file	表情符號字型檔
+# context: the settings row that deletes the saved emoji font and goes back to the phone's emoji
+Remove emoji font file	移除表情符號字型檔
+# context: under Remove emoji font file while Use the phone's emoji is on
+Removes the saved emoji font file. Restart Facebook to use your phone's emoji.	移除已儲存的表情符號字型檔。重新啟動 Facebook 後會使用手機表情符號。
+# context: under Remove emoji font file while Use the phone's emoji is off
+Removes the saved emoji font file. Use the phone's emoji stays off.	移除已儲存的表情符號字型檔。「使用手機表情符號」仍保持停用。
+# context: under Emoji font file with nothing picked; %1$d is a number of megabytes
+No file chosen. Choose a .ttf or .otf emoji font of up to %1$d MB.	尚未選擇檔案。請選擇不超過 %1$d MB 的 .ttf 或 .otf 表情符號字型。
+# context: under Emoji font file; %1$s is the file's name
+Selected %1$s. Emoji changes apply after restarting Facebook.	已選擇 %1$s。表情符號變更在重新啟動 Facebook 後生效。
+# context: under Emoji font file while the switch is off; %1$s is the file's name
+Selected %1$s. Use the phone's emoji is off. Turn it on and restart Facebook to use this file.	已選擇 %1$s。「使用手機表情符號」已停用。請啟用並重新啟動 Facebook 以使用此檔案。
+# context: toast after an emoji font is picked; %1$s is the file's name
+Selected %1$s. Restart Facebook to apply the emoji change.	已選擇 %1$s。請重新啟動 Facebook 以套用表情符號變更。
+# context: toast after an emoji font is picked while the switch is off; %1$s is the file's name
+Selected %1$s. Turn on Use the phone's emoji and restart Facebook to use it.	已選擇 %1$s。請啟用「使用手機表情符號」並重新啟動 Facebook 以使用此字型。
+# context: under Emoji font file while the picked file is copied
+Copying the emoji font file	正在複製表情符號字型檔
+# context: toast when the file picked as an emoji font isn't a font
+That isn't a .ttf or .otf font file. Your emoji didn't change.	這不是 .ttf 或 .otf 字型檔。表情符號未變更。
+# context: toast when the emoji font is too large; %1$d is a number of megabytes
+That font file is over %1$d MB. Your emoji didn't change.	該字型檔超過 %1$d MB。表情符號未變更。
+# context: toast when Android can't load the picked emoji font
+Android couldn't use that font file. Your emoji didn't change.	Android 無法使用該字型檔。表情符號未變更。
+# context: toast when the font picked as an emoji font is a text font
+That font has no emoji in it. Your emoji didn't change.	該字型不含表情符號。表情符號未變更。
+# context: toast when the picked emoji font can't be read
+Couldn't open that file. Your emoji didn't change.	無法開啟該檔案。表情符號未變更。
+# context: toast after Remove emoji font file
+Emoji font file cleared. Restart Facebook to apply the emoji change.	已清除表情符號字型檔。請重新啟動 Facebook 以套用表情符號變更。
+# context: toast when Remove emoji font file fails
+Couldn't go back to your phone's emoji. Try again.	無法恢復使用手機表情符號。請再試一次。
+# context: toast when the app holding the emoji font doesn't answer in time
+The app holding that font file is taking too long, so Hushfacebook stopped waiting. Your emoji didn't change.	提供該字型檔的應用程式回應過慢，Hushfacebook 已停止等待。表情符號未變更。
+Never	永不
+Back to Clean mode	回到簡潔模式
+When the comments or a menu close	留言或選單關閉時
+When the comments or a menu close. A reel you took out of Clean mode goes back into it once whatever you opened over it closes.	留言或選單關閉時。你離開簡潔模式的 Reel 會在你開啟的內容關閉後回到簡潔模式。
+%1$s. A reel you took out of Clean mode goes back into it once you haven't touched the screen for that long. An open sheet holds the time.	%1$s。你離開簡潔模式的 Reel 會在你這麼久沒有觸碰螢幕後回到簡潔模式。開啟的面板會暫停計時。
+Never. A reel you take out of Clean mode stays out until you put it back.	永不。你離開簡潔模式的 Reel 會保持在外，直到你重新開啟。
+A reel you take out of Clean mode will stay out until you put it back.	你離開簡潔模式的 Reel 會保持在外，直到你重新開啟。
+A reel you take out of Clean mode will go back into it when the comments or a menu close.	你離開簡潔模式的 Reel 會在留言或選單關閉時回到簡潔模式。
+A reel you take out of Clean mode will go back into it after %1$d seconds without a touch.	你離開簡潔模式的 Reel 會在 %1$d 秒沒有觸碰後回到簡潔模式。
+Hide New for you on reels	在 Reels 上隱藏「為你推薦」
+Takes "New for you", and other reasons Facebook gives for showing you a reel, off the line under its author, so the date and the song show right away. A change shows from the next reel.	把「為你推薦」以及 Facebook 推薦某個 Reel 給你的其他原因從發佈者名字下方那一行移除，這樣日期和歌曲會馬上顯示。從下一個 Reel 開始生效。
+# context: switch title under Comments and writing; it turns Facebook's own comment translation on for every comment as it loads
+Translate every comment	翻譯每則留言
+# context: description of that switch; See translation is the name of Facebook's own link under a comment that translates it on request
+Comments in another language show Facebook's translation as they load, as if you'd tapped See translation on each one.	其他語言的留言在載入時就顯示 Facebook 的翻譯，就像你在每則留言上都點了「查看翻譯」.
+# context: switch title under Downloads; holding a finger on a photo opened full screen from a Marketplace listing saves that photo to the phone
+Long press to save Marketplace photos	長按儲存 Marketplace 相片
+# context: description of that switch; Save any photo is the title of the Downloads switch it needs, Marketplace is Facebook's buy-and-sell section
+With Save any photo on, a long press on a photo you open from a Marketplace listing saves it.	開啟「儲存任何相片」後，長按從 Marketplace 商品開啟的相片即可儲存.
+# context: the eight switches under Hide posts with words you choose and Hide link posts that pick where each hides; Home, the Reels tab, the Groups tab and Pages are Facebook's own names for them
+Your words on Home	在首頁使用你的字詞
+Your words on the Reels tab	在 Reels 分頁使用你的字詞
+Your words in groups	在社團中使用你的字詞
+Your words on profiles and Pages	在個人檔案和粉絲專頁使用你的字詞
+Link posts on Home	首頁上的連結貼文
+Link reels on the Reels tab	Reels 分頁中的連結 Reels
+Link posts in groups	社團中的連結貼文
+Link posts on profiles and Pages	個人檔案和粉絲專頁上的連結貼文
+Posts on Home, the feed Facebook opens on.	首頁上的貼文，也就是 Facebook 開啟時顯示的動態。
+Reels on the Reels tab, going by their captions.	Reels 分頁中的 Reels，依說明文字判斷。
+Posts in a group's feed, on the Groups tab and in a member's posts in a group. Posts waiting for an admin stay.	社團動態、社團分頁以及成員在社團中的貼文。等待管理員處理的貼文會保留。
+Posts on people's profiles and on Pages.	個人檔案和粉絲專頁上的貼文。
+# context: the search results switches under Hide posts with words you choose and Hide link posts, which start off; search results is Facebook's own name for the page a search opens
+Your words in search results	在搜尋結果中使用你的字詞
+Link posts in search results	搜尋結果中的連結貼文
+Posts in search results. Off to begin with, so what you search for still shows.	搜尋結果中的貼文。預設為關閉，你搜尋的內容仍會顯示。
+# context: title of the list under Video quality that picks how much of a video loads before it starts and while it plays
+Video buffer	影片緩衝
+# context: the three sizes in the Video buffer list, from the least loaded ahead to the most
+Low	低
+Medium	中
+Maximum	最大
+# context: the line under Video buffer for each size, and for Facebook's choice
+Videos start once half a second has loaded, and load less ahead.	影片載入半秒後就開始播放，並減少預先載入。
+Videos wait for 1.5 seconds to load before they start, and load more ahead.	影片會先載入 1.5 秒再開始播放，並預先載入更多。
+Videos wait for 3 seconds to load before they start, and load up to a minute ahead.	影片會先載入 3 秒再開始播放，並最多預先載入一分鐘。
+Facebook decides how much of a video loads before and while it plays.	由 Facebook 決定影片在播放前和播放時載入多少。
+# context: what importing a settings file will do to the Video buffer list; %1$s is Low, Medium or Maximum
+Facebook will decide how much of a video loads.	將由 Facebook 決定影片載入多少。
+Video buffer will be set to %1$s.	影片緩衝將設為 %1$s。
+Recently watched in the Menu	選單中的最近觀看
+Adds a Recently watched row at the end of Settings and privacy in Facebook's Menu. It opens the list that Remember what you watch keeps.	在 Facebook 選單的「設定和隱私」末尾新增「最近觀看」一列，開啟「記住觀看內容」保存的清單。
+Recently watched can't open here.	無法從這裡開啟「最近觀看」。
+Header text font	標題文字字型
+Bold	粗體
+Regular	一般
+Serif	襯線
+Script	手寫體
+Monospace	等寬
+Your font	你的字型
+The bold font the words have always had.	文字一直以來使用的粗體字型。
+The phone's font at its regular weight.	手機的字型，一般粗細。
+A bold font with serifs, like a newspaper's.	有襯線的粗體字型，像報紙上的字。
+Joined-up handwriting.	連筆手寫體。
+Every letter the same width, like a typewriter.	每個字母寬度相同，像打字機。
+The font file picked under Font file, in bold. Bold until one is picked.	在「字型檔」中選的檔案，以粗體顯示。選好之前為粗體。
+Header text font will be set to %1$s.	標題文字字型將設為 %1$s。
+Hide songs under names	隱藏名稱下方的歌曲
+The line under the poster's name leaves out the song a post plays, with no gap where it was.	發布者名稱下方的那一行不再顯示貼文播放的歌曲，原本的位置也不會留白。
+Bold post times	貼文時間加粗
+The time or date under the poster's name is bold, like the name.	發布者名稱下方的時間或日期會像名稱一樣以粗體顯示。
+Show full names	顯示完整名稱
+A long name at the top of a post wraps onto the next line instead of ending in "...". A name that fits still takes one line.	貼文頂端的長名稱會換到下一行，而不是以「...」結尾。放得下的名稱仍只佔一行。
+Dark box behind feed video names	動態消息影片名稱的深色底框
+When a video in your feed has the poster's name on top of the video, that name sits on the same dark box. A change shows on the posts drawn after it.	當動態消息中的影片把發布者名稱顯示在影片上時，這個名稱也會顯示在同樣的深色底框上。變更會在之後載入的貼文上生效。
+Quality settings	畫質設定
+Request community note	要求社群備註
+Something went wrong	發生錯誤
+Shows your phone's own emoji instead of Facebook's. Reactions and stickers don't change. Restart Facebook to see the change.	使用手機系統的 Emoji 取代 Facebook 內建 Emoji，表情反應與貼圖不變。變更後請重新啟動 Facebook。
+Videos, reels, stories and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	影片、錄影、故事和音樂都等待著你們的音樂,而不是自己演奏。Facebook的自動播放設定在開機時播放。
+With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed, Watch and stories always wait.	開啟上面的開關,玩完一盤後,你就可以自己玩的一盤。種子、觀察和故事總是等待。
 Stops sending Facebook your list of watched reels. It uses the list to rank your feed, so reels you've watched may come back.	停止傳送你觀看的影片的Facebook列表。它使用列表來排序您的影片,所以你已經觀看的影片可能會回來。
 Hides posts containing a word or phrase from your list below. Words that keep a post win over it. Your words stay on this phone unless you export them.	從下面的列表中隱藏包含一個單詞或片語的帖子。 使一個帖子勝過它的話。您的單詞會留在手機上,除非您匯出它們 。
 No "Are you interested in this reel?" prompt on reels. The reel plays as usual.	Reels 不再顯示「你對這則 Reels 有興趣嗎？」提示；Reels 仍照常播放。

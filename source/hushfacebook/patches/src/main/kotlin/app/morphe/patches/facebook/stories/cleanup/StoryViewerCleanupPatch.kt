@@ -5,11 +5,13 @@
 package app.morphe.patches.facebook.stories.cleanup
 
 import app.morphe.patcher.StringComparisonType
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.feed.holdsString
@@ -20,7 +22,11 @@ import app.morphe.patches.facebook.misc.extension.parameterRegister
 import app.morphe.patches.facebook.misc.extension.requireLocals
 import app.morphe.patches.facebook.misc.extension.requireStatusMethod
 import app.morphe.patches.facebook.misc.settings.settingsPatch
+import app.morphe.patches.facebook.misc.upsells.definesImmutableCopy
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -89,6 +95,49 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
  *   the list to show. This one splices in a card it tags "ats_tile", or "camera_roll" for the one
  *   built from the gallery, and hands the list back unchanged when it has nothing to add. The patch
  *   gives that same answer first thing on a yes.
+ * - The full screen "<Name>, continue the story" card with its Create story button (#521, 588 arm64
+ *   LX/0BDx;, AddToStoryOverlayComponent drawing it from six or more recent gallery photos) is a
+ *   bucket of its own, a StoryBucket whose getId falls back to "story-end-card-bucket". It's built
+ *   from the server's buckets (LX/08I5;->A03), which the tray load and the sources both use, so no
+ *   one source owns it. Every story list source (LX/0DFi;, v7 LX/0DFh;) runs only from the viewer's
+ *   static list runner (LX/0B7A;->A02, v7 LX/0B7D;->A02), the one method opening the trace section
+ *   "StoryviewerBucketDataController.processBucketData". It hands its list (p2) to each source in
+ *   turn and keeps the answer in the same register, then comes out of the loop. Right there the list
+ *   goes through the extension, which drops each bucket of the card's class, and back into an
+ *   ImmutableList. Its own Kotlin null check on the list (index 76 in 588) runs right after, and the
+ *   finally handler round the trace section never reads it.
+ * - The cube turn between people's stories (#521, 588 arm64 LX/0BAx;, v7 LX/0BB0;) is one of the
+ *   page positioners the stories pager (com.instagram...ReboundViewPager, a kept name) places pages
+ *   through. Each extends a base (LX/0Com;, v7 LX/0Cop;) whose placer, the one method opening the
+ *   trace section "BaseSimpleItemPositioner.positionItemAtOffset", takes the page, the pager, the
+ *   page's offset and its position. The viewer (LX/0B7S;->A0B) picks the cube for two of a server
+ *   setting's values, a plain slide or a 2D tilt for the others. The cube's own placer sets the
+ *   page's camera distance, slides it by the pager's width times its offset, turns it by 90 degrees
+ *   times the offset round its left or right edge (two small helpers calling setRotationY) and puts
+ *   it back square once it's settled. Each setRotationY in the cube goes through the extension in the
+ *   same registers, so with the switch on a page keeps the slide and loses the turn.
+ * - The Follow button on a story from someone you don't follow (#543, 588 arm64 LX/0BKd;) is an older
+ *   Litho component that names itself "FollowButtonComponent" in its constructor and keeps the
+ *   session, the bucket, the card and whether you follow them. Its layout (A1B) answers null itself
+ *   on your own stories, so the patch answers null first thing on a yes.
+ * - The "Up next" card (#544, 588 arm64 LX/0aWp;, "StoryViewerExtensionForwardComponent", strings
+ *   "Up next", "in %1$d", "View now") sits over the first story of the next people's stories and
+ *   counts down. The story page (LX/0BAt;) builds it while a flag of its state (LX/0BBu;->A0V) is set,
+ *   and its should-play check (A0S) holds the story still while it's set, so drawing nothing would
+ *   leave a story that never plays. The card's dismiss (a static A0A) clears the flag on the state's
+ *   builder (LX/0BBs;), and the page's initial state (A1I) is the one other method that writes it:
+ *   true for an ExtendedProfileRegularStoryBucket when a config says so. That value goes through the
+ *   extension, which answers false on a yes, as if the card had been dismissed before it showed.
+ * - The bar under someone else's story (#542: repost, "Send message..." and the quick reactions) comes
+ *   from one of two places the footer (LX/0BCj;) picks between by config. One is the component
+ *   (LX/0BIv;) whose render builds "ReplyBarContainerSection" (LX/0BJ1;) inside a recycler keyed
+ *   "reply_bar_buttons_container"; it answers null first thing on a yes. The other is the newer
+ *   footer (LX/0W8I;), which builds the feedback bar (LX/0W8K;) and, itself, the quick reactions'
+ *   "StoryViewerReactionBarSection" (LX/0BJ7;); it answers null first thing on a yes too. The
+ *   feedback bar's render also answers null unless its companion's kept
+ *   isFeedbackBarSupportedForBucket says yes, and that check says no first thing on a yes. A Page's
+ *   story on 588 showed why the footer needs its own hook: the feedback bar was already empty there
+ *   and the reactions stayed.
  */
 
 internal const val STORY_VIEWER_CLEANUP_PATCH = "Clean up the story viewer"
@@ -115,6 +164,7 @@ internal const val HIDE_SONG_PILL = "$STORY_VIEWER_CLEANUP->hideSongPill()Z"
 /** What the song pill under the poster's name keys its "Try it" button's transition with. */
 internal const val SONG_PILL_BUTTON = "pill_cta_button_transition_key"
 
+private const val STORY_BUCKET = "Lcom/facebook/stories/model/StoryBucket;"
 private const val STORY_CARD = "Lcom/facebook/stories/model/StoryCard;"
 
 private const val IMMUTABLE_LIST = "Lcom/google/common/collect/ImmutableList;"
@@ -143,32 +193,70 @@ internal val SUBSCRIBE_FIELDS = listOf("Lcom/facebook/auth/usersession/FbUserSes
 /** How far before the string the click handler casts the pill: 48 instructions in 585. */
 private const val SUBSCRIBE_REACH = 80
 
+/** What the Follow button on a story names itself in its constructor (#543). */
+internal const val FOLLOW_BUTTON = "FollowButtonComponent"
+
+/** The story Follow button's fields: the session, the person's stories, the card and whether you follow them. */
+internal val FOLLOW_FIELDS = listOf(
+    "Lcom/facebook/auth/usersession/FbUserSession;", "Lcom/facebook/stories/model/StoryBucket;",
+    "Lcom/facebook/stories/model/StoryCard;", "Z",
+)
+
+internal const val HIDE_FOLLOW = "$STORY_VIEWER_CLEANUP->hideFollow()Z"
+
+/** What the "Up next" card over the next people's stories names itself (#544). */
+internal const val UP_NEXT_CARD = "StoryViewerExtensionForwardComponent"
+
+internal const val SHOW_UP_NEXT = "$STORY_VIEWER_CLEANUP->showUpNext(Z)Z"
+
+/** What the bar under someone else's story names itself in its constructor (#542). */
+internal const val REPLY_BAR_SECTION = "ReplyBarContainerSection"
+
+/**
+ * What the row of quick reactions under a story names itself in its constructor (#542). The newer
+ * footer builds it next to the feedback bar, outside the [REPLY_BAR_SECTION], which is how a Page's
+ * story keeps its reactions when the feedback bar has nothing to show.
+ */
+internal const val REACTION_BAR_SECTION = "StoryViewerReactionBarSection"
+
+/** The kept name of the check that decides whether a story gets the newer feedback bar (#542). */
+internal const val FEEDBACK_BAR_CHECK = "isFeedbackBarSupportedForBucket"
+
+internal const val HIDE_REPLY_BAR = "$STORY_VIEWER_CLEANUP->hideReplyBar()Z"
+
 /**
  * Takes the song and effect credits off the line under the poster's name on a story, and the
- * suggested replies off the bottom, and can draw a progress bar along the bottom (#380).
+ * suggested replies off the bottom, and can draw a progress bar along the bottom (#380) and slide
+ * from one person's stories to the next without the cube turn (#521).
  *
  * In the default selection with every switch off, so nothing changes until one is turned on.
  */
 @Suppress("unused")
-val storyViewerCleanupPatch = bytecodePatch(
+val storyViewerCleanupPatch = patch(
     name = "Clean up the story viewer",
-    description = "Switches that take the song and effect credits and the Subscribe button off a story, the " +
-        "suggested replies off the bottom while the reply box stays, and the cards between stories that ask you to " +
-        "make your own out of the viewer, plus one that adds a thin progress bar along the bottom like the one on " +
-        "Reels. All start off. Turn them on in Hushfacebook settings > Stories.",
+    description = "Switches that take the song and effect credits and the Subscribe and Follow buttons off a " +
+        "story, the suggested replies or the whole reply bar off the bottom, the Up next card off the next " +
+        "people's stories, and the cards between stories that ask you to make your own out of the viewer. Two more " +
+        "add a thin progress bar along the bottom like the one on Reels and swap the cube turn between people's " +
+        "stories for a plain slide. All start off. Turn them on in Hushfacebook settings > Stories.",
 ) {
     category("Stories")
     dependsOn(settingsPatch, facebookExtensionPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         requireStatusMethod("storyViewerCleanup")
         cleanUpStoryViewer()
         dropCreditPills()
         hideSongPill()
         hideSubscribePill()
+        hideStoryFollow()
+        skipUpNextCard()
+        hideStoryReplyBar()
         hideCreateStoryCards()
+        dropCreateCardsFromViewerList()
         followStoryProgress()
+        flattenStoryCube()
         enableStatus("storyViewerCleanup")
     }
 }
@@ -377,11 +465,17 @@ internal fun BytecodePatchContext.dropCredits(name: String) {
     )
 }
 
-/** Whether [classDef] is the song pill: a component built for a story card whose render keys its button [SONG_PILL_BUTTON]. */
+/**
+ * Whether [classDef] is the song pill: a component built from a story's bucket and card, whose render
+ * keys its button [SONG_PILL_BUTTON]. The chips of the row under the name key theirs the same way
+ * (588 arm64 `LX/0X3v;`, 587 loaded the key from its string table), but the row builds those from a
+ * chip's config first, and [DROP_CREDIT] already skips them there.
+ */
 internal fun isSongPill(classDef: ClassDef): Boolean {
     val render = renderOf(classDef) ?: return false
-    return holdsString(render, SONG_PILL_BUTTON) &&
-        classDef.methods.any { it.name == "<init>" && it.parameterTypes.any { type -> type.toString() == STORY_CARD } }
+    return holdsString(render, SONG_PILL_BUTTON) && classDef.methods.any { method ->
+        method.name == "<init>" && method.parameterTypes.map { it.toString() }.take(2) == listOf(STORY_BUCKET, STORY_CARD)
+    }
 }
 
 /** Hooks the song pill's render to answer null, as it does itself for a song with no title. */
@@ -431,6 +525,147 @@ internal fun BytecodePatchContext.hideSubscribePill() {
     }.answerWhen(HIDE_SUBSCRIBE, "const/4 v0, 0x0")
 }
 
+/** Whether [classDef]'s no-argument constructor hands [name] to its superclass, the way an older Litho component names itself. */
+internal fun namesItselfIn(classDef: ClassDef, name: String): Boolean = classDef.methods.any {
+    it.name == "<init>" && it.parameterTypes.isEmpty() && holdsString(it, name)
+}
+
+/** Whether [classDef] is a story's Follow button: it names itself [FOLLOW_BUTTON] and keeps the [FOLLOW_FIELDS]. */
+internal fun isStoryFollowButton(classDef: ClassDef): Boolean = namesItselfIn(classDef, FOLLOW_BUTTON) &&
+    classDef.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.type }.sorted() == FOLLOW_FIELDS.sorted()
+
+/** An older Litho component's layout: its one instance method taking the component context alone and answering an object. */
+internal fun layoutOf(classDef: ClassDef): Method? = classDef.methods.singleOrNull {
+    it.name != "<init>" && it.parameterTypes.size == 1 && it.returnType.startsWith("L") && it.implementation != null &&
+        !AccessFlags.STATIC.isSet(it.accessFlags) && !AccessFlags.BRIDGE.isSet(it.accessFlags) &&
+        !AccessFlags.SYNTHETIC.isSet(it.accessFlags)
+}
+
+/** [method]'s own copy in [classDef]'s mutable class. */
+private fun BytecodePatchContext.mutableOf(type: String, method: Method): MutableMethod = mutableClassDefBy(type).methods.single {
+    it.name == method.name && it.returnType == method.returnType &&
+        it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+}
+
+/** Hooks the story Follow button's layout to answer null, as it does itself on your own stories (#543). */
+internal fun BytecodePatchContext.hideStoryFollow() {
+    val buttons = classDefByStrings(FOLLOW_BUTTON, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }.filter(::isStoryFollowButton)
+    val button = buttons.singleOrNull() ?: refuse("expected one story Follow button naming itself $FOLLOW_BUTTON, found ${buttons.size}")
+    val layout = layoutOf(button) ?: refuse("the story Follow button ${button.type} has no one layout method")
+    mutableOf(button.type, layout).answerWhen(HIDE_FOLLOW, "const/4 v0, 0x0")
+}
+
+/**
+ * The flag the "Up next" [card] clears when it's dismissed: the one boolean field its static methods
+ * write. The story's page reads it to decide whether to show the card and hold the story still.
+ */
+internal fun upNextFlag(card: ClassDef): FieldReference? = card.methods
+    .filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null }
+    .flatMap { method ->
+        method.implementation!!.instructions.filter { it.opcode == Opcode.IPUT_BOOLEAN }
+            .map { (it as ReferenceInstruction).reference as FieldReference }
+    }.distinctBy { "${it.definingClass}->${it.name}" }.singleOrNull()
+
+/** The indexes in [method] that write [flag]. */
+internal fun flagWrites(method: Method, flag: FieldReference): List<Int> =
+    method.implementation?.instructions?.toList().orEmpty().withIndex().filter { (_, it) ->
+        it.opcode == Opcode.IPUT_BOOLEAN && ((it as ReferenceInstruction).reference as FieldReference).let { field ->
+            field.definingClass == flag.definingClass && field.name == flag.name
+        }
+    }.map { it.index }
+
+/**
+ * Sends the value each first state of a story's page gives the "Up next" flag through the extension
+ * (#544). The card's own class and the state's builder, which copies the flag from one state to the
+ * next, are left alone; the one method left is the page's initial state.
+ */
+internal fun BytecodePatchContext.skipUpNextCard() {
+    val (card, _) = component(UP_NEXT_CARD)
+    val flag = upNextFlag(card) ?: refuse("expected the $UP_NEXT_CARD to clear one flag when it's dismissed")
+    val setters = mutableListOf<Pair<String, Method>>()
+    classDefForEachReferencing(types = listOf(flag.definingClass)) { classDef ->
+        if (classDef.type == flag.definingClass || classDef.type == card.type) return@classDefForEachReferencing
+        classDef.methods.filter { flagWrites(it, flag).isNotEmpty() }.forEach { setters += classDef.type to it }
+    }
+    val (type, setter) = setters.singleOrNull()
+        ?: refuse("expected one method outside the card and the state's builder to set the Up next flag, found ${setters.size}")
+    val method = mutableOf(type, setter)
+    // The last write first, so the indexes above it still hold.
+    for (at in flagWrites(method, flag).reversed()) {
+        val register = (method.getInstruction(at) as TwoRegisterInstruction).registerA
+        val call = if (register < 16) "invoke-static { v$register }, $SHOW_UP_NEXT"
+        else "invoke-static/range { v$register .. v$register }, $SHOW_UP_NEXT"
+        method.addInstructionsAtControlFlowLabel(
+            at,
+            """
+                $call
+                move-result v$register
+            """,
+        )
+    }
+}
+
+/** Whether [method] makes a new [type]. */
+internal fun createsInstance(method: Method, type: String): Boolean = method.implementation?.instructions?.any {
+    it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == type
+} == true
+
+/** The one section in this build that names itself [name] in its constructor. */
+private fun BytecodePatchContext.namedSection(name: String): ClassDef {
+    val sections = classDefByStrings(name, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }.filter { namesItselfIn(it, name) }
+    return sections.singleOrNull() ?: refuse("expected one section naming itself $name, found ${sections.size}")
+}
+
+/**
+ * Hooks every bar under someone else's story (#542). The component whose render builds the
+ * [REPLY_BAR_SECTION] and the newer footer, whose render builds the [REACTION_BAR_SECTION] itself,
+ * answer null first thing on a yes. The check that decides whether a story gets the newer feedback
+ * bar says no too, so that bar's render answers null wherever else it's drawn.
+ */
+internal fun BytecodePatchContext.hideStoryReplyBar() {
+    val section = namedSection(REPLY_BAR_SECTION)
+    val reactions = namedSection(REACTION_BAR_SECTION)
+    val holders = mutableListOf<ClassDef>()
+    val footers = mutableListOf<ClassDef>()
+    val checks = mutableSetOf<String>()
+    classDefForEachReferencing(types = listOf(section.type, reactions.type), names = listOf(FEEDBACK_BAR_CHECK)) { classDef ->
+        renderOf(classDef)?.let { render ->
+            if (createsInstance(render, section.type)) holders += classDef
+            if (createsInstance(render, reactions.type)) footers += classDef
+        }
+        classDef.methods.forEach { method ->
+            method.implementation?.instructions?.forEach { instruction ->
+                val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                if (called != null && called.name == FEEDBACK_BAR_CHECK && called.returnType == "Z") checks += called.definingClass
+            }
+        }
+    }
+    val holder = holders.singleOrNull()
+        ?: refuse("expected one component whose render builds the $REPLY_BAR_SECTION, found ${holders.size}")
+    mutableOf(holder.type, renderOf(holder)!!).answerWhen(HIDE_REPLY_BAR, "const/4 v0, 0x0")
+    val footer = footers.singleOrNull()
+        ?: refuse("expected one component whose render builds the $REACTION_BAR_SECTION, found ${footers.size}")
+    mutableOf(footer.type, renderOf(footer)!!).answerWhen(HIDE_REPLY_BAR, "const/4 v0, 0x0")
+
+    val owner = checks.singleOrNull() ?: refuse("expected one class answering $FEEDBACK_BAR_CHECK, found ${checks.size}")
+    val check = mutableClassDefBy(owner).methods.singleOrNull { it.name == FEEDBACK_BAR_CHECK && it.returnType == "Z" }
+        ?: refuse("$owner has no one $FEEDBACK_BAR_CHECK")
+    check.requireLocals(STORY_VIEWER_CLEANUP_PATCH, 1)
+    check.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $HIDE_REPLY_BAR
+            move-result v0
+            if-eqz v0, :facebooks_check
+            const/4 v0, 0x0
+            return v0
+        """,
+        ExternalLabel("facebooks_check", check.getInstruction(0)),
+    )
+}
+
 /** The one method in [classes] answering a list from a list last, that tags its card with every one of [CREATE_CARD_SOURCES]. */
 internal fun createCardSource(classes: Iterable<ClassDef>): Method? = classes.flatMap { it.methods }.filter {
     it.returnType == IMMUTABLE_LIST && it.parameterTypes.lastOrNull()?.toString() == IMMUTABLE_LIST &&
@@ -457,4 +692,215 @@ internal fun BytecodePatchContext.hideCreateStoryCards() {
         """,
         ExternalLabel("facebooks_list", method.getInstruction(0)),
     )
+}
+
+/** The trace section the viewer's list runner opens first thing: only that method names it. */
+internal const val BUCKET_DATA_RUN = "StoryviewerBucketDataController.processBucketData"
+
+/** The id the "continue the story" card's bucket answers when it has none of its own (#521). */
+internal const val CREATE_CARD_BUCKET_ID = "story-end-card-bucket"
+
+internal const val WITHOUT_CREATE_CARDS = "$STORY_VIEWER_CLEANUP->withoutCreateCards(Ljava/util/List;)Ljava/util/List;"
+internal const val IS_CREATE_CARD = "$STORY_VIEWER_CLEANUP->isCreateCard(Ljava/lang/Object;)Z"
+
+private const val LIST_COPY = "$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST"
+private const val USER_SESSION = "Lcom/facebook/auth/usersession/FbUserSession;"
+
+private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+private val CONDITIONALS = setOf(
+    Opcode.IF_EQ, Opcode.IF_NE, Opcode.IF_LT, Opcode.IF_GE, Opcode.IF_GT, Opcode.IF_LE,
+    Opcode.IF_EQZ, Opcode.IF_NEZ, Opcode.IF_LTZ, Opcode.IF_GEZ, Opcode.IF_GTZ, Opcode.IF_LEZ,
+)
+
+/** Where the viewer's list runner is done with its sources: the instruction at [at], with the finished list in [register]. */
+internal data class SourcesDone(val at: Int, val register: Int)
+
+/** The one method in [classes] answering an ImmutableList that opens [BUCKET_DATA_RUN]. */
+internal fun listRunner(classes: Iterable<ClassDef>): Method? = classes.flatMap { it.methods }.filter {
+    it.returnType == IMMUTABLE_LIST && it.implementation != null && holdsString(it, BUCKET_DATA_RUN)
+}.singleOrNull()
+
+/** The last register an invoke names, or null. */
+private fun Instruction.lastRegister(): Int? = when (this) {
+    is RegisterRangeInstruction -> (startRegister + registerCount - 1).takeIf { registerCount > 0 }
+    is FiveRegisterInstruction -> when (registerCount) {
+        1 -> registerC
+        2 -> registerD
+        3 -> registerE
+        4 -> registerF
+        5 -> registerG
+        else -> null
+    }
+    else -> null
+}
+
+/**
+ * The one place in [runner] where a source is asked for the list (session, flags and the list so
+ * far in, a list out), its answer goes back into the list's own register, and the loop steps back
+ * up, with a branch before it coming out of the loop right after that step. Null unless there's
+ * exactly one.
+ */
+internal fun sourcesDone(runner: Method): SourcesDone? {
+    val code = runner.implementation?.instructions?.toList() ?: return null
+    val at = code.runningFold(0) { offset, it -> offset + it.codeUnits }
+    val found = (0 until code.size - 3).mapNotNull { i ->
+        val ask = code[i]
+        if (ask.opcode != Opcode.INVOKE_INTERFACE && ask.opcode != Opcode.INVOKE_INTERFACE_RANGE) return@mapNotNull null
+        val called = (ask as ReferenceInstruction).reference as? MethodReference ?: return@mapNotNull null
+        val types = called.parameterTypes.map(CharSequence::toString)
+        if (called.returnType != IMMUTABLE_LIST || types.size != 3 || types.first() != USER_SESSION ||
+            types.last() != IMMUTABLE_LIST
+        ) return@mapNotNull null
+        val list = ask.lastRegister() ?: return@mapNotNull null
+        val kept = code[i + 1]
+        if (kept.opcode != Opcode.MOVE_RESULT_OBJECT || (kept as OneRegisterInstruction).registerA != list) return@mapNotNull null
+        val step = code[i + 2]
+        if (step.opcode !in GOTOS || at[i + 2] + (step as OffsetInstruction).codeOffset > at[i]) return@mapNotNull null
+        val out = (0 until i).any { j ->
+            code[j].opcode in CONDITIONALS && at[j] + (code[j] as OffsetInstruction).codeOffset == at[i + 3]
+        }
+        if (out) SourcesDone(i + 3, list) else null
+    }
+    return found.singleOrNull()
+}
+
+/** Whether [classDef] is the "continue the story" card's bucket: a story bucket whose id falls back to [CREATE_CARD_BUCKET_ID]. */
+internal fun isCreateCardBucket(classDef: ClassDef): Boolean = classDef.superclass == STORY_BUCKET &&
+    classDef.methods.any {
+        it.name == "getId" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;" &&
+            it.implementation != null && holdsString(it, CREATE_CARD_BUCKET_ID)
+    }
+
+/**
+ * Where the runner comes out of its loop, its finished list goes through the extension and back
+ * through Guava's copyOf in its own register. The code goes in at that instruction's control flow
+ * label, so the loop's way out runs it.
+ */
+internal fun MutableMethod.dropCreateCardsAt(done: SourcesDone) {
+    val list = "v${done.register}"
+    addInstructionsAtControlFlowLabel(
+        done.at,
+        """
+            invoke-static/range { $list .. $list }, $WITHOUT_CREATE_CARDS
+            move-result-object $list
+            invoke-static/range { $list .. $list }, $LIST_COPY
+            move-result-object $list
+        """,
+    )
+}
+
+/**
+ * Takes the cards asking you to make a story out of the viewer's list once every source has had its
+ * turn (#521), whichever source or tray load put them there. The extension's question about a bucket
+ * is filled in first, with an instance-of on the card's class.
+ */
+internal fun BytecodePatchContext.dropCreateCardsFromViewerList() {
+    val runners = classDefByStrings(BUCKET_DATA_RUN, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
+    val runner = listRunner(runners) ?: refuse("expected one story list runner opening $BUCKET_DATA_RUN")
+    val done = sourcesDone(runner) ?: refuse("the story list runner doesn't hand its list round its sources in one loop")
+    if (done.register > 255) refuse("the story list runner keeps its list in v${done.register}, past what move-result-object reaches")
+    val cards = classDefByStrings(CREATE_CARD_BUCKET_ID, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }.filter(::isCreateCardBucket)
+    val card = cards.singleOrNull()
+        ?: refuse("expected one story bucket whose id falls back to $CREATE_CARD_BUCKET_ID, found ${cards.size}")
+    if (classDefByOrNull(IMMUTABLE_LIST)?.let(::definesImmutableCopy) != true) refuse("$IMMUTABLE_LIST has no copyOf(Collection)")
+
+    val question = mutableClassDefBy(STORY_VIEWER_CLEANUP).methods.singleOrNull {
+        it.name == "isCreateCard" && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" &&
+            it.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Object;")
+    } ?: refuse("the extension has no isCreateCard(Object)")
+    question.addInstructions(
+        0,
+        """
+            instance-of p0, p0, ${card.type}
+            return p0
+        """,
+    )
+
+    mutableClassDefBy(runner.definingClass).methods.single {
+        it.name == runner.name && it.returnType == runner.returnType &&
+            it.parameterTypes.map(CharSequence::toString) == runner.parameterTypes.map(CharSequence::toString)
+    }.dropCreateCardsAt(done)
+}
+
+/** The trace section the pager's base page positioner opens as it places a page: only that method names it (#521). */
+internal const val ITEM_POSITIONER = "BaseSimpleItemPositioner.positionItemAtOffset"
+
+internal const val CUBE_TURN = "$STORY_VIEWER_CLEANUP->cubeTurn(Landroid/view/View;F)V"
+
+private const val VIEW = "Landroid/view/View;"
+
+/**
+ * The base page positioner's placer in [classes]: the one void method taking a page, its pager, its
+ * offset and its position that opens [ITEM_POSITIONER]. Each positioner the pager can use overrides it.
+ */
+internal fun pagePlacer(classes: Iterable<ClassDef>): Method? = classes.flatMap { it.methods }.filter {
+    val types = it.parameterTypes.map(CharSequence::toString)
+    it.returnType == "V" && it.implementation != null && types.size == 4 && types[0] == VIEW &&
+        types[2] == "F" && types[3] == "I" && holdsString(it, ITEM_POSITIONER)
+}.singleOrNull()
+
+/** Whether [instruction] calls `View.[name](float)`. */
+private fun callsViewFloat(instruction: Instruction, name: String): Boolean {
+    if (instruction.opcode != Opcode.INVOKE_VIRTUAL && instruction.opcode != Opcode.INVOKE_VIRTUAL_RANGE) return false
+    val called = (instruction as ReferenceInstruction).reference as? MethodReference ?: return false
+    return called.definingClass == VIEW && called.name == name && called.returnType == "V" &&
+        called.parameterTypes.map(CharSequence::toString) == listOf("F")
+}
+
+/** Where [method] turns a page on its Y axis: the index of every `View.setRotationY` it calls. */
+internal fun cubeTurns(method: Method): List<Int> {
+    val code = method.implementation?.instructions?.toList() ?: return emptyList()
+    return code.indices.filter { callsViewFloat(code[it], "setRotationY") }
+}
+
+/**
+ * Whether [classDef] is the cube among the positioners overriding [placer]: its own placer sets the
+ * page's camera distance, which only a turn in 3D needs, and it turns pages on the Y axis.
+ */
+internal fun isCubePositioner(classDef: ClassDef, placer: Method): Boolean {
+    if (classDef.superclass != placer.definingClass) return false
+    val params = placer.parameterTypes.map(CharSequence::toString)
+    val places = classDef.methods.any { method ->
+        method.name == placer.name && method.parameterTypes.map(CharSequence::toString) == params &&
+            method.implementation?.instructions?.any { callsViewFloat(it, "setCameraDistance") } == true
+    }
+    return places && classDef.methods.any { cubeTurns(it).isNotEmpty() }
+}
+
+/** Sends the `View.setRotationY` at [index] to [CUBE_TURN] instead, with the same page and angle registers. */
+internal fun MutableMethod.turnThroughExtension(index: Int) {
+    val call = when (val turn = getInstruction(index)) {
+        is RegisterRangeInstruction -> {
+            if (turn.registerCount != 2) refuse("the story cube's turn at $index doesn't name a page and an angle")
+            "invoke-static/range { v${turn.startRegister} .. v${turn.startRegister + 1} }, $CUBE_TURN"
+        }
+        is FiveRegisterInstruction -> {
+            if (turn.registerCount != 2) refuse("the story cube's turn at $index doesn't name a page and an angle")
+            "invoke-static { v${turn.registerC}, v${turn.registerD} }, $CUBE_TURN"
+        }
+        else -> refuse("the story cube's turn at $index isn't a call")
+    }
+    replaceInstruction(index, call)
+}
+
+/**
+ * Hands each turn the stories pager's cube positioner gives a page to the extension (#521), which
+ * keeps it square to the screen with the flat slide switch on. How far a page slides, its pivot and
+ * when it shows stay Facebook's, so a page that doesn't turn just slides.
+ */
+internal fun BytecodePatchContext.flattenStoryCube() {
+    val holders = classDefByStrings(ITEM_POSITIONER, StringComparisonType.EQUALS)
+        .filterNot { it.type.startsWith(EXTENSION_PACKAGE) }.distinctBy { it.type }
+    val placer = pagePlacer(holders) ?: refuse("expected one page positioner opening $ITEM_POSITIONER")
+    val found = mutableSetOf<String>()
+    classDefForEachReferencing(types = listOf(placer.definingClass)) { classDef ->
+        if (isCubePositioner(classDef, placer)) found += classDef.type
+    }
+    val cube = found.singleOrNull()
+        ?: refuse("expected one positioner under ${placer.definingClass} turning its pages like a cube, found ${found.size}")
+    mutableClassDefBy(cube).methods.forEach { method ->
+        cubeTurns(method).forEach { method.turnThroughExtension(it) }
+    }
 }

@@ -9,7 +9,9 @@ package app.morphe.extension.facebook.settings;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.backgroundSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInWaitSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.cleanReturnSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.foldLinesSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.videoBufferSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.holdReactionSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.reelDateStyleSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.commentsHeightSummary;
@@ -33,6 +35,7 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.textSizeSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.refreshRateSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.newRowMarkSummary;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.headerFontSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.quietHourLabel;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.saveStorageSummary;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.saveToSummary;
@@ -76,6 +79,7 @@ import app.morphe.extension.facebook.comments.CommentOrder;
 import app.morphe.extension.facebook.comments.CommentsHeight;
 import app.morphe.extension.facebook.reels.BurnInMode;
 import app.morphe.extension.facebook.reels.BurnInWait;
+import app.morphe.extension.facebook.reels.CleanReturn;
 import app.morphe.extension.facebook.reels.HoldReaction;
 import app.morphe.extension.facebook.reels.ReelDateStyle;
 import app.morphe.extension.facebook.reels.ReelsOrder;
@@ -90,6 +94,7 @@ import app.morphe.extension.facebook.feed.PostWords;
 import app.morphe.extension.facebook.feed.ReactionCeiling;
 import app.morphe.extension.facebook.feed.TopicPacks;
 import app.morphe.extension.facebook.feed.SeenPosts;
+import app.morphe.extension.facebook.media.BufferSize;
 import app.morphe.extension.facebook.media.PlaybackQuality;
 import app.morphe.extension.facebook.media.RecentlyWatched;
 import app.morphe.extension.facebook.media.SurfaceQuality;
@@ -1059,6 +1064,34 @@ final class ValueRows {
         }
     }
 
+    /** The In-app proxy row (#504). Its summary follows its text, whoever sets it. */
+    static final class ProxyRow extends EditTextPreference {
+        ProxyRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(HushfacebookPreferenceFragment.proxySummary(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            fitAboveKeyboard(getDialog());
+        }
+    }
+
     /** What a percent row says for the digits typed there. */
     interface PercentSummary {
         String of(String text);
@@ -1660,6 +1693,45 @@ final class ValueRows {
     }
 
     /**
+     * The Back to Clean mode row (#519). Its summary follows its value, whoever sets it: the person
+     * or an import.
+     */
+    static final class CleanReturnRow extends PlainSummaryList {
+        CleanReturnRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            CleanReturn choice = CleanReturn.OFF;
+            for (CleanReturn candidate : CleanReturn.values()) {
+                if (candidate.name().equals(getValue())) choice = candidate;
+            }
+            setSummary(cleanReturnSummary(choice));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
      * Fold long posts or Fold long comments (#497). Its summary follows its value, as Reaction's
      * does.
      */
@@ -1683,6 +1755,42 @@ final class ValueRows {
                 if (candidate.name().equals(getValue())) lines = candidate;
             }
             setSummary(foldLinesSummary(lines, comments));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** Video buffer (#526). Its summary follows its value, as Fold long posts' does. */
+    static final class VideoBufferRow extends PlainSummaryList {
+        VideoBufferRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            BufferSize size = BufferSize.FACEBOOK;
+            for (BufferSize candidate : BufferSize.values()) {
+                if (candidate.name().equals(getValue())) size = candidate;
+            }
+            setSummary(videoBufferSummary(size));
         }
 
         @Override
@@ -1830,6 +1938,45 @@ final class ValueRows {
                 if (candidate.name().equals(getValue())) mark = candidate;
             }
             setSummary(newRowMarkSummary(mark));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /**
+     * The Header text font row (#532). Its summary follows its value, whoever sets it: the person or
+     * an import.
+     */
+    static final class HeaderFontRow extends PlainSummaryList {
+        HeaderFontRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            HeaderFont font = HeaderFont.BOLD;
+            for (HeaderFont candidate : HeaderFont.values()) {
+                if (candidate.name().equals(getValue())) font = candidate;
+            }
+            setSummary(headerFontSummary(font));
         }
 
         @Override

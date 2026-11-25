@@ -10,7 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.facebook.comments.summaries.descriptor
@@ -33,6 +33,7 @@ import app.morphe.patches.facebook.misc.extension.requireThisIntact
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
+import app.morphe.util.executeBytecode
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -67,6 +68,14 @@ internal const val UNIT_NOT_MEASURED = "unit_view_not_measured"
 
 /** The reason the two watch-and-comment launchers log when they don't open the split screen. */
 internal const val NOT_ENTERED = "split_screen_not_entered"
+
+/** The kept launcher of Facebook's video split screen, which shrinks a reel into the top of the screen above the comments. */
+internal const val VIDEO_SPLIT_SCREEN = "Lcom/facebook/video/platform/splitscreen/launcher/SplitScreenLauncher;"
+
+/** The kept base of what [VIDEO_SPLIT_SCREEN] shows under the video, the comments among them. */
+internal const val SPLIT_SCREEN_VIEW = "Lcom/facebook/video/platform/splitscreen/viewprovider/BaseSplitScreenViewProvider;"
+
+private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 
 private const val INTENT = "Landroid/content/Intent;"
 
@@ -136,6 +145,13 @@ private const val INT_VALUE = "Ljava/lang/Number;->intValue()I"
  * `LX/0gHt;->A00` and `LX/0grM;->A00`), and two as the boolean methods holding [NOT_ENTERED] (583 `LX/Xv4;->A00`,
  * `LX/Xys;->A01`; 587 asks a string table for it). First thing in each, the extension is asked, and a yes answers false.
  *
+ * When those say no, the Reels tab's button (587 `LX/0CPs;->A00`) tries a sixth, [VIDEO_SPLIT_SCREEN]'s
+ * opener (587 arm64 `A0f`, x86_64 `A0g`), before the regular sheet. It shrinks the reel into the top of
+ * the screen and opens the comments under it, and a full-height sheet then covers the shrunken reel a
+ * moment later (#501). It's the one instance boolean method of that class taking a [SPLIT_SCREEN_VIEW]
+ * and a Function0, and all six of its callers open the regular sheet (`LX/0OoH;->A01`) on a no or
+ * hand the no back to a caller that does. It's hooked the same way as the five.
+ *
  * A tap on a feed video reel's description (585 `LX/0dPx;->A00`, the click handler of
  * `FbShortsViewerDescriptionComponentSpec`) reads a server gate, and when it's open tries the split
  * screen through one of those launchers (585 `LX/0cvi;->A00`, "mfc_caption"). A no there opens the
@@ -185,7 +201,7 @@ private const val INT_VALUE = "Ljava/lang/Number;->intValue()I"
  * In the default selection with its switches off, so nothing changes until one is turned on.
  */
 @Suppress("unused")
-val fullHeightCommentsPatch = bytecodePatch(
+val fullHeightCommentsPatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "Open comments at full height",
     description = "Opens the comment sheet at full or half height instead of part way up. Full height fills the " +
@@ -199,7 +215,7 @@ val fullHeightCommentsPatch = bytecodePatch(
     dependsOn(settingsPatch, facebookExtensionPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         // Everything is found before anything changes, so a build missing one part is left as it was.
         requireStatusMethod("fullHeightComments")
         val params = classDefByOrNull(POPOVER_PARAMS) ?: refuse("$POPOVER_PARAMS isn't in this build")
@@ -208,13 +224,14 @@ val fullHeightCommentsPatch = bytecodePatch(
         val launchers = splitScreenLaunchers(
             (footerNamers() + holders(UNIT_NOT_MEASURED)).distinctBy { it.type },
             notEnteredNamers(),
-        )
+        ) + videoSplitScreenOpener(classDefByOrNull(VIDEO_SPLIT_SCREEN) ?: refuse("$VIDEO_SPLIT_SCREEN isn't in this build"))
         val popover = classDefByOrNull(SIMPLE_POPOVER) ?: refuse("$SIMPLE_POPOVER isn't in this build")
         val ufiPopover = classDefByOrNull(UFI_POPOVER) ?: refuse("$UFI_POPOVER isn't in this build")
         val fills = fillsScreenSite(popover, ufiPopover)
         val share = shareField(fills.method)
-        val views = commentViewsSetup(holders(SET_COMMENT_VIEWS))
-        val header = headerId(views)
+        val viewHolders = holders(SET_COMMENT_VIEWS)
+        val views = commentViewsSetup(viewHolders)
+        val header = headerId(views, viewHolders.filter { it.type == views.definingClass }.flatMap { it.methods })
         val feedbackParams = classDefByOrNull(FEEDBACK_PARAMS) ?: refuse("$FEEDBACK_PARAMS isn't in this build")
         val watchAndComment = watchAndCommentField(feedbackParams)
         val tapThrough = tapThroughSite(listOf(popover, ufiPopover))
@@ -316,6 +333,25 @@ internal fun splitScreenLaunchers(factoryHolders: List<ClassDef>, notEntered: Li
         if (launcher.localRegisterCount() < 1) refuse("${launcher.descriptor()} has no local register for the hook")
     }
     return launchers
+}
+
+/**
+ * [VIDEO_SPLIT_SCREEN]'s opener in [launcher]: its one instance method answering a boolean that takes a
+ * [SPLIT_SCREEN_VIEW] and a Function0. It needs a local register for the hook.
+ */
+internal fun videoSplitScreenOpener(launcher: ClassDef): Method {
+    val openers = launcher.methods.filter { method ->
+        val types = method.parameterTypes.map(CharSequence::toString)
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" && method.implementation != null &&
+            SPLIT_SCREEN_VIEW in types && FUNCTION0 in types
+    }
+    val opener = openers.singleOrNull()
+        ?: refuse(
+            "expected one instance boolean method of $VIDEO_SPLIT_SCREEN taking $SPLIT_SCREEN_VIEW and $FUNCTION0, " +
+                "found ${openers.size}: ${openers.joinToString { it.descriptor() }}",
+        )
+    if (opener.localRegisterCount() < 1) refuse("${opener.descriptor()} has no local register for the hook")
+    return opener
 }
 
 /**
@@ -497,12 +533,54 @@ private val STRINGS = setOf(Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO)
 /**
  * The id of the sheet's header: the literal [setup] loads right before its first [FIND_VIEW] call,
  * into that call's id register, the call made on [setup]'s first parameter.
+ *
+ * 588's Android 9+ build (#102, read 2026-11-19) moves each view lookup out to a private method of
+ * the setup's class taking only a view, which the setup hands its first parameter before anything
+ * writes it (`LX/0DsM;->A02(View)V` finds the header with [FIND_VIEW], `A01(View)V` the next view
+ * with requireViewById). With no [FIND_VIEW] call of its own, the header is read the same way from
+ * the one such method among [siblings] that makes one, on that method's own parameter.
  */
-internal fun headerId(setup: Method): Int {
+internal fun headerId(setup: Method, siblings: Iterable<Method> = emptyList()): Int {
     val instructions = setup.implementation!!.instructions.toList()
-    val at = instructions.indexOfFirst {
-        it.opcode == Opcode.INVOKE_VIRTUAL && (it as ReferenceInstruction).reference.toString() == FIND_VIEW
+    if (instructions.none { it.findsView() }) {
+        val lookups = instructions.indices.mapNotNull { at ->
+            outlinedLookup(setup, instructions[at], siblings)?.let { at to it }
+        }
+        val (at, lookup) = lookups.singleOrNull()
+            ?: refuse("${setup.descriptor()} makes no $FIND_VIEW call after loading an id, and hands its first parameter to ${lookups.size} private view lookups making one")
+        setup.requireParameterIntact("$PATCH: ${setup.descriptor()}'s header lookup", 0, listOf(at))
+        return findViewId(lookup)
     }
+    return findViewId(setup)
+}
+
+private fun Instruction.findsView() =
+    opcode == Opcode.INVOKE_VIRTUAL && (this as ReferenceInstruction).reference.toString() == FIND_VIEW
+
+/**
+ * The private (View)V method of [siblings] that [instruction] calls on [setup]'s `this` and first
+ * parameter alone, when it makes a [FIND_VIEW] call.
+ */
+private fun outlinedLookup(setup: Method, instruction: Instruction, siblings: Iterable<Method>): Method? {
+    if (instruction.opcode != Opcode.INVOKE_DIRECT) return null
+    val call = instruction as FiveRegisterInstruction
+    val ref = (instruction as ReferenceInstruction).reference as? MethodReference ?: return null
+    if (ref.definingClass != setup.definingClass || ref.returnType != "V") return null
+    if (ref.parameterTypes.map(CharSequence::toString) != listOf(VIEW)) return null
+    if (call.registerCount != 2 || call.registerC != setup.localRegisterCount() || call.registerD != setup.parameterRegisterNumber(0)) return null
+    val helper = siblings.singleOrNull { method ->
+        method.definingClass == ref.definingClass && method.name == ref.name && method.returnType == ref.returnType &&
+            method.parameterTypes.map(CharSequence::toString) == listOf(VIEW)
+    } ?: return null
+    if (!AccessFlags.PRIVATE.isSet(helper.accessFlags) || AccessFlags.STATIC.isSet(helper.accessFlags)) return null
+    val body = helper.implementation?.instructions?.toList() ?: return null
+    return helper.takeIf { body.any { it.findsView() } }
+}
+
+/** The literal [method] loads right before its first [FIND_VIEW] call, made on its first parameter. */
+private fun findViewId(setup: Method): Int {
+    val instructions = setup.implementation!!.instructions.toList()
+    val at = instructions.indexOfFirst { it.findsView() }
     if (at < 1) refuse("${setup.descriptor()} makes no $FIND_VIEW call after loading an id")
     val call = instructions[at] as FiveRegisterInstruction
     val views = setup.implementation!!.registerCount - setup.parameterTypes.sumOf { width(it.toString()) }

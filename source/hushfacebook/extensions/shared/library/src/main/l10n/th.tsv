@@ -86,7 +86,7 @@ The settings file was saved, but it doesn't match what Hushfacebook wrote. Save 
 There's no app here that can open or share this saved file.	ไม่มีแอปที่สามารถเปิดหรือแชร์ไฟล์ที่บันทึกไว้นี้ได้
 # context: line at the top of a settings page while paused; Lock Facebook keeps working while paused
 Until you resume, every switch but Debug logging and Lock Facebook acts as if it were off. Changes made when you patched stay in.	จนกว่าคุณจะดำเนินการต่อ สวิตช์ทุกตัวยกเว้น "การบันทึกข้อมูลดีบัก" และ "ล็อก Facebook" จะทำงานเสมือนปิดอยู่ สิ่งที่เปลี่ยนแปลงตอนแพตช์จะยังคงมีผล
-Shows your phone's own emoji instead of Facebook's. Reactions and stickers don't change. Restart Facebook to see the change.	แสดงอิโมจิของโทรศัพท์คุณเองแทนอิโมจิของ Facebook โดยความรู้สึกและสติกเกอร์จะไม่เปลี่ยนแปลง เริ่มต้น Facebook ใหม่อีกครั้งเพื่อดูการเปลี่ยนแปลง
+Shows your phone's own emoji instead of Facebook's, or the ones in a font file you choose below. Reactions and stickers don't change. Restart Facebook to see the change.	แสดงอิโมจิของโทรศัพท์คุณเองแทนอิโมจิของ Facebook หรืออิโมจิจากไฟล์ฟอนต์ที่คุณเลือกด้านล่าง โดยความรู้สึกและสติกเกอร์จะไม่เปลี่ยนแปลง เริ่มต้น Facebook ใหม่อีกครั้งเพื่อดูการเปลี่ยนแปลง
 # context: switch title under Appearance; the tab bar is Facebook's row of tabs, Home, Video, Marketplace and the rest
 Tab bar at the bottom	แถบแท็บที่ด้านล่าง
 # context: switch title under Appearance, next to Tab bar at the bottom; puts Facebook's row of tabs at the top of the screen
@@ -447,7 +447,7 @@ Playback	การเล่น
 # context: switch title; on, videos and music wait for a tap before they play
 Tap to play	แตะเพื่อเล่น
 # context: summary of that switch; Autoplay and Off are the name and value of Facebook's own setting, as Facebook shows them in this language
-Videos, reels, stories and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	วิดีโอ คลิป Reels สตอรี่ และเพลงจะรอให้คุณแตะก่อนแทนที่จะเล่นโดยอัตโนมัติ การตั้งค่า "เล่นอัตโนมัติ" ของ Facebook เองจะแสดงเป็น "ปิด" ในขณะที่เปิดใช้ฟีเจอร์นี้
+Videos, reels and music wait for your tap instead of playing by themselves. Facebook's own Autoplay setting shows Off while this is on.	วิดีโอ คลิป Reels และเพลงจะรอให้คุณแตะก่อนแทนที่จะเล่นโดยอัตโนมัติ การตั้งค่า "เล่นอัตโนมัติ" ของ Facebook เองจะแสดงเป็น "ปิด" ในขณะที่เปิดใช้ฟีเจอร์นี้
 # context: switch title under Opening Facebook; Marketplace is Facebook's tab and keeps its name
 Marketplace only	เฉพาะ Marketplace
 # context: switch title under Opening Facebook, next to Marketplace only; Events is Facebook's tab and keeps its name
@@ -515,6 +515,10 @@ The comment box loses its GIF and sticker buttons. Typing, photos and posting wo
 # context: switch title under Comments: hides the Add a comment field at the bottom of the full-screen video viewer
 Hide the video comment box	ซ่อนกล่องความคิดเห็นของวิดีโอ
 The Add a comment box under a full-screen video goes away. Comment boxes on posts stay.	กล่องเขียนความคิดเห็นใต้ฟูลสกรีนวิดีโอจะหายไป แต่กล่องความคิดเห็นในโพสต์จะยังคงอยู่
+# context: switch title under Comments; the bar along the bottom of a live video holds its comment box and the reactions you tap to send
+Hide the live video comment bar	ซ่อนแถบความคิดเห็นของวิดีโอถ่ายทอดสด
+# context: description of that switch; the reactions are the Like, Love, Haha and other faces a tap sends to the live video
+The comment box and the row of reactions along the bottom of a live video go away, so a stray tap can't send one. The live comments stay.	กล่องความคิดเห็นและแถวความรู้สึกที่ด้านล่างของวิดีโอถ่ายทอดสดจะหายไป เพื่อไม่ให้การแตะโดยไม่ตั้งใจส่งความรู้สึกออกไป ความคิดเห็นในไลฟ์ยังอยู่
 # context: switch title under Comments; a reply thread is the replies under a comment, which Facebook folds behind View replies
 Open every reply thread	เปิดทุกเธรดการตอบกลับ
 # context: summary of that switch; View replies is the link Facebook shows under a comment that has replies
@@ -588,6 +592,10 @@ Hide Share under posts	ซ่อน "แชร์" ใต้โพสต์
 Hide Send under posts	ซ่อน "ส่ง" ใต้โพสต์
 # context: summary shared by those five switches
 Takes this button out of the row under posts in the feed. The other buttons stay, and a post with all of its buttons hidden shows no row.	นำปุ่มนี้ออกจากแถวใต้โพสต์ในฟีด ปุ่มอื่นๆ จะยังคงอยู่ และโพสต์ที่ซ่อนปุ่มทั้งหมดจะไม่แสดงแถวปุ่ม
+# context: switch title under News feed; the buttons are Like, Comment, Share and the others in the row under a post
+Ignore taps beside the buttons	ไม่สนใจการแตะข้างปุ่ม
+# context: description of that switch; the reaction icons are the small stacked emoji at the end of that row, and who reacted is the list of people who reacted
+A tap on the empty part of the row under a post, between the buttons and the reaction icons, does nothing instead of opening the comments or who reacted. The buttons work as before.	การแตะส่วนที่ว่างของแถวใต้โพสต์ ระหว่างปุ่มกับไอคอนแสดงความรู้สึก จะไม่ทำอะไรเลยแทนการเปิดความคิดเห็นหรือรายชื่อผู้แสดงความรู้สึก ปุ่มต่าง ๆ ยังทำงานเหมือนเดิม
 # context: what stays in while Hushfacebook is paused, followed by the patch name in brackets; the row in Facebook's own Menu that opens Hushfacebook settings
 # context: a short message when the Hushfacebook row in Facebook's Menu couldn't open the settings
 Hushfacebook settings can't open here. Long-press the Facebook logo instead.	ไม่สามารถเปิดการตั้งค่า Hushfacebook ได้จากที่นี่ ให้แตะโลโก้ Facebook ค้างไว้แทน
@@ -1358,6 +1366,8 @@ Save photo	บันทึกรูปภาพ
 Save video	บันทึกวิดีโอ
 # context: menu item in a post's three-dot menu that saves every photo of a post with several photos
 Save all photos	บันทึกรูปภาพทั้งหมด
+# context: menu item in a post's three-dot menu that saves every video of a post with several videos
+Save all videos	บันทึกวิดีโอทั้งหมด
 # context: short message shown when the photos of a post could not start saving
 Couldn't save this post's photos. Try again in a moment.	ไม่สามารถบันทึกรูปภาพของโพสต์นี้ได้ โปรดลองอีกครั้งในอีกสักครู่
 # context: row in a comment's long-press sheet that saves the GIF the comment holds; keep it short like Save photo
@@ -1658,7 +1668,7 @@ Facebook hasn't downloaded this screen to this phone, so a tap opens the Whiteha
 # context: toast when the Facebook version has no such screen
 This Facebook build has no Whitehat settings screen.	เวอร์ชันบิลด์ของ Facebook นี้ไม่มีหน้าจอการตั้งค่า Whitehat
 Only the first reel waits	เฉพาะ Reel แรกเท่านั้นที่จะหยุดรอ
-With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed, Watch and stories always wait.	เมื่อเปิดสวิตช์ด้านบน หลังจากที่คุณเล่น Reel หนึ่งคลิป คลิป Reels ที่คุณปัดไปจะเล่นเองโดยอัตโนมัติ ทั้งนี้ฟีด Watch และสตอรี่จะหยุดรอเสมอ
+With the switch above on, after you play one reel, the reels you swipe to play on their own. The feed and Watch always wait.	เมื่อเปิดสวิตช์ด้านบน หลังจากที่คุณเล่น Reel หนึ่งคลิป คลิป Reels ที่คุณปัดไปจะเล่นเองโดยอัตโนมัติ ทั้งนี้ฟีดและ Watch จะหยุดรอเสมอ
 Slower speeds	ความเร็วที่ช้าลง
 Adds 0.1x and 0.25x to the speed menu of reels and of feed and Watch videos, for slowing down a fast moment.	เพิ่ม 0.1x และ 0.25x ในเมนูความเร็วของ Reels รวมถึงวิดีโอในฟีดและ Watch เพื่อให้เล่นช่วงเวลาที่รวดเร็วได้ช้าลง
 Faster speeds	ความเร็วที่เร็วขึ้น
@@ -1849,8 +1859,10 @@ Picture-in-picture button	ปุ่มการแสดงภาพซ้อน
 Shows a small button at the left edge of a reel or video that has the window ready. Tap it to open the window right away. Works with Picture-in-picture on.	แสดงปุ่มเล็กๆ ที่ขอบซ้ายของ Reel หรือวิดีโอที่มีหน้าต่างพร้อมใช้งาน แตะเพื่อเปิดหน้าต่างทันที ใช้งานได้เมื่อเปิด "การแสดงภาพซ้อนภาพ"
 # context: switch title under Playback; on, a video you started keeps its sound after you leave Facebook; also the label of a headphones button in the picture-in-picture window
 Keep playing in the background	เล่นต่อในเบื้องหลัง
+Next reel in the background	Reel ถัดไปในเบื้องหลัง
+When a reel playing in the background ends, the next reel plays instead of the same one again. It goes through the reels Reels had loaded when you left. Works with Keep playing in the background on.	เมื่อ Reel ที่เล่นในเบื้องหลังจบ Reel ถัดไปจะเล่นแทนการเล่นซ้ำ Reel เดิม โดยจะเล่นไปตาม Reel ที่ Reels โหลดไว้ตอนที่คุณออก ใช้งานได้เมื่อเปิด "เล่นต่อในเบื้องหลัง"
 # context: summary of that switch; the notification is the one Facebook shows with the video's play and pause buttons
-A video you started with a tap keeps its sound after you leave Facebook, and its notification can pause it. Swiping the notification away or taking a call stops it.	วิดีโอที่คุณแตะเพื่อเริ่มเล่นจะยังคงมีเสียงหลังจากคุณออกจาก Facebook และสามารถหยุดชั่วคราวได้จากการแจ้งเตือนของวิดีโอนั้น การปัดการแจ้งเตือนทิ้งหรือการรับสายจะหยุดการเล่น
+A video you started with a tap, or a reel you swiped to in Reels, keeps its sound after you leave Facebook, and its notification can pause it. Swiping the notification away or taking a call stops it.	วิดีโอที่คุณแตะเพื่อเริ่มเล่น หรือรีลที่คุณปัดไปถึงใน Reels จะยังคงมีเสียงหลังจากคุณออกจาก Facebook และสามารถหยุดชั่วคราวได้จากการแจ้งเตือนของวิดีโอนั้น การปัดการแจ้งเตือนทิ้งหรือการรับสายจะหยุดการเล่น
 # context: title of that notification when the video has none of its own
 Facebook video	วิดีโอ Facebook
 # context: switch title under Playback; on, the small picture-in-picture window gets a headphones button that keeps the sound playing after the window closes
@@ -1960,6 +1972,10 @@ Puts the speaker button in the side column of reels, right above the three dots.
 Hide the reaction preview on posts	ซ่อนการแสดงตัวอย่างความรู้สึกบนโพสต์
 # context: summary of that switch; "reactions" are Facebook's Like, Love, Haha and other reactions
 Hides the stacked reaction icons and the reactions count under posts. The space stays, so a tap where they were still opens the list of reactions. To take the number off the Like button too, turn on Hide counts on posts.	ซ่อนไอคอนความรู้สึกที่ซ้อนกันและจำนวนความรู้สึกใต้โพสต์ โดยพื้นที่ว่างจะยังคงอยู่ ดังนั้นการแตะบริเวณนั้นจะยังคงเปิดรายการความรู้สึก หากต้องการนำตัวเลขออกจากปุ่ม "ถูกใจ" ด้วย ให้เปิด "ซ่อนจำนวนบนโพสต์"
+# context: switch title under News feed; the reactions are the small stacked reaction icons (Like, Love, Haha) a post shows next to its count; the Like button is the button under a post, use Facebook's name for it
+Show reactions on the Like button	แสดงความรู้สึกบนปุ่มถูกใจ
+# context: summary of that switch; the faces are those reaction icons; "Hide the reaction preview on posts" is another switch, match its own row
+Moves a post's reaction faces from the end of its button row onto the Like button, right before the count. The Like button likes and reacts as before. A video showing its views there gets one Like face, or your own reaction once you react. Hide the reaction preview on posts overrules it. A change shows on the posts drawn after it.	ย้ายไอคอนความรู้สึกของโพสต์จากท้ายแถวปุ่มไปไว้บนปุ่ม "ถูกใจ" ก่อนตัวเลขพอดี ปุ่ม "ถูกใจ" ยังกดถูกใจและแสดงความรู้สึกได้เหมือนเดิม วิดีโอที่แสดงยอดการดูตรงนั้นจะได้ไอคอนถูกใจหนึ่งอัน หรือความรู้สึกของคุณเองเมื่อคุณแสดงความรู้สึก "ซ่อนการแสดงตัวอย่างความรู้สึกบนโพสต์" มีผลเหนือกว่า การเปลี่ยนแปลงจะเห็นได้ในโพสต์ที่แสดงหลังจากนั้น
 # context: switch title under Comments; the reaction preview is the stack of reaction icons in the corner of a comment
 Hide the reaction preview on comments	ซ่อนการแสดงตัวอย่างความรู้สึกในความคิดเห็น
 # context: summary of that switch; "reactions" are Facebook's Like, Love, Haha and other reactions
@@ -2060,6 +2076,8 @@ Comments will open where Facebook stops them.	ความคิดเห็น�
 Hide the status bar	ซ่อนแถบสถานะ
 # context: summary of that switch; a swipe down from the top edge shows the bar briefly
 Takes the phone's status bar, with the time and battery, off Facebook's main screen, so the app gets the whole screen. Swipe down from the top edge to see it for a moment.	นำแถบสถานะของโทรศัพท์ที่มีเวลาและแบตเตอรี่ออกจากหน้าจอหลักของ Facebook เพื่อให้แอปใช้พื้นที่ได้เต็มหน้าจอ ปัดลงจากขอบด้านบนเพื่อดูแถบสถานะชั่วคราว
+Center the feed on big screens	จัดฟีดไว้ตรงกลางบนหน้าจอขนาดใหญ่
+On a tablet or an unfolded phone, the feed and Facebook's other lists stay in a column down the middle of the screen instead of stretching from edge to edge. Reels keep the whole screen.	บนแท็บเล็ตหรือโทรศัพท์แบบพับที่กางออก ฟีดและรายการอื่นๆ ของ Facebook จะอยู่ในคอลัมน์ตรงกลางหน้าจอ แทนที่จะยืดจากขอบหนึ่งไปอีกขอบหนึ่ง ส่วน Reels ยังคงใช้เต็มหน้าจอ
 # context: switch title under Reels and Watch; on, a video tapped in the news feed opens alone in the full-screen player instead of leading into endless reels
 Open feed videos on their own	เปิดวิดีโอในฟีดแยกเดี่ยว
 # context: summary of that switch; the Reels tab itself still scrolls normally
@@ -2346,7 +2364,11 @@ Moves a feed video's seek bar closer to the bottom edge, along with Facebook's s
 Seek bar on the bottom edge	แถบเลื่อนที่ขอบด้านล่าง
 Puts a feed video's seek bar right on its bottom edge, so it's out of the way while you scroll. Facebook's speaker and tagged people buttons move up to sit above it. Wins over Lower the seek bar and speaker. Needs Seek bar on feed videos on.	ย้ายแถบเลื่อนของวิดีโอบนฟีดไปไว้ที่ขอบด้านล่างพอดี เพื่อไม่ให้เกะกะขณะที่คุณเลื่อนดู ปุ่มลำโพงและปุ่มแท็กบุคคลของ Facebook จะเลื่อนขึ้นไปอยู่เหนือแถบเลื่อน การตั้งค่านี้มีผลเหนือกว่า "ลดระดับแถบเลื่อนและลำโพงลง" จำเป็นต้องเปิด "แถบเลื่อนในวิดีโอบนฟีด"
 Thin line seek bar	แถบเลื่อนแบบเส้นบาง
-Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot or times until you drag it. Live videos get it too while they can be rewound. Let go at the far right end to go back to live. Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.	แสดงแถบเลื่อนของวิดีโอบนฟีดเป็นเส้นบางที่ขอบด้านล่างพอดี แบบเดียวกับใน Instagram โดยไม่มีจุดหรือเวลาจนกว่าคุณจะลาก วิดีโอถ่ายทอดสดก็จะมีเส้นนี้ด้วยขณะที่ยังย้อนกลับได้ ปล่อยที่ด้านขวาสุดเพื่อกลับไปที่การถ่ายทอดสด ปุ่มลำโพงและปุ่มแท็กบุคคลของ Facebook จะเลื่อนขึ้นไปอยู่เหนือแถบเลื่อน จำเป็นต้องเปิด "แถบเลื่อนในวิดีโอบนฟีด"
+# context: switch title on the Video and audio page, under Thin line seek bar; while the thin seek bar of a feed video is dragged it stays on the video's bottom edge
+Drag along the bottom edge	ลากไปตามขอบด้านล่าง
+# context: description of that switch; Thin line seek bar is the switch title above it, keep it as translated there
+While you drag the thin line, it stays on the video's bottom edge like Instagram's, with the time in the middle, instead of rising into the full bar with a time bubble. Needs Thin line seek bar on.	ขณะที่คุณลากเส้นบาง เส้นจะอยู่ที่ขอบด้านล่างของวิดีโอแบบเดียวกับใน Instagram โดยแสดงเวลาไว้ตรงกลาง แทนที่จะยกขึ้นเป็นแถบเต็มพร้อมป้ายเวลา จำเป็นต้องเปิด "แถบเลื่อนแบบเส้นบาง"
+Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot until you drag it. Live videos get it too while they can be rewound. Let go at the far right end to go back to live. Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.	แสดงแถบเลื่อนของวิดีโอบนฟีดเป็นเส้นบางที่ขอบด้านล่างพอดี แบบเดียวกับใน Instagram โดยไม่มีจุดจนกว่าคุณจะลาก วิดีโอถ่ายทอดสดก็จะมีเส้นนี้ด้วยขณะที่ยังย้อนกลับได้ ปล่อยที่ด้านขวาสุดเพื่อกลับไปที่การถ่ายทอดสด ปุ่มลำโพงและปุ่มแท็กบุคคลของ Facebook จะเลื่อนขึ้นไปอยู่เหนือแถบเลื่อน จำเป็นต้องเปิด "แถบเลื่อนในวิดีโอบนฟีด"
 Feed video position	ตำแหน่งวิดีโอบนฟีด
 # context: title of the row that holds a color code for the count badges on the tabs
 Badge color	สีของป้าย
@@ -2404,6 +2426,7 @@ Holding a post's photo opens its reactions, as holding Like does. It comes befor
 Holding a post's video opens its reactions too. It comes before Long press opens comments. With Hold a feed video for 2x on, that one wins and the video plays fast.	การแตะวิดีโอของโพสต์ค้างไว้ก็จะเปิดความรู้สึกขึ้นมาเช่นกัน การตั้งค่านี้จะมีผลก่อน "แตะค้างไว้เพื่อเปิดความคิดเห็น" ถ้าเปิด "แตะค้างที่วิดีโอในฟีดเพื่อเล่น 2x" ไว้ สวิตช์นั้นจะมีผลแทนและวิดีโอจะเล่นเร็วขึ้น
 Reaction	ความรู้สึก
 Pick one each time	เลือกทุกครั้ง
+Slide to pick one	เลื่อนเพื่อเลือก
 Like	ถูกใจ
 Love	รักเลย
 Care	ห่วงใย
@@ -2411,9 +2434,11 @@ Haha	ฮ่าๆ
 Wow	ว้าว
 Sad	เศร้า
 Angry	โกรธ
-Pick one each time. The reactions open over the post, so slide to one and let go, or let go and tap one.	เลือกทุกครั้ง ความรู้สึกจะเปิดขึ้นเหนือโพสต์ ให้เลื่อนนิ้วไปที่ความรู้สึกที่ต้องการแล้วปล่อย หรือปล่อยนิ้วแล้วแตะเลือก
+Pick one each time. The reactions open by your finger, so slide to one and let go, or let go and tap one. A tap anywhere else closes them.	เลือกทุกครั้ง ความรู้สึกจะเปิดขึ้นข้างนิ้วของคุณ ให้เลื่อนนิ้วไปที่ความรู้สึกที่ต้องการแล้วปล่อย หรือปล่อยนิ้วแล้วแตะเลือก แตะที่อื่นเพื่อปิด
+Slide to pick one. The reactions open by your finger, so slide to one and let go. Letting go anywhere else closes them.	เลื่อนเพื่อเลือก ความรู้สึกจะเปิดขึ้นข้างนิ้วของคุณ ให้เลื่อนนิ้วไปที่ความรู้สึกที่ต้องการแล้วปล่อย ปล่อยนิ้วที่อื่นเพื่อปิด
 %1$s. Holding a post gives it straight away.	%1$s การแตะโพสต์ค้างไว้จะใส่ความรู้สึกนี้ทันที
 Holding a post to react will open the reactions to pick from.	การแตะโพสต์ค้างไว้เพื่อแสดงความรู้สึกจะเปิดความรู้สึกขึ้นมาให้เลือก
+Holding a post to react will open the reactions to slide to one.	การแตะโพสต์ค้างไว้เพื่อแสดงความรู้สึกจะเปิดความรู้สึกให้เลื่อนนิ้วไปเลือก
 Holding a post to react will give %1$s.	การแตะโพสต์ค้างไว้เพื่อแสดงความรู้สึกจะใส่ความรู้สึก %1$s
 Select text	เลือกข้อความ
 Done	เรียบร้อย
@@ -2615,6 +2640,14 @@ After %1$d seconds	หลังจาก %1$d วินาที
 # context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap
 Stay dim when I tap	คงความหรี่แสงไว้เมื่อฉันแตะ
 Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	เมื่อการป้องกันหน้าจอเบิร์นทำให้ปุ่มจางลงแล้ว ปุ่มจะยังคงจางอยู่บน Reels ไม่ว่าคุณจะแตะหรือปัด รวมถึงใน Reel ถัดไปด้วย ปุ่มยังคงทำงานได้ตามปกติ การออกจาก Reels จะเรียกปุ่มกลับมา
+# context: Reels: Burn-in guard's row for how much of the dimmed buttons, caption and bars still shows, a percent typed in
+Dim to	หรี่แสงเหลือ
+How much of the buttons, caption and bars still shows once they dim, in percent, from %1$s to %2$s. Leave it blank for %3$s.	ปุ่ม คำบรรยาย และแถบต่างๆ ยังมองเห็นได้มากแค่ไหนหลังหรี่แสง เป็นเปอร์เซ็นต์ ตั้งแต่ %1$s ถึง %2$s เว้นว่างไว้เพื่อใช้ %3$s
+Once dimmed, the buttons, caption and bars show at %1$s percent. Type a number to change it.	เมื่อหรี่แสง ปุ่ม คำบรรยาย และแถบต่างๆ จะแสดงที่ %1$s เปอร์เซ็นต์ พิมพ์ตัวเลขเพื่อเปลี่ยน
+Once dimmed, the buttons, caption and bars show at %1$s percent.	เมื่อหรี่แสง ปุ่ม คำบรรยาย และแถบต่างๆ จะแสดงที่ %1$s เปอร์เซ็นต์
+# context: Reels: Burn-in guard's switch that fades the buttons out and back in slowly instead of at once
+Smooth fade	ค่อยๆ จาง
+The buttons, caption and bars fade out slowly as they dim and fade back in when they return, rather than changing at once.	ปุ่ม คำบรรยาย และแถบต่างๆ จะค่อยๆ จางลงเมื่อหรี่แสงและค่อยๆ กลับมา แทนที่จะเปลี่ยนทันที
 # context: Reels: switch that shows the Reels screen and its video in black and white
 Show Reels in gray	แสดง Reels เป็นระดับสีเทา
 Reels and their buttons show in black and white, which makes them easier to put down. Your feed, stories, photos and chats keep their colors. It starts from the next reel, and Reels use a little more battery.	Reels และปุ่มจะแสดงเป็นขาวดำ ซึ่งช่วยให้คุณวางมือจากการดูได้ง่ายขึ้น ฟีด สตอรี่ รูปภาพ และแชทของคุณจะยังคงมีสีสันตามปกติ จะเริ่มต้นตั้งแต่ Reel ถัดไป และ Reels จะใช้แบตเตอรี่เพิ่มขึ้นเล็กน้อย
@@ -2688,6 +2721,10 @@ Hide the Join button on posts	ซ่อนปุ่มเข้าร่วม�
 Hides the Join button next to the group's name on posts from groups you haven't joined, and the Join group bar under their videos. A change shows on the posts drawn after it.	ซ่อนปุ่ม "เข้าร่วม" ข้างชื่อกลุ่มในโพสต์จากกลุ่มที่คุณยังไม่ได้เข้าร่วม และแถบ "เข้าร่วมกลุ่ม" ใต้วิดีโอของกลุ่มเหล่านั้น การเปลี่ยนแปลงจะมีผลกับโพสต์ที่แสดงหลังจากนั้น
 Hide the X on posts	ซ่อนปุ่ม X ในโพสต์
 Takes the X off the top corner of posts in your feed. The three-dot menu next to it stays. A change shows on the posts drawn after it.	นำปุ่ม X ออกจากมุมบนของโพสต์ในฟีดของคุณ เมนูสามจุดที่อยู่ข้างๆ จะยังคงอยู่ การเปลี่ยนแปลงจะมีผลกับโพสต์ที่แสดงหลังจากนั้น
+Hide friends' reactions on photos and videos	ซ่อนความรู้สึกของเพื่อนบนรูปภาพและวิดีโอ
+Takes away the friend's picture with a reaction on it that Facebook puts on a photo or video when a friend reacted. A change shows on the posts drawn after it.	ซ่อนรูปเพื่อนพร้อมความรู้สึกที่ Facebook แสดงบนรูปภาพหรือวิดีโอเมื่อเพื่อนแสดงความรู้สึก การเปลี่ยนแปลงจะมีผลกับโพสต์ที่แสดงหลังจากนั้น
+Hide who reacted under posts	ซ่อนชื่อคนที่แสดงความรู้สึกใต้โพสต์
+Takes away the line under a post that names who reacted, like "Name and others reacted". A change shows on the posts drawn after it.	ซ่อนบรรทัดใต้โพสต์ที่บอกว่าใครแสดงความรู้สึก เช่น "ชื่อ และคนอื่นๆ แสดงความรู้สึก" การเปลี่ยนแปลงจะมีผลกับโพสต์ที่แสดงหลังจากนั้น
 Hide the Reels title	ซ่อนชื่อ Reels
 Takes the word Reels off the top of the Reels tab. The buttons beside it stay.	นำคำว่า Reels ออกจากด้านบนของแท็บ Reels ปุ่มต่างๆ ข้างเคียงจะยังคงอยู่
 Hide Back on opened videos	ซ่อนปุ่มย้อนกลับในวิดีโอที่เปิด
@@ -2722,9 +2759,9 @@ Hide pictures on the Blocked list	ซ่อนรูปภาพในราย�
 People you've blocked show without their profile pictures on the Blocking page in Facebook's settings. Reopen the page if it's already open.	บุคคลที่คุณบล็อกจะแสดงโดยไม่มีรูปโปรไฟล์ในหน้าการบล็อกในการตั้งค่าของ Facebook โปรดเปิดหน้านี้ใหม่อีกครั้งหากเปิดค้างไว้อยู่แล้ว
 Hide Up next on videos	ซ่อน "เรื่องถัดไป" ในวิดีโอ
 Takes the UP NEXT bar with the next video off the bottom of a video you open from the feed, and the empty space kept for it, so the seek bar stays at the bottom. A change shows from the next video you open.	นำแถบ "เรื่องถัดไป" (UP NEXT) พร้อมวิดีโอถัดไปออกจากด้านล่างของวิดีโอที่คุณเปิดจากฟีด รวมถึงพื้นที่ว่างที่เว้นไว้ เพื่อให้แถบเลื่อนยังคงอยู่ที่ด้านล่าง การเปลี่ยนแปลงจะมีผลตั้งแต่วิดีโอถัดไปที่คุณเปิด
-Icons look soft on this screen. Repatch with the 240-640dpi bundle.	ไอคอนดูไม่คมชัดบนหน้าจอนี้ โปรดแพตช์ใหม่อีกครั้งด้วยบันเดิล 240-640dpi
+Icons look soft on this screen. Repatch with the 120-480dpi bundle.	ไอคอนดูไม่คมชัดบนหน้าจอนี้ โปรดแพตช์ใหม่อีกครั้งด้วยบันเดิล 120-480dpi
 Icons look soft on this screen	ไอคอนดูไม่คมชัดบนหน้าจอนี้
-The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (240-640dpi) bundle on APKMirror, which has images for every screen.	Facebook ที่คุณแพตช์ไม่มีรูปภาพที่สร้างมาสำหรับหน้าจอนี้ ไอคอนบางส่วนจึงถูกขยายขนาด โปรดแพตช์ Facebook ใหม่อีกครั้งจากบันเดิล (arm64-v8a) (240-640dpi) บน APKMirror ซึ่งมีรูปภาพสำหรับทุกขนาดหน้าจอ
+The Facebook you patched has no images made for this screen, so some icons are enlarged. Patch Facebook again from the (arm64-v8a) (120-480dpi) bundle on APKMirror, which has images for every screen.	Facebook ที่คุณแพตช์ไม่มีรูปภาพที่สร้างมาสำหรับหน้าจอนี้ ไอคอนบางส่วนจึงถูกขยายขนาด โปรดแพตช์ Facebook ใหม่อีกครั้งจากบันเดิล (arm64-v8a) (120-480dpi) บน APKMirror ซึ่งมีรูปภาพสำหรับทุกขนาดหน้าจอ
 Let each post come back once	อนุญาตให้แต่ละโพสต์แสดงซ้ำได้หนึ่งครั้ง
 A post you scrolled past shows up one more time, and scrolling past it again hides it. Fewer posts go missing after a quick scroll.	โพสต์ที่คุณเลื่อนผ่านจะปรากฏขึ้นอีกหนึ่งครั้ง และการเลื่อนผ่านอีกครั้งจะซ่อนโพสต์นั้น ช่วยลดการพลาดโพสต์เมื่อเลื่อนดูอย่างรวดเร็ว
 There's no Facebook link in what you shared.	ไม่มีลิงก์ Facebook ในสิ่งที่คุณแชร์
@@ -2748,11 +2785,23 @@ Takes the song and effect credits off the line under the poster's name on a stor
 Takes the row of suggested replies off the bottom of a story. The reply box stays. Applies from the next story you open.	นำแถวคำแนะนำในการตอบกลับออกจากด้านล่างของสตอรี่ ช่องตอบกลับจะยังคงอยู่ จะมีผลตั้งแต่สตอรี่ถัดไปที่คุณเปิด
 Hide the Subscribe button	ซ่อนปุ่มสมัครรับข้อมูล
 Takes the Subscribe button off the top of a story. Applies from the next story you open.	นำปุ่มสมัครรับข้อมูลออกจากด้านบนของสตอรี่ จะมีผลตั้งแต่สตอรี่ถัดไปที่คุณเปิด
+# context: switch title on the Stories page; the Follow button sits at the top of a story from someone you don't follow
+Hide the Follow button	ซ่อนปุ่มติดตาม
+Takes the Follow button off the top of a story from someone you don't follow. Applies from the next story you open.	นำปุ่มติดตามออกจากด้านบนของสตอรี่ของคนที่คุณไม่ได้ติดตาม จะมีผลตั้งแต่สตอรี่ถัดไปที่คุณเปิด
+# context: switch title on the Stories page; the reply bar is the row under someone else's story with the repost button, the Send message box and the quick reactions
+Hide the reply bar	ซ่อนแถบตอบกลับ
+# context: description of that switch; Send message is the text box Facebook shows in that row
+Takes the bar off the bottom of other people's stories, with the repost button, the Send message box and the quick reactions. Applies from the next story you open.	นำแถบด้านล่างสตอรี่ของคนอื่นออก รวมถึงปุ่มแชร์ซ้ำ ช่องส่งข้อความ และรีแอคชั่นด่วน จะมีผลตั้งแต่สตอรี่ถัดไปที่คุณเปิด
+# context: switch title on the Stories page; Up next is the card Facebook shows over the next stories while it counts down before they play
+Hide the Up next card	ซ่อนการ์ด "ถัดไป"
+Starts the next stories right away, without the Up next card that counts down over the first one. Applies the next time you open stories.	เริ่มสตอรี่ถัดไปทันทีโดยไม่มีการ์ด "ถัดไป" ที่นับถอยหลังบนสตอรี่แรก มีผลในครั้งถัดไปที่คุณเปิดสตอรี่
 Hide create story cards	ซ่อนการ์ดชวนสร้างสตอรี่
-Takes out the card between stories that asks you to make one, including the ones built from photos in your gallery. Applies the next time you open stories.	นำการ์ดระหว่างสตอรี่ที่ชวนให้คุณสร้างสตอรี่ออก รวมถึงการ์ดที่สร้างจากรูปภาพในแกลเลอรีของคุณ มีผลในครั้งถัดไปที่คุณเปิดสตอรี่
+Takes out the cards between stories that ask you to make one, including the full screen card that asks you to continue the story with photos from your gallery. Applies the next time you open stories.	นำการ์ดระหว่างสตอรี่ที่ชวนให้คุณสร้างสตอรี่ออก รวมถึงการ์ดแบบเต็มหน้าจอที่ชวนให้คุณเล่าสตอรี่ต่อด้วยรูปภาพจากแกลเลอรีของคุณ มีผลในครั้งถัดไปที่คุณเปิดสตอรี่
 Progress bar at the bottom	แถบแสดงความคืบหน้าที่ด้านล่าง
 Shows a thin bar along the bottom of a story that fills as it plays, like the one on Reels.	แสดงแถบบางๆ ตามขอบด้านล่างของสตอรี่ที่จะค่อยๆ เต็มขึ้นขณะเล่น เช่นเดียวกับใน Reels
 Seek bar on stories	แถบเลื่อนในสตอรี่
+Plain slide between people	เลื่อนแบบธรรมดาระหว่างแต่ละคน
+Swiping to the next or previous person's stories slides them across instead of turning them like a cube. Applies from your next swipe.	เมื่อปัดไปยังสตอรี่ของคนถัดไปหรือคนก่อนหน้า สตอรี่จะเลื่อนผ่านไปด้านข้างแทนการหมุนแบบลูกบาศก์ จะมีผลตั้งแต่การปัดครั้งถัดไป
 Fade the story seek bar	จางแถบเลื่อนในสตอรี่
 Story position	ตำแหน่งในสตอรี่
 Shows a bar along the bottom of a video story that you drag to move through it. The story waits while you drag. Progress bar at the bottom makes way for it on video stories.	แสดงแถบที่ด้านล่างของสตอรี่วิดีโอที่คุณสามารถลากเพื่อเลื่อนดูได้ โดยสตอรี่จะหยุดรอขณะที่คุณลาก ทั้งนี้ "แถบแสดงความคืบหน้าที่ด้านล่าง" จะเปิดทางให้แถบนี้ในสตอรี่วิดีโอ
@@ -2833,10 +2882,20 @@ A small label at the top of Reels shows the minutes you've watched. Time on othe
 %1$d min	%1$d นาที
 Hide the tab bar on the Reels tab	ซ่อนแถบแท็บในแท็บ Reels
 The tab bar goes away while the Reels tab is open, and the reel gets the whole screen. The other tabs keep the bar. Restart Facebook to see the change.	แถบแท็บจะหายไปขณะที่เปิดแท็บ Reels อยู่ และ Reel จะแสดงเต็มหน้าจอ แท็บอื่นๆ จะยังคงมีแถบแท็บ รีสตาร์ท Facebook เพื่อดูการเปลี่ยนแปลง
+Hide the line along the tab bar	ซ่อนเส้นตามแถบแท็บ
+The thin line Facebook draws along the edge of the tab bar goes away on every tab. Tap a tab to see the change.	เส้นบางที่ Facebook วาดไว้ตามขอบแถบแท็บจะหายไปในทุกแท็บ แตะแท็บใดก็ได้เพื่อดูการเปลี่ยนแปลง
+# context: switch title on the tab bar settings page; a group is a Facebook group's page; the tab bar is the row of Home, Reels, Groups... tabs
+Keep the tab bar in groups	คงแถบแท็บไว้ในกลุ่ม
+# context: summary of that switch; "along the bottom" means at the bottom edge of the screen
+A group you open keeps the tab bar along the bottom, so a tap takes you straight to another tab. Works while the tab bar is at the bottom. Open a group to see the change.	กลุ่มที่คุณเปิดจะยังมีแถบแท็บอยู่ด้านล่าง แตะครั้งเดียวก็ไปยังแท็บอื่นได้ทันที ใช้ได้ขณะที่แถบแท็บอยู่ด้านล่าง เปิดกลุ่มเพื่อดูการเปลี่ยนแปลง
 Playback speed in the post menu	ความเร็วในการเล่นในเมนูโพสต์
 A feed or Watch video's 3-dot menu gets Playback speed, from 0.5x to 3x, live videos too. Off by default, since it hasn't been tried on a real account yet.	เมนูจุดสามจุดของวิดีโอในฟีดหรือ Watch จะมีตัวเลือก "ความเร็วในการเล่น" ตั้งแต่ 0.5x ถึง 3x รวมถึงวิดีโอถ่ายทอดสดด้วย ปิดใช้งานตามค่าเริ่มต้นเนื่องจากยังไม่ได้ทดสอบกับบัญชีจริง
 Double tap to skip on feed videos	แตะสองครั้งเพื่อข้ามในวิดีโอบนฟีด
 Double tap the right side of a playing feed video to jump ahead 10 seconds, or the left side to go back 10. Keep tapping to go further. Live videos work too when they can be rewound. One tap on a side still opens the video, a moment later than usual. With Tap to play on, it needs Inline feed video controls on too.	แตะสองครั้งที่ด้านขวาของวิดีโอบนฟีดที่กำลังเล่นเพื่อข้ามไปข้างหน้า 10 วินาที หรือด้านซ้ายเพื่อย้อนกลับ 10 วินาที แตะต่อไปเรื่อยๆ เพื่อข้ามไปได้ไกลขึ้น วิดีโอถ่ายทอดสดก็ใช้ได้เมื่อสามารถย้อนกลับได้ การแตะครั้งเดียวที่ด้านใดด้านหนึ่งยังคงเปิดวิดีโอ แต่จะช้ากว่าปกติเล็กน้อย หากเปิด "แตะเพื่อเล่น" ไว้ จะต้องเปิด "การควบคุมวิดีโอในฟีดโดยตรง" ด้วย
+# context: switch title under Video playback; a tap on a video in the news feed brings up a pause button in the middle of the video instead of opening it
+Tap shows a pause button on feed videos	แตะเพื่อแสดงปุ่มหยุดชั่วคราวบนวิดีโอในฟีด
+# context: description of that switch; Reels is Facebook's full-screen video viewer, keep the name; the quoted switch names match their own rows
+Tapping a feed video shows a pause button in its middle and the video keeps playing, so a tap doesn't open it in Reels. Tap the button to pause or play. Tap the video again while the button shows to open it. Ads keep their own controls. With Tap to play on, it needs Inline feed video controls on too.	การแตะวิดีโอในฟีดจะแสดงปุ่มหยุดชั่วคราวตรงกลางวิดีโอ และวิดีโอจะเล่นต่อไป การแตะจึงไม่เปิดวิดีโอใน Reels แตะปุ่มเพื่อหยุดชั่วคราวหรือเล่นต่อ แตะวิดีโออีกครั้งขณะที่ปุ่มแสดงอยู่เพื่อเปิดวิดีโอ โฆษณาจะยังคงใช้การควบคุมของตัวเอง หากเปิด "แตะเพื่อเล่น" ไว้ จะต้องเปิด "การควบคุมวิดีโอในฟีดโดยตรง" ด้วย
 Show only comments that match	แสดงเฉพาะความคิดเห็นที่ตรงกัน
 While the search box holds words, comments without them are hidden. Clearing the box brings them back.	ขณะที่มีคำอยู่ในช่องค้นหา ความคิดเห็นที่ไม่มีคำเหล่านั้นจะถูกซ่อน การล้างช่องค้นหาจะทำให้ความคิดเห็นเหล่านั้นกลับมา
 Queue reel saves	เข้าคิวการบันทึก Reels
@@ -2879,7 +2938,7 @@ Interested	สนใจ
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row asking for fewer posts like this one
 Not interested	ไม่สนใจ
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that opens its feed preferences
-Manage your Feed	จัดการฟีดของคุณ
+Manage your Feed / Your algorithm	จัดการฟีดของคุณ / อัลกอริทึมของคุณ
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that reports the post
 Report	รายงาน
 # context: a kind of row in a post's 3-dot menu, offered in the list of rows to hide: Facebook's row that plays the video on a TV
@@ -2943,3 +3002,134 @@ Move seen stories to the end	ย้ายสตอรี่ที่ดูแล
 Stories you've already watched move to the end of the Stories tray, after the ones you haven't. Hide seen stories goes first while it's on. Applies when Facebook next loads the tray.	สตอรี่ที่คุณดูแล้วจะย้ายไปอยู่ท้ายถาดสตอรี่ ต่อจากสตอรี่ที่คุณยังไม่ได้ดู ขณะที่เปิด "ซ่อนสตอรี่ที่ดูแล้ว" อยู่ ตัวเลือกนั้นจะมีผลก่อน จะมีผลเมื่อ Facebook โหลดถาดสตอรี่ในครั้งต่อไป
 Skip location prompts	ข้ามคำขอตำแหน่ง
 Facebook's page asking you to allow Location Services, the one with Skip and Continue, doesn't show. Location you turn on yourself still works.	หน้าจอของ Facebook ที่ขอให้คุณอนุญาตบริการตำแหน่ง ที่มีปุ่มข้ามและดำเนินการต่อ จะไม่แสดง ตำแหน่งที่คุณเปิดเองยังใช้งานได้ตามปกติ
+# context: switch title under Stories; on, a tap on a reaction at the bottom of a story asks first
+Ask before reacting to a story	ถามก่อนแสดงความรู้สึกต่อสตอรี่
+# context: summary of that switch
+A tap on a reaction at the bottom of a story asks first, and the story waits. Only Continue sends the reaction.	การแตะความรู้สึกที่ด้านล่างของสตอรี่จะถามก่อน และสตอรี่จะหยุดรอ จะส่งความรู้สึกก็ต่อเมื่อคุณแตะ "ดำเนินการต่อ" เท่านั้น
+# context: the question shown after a tap on a reaction at the bottom of a story; Continue sends the reaction, Cancel leaves it
+React to this story?	แสดงความรู้สึกต่อสตอรี่นี้ไหม
+# context: In-app proxy, an HTTP proxy address (host:port) Facebook's connections go through
+In-app proxy	พร็อกซีในแอป
+The address and port of an HTTP proxy for Facebook's connections, like %1$s. The local proxy port of a VLESS or V2Ray app such as v2rayNG works here. Leave it blank to connect the way your phone does.	ที่อยู่และพอร์ตของพร็อกซี HTTP สำหรับการเชื่อมต่อของ Facebook เช่น %1$s ใช้พอร์ตพร็อกซีในเครื่องของแอป VLESS หรือ V2Ray อย่าง v2rayNG ได้ เว้นว่างไว้เพื่อเชื่อมต่อตามปกติของโทรศัพท์
+Type an HTTP proxy's address and port, like %1$s.	พิมพ์ที่อยู่และพอร์ตของพร็อกซี HTTP เช่น %1$s
+Facebook connects the way your phone does. Type a proxy's address and port to send its connections through it.	Facebook เชื่อมต่อตามปกติของโทรศัพท์ พิมพ์ที่อยู่และพอร์ตของพร็อกซีเพื่อให้การเชื่อมต่อผ่านพร็อกซีนั้น
+Facebook's connections go through the proxy at %1$s.	การเชื่อมต่อของ Facebook ผ่านพร็อกซี %1$s
+# context: switch title on the Downloads page; on, a tap on a download button asks first
+Ask before downloading	ถามก่อนดาวน์โหลด
+A reel's Download button, the Download button under a post and a video's Download to phone ask first, so a stray tap saves nothing. With Choose quality on each save on, a video's list of qualities does the asking.	ปุ่มดาวน์โหลดของ Reel ปุ่มดาวน์โหลดใต้โพสต์ และ "ดาวน์โหลดลงโทรศัพท์" ของวิดีโอจะถามก่อน การแตะโดยไม่ตั้งใจจึงไม่บันทึกอะไร เมื่อเปิด "เลือกคุณภาพทุกครั้งที่บันทึก" รายการคุณภาพของวิดีโอจะเป็นตัวถามแทน
+# context: the question over the screen after a tap on a download button, answered Continue or Cancel
+Start this download?	เริ่มดาวน์โหลดนี้ไหม
+# context: the settings row that opens a file picker for a font holding emoji
+Emoji font file	ไฟล์ฟอนต์อิโมจิ
+# context: the settings row that deletes the saved emoji font and goes back to the phone's emoji
+Remove emoji font file	นำไฟล์ฟอนต์อิโมจิออก
+# context: under Remove emoji font file while Use the phone's emoji is on
+Removes the saved emoji font file. Restart Facebook to use your phone's emoji.	นำไฟล์ฟอนต์อิโมจิที่บันทึกไว้ออก รีสตาร์ท Facebook เพื่อใช้อิโมจิของโทรศัพท์คุณ
+# context: under Remove emoji font file while Use the phone's emoji is off
+Removes the saved emoji font file. Use the phone's emoji stays off.	นำไฟล์ฟอนต์อิโมจิที่บันทึกไว้ออก "ใช้อิโมจิของโทรศัพท์" จะยังคงปิดอยู่
+# context: under Emoji font file with nothing picked; %1$d is a number of megabytes
+No file chosen. Choose a .ttf or .otf emoji font of up to %1$d MB.	ไม่ได้เลือกไฟล์ เลือกฟอนต์อิโมจิ .ttf หรือ .otf ขนาดไม่เกิน %1$d MB
+# context: under Emoji font file; %1$s is the file's name
+Selected %1$s. Emoji changes apply after restarting Facebook.	เลือก %1$s แล้ว การเปลี่ยนแปลงอิโมจิจะมีผลหลังจากรีสตาร์ท Facebook
+# context: under Emoji font file while the switch is off; %1$s is the file's name
+Selected %1$s. Use the phone's emoji is off. Turn it on and restart Facebook to use this file.	เลือก %1$s แล้ว "ใช้อิโมจิของโทรศัพท์" ปิดอยู่ ให้เปิดใช้งานและรีสตาร์ท Facebook เพื่อใช้ไฟล์นี้
+# context: toast after an emoji font is picked; %1$s is the file's name
+Selected %1$s. Restart Facebook to apply the emoji change.	เลือก %1$s แล้ว รีสตาร์ท Facebook เพื่อใช้การเปลี่ยนแปลงอิโมจิ
+# context: toast after an emoji font is picked while the switch is off; %1$s is the file's name
+Selected %1$s. Turn on Use the phone's emoji and restart Facebook to use it.	เลือก %1$s แล้ว เปิด "ใช้อิโมจิของโทรศัพท์" และรีสตาร์ท Facebook เพื่อใช้งาน
+# context: under Emoji font file while the picked file is copied
+Copying the emoji font file	กำลังคัดลอกไฟล์ฟอนต์อิโมจิ
+# context: toast when the file picked as an emoji font isn't a font
+That isn't a .ttf or .otf font file. Your emoji didn't change.	ไฟล์ดังกล่าวไม่ใช่ไฟล์ฟอนต์ .ttf หรือ .otf อิโมจิของคุณจึงไม่เปลี่ยนแปลง
+# context: toast when the emoji font is too large; %1$d is a number of megabytes
+That font file is over %1$d MB. Your emoji didn't change.	ไฟล์ฟอนต์นั้นมีขนาดเกิน %1$d MB อิโมจิของคุณจึงไม่เปลี่ยนแปลง
+# context: toast when Android can't load the picked emoji font
+Android couldn't use that font file. Your emoji didn't change.	Android ไม่สามารถใช้ไฟล์ฟอนต์นั้นได้ อิโมจิของคุณจึงไม่เปลี่ยนแปลง
+# context: toast when the font picked as an emoji font is a text font
+That font has no emoji in it. Your emoji didn't change.	ฟอนต์นั้นไม่มีอิโมจิ อิโมจิของคุณจึงไม่เปลี่ยนแปลง
+# context: toast when the picked emoji font can't be read
+Couldn't open that file. Your emoji didn't change.	ไม่สามารถเปิดไฟล์นั้นได้ อิโมจิของคุณจึงไม่เปลี่ยนแปลง
+# context: toast after Remove emoji font file
+Emoji font file cleared. Restart Facebook to apply the emoji change.	ล้างไฟล์ฟอนต์อิโมจิแล้ว รีสตาร์ท Facebook เพื่อใช้การเปลี่ยนแปลงอิโมจิ
+# context: toast when Remove emoji font file fails
+Couldn't go back to your phone's emoji. Try again.	ไม่สามารถเปลี่ยนกลับไปใช้อิโมจิของโทรศัพท์ได้ โปรดลองอีกครั้ง
+# context: toast when the app holding the emoji font doesn't answer in time
+The app holding that font file is taking too long, so Hushfacebook stopped waiting. Your emoji didn't change.	แอปที่มีไฟล์ฟอนต์ใช้เวลานานเกินไป Hushfacebook จึงหยุดรอ อิโมจิของคุณจึงไม่เปลี่ยนแปลง
+Never	ไม่เลย
+Back to Clean mode	กลับสู่โหมดคลีน
+When the comments or a menu close	เมื่อปิดความคิดเห็นหรือเมนู
+When the comments or a menu close. A reel you took out of Clean mode goes back into it once whatever you opened over it closes.	เมื่อปิดความคิดเห็นหรือเมนู Reel ที่คุณออกจากโหมดคลีนจะกลับเข้าโหมดนี้เมื่อสิ่งที่คุณเปิดทับไว้ปิดลง
+%1$s. A reel you took out of Clean mode goes back into it once you haven't touched the screen for that long. An open sheet holds the time.	%1$s Reel ที่คุณออกจากโหมดคลีนจะกลับเข้าโหมดนี้เมื่อคุณไม่ได้แตะหน้าจอนานเท่านั้น ชีตที่เปิดอยู่จะหยุดการนับเวลา
+Never. A reel you take out of Clean mode stays out until you put it back.	ไม่เลย Reel ที่คุณออกจากโหมดคลีนจะอยู่นอกโหมดจนกว่าคุณจะเปิดกลับ
+A reel you take out of Clean mode will stay out until you put it back.	Reel ที่คุณออกจากโหมดคลีนจะอยู่นอกโหมดจนกว่าคุณจะเปิดกลับ
+A reel you take out of Clean mode will go back into it when the comments or a menu close.	Reel ที่คุณออกจากโหมดคลีนจะกลับเข้าโหมดนี้เมื่อปิดความคิดเห็นหรือเมนู
+A reel you take out of Clean mode will go back into it after %1$d seconds without a touch.	Reel ที่คุณออกจากโหมดคลีนจะกลับเข้าโหมดนี้หลังจากไม่ได้แตะ %1$d วินาที
+Hide New for you on reels	ซ่อน "ใหม่สำหรับคุณ" ใน Reels
+Takes "New for you", and other reasons Facebook gives for showing you a reel, off the line under its author, so the date and the song show right away. A change shows from the next reel.	นำ "ใหม่สำหรับคุณ" และเหตุผลอื่นที่ Facebook ใช้แสดง Reel ให้คุณออกจากบรรทัดใต้ชื่อผู้โพสต์ เพื่อให้เห็นวันที่และเพลงได้ทันที การเปลี่ยนแปลงจะมีผลตั้งแต่ Reel ถัดไป
+# context: switch title under Comments and writing; it turns Facebook's own comment translation on for every comment as it loads
+Translate every comment	แปลทุกความคิดเห็น
+# context: description of that switch; See translation is the name of Facebook's own link under a comment that translates it on request
+Comments in another language show Facebook's translation as they load, as if you'd tapped See translation on each one.	ความคิดเห็นในภาษาอื่นจะแสดงคำแปลของ Facebook ทันทีที่โหลด เหมือนคุณแตะ "ดูคำแปล" ที่ความคิดเห็นแต่ละรายการ
+# context: switch title under Downloads; holding a finger on a photo opened full screen from a Marketplace listing saves that photo to the phone
+Long press to save Marketplace photos	กดค้างเพื่อบันทึกรูปภาพ Marketplace
+# context: description of that switch; Save any photo is the title of the Downloads switch it needs, Marketplace is Facebook's buy-and-sell section
+With Save any photo on, a long press on a photo you open from a Marketplace listing saves it.	เมื่อเปิด "บันทึกรูปภาพใดก็ได้" การกดค้างที่รูปภาพที่คุณเปิดจากรายการใน Marketplace จะบันทึกรูปภาพนั้น
+# context: the eight switches under Hide posts with words you choose and Hide link posts that pick where each hides; Home, the Reels tab, the Groups tab and Pages are Facebook's own names for them
+Your words on Home	คำของคุณบนหน้าหลัก
+Your words on the Reels tab	คำของคุณในแท็บ Reels
+Your words in groups	คำของคุณในกลุ่ม
+Your words on profiles and Pages	คำของคุณบนโปรไฟล์และเพจ
+Link posts on Home	โพสต์ลิงก์บนหน้าหลัก
+Link reels on the Reels tab	Reels ที่มีลิงก์ในแท็บ Reels
+Link posts in groups	โพสต์ลิงก์ในกลุ่ม
+Link posts on profiles and Pages	โพสต์ลิงก์บนโปรไฟล์และเพจ
+Posts on Home, the feed Facebook opens on.	โพสต์บนหน้าหลัก ฟีดที่ Facebook เปิดขึ้นมาก่อน
+Reels on the Reels tab, going by their captions.	Reels ในแท็บ Reels ตามคำบรรยาย
+Posts in a group's feed, on the Groups tab and in a member's posts in a group. Posts waiting for an admin stay.	โพสต์ในฟีดของกลุ่ม ในแท็บกลุ่ม และในโพสต์ของสมาชิกในกลุ่ม โพสต์ที่รอผู้ดูแลยังคงอยู่
+Posts on people's profiles and on Pages.	โพสต์บนโปรไฟล์ของผู้คนและบนเพจ
+# context: the search results switches under Hide posts with words you choose and Hide link posts, which start off; search results is Facebook's own name for the page a search opens
+Your words in search results	คำของคุณในผลการค้นหา
+Link posts in search results	โพสต์ลิงก์ในผลการค้นหา
+Posts in search results. Off to begin with, so what you search for still shows.	โพสต์ในผลการค้นหา ปิดไว้ตั้งแต่แรก เพื่อให้สิ่งที่คุณค้นหายังแสดงอยู่
+# context: title of the list under Video quality that picks how much of a video loads before it starts and while it plays
+Video buffer	บัฟเฟอร์วิดีโอ
+# context: the three sizes in the Video buffer list, from the least loaded ahead to the most
+Low	ต่ำ
+Medium	ปานกลาง
+Maximum	สูงสุด
+# context: the line under Video buffer for each size, and for Facebook's choice
+Videos start once half a second has loaded, and load less ahead.	วิดีโอจะเริ่มเมื่อโหลดได้ครึ่งวินาที และโหลดล่วงหน้าน้อยลง
+Videos wait for 1.5 seconds to load before they start, and load more ahead.	วิดีโอจะรอให้โหลด 1.5 วินาทีก่อนเริ่ม และโหลดล่วงหน้ามากขึ้น
+Videos wait for 3 seconds to load before they start, and load up to a minute ahead.	วิดีโอจะรอให้โหลด 3 วินาทีก่อนเริ่ม และโหลดล่วงหน้าได้ถึงหนึ่งนาที
+Facebook decides how much of a video loads before and while it plays.	Facebook จะเลือกเองว่าจะโหลดวิดีโอมากแค่ไหนก่อนและระหว่างเล่น
+# context: what importing a settings file will do to the Video buffer list; %1$s is Low, Medium or Maximum
+Facebook will decide how much of a video loads.	Facebook จะเลือกเองว่าจะโหลดวิดีโอมากแค่ไหน
+Video buffer will be set to %1$s.	บัฟเฟอร์วิดีโอจะถูกตั้งค่าเป็น %1$s
+Recently watched in the Menu	รับชมล่าสุดในเมนู
+Adds a Recently watched row at the end of Settings and privacy in Facebook's Menu. It opens the list that Remember what you watch keeps.	เพิ่มแถว "รับชมล่าสุด" ไว้ท้ายส่วน "การตั้งค่าและความเป็นส่วนตัว" ในเมนู Facebook ซึ่งจะเปิดรายการที่ "จำสิ่งที่คุณรับชม" เก็บไว้
+Recently watched can't open here.	ไม่สามารถเปิด "รับชมล่าสุด" ได้จากที่นี่
+Header text font	ฟอนต์ข้อความส่วนหัว
+Bold	ตัวหนา
+Regular	ปกติ
+Serif	มีเชิง
+Script	ตัวเขียน
+Monospace	ความกว้างเท่ากัน
+Your font	ฟอนต์ของคุณ
+The bold font the words have always had.	ฟอนต์ตัวหนาที่ข้อความใช้มาตลอด
+The phone's font at its regular weight.	ฟอนต์ของโทรศัพท์ในน้ำหนักปกติ
+A bold font with serifs, like a newspaper's.	ฟอนต์ตัวหนามีเชิง เหมือนในหนังสือพิมพ์
+Joined-up handwriting.	ลายมือเขียนแบบตัวต่อ
+Every letter the same width, like a typewriter.	ตัวอักษรทุกตัวกว้างเท่ากัน เหมือนเครื่องพิมพ์ดีด
+The font file picked under Font file, in bold. Bold until one is picked.	ไฟล์ที่เลือกไว้ใน ไฟล์ฟอนต์ เป็นตัวหนา เป็นตัวหนาจนกว่าจะเลือกไฟล์
+Header text font will be set to %1$s.	ฟอนต์ข้อความส่วนหัวจะถูกตั้งค่าเป็น %1$s
+Hide songs under names	ซ่อนเพลงใต้ชื่อ
+The line under the poster's name leaves out the song a post plays, with no gap where it was.	บรรทัดใต้ชื่อของผู้โพสต์จะไม่แสดงเพลงที่โพสต์เล่นอยู่ และไม่เหลือช่องว่างตรงที่เคยมี
+Bold post times	เวลาโพสต์เป็นตัวหนา
+The time or date under the poster's name is bold, like the name.	เวลาหรือวันที่ใต้ชื่อของผู้โพสต์จะเป็นตัวหนาเหมือนชื่อ
+Show full names	แสดงชื่อเต็ม
+A long name at the top of a post wraps onto the next line instead of ending in "...". A name that fits still takes one line.	ชื่อยาวที่ด้านบนของโพสต์จะขึ้นบรรทัดใหม่แทนการลงท้ายด้วย "..." ส่วนชื่อที่พอดีจะยังอยู่ในบรรทัดเดียว
+Dark box behind feed video names	กล่องสีเข้มหลังชื่อบนวิดีโอในฟีด
+When a video in your feed has the poster's name on top of the video, that name sits on the same dark box. A change shows on the posts drawn after it.	เมื่อวิดีโอในฟีดข่าวแสดงชื่อของผู้โพสต์ทับอยู่บนวิดีโอ ชื่อนั้นจะอยู่บนกล่องสีเข้มเดียวกัน การเปลี่ยนแปลงจะเห็นในโพสต์ที่โหลดหลังจากนั้น
+Quality settings	การตั้งค่าคุณภาพ
+Request community note	ขอบันทึกจากชุมชน
+Something went wrong	เกิดข้อผิดพลาดบางอย่าง

@@ -206,8 +206,8 @@ class ShortcutCallsTest {
     }
 
     /**
-     * Both declared builds push through the AndroidX helper and the Messenger chat shortcuts, and
-     * update through the helper and two account switcher paths. The settings patch, run over each
+     * Both declared builds push through the AndroidX helper and four other paths, and update
+     * through the helper and two account switcher paths. The settings patch, run over each
      * build's classes that make those calls, sends every one to its stand-in with the registers it
      * had, the instruction count unchanged, and leaves none behind. The application, main activity
      * and top bar the patch's other hooks go into are stand-ins here, since this reads only the
@@ -233,12 +233,13 @@ class ShortcutCallsTest {
                 }
                 val found = callers.flatMap { it.methods }.flatMap { it.instructions() }
                     .mapNotNull { it.frameworkCall() }.groupingBy { it }.eachCount()
-                // The Android 9 build keeps more push paths apart and adds a list of shortcuts in one place.
+                // The Android 9 build adds a list of shortcuts in one place. 586's kept one more push path
+                // apart too; 588's has the phones' five (2026-11-20).
                 val android9 = bundle.name.substringAfter("-$version-").contains("-minapi")
                 assertEquals(
                     "${bundle.name}: shortcut calls in the stock build",
-                    if (android9) mapOf("pushDynamicShortcut" to 6, "addDynamicShortcuts" to 1, "updateShortcuts" to 3)
-                    else mapOf("pushDynamicShortcut" to 2, "updateShortcuts" to 3),
+                    if (android9) mapOf("pushDynamicShortcut" to 5, "addDynamicShortcuts" to 1, "updateShortcuts" to 3)
+                    else mapOf("pushDynamicShortcut" to 5, "updateShortcuts" to 3),
                     found,
                 )
                 val hosts = SettingsPatchHosts.all()

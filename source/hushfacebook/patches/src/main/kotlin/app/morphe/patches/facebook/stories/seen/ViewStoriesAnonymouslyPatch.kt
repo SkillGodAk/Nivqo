@@ -7,17 +7,19 @@ package app.morphe.patches.facebook.stories.seen
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.facebook.feed.methodsNaming
 import app.morphe.patches.facebook.feed.resolveStatic
 import app.morphe.patches.facebook.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.facebook.misc.extension.enableStatus
 import app.morphe.patches.facebook.misc.extension.facebookExtensionPatch
+import app.morphe.patches.facebook.misc.extension.freeLocalsAt
 import app.morphe.patches.facebook.misc.extension.localRegisterCount
 import app.morphe.patches.facebook.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.classDefForEachReferencing
+import app.morphe.util.executeBytecode
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
@@ -58,7 +60,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
  * people see.
  */
 @Suppress("unused")
-val viewStoriesAnonymouslyPatch = bytecodePatch(
+val viewStoriesAnonymouslyPatch = patch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "View stories anonymously",
     description = "Keeps you off the viewer list of stories you watch, because Facebook isn't told which ones " +
@@ -69,7 +71,7 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
     dependsOn(settingsPatch, facebookExtensionPatch)
     compatibleWith(*AppCompatibilities.facebook())
 
-    execute {
+    executeBytecode {
         // Everything is found before anything changes, so a build missing one part is left as it was.
         // Up to 585 a query class of its own names the mutation; 586 has none, and the builder makes
         // the query itself (a null mutation below).
@@ -94,19 +96,19 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
         // callers are where it's looked for.
         val callers = mutableListOf<ClassDef>()
         val startChecks = mutableListOf<Method>()
+        val classOf = { type: String -> classDefByOrNull(type) }
         // A caller names the sender's class, and the start check casts to StoryCard.
         classDefForEachReferencing(types = listOf(sender.definingClass, STORY_CARD)) { classDef ->
             if (classDef.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEachReferencing
             if (callsSender(classDef, sender)) callers += classDef
-            startCheck(classDef)?.let { startChecks += it }
+            startCheck(classDef, classOf)?.let { startChecks += it }
         }
         val opener = startChecks.singleOrNull() ?: throw PatchException(
             "$PATCH: expected one class with an (Object, int)I method casting to $STORY_BUCKET and an (Object)Z " +
                 "method asking a $STORY_CARD for getMedia() and then a flag, found ${startChecks.size}",
         )
-        if (opener.localRegisterCount() < 1) {
-            throw PatchException("$PATCH: ${opener.definingClass}->${opener.name} has no local register for the start hook")
-        }
+        // The start hook borrows one register; this refuses now if the check has none to spare.
+        opener.freeLocalsAt(PATCH, 0, 1, parameters = true)
         // The start check is asked through the one interface its class implements.
         val cardInterface = classDefByOrNull(opener.definingClass)?.interfaces?.singleOrNull() ?: throw PatchException(
             "$PATCH: ${opener.definingClass} doesn't implement one interface for the start check",
@@ -122,22 +124,25 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
         if (picker.localRegisterCount() < 1) {
             throw PatchException("$PATCH: ${picker.definingClass}->${picker.name} has no local register for the start card hook")
         }
+        val tables = { call: MethodReference -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
         val swaps = classDefByStrings(DATA_CHANGED, StringComparisonType.EQUALS).flatMap { owner ->
-            owner.methods.filter { loads(it, DATA_CHANGED) }.mapNotNull { method -> loadingSwap(method)?.let { method to it } }
+            owner.methods.filter { loads(it, DATA_CHANGED) }.mapNotNull { method ->
+                loadingSwap(method)?.let { method to it } ?: outlinedLoadingSwap(owner, method, tables)
+            }
         }
         val (dataChanged, swap) = swaps.singleOrNull() ?: throw PatchException(
-            "$PATCH: expected one method loading \"$DATA_CHANGED\" that checks the new copy of a bucket against the one " +
-                "it replaces, looks for the card it was on by id, checks it against the card at its place, looks " +
-                "for it again and moves the viewer by index, found ${swaps.size}",
+            "$PATCH: expected one method loading \"$DATA_CHANGED\", or one static it hands itself to, that checks the " +
+                "new copy of a bucket against the one it replaces, looks for the card it was on by id, checks it " +
+                "against the card at its place, looks for it again and moves the viewer by index, found ${swaps.size}",
         )
-        val tables = { call: MethodReference -> classDefByOrNull(call.definingClass)?.let { resolveStatic(it, call) } }
         val helper = seenHelper(callers, sender, tables)
         val card = cardSeen(helper)
+        val launch = launchSource(helper, tables)
         val storyCard = classDefByOrNull(STORY_CARD) ?: throw PatchException("$PATCH: this Facebook build has no $STORY_CARD")
         if (storyCard.methods.none { "${it.definingClass}->${it.name}()${it.returnType}" == CARD_ID && it.parameterTypes.isEmpty() }) {
             throw PatchException("$PATCH: $STORY_CARD has no getId()")
         }
-        for (call in startCalls(opener)) {
+        for (call in startCalls(opener, classOf)) {
             val declared = storyCard.methods.singleOrNull { it.name == call.name && it.parameterTypes.isEmpty() && it.returnType == call.returnType }
             if (declared == null || !AccessFlags.PUBLIC.isSet(declared.accessFlags)) {
                 throw PatchException("$PATCH: ${call.smali()} isn't public, so the extension can't ask it")
@@ -198,7 +203,7 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
         mutableClassDefBy(sender.definingClass).methods.single { it.sameAs(sender) }.filterViews()
         mutableClassDefBy(card.definingClass).methods.single { it.sameAs(card) }.apply {
             reportCard()
-            hearViewedCards()
+            hearViewedCards(launch)
         }
         mutableClassDefBy(activationOwner.type).methods.single { it.sameAs(activation) }.reportActive(store)
         mutableClassDefBy(later.listener.type).methods.single { it.sameAs(later.constructor) }.reportCardLater()
@@ -213,7 +218,7 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
         cardIdStub.fillCardId()
         fillEyeStubs(eyeStubs, flag, helper.type, later.session)
         fillSeenStubs(stubs, marking.buckets, marking.publisher)
-        fillStartStubs(stubs, opener)
+        fillStartStubs(stubs, opener, classOf)
         enableStatus("storySeen")
     }
 }

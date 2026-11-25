@@ -7,8 +7,10 @@
 package app.morphe.extension.facebook.settings;
 
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInGuardRow;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInLevelRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.burnInWaitRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.category;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.cleanReturnRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.reelDateStyleRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.downloadActionRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.fileNameRow;
@@ -26,6 +28,7 @@ import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragm
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.subheading;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.surfaceQualityRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.toggle;
+import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.videoBufferRow;
 import static app.morphe.extension.facebook.settings.HushfacebookPreferenceFragment.watchedKeepRow;
 
 import android.content.Context;
@@ -71,6 +74,18 @@ final class VideoPages {
     static boolean storyNamesInBuild() {
         Set<PatchFamily> forced = PatchFamily.inBuildForTests;
         return forced != null ? forced.contains(PatchFamily.FULL_POST_TEXT) : CaptionBackdrop.storyNamesInBuild();
+    }
+
+    /** Whether this build carries the dark box behind a name drawn over a feed video (#533), counted in as the caption's is. */
+    static boolean feedVideoNamesInBuild() {
+        Set<PatchFamily> forced = PatchFamily.inBuildForTests;
+        return forced != null ? forced.contains(PatchFamily.FULL_POST_TEXT) : CaptionBackdrop.feedVideoNamesInBuild();
+    }
+
+    /** Whether this build lets a post's name take more lines (#533), counted in as the caption's box is. */
+    static boolean fullNamesInBuild() {
+        Set<PatchFamily> forced = PatchFamily.inBuildForTests;
+        return forced != null ? forced.contains(PatchFamily.FULL_POST_TEXT) : CaptionBackdrop.fullNamesInBuild();
     }
 
     /** Reels and Watch, in every build, with the map of the four places Reels show up. */
@@ -164,6 +179,8 @@ final class VideoPages {
                         L10n.t("Adds a Clean mode button to the buttons down the side of a reel. Tap it to hide them, "
                                 + "and Clean mode stays on as you swipe. Facebook's own Clean mode button brings them back.")));
             }
+            // Back to Clean mode (#519): read as each reel leaves Clean mode, so a change shows from the next one.
+            reels.addPreference(cleanReturnRow(context));
             reels.addPreference(toggle(context, Settings.PLAY_REELS_ONCE,
                     L10n.t("A reel stops on its last frame instead of starting over. Tap it to watch again, or swipe to "
                             + "the next one. Feed videos and stories aren't changed. Off by default, since it hasn't "
@@ -190,9 +207,13 @@ final class VideoPages {
             // Burn-in guard (#288): read on each pass, so a change shows right away.
             reels.addPreference(burnInGuardRow(context));
             reels.addPreference(burnInWaitRow(context));
+            reels.addPreference(burnInLevelRow(context));
             reels.addPreference(toggle(context, Settings.BURN_IN_STAY_DIM,
                     L10n.t("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, "
                             + "the next reel too. They still work. Leaving Reels brings them back.")));
+            reels.addPreference(toggle(context, Settings.BURN_IN_FADE,
+                    L10n.t("The buttons, caption and bars fade out slowly as they dim and fade back in when they "
+                            + "return, rather than changing at once.")));
             // The gray needs the reel's player on a TextureView, a Turn off HDR brightness hook that
             // works as each player is built, and the screen stays in color over one that isn't, so
             // it starts from the next reel.
@@ -230,6 +251,9 @@ final class VideoPages {
                             + "who posted it. A change shows from the next reel.")));
             // Asked as each reel's date is worded, so a change shows from the next reel (#357).
             reels.addPreference(reelDateStyleRow(context));
+            reels.addPreference(toggle(context, Settings.HIDE_REEL_NEW_FOR_YOU,
+                    L10n.t("Takes \"New for you\", and other reasons Facebook gives for showing you a reel, off the line "
+                            + "under its author, so the date and the song show right away. A change shows from the next reel.")));
             reels.addPreference(toggle(context, Settings.HIDE_REEL_SOUND_BUTTON,
                     L10n.t("Takes the speaker button off the bottom of the side of reels. "
                             + "A change shows from the next reel.")));
@@ -323,8 +347,14 @@ final class VideoPages {
                         L10n.t("The name at the bottom of a reel sits on the same dark box, so it's easy to read over a "
                                 + "bright video. A change shows from the next reel.")));
             }
+            // The same hook, for a feed post's header drawn over its video (#533).
+            if (feedVideoNamesInBuild()) {
+                reels.addPreference(toggle(context, Settings.DIM_FEED_VIDEO_NAMES,
+                        L10n.t("When a video in your feed has the poster's name on top of the video, that name sits on "
+                                + "the same dark box. A change shows on the posts drawn after it.")));
+            }
             // Every box's look, story names' included, read as each box is made (#490).
-            if (captionBackdropInBuild() || reelNamesInBuild() || storyNamesInBuild()) {
+            if (captionBackdropInBuild() || reelNamesInBuild() || storyNamesInBuild() || feedVideoNamesInBuild()) {
                 reels.addPreference(HushfacebookPreferenceFragment.boxDarknessRow(context));
                 reels.addPreference(toggle(context, Settings.SOFT_TEXT_BOXES,
                         L10n.t("The dark boxes fade out at their edges instead of ending sharp. A change shows from the "
@@ -459,16 +489,17 @@ final class VideoPages {
                 || build.contains(PatchFamily.FRAME_STEP)
                 || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.PICTURE_IN_PICTURE)
                 || build.contains(PatchFamily.BACKGROUND_PLAY) || build.contains(PatchFamily.HDR_BRIGHTNESS) || build.contains(PatchFamily.SKIP_SILENCE)
-                || build.contains(PatchFamily.KEEP_FEED_VIDEOS_MUTED) || build.contains(PatchFamily.PROGRESS_BAR)) {
+                || build.contains(PatchFamily.KEEP_FEED_VIDEOS_MUTED) || build.contains(PatchFamily.PROGRESS_BAR)
+                || build.contains(PatchFamily.VIDEO_BUFFER)) {
             PreferenceCategory playback = category(screen, L10n.t("Video and audio"));
             subheading(playback, L10n.t("Autoplay and resume"));
             if (build.contains(PatchFamily.TAP_TO_PLAY)) {
                 playback.addPreference(toggle(context, Settings.TAP_TO_PLAY,
-                        L10n.t("Videos, reels, stories and music wait for your tap instead of playing by themselves. Facebook's own "
+                        L10n.t("Videos, reels and music wait for your tap instead of playing by themselves. Facebook's own "
                                 + "Autoplay setting shows Off while this is on.")));
                 playback.addPreference(toggle(context, Settings.TAP_TO_PLAY_REELS_AFTER_FIRST,
                         L10n.t("With the switch above on, after you play one reel, the reels you swipe to play on their own. The "
-                                + "feed, Watch and stories always wait.")));
+                                + "feed and Watch always wait.")));
                 // Asked at each story video's start, so it applies to the next story you open.
                 playback.addPreference(toggle(context, Settings.TAP_TO_PLAY_STORIES,
                         L10n.t("Video stories don't start by themselves. Touch and hold a story, then let go, to play it. "
@@ -496,6 +527,12 @@ final class VideoPages {
                                 + "Keep tapping to go further. Live videos work too when they can be rewound. "
                                 + "One tap on a side still opens the video, a moment later than usual. "
                                 + "With Tap to play on, it needs Inline feed video controls on too.")));
+                // Asked at each press, so it applies to the next tap.
+                playback.addPreference(toggle(context, Settings.FEED_VIDEO_TAP_SHOWS_PAUSE,
+                        L10n.t("Tapping a feed video shows a pause button in its middle and the video keeps playing, "
+                                + "so a tap doesn't open it in Reels. Tap the button to pause or play. "
+                                + "Tap the video again while the button shows to open it. Ads keep their own controls. "
+                                + "With Tap to play on, it needs Inline feed video controls on too.")));
                 // Hold a reel for 2x's patch reaches the player's speed, which the button reads and sets.
                 if (build.contains(PatchFamily.REEL_HOLD)) {
                     playback.addPreference(toggle(context, Settings.FEED_VIDEO_SPEED_BUTTON,
@@ -516,9 +553,13 @@ final class VideoPages {
                                 + "Facebook's speaker and tagged people buttons move up to sit above it. "
                                 + "Wins over Lower the seek bar and speaker. Needs Seek bar on feed videos on.")));
                 playback.addPreference(toggle(context, Settings.FEED_VIDEO_SEEK_BAR_THIN,
-                        L10n.t("Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot or times until you drag it. "
+                        L10n.t("Shows a feed video's seek bar as a thin line right on its bottom edge, like Instagram's, with no dot until you drag it. "
                                 + "Live videos get it too while they can be rewound. Let go at the far right end to go back to live. "
                                 + "Facebook's speaker and tagged people buttons move up to sit above it. Needs Seek bar on feed videos on.")));
+                playback.addPreference(toggle(context, Settings.FEED_VIDEO_SEEK_BAR_FLAT_DRAG,
+                        L10n.t("While you drag the thin line, it stays on the video's bottom edge like Instagram's, "
+                                + "with the time in the middle, instead of rising into the full bar with a time bubble. "
+                                + "Needs Thin line seek bar on.")));
                 playback.addPreference(toggle(context, Settings.FEED_VIDEO_SEEK_BAR_TIMES,
                         L10n.t("Shows how far into a feed video you are at the left end of its seek bar, and how much is left at the right end. "
                                 + "Needs Seek bar on feed videos on.")));
@@ -555,6 +596,8 @@ final class VideoPages {
                 playback.addPreference(surfaceQualityRow(context, true));
                 playback.addPreference(surfaceQualityRow(context, false));
             }
+            // Asked at each player's start and loading checks, so a change shows within a moment (#526).
+            if (build.contains(PatchFamily.VIDEO_BUFFER)) playback.addPreference(videoBufferRow(context));
             if (build.contains(PatchFamily.HDR_BRIGHTNESS)) {
                 // Asked as each screen comes to the front, so a change shows from the next one.
                 playback.addPreference(toggle(context, Settings.TURN_OFF_HDR_BRIGHTNESS,
@@ -630,8 +673,14 @@ final class VideoPages {
             if (build.contains(PatchFamily.BACKGROUND_PLAY)) {
                 // Asked on each stop of a Facebook screen, so a change counts from the next time you leave.
                 playback.addPreference(toggle(context, Settings.KEEP_PLAYING_IN_BACKGROUND,
-                        L10n.t("A video you started with a tap keeps its sound after you leave Facebook, and its "
-                                + "notification can pause it. Swiping the notification away or taking a call stops it.")));
+                        L10n.t("A video you started with a tap, or a reel you swiped to in Reels, keeps its sound "
+                                + "after you leave Facebook, and its notification can pause it. Swiping the "
+                                + "notification away or taking a call stops it.")));
+                // Asked as each background reel nears its end, so a change counts right away.
+                playback.addPreference(toggle(context, Settings.NEXT_REEL_IN_BACKGROUND,
+                        L10n.t("When a reel playing in the background ends, the next reel plays instead of the same one "
+                                + "again. It goes through the reels Reels had loaded when you left. Works with Keep "
+                                + "playing in the background on.")));
                 if (build.contains(PatchFamily.PICTURE_IN_PICTURE)) {
                     // Asked as each window's buttons are made, so a change shows from the next window.
                     playback.addPreference(toggle(context, Settings.BACKGROUND_PLAY_BUTTON,
@@ -675,9 +724,15 @@ final class VideoPages {
                         L10n.t("With Save any photo on, a post with photos gets Save photo in its three-dot menu too. A post with several saves each one, one after another.")));
                 downloads.addPreference(toggle(context, Settings.POST_MENU_PHOTO_SEARCH,
                         L10n.t("With Save any photo on, a post with one photo gets Search photo in its three-dot menu. It hands the photo to the app you pick, such as Google Lens, to look up what's in it or copy its text.")));
+                downloads.addPreference(toggle(context, Settings.MARKETPLACE_PHOTO_SAVE,
+                        L10n.t("With Save any photo on, a long press on a photo you open from a Marketplace listing saves it.")));
             }
             // Every save reads these, a story's and a reel's as much as a feed video's, so they're here
             // whichever download patch is in, the compatible ones above the quality they keep within.
+            downloads.addPreference(toggle(context, Settings.ASK_BEFORE_DOWNLOAD,
+                    L10n.t("A reel's Download button, the Download button under a post and a video's Download to phone "
+                            + "ask first, so a stray tap saves nothing. With Choose quality on each save on, a video's "
+                            + "list of qualities does the asking.")));
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_QUIET,
                     L10n.t("No toast when a save starts, finishes or is canceled. A save that fails still says why.")));
             downloads.addPreference(toggle(context, Settings.DOWNLOAD_COMPATIBLE,

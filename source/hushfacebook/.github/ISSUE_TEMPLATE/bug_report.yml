@@ -12,21 +12,23 @@ body:
 
         - **Check whether it's already reported.** Search the [open and closed bug reports](https://github.com/SysAdminDoc/Hushfacebook/issues?q=is%3Aissue%20label%3Abug). If yours was closed and it still happens, comment on it and we'll reopen it. GitHub doesn't let the person who reported something reopen it.
         - **Not sure it's a bug?** Ask in [Discussions](https://github.com/SysAdminDoc/Hushfacebook/discussions) instead.
-        - **Patching stopped with an error?** Include the full error and its Source lines. Check the [patch-selection guide](https://github.com/SysAdminDoc/Hushfacebook#patching-stops-on-one-patch) if you use more than one Facebook patch source.
+        - **Patching stopped with an error?** Include the full error and its Source lines. Check the [patch-selection guide](https://github.com/SysAdminDoc/Hushfacebook/blob/main/docs/help.md#patching-stops-on-one-patch) if you use more than one Facebook patch source.
   - type: input
     id: versions
     attributes:
       label: Hushfacebook and Facebook versions
       description: Long-press Facebook's icon and tap Hushfacebook. Copy the version below its status. If you have the new category pages, open More settings, then About, and copy the Version line.
-      placeholder: Version 0.22.0 for Facebook 587.0.0.39.55
+      placeholder: Version 0.23.0 for Facebook 588.0.0.42.55
     validations:
       required: true
   - type: input
     id: variant
     attributes:
       label: Which Facebook file did you patch?
-      description: The APKMirror variant, and whether the file you gave the patcher was an .apkm bundle or a single .apk, if you know them. Most bugs on a build that should work come from a different variant.
+      description: The APKMirror variant, and whether the file you gave the patcher was an .apkm bundle or a single .apk. Not sure? The name of the file you downloaded is enough. Most bugs on a build that should work come from a different variant.
       placeholder: arm64-v8a, Android 11+, 240-640dpi (.apkm)
+    validations:
+      required: true
   - type: dropdown
     id: manager
     attributes:
@@ -42,7 +44,7 @@ body:
     attributes:
       label: Its version
       description: Morphe Manager shows its version in its own settings. If you picked "Something else", name the program too.
-      placeholder: Morphe Manager 2.6.0
+      placeholder: Morphe Manager 2.7.0
     validations:
       required: true
   - type: dropdown

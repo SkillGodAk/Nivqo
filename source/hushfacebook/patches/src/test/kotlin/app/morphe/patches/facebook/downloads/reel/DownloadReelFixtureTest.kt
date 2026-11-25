@@ -64,11 +64,12 @@ class DownloadReelFixtureTest {
 
     private val verticalUfi = "Lapp/morphe/extension/facebook/download/ReelDownload;->verticalUfi(Z)Z"
 
-    /** What the block did on each ABI: how far in front of the assembly call it went, its first scratch register, and where it read the helper's six values (session, scoped context, player, story, buttons, markers); then where the render's layout flag is handed to the extension, and its register (#316). Both 587 phone ABIs lay the render out alike (read 2026-11-13): the builder is the render, the block goes in where the straight run to the assembly call starts, and v1 to v6 are each written there before anything reads them (v6 at the call's own argument moves). 586's Android 9 build lays it out its own way. */
+    /** What the block did on each ABI: how far in front of the assembly call it went, its first scratch register, and where it read the helper's six values (session, scoped context, player, story, buttons, markers); then where the render's layout flag is handed to the extension, and its register (#316). Both 588 phone ABIs lay the render out alike (read 2026-11-18): the builder is the render, the block goes in where the button loop exits into the straight run to the assembly call, and v2 to v7 are each written after it before anything reads them (v6 and v7 only past the call). */
     private val expected = mapOf(
-        "arm64-v8a" to "before=37 scratch=1 sources=[69, 9, 31, 38, 22, 15] layout=234 v7",
-        "armeabi-v7a" to "before=37 scratch=1 sources=[69, 9, 31, 38, 22, 15] layout=234 v7",
-        "arm64-v8a-minapi28-storeless" to "before=43 scratch=15 sources=[53, 4, 99, 26, 14, 6] layout=194 v7",
+        "arm64-v8a" to "before=39 scratch=2 sources=[71, 1, 33, 11, 23, 21] layout=240 v8",
+        "armeabi-v7a" to "before=39 scratch=2 sources=[71, 1, 33, 11, 23, 21] layout=240 v8",
+        // 588's Android 9 build reads the player from its copy (v31) and the layout flag in the builder.
+        "arm64-v8a-minapi28-storeless" to "before=43 scratch=1 sources=[68, 10, 31, 14, 23, 21] layout=193 v7",
     )
 
     /** A render of the same Litho method as [render]: its name, its one scoped parameter and its return type. */
@@ -267,15 +268,21 @@ class DownloadReelFixtureTest {
                 // The older button layout (#316, #298): the render reads the layout flag once, 1 for
                 // yes and 0 for no, and where the two writes meet the extension gets Facebook's
                 // answer back into the same register, so the branch to the older strip goes by it.
-                val renderOriginal = render.body()
-                val renderBody = context.mutableClassDefBy(component.type).methods.single {
+                val ownRender = context.mutableClassDefBy(component.type).methods.single {
                     it.name == render.name && it.parameterTypes.map(CharSequence::toString) == render.parameterTypes.map(CharSequence::toString)
                 }
+                // 588's Android 9 build reads the flag in the builder (LX/09wQ;->A01), which its render only calls.
+                val layoutInBuilder = !renderIsBuilder && context.sidebarLayoutMethod(render, builder) === builder
+                if (layoutInBuilder) {
+                    assertEquals("${bundle.name}: the render is Facebook's own", unpadded(render.body()), unpadded(ownRender.implementation!!.instructions.toList()))
+                }
+                val renderOriginal = if (layoutInBuilder) original else render.body()
+                val renderBody = if (layoutInBuilder) patched else ownRender
                 val renderCode = renderBody.implementation!!.instructions.toList()
                 val layoutAt = renderCode.indexOfFirst { it.called()?.toString() == verticalUfi }
                 assertEquals("${bundle.name}: the layout is asked once", 1, renderCode.count { it.called()?.toString() == verticalUfi })
                 // Where the hook sits in Facebook's own code, past the button block when that's ahead of it.
-                val layoutOriginal = layoutAt - if (renderIsBuilder && injectAt < layoutAt) blockSize else 0
+                val layoutOriginal = layoutAt - if ((renderIsBuilder || layoutInBuilder) && injectAt < layoutAt) blockSize else 0
                 val asked = renderCode[layoutAt] as RegisterRangeInstruction
                 val flagRegister = asked.startRegister
                 assertEquals("${bundle.name}: with the flag alone", 1, asked.registerCount)
@@ -299,7 +306,7 @@ class DownloadReelFixtureTest {
                 val renderFlow = ControlFlow.of(renderBody)
                 assertEquals("${bundle.name}: a yes jumps to the hook", setOf(layoutAt - 1, layoutAt), renderFlow.normal[layoutAt - 2].toSet())
                 assertEquals("${bundle.name}: a no runs into it", listOf(layoutAt), renderFlow.normal[layoutAt - 1])
-                if (!renderIsBuilder) {
+                if (!renderIsBuilder && !layoutInBuilder) {
                     assertEquals(
                         "${bundle.name}: the rest of the render is Facebook's own",
                         unpadded(renderOriginal),
@@ -327,12 +334,20 @@ class DownloadReelFixtureTest {
                     ),
                     gates,
                 )
+                // Facebook's own sidebar button passes no accessibility action, and one made ours
+                // long-clickable, its long press opening an empty gray pop-up (#518).
+                val actionType = factory.parameterTypes[2].toString()
+                assertEquals(
+                    "${bundle.name}: no button gets an accessibility action",
+                    0,
+                    helperBody.count { it.opcode == Opcode.NEW_INSTANCE && (it as ReferenceInstruction).reference.toString() == actionType },
+                )
                 val handlerFlags = helperBody.indices.filter { at ->
                     helperBody[at].called()?.let { it.definingClass == reelDownload && it.name == "<init>" } == true
                 }.map { at -> (helperBody[at - 1] as NarrowLiteralInstruction).narrowLiteral }
                 assertEquals(
-                    "${bundle.name}: seven handlers that save, seven that cast, then seven that turn on Clean mode",
-                    List(7) { 0 } + List(7) { 1 } + List(7) { 2 },
+                    "${bundle.name}: six handlers that save, six that cast, then six that turn on Clean mode",
+                    List(6) { 0 } + List(6) { 1 } + List(6) { 2 },
                     handlerFlags,
                 )
                 assertEquals(
