@@ -98,11 +98,14 @@ try {
     $messengerLockText = [System.IO.File]::ReadAllText($messengerLock)
     $messengerLockText = $messengerLockText.Replace(
         "com.google.guava:guava:33.6.0-jre=",
-        "com.google.guava:guava:33.7.2-jre="
+        "com.google.guava:guava:33.8.0-jre="
     )
     # FB v0.12.0 root graph locks Kotlin stdlib 2.4.21, while Messenger v0.23.0's standalone extension lock uses 2.4.20.
     # Only align the disposable combined tree; leave standalone Messenger source untouched.
     $messengerLockText = $messengerLockText.Replace(":2.4.20=", ":2.4.21=")
+    # FB 0.24 forces BouncyCastle 1.87 for the combined test/tooling graph.
+    $messengerLockText = $messengerLockText.Replace("org.bouncycastle:bc-jdk18on-bom:1.86=", "org.bouncycastle:bc-jdk18on-bom:1.87=")
+    $messengerLockText = [regex]::Replace($messengerLockText, '(?m)^(org\.bouncycastle:bcprov-jdk18on):1\.86=androidLintTool,(.+)$', '$1:1.86=androidLintTool' + "`n" + '$1:1.87=$2')
     [System.IO.File]::WriteAllText($messengerLock, $messengerLockText, [System.Text.UTF8Encoding]::new($false))
 
     [System.IO.File]::WriteAllText((Join-Path $temp "local.properties"), ("sdk.dir=" + $AndroidSdk.Replace("\", "\\")), [System.Text.Encoding]::ASCII)

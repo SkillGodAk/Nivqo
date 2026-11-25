@@ -1,3 +1,8 @@
+# 0.24.0-nivqo.1 (2026-11-25)
+
+* **Facebook:** 繁體中文：HushFacebook 0.24.0（127 個補丁），支援 Facebook 588.0.0.42.55，新增影片緩衝大小、背景播放下一部 Reels、留言自動翻譯、App 內代理、限時動態控制與平板版面改進；修正 Android 9／10 相容性。 保留 Nivqo 繁中、Messenger 按鈕路由及原簽章。
+* **Facebook:** English: HushFacebook 0.24.0 (127 patches) for stock Facebook 588.0.0.42.55; video buffer, next background reel, automatic comment translation, in-app proxy, Stories controls and tablet fixes; Android 9/10 compatibility improvements. Preserves Nivqo localization, Messenger routing and signing.
+
 # 0.23.0-nivqo.1 (2026-11-22)
 
 * **Facebook:** 繁體中文：同步正式 HushFacebook 0.23.0（126 個補丁），對應 Facebook 587.0.0.39.55 原版 APK，新增摺疊長貼文、影片背景播放、隱藏 Repost 按鈕、限時動態管理與自訂貼文選單。保留 Nivqo 繁中設定與頂部 Messenger 按鈕路由、原 Ed25519 簽章。

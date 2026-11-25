@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-22T09:48:19",
-  "description": "Nivqo Manager 2.7.0 正式版：同步 Morphe Manager 2.7.0、Patcher 2.5.0、HushFacebook 0.23.0（126 個補丁）及 HushMessenger 0.30.0（98 個補丁）。Nivqo Patches 1.3.0 合計 224 個繁中補丁，保留 Nivqo Logo、繁體中文／英文／跟隨系統、Facebook Messenger 按鈕、離線核心、原始簽章、自家更新通道及排除 Morphe 上游提示的修正。Facebook 587.0.0.39.55 與 Messenger 587.0.0.54.96 請使用指定相容原版 APK 重新修補，Manager 更新不會自動修改已安裝 App。 English: Manager 2.7.0, Patcher 2.5.0, FB 0.23.0 (126), MSG 0.30.0 (98), Nivqo Patches 1.3.0 (224). Original Nivqo signing, branding, localization, Messenger routing, offline cores, and Nivqo-only OTA preserved. Repatch compatible stock Facebook and Messenger APKs to apply updates.",
-  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v2.7.0/Nivqo-Manager-2.7.0-20261122-release.apk",
+  "created_at": "2026-11-25T16:53:38",
+  "description": "Manager 2.7.1 修正修補時無法開啟包含中文等非 ASCII 字元的檔案路徑。Patcher 2.5.0 和 HushMessenger 0.30.0（98 個補丁）保持不變。HushFacebook 0.24.0（127 個補丁），支援 Facebook 588.0.0.42.55，新增影片緩衝大小、背景播放下一部 Reels、留言自動翻譯、App 內代理、限時動態控制與平板版面改進；修正 Android 9／10 相容性。保留 Nivqo 原簽章、繁中設定、獨立更新來源、Messenger 頂部按鈕及離線核心；合併補丁 1.4.0 共 225 項。 請使用指定原版 Facebook APK 重新修補。 English: Manager 2.7.1 fixes opening files with non-ASCII paths during patching. Patcher 2.5.0 and HushMessenger 0.30.0 (98 patches) remain unchanged. HushFacebook 0.24.0 (127 patches) for stock Facebook 588.0.0.42.55; video buffer, next background reel, automatic comment translation, in-app proxy, Stories controls and tablet fixes; Android 9/10 compatibility improvements.",
+  "download_url": "https://github.com/SkillGodAk/Nivqo/releases/download/v2.7.1/Nivqo-Manager-2.7.1-20261125-release.apk",
   "signature_download_url": "",
-  "version": "2.7.0",
-  "version_code": 39931961
+  "version": "2.7.1",
+  "version_code": 39936705
 }

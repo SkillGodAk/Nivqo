@@ -1,3 +1,15 @@
+## 1.4.0 (2026-11-25)
+
+* **Manager:** Manager 2.7.1 修正修補時無法開啟包含中文等非 ASCII 字元的檔案路徑。Patcher 2.5.0 和 HushMessenger 0.30.0（98 個補丁）保持不變。
+* **Facebook:** HushFacebook 0.24.0（127 個補丁），支援 Facebook 588.0.0.42.55，新增影片緩衝大小、背景播放下一部 Reels、留言自動翻譯、App 內代理、限時動態控制與平板版面改進；修正 Android 9／10 相容性。
+* **Messenger:** 0.30.0（98 個補丁），本次維持不變。
+* **Nivqo:** 保留 Nivqo 原簽章、繁中設定、獨立更新來源、Messenger 頂部按鈕及離線核心；合併補丁 1.4.0 共 225 項。
+
+* **Manager:** Manager 2.7.1 fixes opening files with non-ASCII paths during patching. Patcher 2.5.0 and HushMessenger 0.30.0 (98 patches) remain unchanged.
+* **Facebook:** HushFacebook 0.24.0 (127 patches) for stock Facebook 588.0.0.42.55; video buffer, next background reel, automatic comment translation, in-app proxy, Stories controls and tablet fixes; Android 9/10 compatibility improvements.
+* **Messenger:** 0.30.0 (98 patches), unchanged.
+* **Nivqo:** 225 combined patches, original signing, Nivqo-only updates, Traditional Chinese localization and offline bundles preserved.
+
 ## 1.3.0 (2026-11-22)
 
 ### 新增與改善
