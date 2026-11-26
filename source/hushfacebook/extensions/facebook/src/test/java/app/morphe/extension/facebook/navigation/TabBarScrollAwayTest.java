@@ -11,9 +11,11 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.graphics.Insets;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
+import android.view.WindowInsets;
 import android.widget.FrameLayout;
 
 import java.lang.ref.WeakReference;
@@ -80,6 +82,10 @@ public class TabBarScrollAwayTest {
         Settings.TOP_TAB_BAR.resetToDefault();
         Settings.TRANSLUCENT_BARS.resetToDefault();
         Settings.HIDE_STATUS_BAR.resetToDefault();
+        Settings.ROUNDED_TAB_BAR.resetToDefault();
+        Settings.HIDE_REELS_TAB_BAR.resetToDefault();
+        ReelsTabBarHidden.insetsForTests = null;
+        ReelsTabBarHidden.forgetWindow();
         TabBarScrollAway.topBarsTakenBack();
         TabBarScrollAway.mainScreenCreated(null);
         TabBarScrollAway.forgetBuilt();
@@ -89,6 +95,8 @@ public class TabBarScrollAwayTest {
         TabBarScrollAway.Stored.WIDE_ROW_MADE.resetToDefault();
         TabBarScrollAway.Stored.WIDE_LIST_HEIGHT.resetToDefault();
         TabBarScrollAway.Stored.WIDE_ROW_SETUP.resetToDefault();
+        TabBarScrollAway.Stored.BAR_ROOM.resetToDefault();
+        TabBarScrollAway.Stored.WIDE_BAR_ROOM.resetToDefault();
         BaseSettings.DEBUG.resetToDefault();
         LogBufferManager.clearLogBuffer();
         HookStatus.clear();
@@ -722,6 +730,36 @@ public class TabBarScrollAwayTest {
     }
 
     @Test
+    public void choosingStaysOnScreenKeepsTheListSeenWhilePagesRunUnderTheTabBar() {
+        // #552: tabs at the bottom and See-through bars, the tab bar sliding away while scrolling.
+        // The list runs the whole page, seen once. Then Stays on screen: the list still runs the
+        // whole page under the bar, yet the next start's rows came out Facebook's short 2071, with
+        // the next reel showing under the bar, until the Reels list was laid out again.
+        Settings.BOTTOM_TAB_BAR.save(true);
+        Settings.TAB_BAR_SCROLL_AWAY.save(true);
+        Settings.TRANSLUCENT_BARS.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("seen sliding away", 2287, TabBarScrollAway.rowFor(2071, -1, 2287));
+
+        TabBarScrollAway.forgetBuilt();
+        TabBarScrollAway.topBarsTakenBack();
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        Settings.TAB_BAR_SCROLL_AWAY.save(false);
+        Settings.KEEP_TAB_BAR.save(true);
+        assertEquals("the next start under Stays on screen, made ahead on Home", 2287,
+                TabBarScrollAway.rowFor(2071, -1, 0));
+
+        Settings.TRANSLUCENT_BARS.save(false);
+        assertEquals("a solid tab bar keeps the list above it, so the height seen without it stays behind", 2071,
+                TabBarScrollAway.rowFor(2071, -1, 0));
+        Settings.TRANSLUCENT_BARS.save(true);
+        Settings.HIDE_STATUS_BAR.save(true);
+        assertEquals("another switch flipped as well still waits for the list", 2071,
+                TabBarScrollAway.rowFor(2071, -1, 0));
+    }
+
+    @Test
     public void aReelsRowFillsTheWholeListUnderATabBarAlongTheBottom() throws Exception {
         // #466 on 588 (S22, 2026-11-19): tabs at the bottom with See-through bars, Rounded tab bar
         // and the status bar hidden run the Reels list the whole screen down under the bar. Rows
@@ -752,6 +790,151 @@ public class TabBarScrollAwayTest {
         assertEquals("and rows made ahead on Home take the same", 2400, TabBarScrollAway.rowFor(2062, -1, 0));
         list.setPadding(0, 30, 0, 50);
         assertEquals("inside the list's padding", 2320, TabBarScrollAway.reelsListHeight());
+    }
+
+    @Test
+    public void aListSeenWithRoundedTabBarStaysBehindOnceItsOff() {
+        // #551 (S26 Ultra, and Matt's account on the emulator, 2026-11-24): Facebook's own tab bar
+        // at the bottom, every bar switch off. Rounded tab bar had run the Reels list down under the
+        // bar once, and the height seen then stayed the setup's, so each start grew Facebook's rows
+        // of 2062 to 2272 in a 2062 list, and the reel's name, caption and buttons sat behind the bar.
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        Settings.ROUNDED_TAB_BAR.save(true);
+        assertEquals("seen with the rounded bar", 2272, TabBarScrollAway.rowFor(2062, -1, 2272));
+        assertEquals("made ahead with it still on", 2272, TabBarScrollAway.rowFor(2062, -1, 0));
+        Settings.ROUNDED_TAB_BAR.save(false);
+        TabBarScrollAway.forgetBuilt();
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("the next start without it, made ahead on Home", 2062, TabBarScrollAway.rowFor(2062, -1, 0));
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("on the Reels tab, the list as tall as the row", 2062, TabBarScrollAway.rowFor(2062, -1, 2062));
+        Settings.ROUNDED_TAB_BAR.save(true);
+        assertEquals("turned back on, the height seen with it comes back", 2272, TabBarScrollAway.rowFor(2062, -1, 0));
+    }
+
+    @Test
+    public void aListSeenWithTheReelsTabBarHiddenStaysBehindOnceItShows() {
+        // #551: Hide the tab bar on the Reels tab runs the list down to the screen's bottom as well.
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        Settings.HIDE_REELS_TAB_BAR.save(true);
+        assertEquals("seen with the bar hidden", 2337, TabBarScrollAway.rowFor(2062, -1, 2337));
+        Settings.HIDE_REELS_TAB_BAR.save(false);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("the bar showing again, made ahead on Home", 2062, TabBarScrollAway.rowFor(2062, -1, 0));
+    }
+
+    @Test
+    public void aReelsRowMadeBeforeItsListShowsWithTheReelsTabBarHiddenRunsToTheGestureBar() {
+        // #566 (Matt's account on the emulator, 2026-11-24): the first start after Hide the tab bar
+        // on the Reels tab went on, with no list height kept for that setup yet. Facebook made its
+        // rows of 2062 for a list the hidden bar ran 147 taller (the 210 bar less the 63 gesture
+        // bar the page keeps), so the next reel showed in a black band under the first.
+        ReelsTabBarHidden.insetsForTests = new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.navigationBars(), Insets.of(0, 0, 0, 63)).build();
+        View bar = new View(RuntimeEnvironment.getApplication());
+        bar.layout(0, 2190, 1080, 2400);
+        ReelsTabBarHidden.barLaidOut(bar);
+        Settings.HIDE_REELS_TAB_BAR.save(true);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("made ahead on Home", 2209, TabBarScrollAway.rowFor(2062, -1, 0));
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("on the Reels tab before its list is laid out", 2209, TabBarScrollAway.rowFor(2062, -1, 0));
+        assertEquals("a list laid out no taller than the row says so", 2062, TabBarScrollAway.rowFor(2062, -1, 2062));
+        bar.setVisibility(View.GONE);
+        assertEquals("the bar gone on the Reels tab", 2209, TabBarScrollAway.rowFor(2062, -1, 0));
+        Settings.HIDE_REELS_TAB_BAR.save(false);
+        assertEquals("the switch off", 2062, TabBarScrollAway.rowFor(2062, -1, 0));
+        Settings.HIDE_REELS_TAB_BAR.save(true);
+        Settings.TOP_TAB_BAR.save(true);
+        assertEquals("tabs at the top", 2062, TabBarScrollAway.rowFor(2062, -1, 0));
+    }
+
+    @Test
+    public void aReelsRowMadeAsFacebookStartsGetsTheRoomItsTabBarTookAtAnEarlierStart() {
+        // #566 again (emulator, 2026-11-24): Facebook makes the first Reels rows as it starts, before
+        // its tab bar is laid out in that process, so a bar read then gave no room at all.
+        ReelsTabBarHidden.insetsForTests = new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.navigationBars(), Insets.of(0, 0, 0, 63)).build();
+        View bar = new View(RuntimeEnvironment.getApplication());
+        bar.layout(0, 2190, 1080, 2400);
+        // An earlier start, with the switch still off.
+        ReelsTabBarHidden.barLaidOut(bar);
+        ReelsTabBarHidden.forgetWindow();
+        Settings.HIDE_REELS_TAB_BAR.save(true);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("made ahead as Facebook starts", 2209, TabBarScrollAway.rowFor(2062, -1, 0));
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("on the Reels tab before any bar is laid out", 2209, TabBarScrollAway.rowFor(2062, -1, 0));
+        assertEquals("a list laid out says how tall it is", 2209, TabBarScrollAway.rowFor(2062, -1, 2209));
+        Settings.HIDE_REELS_TAB_BAR.save(false);
+        assertEquals("the switch off", 2062, TabBarScrollAway.rowFor(2062, -1, 0));
+    }
+
+    @Test
+    public void aReelsRowMadeWhileTheTabBarIsLaidOutShortGetsTheRoomItTakesOnceItsDone() {
+        // #566 on the emulator once more (2026-11-24): with the room kept from an earlier start, the
+        // rows made ahead still came out 2062 with a 146 band under them, because the bar was read
+        // as it stood that moment. A bar no taller than the gesture bar frees nothing, so the room
+        // it takes once it's done has to stand in.
+        ReelsTabBarHidden.insetsForTests = new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.navigationBars(), Insets.of(0, 0, 0, 63)).build();
+        View bar = new View(RuntimeEnvironment.getApplication());
+        bar.layout(0, 2190, 1080, 2400);
+        ReelsTabBarHidden.barLaidOut(bar);
+        ReelsTabBarHidden.forgetWindow();
+        Settings.HIDE_REELS_TAB_BAR.save(true);
+        View starting = new View(RuntimeEnvironment.getApplication());
+        starting.layout(0, 2337, 1080, 2400);
+        ReelsTabBarHidden.barLaidOut(starting);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("made ahead with the bar half laid out", 2209, TabBarScrollAway.rowFor(2062, -1, 0));
+        assertEquals("the room kept stays", 147, TabBarScrollAway.Stored.BAR_ROOM.get().intValue());
+        ReelsTabBarHidden.barLaidOut(bar);
+        assertEquals("made ahead once the bar is done", 2209, TabBarScrollAway.rowFor(2062, -1, 0));
+    }
+
+    @Test
+    public void aReelsRowMadeAheadUnderTheBarsWithTheReelsTabBarHiddenRunsDownToTheNavigationBar() {
+        // #566 on the S22 (588, 2026-11-24): the first start after Hide the tab bar on the Reels tab
+        // went on. The list kept from the start before was the one with the bar, so the rows made
+        // ahead stayed 2041 in a 2274 list (the 2316 window less its 42 navigation bar), and the
+        // first reels showed a black band at the bottom. The next start, with that list kept, was fine.
+        ReelsTabBarHidden.insetsForTests = new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.navigationBars(), Insets.of(0, 0, 0, 42)).build();
+        Settings.TOP_TAB_BAR.save(true);
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("a start with the bar, its list seen", 2316, TabBarScrollAway.rowFor(2041, -1, 2316, 2316));
+
+        TabBarScrollAway.forgetBuilt();
+        TabBarScrollAway.topBarsTakenBack();
+        Settings.HIDE_REELS_TAB_BAR.save(true);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("made ahead on Home", 2274, TabBarScrollAway.rowFor(2041, -1, 0, 2316));
+        assertEquals("with the window unknown", 2041, TabBarScrollAway.rowFor(2041, -1, 0, 0));
+        Settings.KEEP_TOP_BAR.save(true);
+        assertEquals("a kept top bar leaves the row to the lists seen", 2041, TabBarScrollAway.rowFor(2041, -1, 0, 2316));
+        Settings.KEEP_TOP_BAR.save(false);
+        TabBarScrollAway.topBarsLetGo();
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("on the Reels tab before its list is laid out", 2274, TabBarScrollAway.rowFor(2041, -1, 0, 2316));
+        assertEquals("its list laid out says how tall it is", 2274, TabBarScrollAway.rowFor(2041, -1, 2274, 2316));
+        Settings.HIDE_REELS_TAB_BAR.save(false);
+        assertEquals("the switch off, a list laid out", 2316, TabBarScrollAway.rowFor(2041, -1, 2316, 2316));
+    }
+
+    @Test
+    public void aListHeightKeptBeforeTheSetupCountedTheReelsBarSwitchesIsSeenAgain() {
+        // #551: phones updating keep the height and setup saved before, numbered without the two
+        // switches. With every bar switch off that number was 0, the same as now, so the 2272
+        // seen under Rounded tab bar would still have grown the rows.
+        TabBarScrollAway.Stored.ROW_MADE.save(2062);
+        TabBarScrollAway.Stored.LIST_HEIGHT.save(2272);
+        TabBarScrollAway.Stored.ROW_SETUP.save(0);
+        onTabOf(new FeedTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("made ahead on Home", 2062, TabBarScrollAway.rowFor(2062, -1, 0));
+        onTabOf(new WatchTab(), new FeedTab(), new WatchTab(), new NotificationsTab());
+        assertEquals("on the Reels tab", 2062, TabBarScrollAway.rowFor(2062, -1, 2062));
     }
 
     @Test

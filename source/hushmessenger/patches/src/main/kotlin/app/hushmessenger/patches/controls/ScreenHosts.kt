@@ -1,11 +1,12 @@
 package app.hushmessenger.patches.controls
 
+import app.hushmessenger.patches.isExtension
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
-import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.patch.mutableClassDefBy
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -74,7 +75,7 @@ internal fun MutableMethod.writeBundledControls(keys: Collection<String>) {
 }
 
 /**
- * "587.0.0.54.96|347415354|base": the build being patched and the mapping its hooks come from ("base", or the lowest
+ * "588.1.0.66.98|347617503|base": the build being patched and the mapping its hooks come from ("base", or the lowest
  * version code of the builds that share another profile). Settings' reports show it, since Spoof package version changes
  * Android's version code and a Root Mount install has no patched manifest to read. A name or code of any other shape
  * gives "", which the reports show as unknown; a report line never stops a patch.
@@ -101,12 +102,12 @@ internal fun MutableMethod.writeOriginalBuild(value: String) {
 }
 
 /** Records an applied control in the patched code, which Root Mount installs read instead of the manifest. */
-internal fun BytecodePatchContext.recordControl(key: String) {
+internal fun recordControl(key: String) {
     bundledControls.add(key)
     mutableClassDefBy(HOST_SCREENS).methods.single { it.hookId() == BUNDLED_CONTROLS }.writeBundledControls(bundledControls)
 }
 
-internal fun BytecodePatchContext.hookScreenHosts() {
+internal fun hookScreenHosts() {
     val factory = runCatching { mutableClassDefBy(FACTORY_TYPE) }.getOrElse { factoryChanged() }
     val activity = factory.methods.singleOrNull { it.hookId() == INSTANTIATE_ACTIVITY } ?: factoryChanged()
     val application = factory.methods.singleOrNull { it.hookId() == INSTANTIATE_APPLICATION } ?: factoryChanged()
@@ -154,7 +155,7 @@ internal fun MutableMethod.followShortcutWrites(): Int {
  * slipped down until Messenger next left the screen. Every write outside the extension now puts it back right after.
  * A build without any still patches, and the pair then goes back on top at each start and leave as before.
  */
-internal fun BytecodePatchContext.followShortcutWrites(classes: Iterable<ClassDef>) {
+internal fun followShortcutWrites(classes: Iterable<ClassDef>) {
     var count = 0
     for ((type, writers) in shortcutWriters(classes))
         for (method in mutableClassDefBy(type).methods) if (method.hookId() in writers) count += method.followShortcutWrites()
@@ -163,7 +164,7 @@ internal fun BytecodePatchContext.followShortcutWrites(classes: Iterable<ClassDe
 
 /** The methods outside the extension that write launcher shortcuts, by class. HostScreens' own writes stay as they are. */
 internal fun shortcutWriters(classes: Iterable<ClassDef>): Map<String, Set<String>> = classes
-    .filterNot { it.type.startsWith("Lapp/hushmessenger/extension/") }
+    .filterNot { it.isExtension() }
     .mapNotNull { cls ->
         val writers = cls.methods.filter { it.shortcutWrites().isNotEmpty() }.map { it.hookId() }.toSet()
         if (writers.isEmpty()) null else cls.type to writers

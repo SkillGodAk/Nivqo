@@ -66,7 +66,7 @@ public class SetupSummaryTest {
             assertTrue(text.contains("\nHost version: 582.0.0.61.92\n"));
             assertTrue(text.contains("\nHost version code: " + ((7L << 32) | 346415686L) + "\n"));
             // The extension alone was patched from nothing, and says so rather than reading Android's version code.
-            assertTrue(text.contains("\nPatched from: unknown\n"));
+            assertTrue(text.contains("\nPatched from: unknown\nBundle: " + ProblemReport.bundle(BundleKey.SIGNED) + "\n"));
             assertTrue(text.contains("\nAndroid API: " + Build.VERSION.SDK_INT + "\nPaused: false\nSafe mode: false\n"));
             assertTrue(text.contains("people: installed=true, selected=true, active=true,"));
             assertTrue(text.contains("stories: installed=false, selected=true, active=false,"));
@@ -75,7 +75,8 @@ public class SetupSummaryTest {
             assertFalse(text.contains("private-"));
             assertFalse(text.contains("account-secret"));
             assertFalse(text.contains("account_id"));
-            assertFalse(text.contains("recovery_code"));
+            // The 40-character code row's own switch is a control like any other. The code itself never shows.
+            assertFalse(text.replace("recovery_code_row", "").contains("recovery_code"));
             assertEquals(before, Settings.preferences.getAll());
             assertNull(Shadows.shadowOf(activity).getNextStartedActivity());
             if (Build.VERSION.SDK_INT < 33) assertEquals("Setup copied", ShadowToast.getTextOfLatestToast());
@@ -178,10 +179,10 @@ public class SetupSummaryTest {
             for (String[] control : SettingsActivity.CONTROLS)
                 assertTrue(control[0], report.contains(", scope=" + control[2] + "\n"));
             assertTrue(report.matches("(?s).*hide_read_receipts: installed=true, selected=true, active=true, last_active=\\d+s ago, scope=.*"));
-            assertTrue(report.contains("Marking it read yourself or replying marks it read and shows Seen"));
+            assertTrue(report.contains("Marking it read yourself, replying or reacting to a message marks it read and shows Seen"));
             assertTrue(report.contains("Group chats aren't tested. Messenger's own Read receipts setting under Privacy & safety"));
-            assertTrue(report.contains("In encrypted chats it keeps the words you already saw in the chat or a notification, until Messenger restarts. Group chats aren't tested."));
-            assertTrue(report.contains("It doesn't add replay or saving."));
+            assertTrue(report.contains("In encrypted chats it keeps the words you already saw in the chat or a notification, and still has them after Messenger restarts. Group chats aren't tested."));
+            assertTrue(report.contains("A switch under it puts a Save button on the view-once viewer. It doesn't add replay."));
             assertTrue(report.contains("Android bubbles need Android 11 or newer, a supported account and notification permission."));
             assertTrue(report.contains("Search and community folders still show them."));
         }
@@ -209,7 +210,7 @@ public class SetupSummaryTest {
                     android.graphics.Rect visible = new android.graphics.Rect();
                     assertTrue(target.getGlobalVisibleRect(visible));
                     assertEquals(target.getHeight(), visible.height());
-                    assertTrue(root.findViewWithTag("allow_screenshot").getContentDescription().toString().contains("It doesn't add replay or saving."));
+                    assertTrue(root.findViewWithTag("allow_screenshot").getContentDescription().toString().contains("A switch under it puts a Save button on the view-once viewer. It doesn't add replay."));
                     String output = System.getenv("HUSH_SETTINGS_CAPTURES");
                     if (output != null) {
                         var directory = java.nio.file.Path.of(output);

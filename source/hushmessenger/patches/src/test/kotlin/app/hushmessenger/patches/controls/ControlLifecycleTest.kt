@@ -4,7 +4,6 @@ import app.morphe.patcher.Patcher
 import app.morphe.patcher.PatcherConfig
 import app.morphe.patcher.PatcherContext
 import app.morphe.patcher.dex.BytecodeMode
-import app.morphe.patcher.patch.BytecodePatch
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.Patch
 import app.morphe.patcher.patch.ResourcePatchContext
@@ -31,7 +30,7 @@ class ControlLifecycleTest {
         val name: String,
         val patches: Set<Patch>,
         val keys: Set<String>,
-        val failed: BytecodePatch? = null,
+        val failed: Patch? = null,
     )
 
     @Test fun visibleSelectionsFinalizeExactCapabilitiesAcrossFailuresAndFreshContexts(@TempDir temporary: Path) {
@@ -152,7 +151,7 @@ class ControlLifecycleTest {
             "${selection.name}: chat list route")
         // Every run records the build it started from, which the manifest's own mapping names here.
         val build = host.methods.single { it.hookId() == ORIGINAL_BUILD }
-        assertEquals("587.0.0.54.96|$LIFECYCLE_VERSION_CODE|$LIFECYCLE_VERSION_CODE",
+        assertEquals("588.1.0.66.98|$LIFECYCLE_VERSION_CODE|$LIFECYCLE_VERSION_CODE",
             ((build.implementation!!.instructions.first() as ReferenceInstruction).reference as StringReference).string,
             "${selection.name}: original build")
         val factory = classes.single { it.type == FACTORY_TYPE }

@@ -1,3 +1,15 @@
+## 1.5.0 (2026-11-27)
+
+* **Manager:** Nivqo Manager 2.8.0、Morphe Patcher 2.6.0。新增修補進度與批次操作資訊、下載中斷等待網路後恢復、Android 15 以上啟動效能改善。僅保留 Nivqo 自家更新來源，不套用 Morphe API 更新備援。
+* **Facebook:** HushFacebook 0.25.0（128 項），支援原版 Facebook 588.0.0.42.55；聊天室背景、社團貼文過濾、長影片側邊按鈕及多項 Reels 修正。
+* **Messenger:** HushMessenger 0.31.0（129 項），支援相容原版 Messenger 588.1.0.66.98；Instants 分頁、置頂訊息、自訂音效、離線顯示及安靜模式。
+* **Nivqo:** 合併 257 個補丁，保留繁中、Nivqo 獨立 OTA、Messenger 頂部路由、相同 Ed25519 簽署身分與離線補丁核心。
+
+* **Manager:** Nivqo Manager 2.8.0 with Patcher 2.6.0; enhanced patch/batch information, network-aware download resume and faster startup on Android 15+. Only Nivqo-managed self-update channels; Morphe API manager-update fallback excluded.
+* **Facebook:** HushFacebook 0.25.0, 128 patches for stock Facebook 588.0.0.42.55; chat backgrounds, group post filtering, long-video controls and Reels fixes.
+* **Messenger:** HushMessenger 0.31.0, 129 patches for compatible stock Messenger 588.1.0.66.98; Instants, pinned messages, custom sounds, appear-offline and Quiet mode.
+* **Nivqo:** 257 combined patches; Traditional Chinese, Nivqo-only OTA, Messenger routing, original Ed25519 signing identity and offline bundle seeds preserved.
+
 ## 1.4.0 (2026-11-25)
 
 * **Manager:** Manager 2.7.1 修正修補時無法開啟包含中文等非 ASCII 字元的檔案路徑。Patcher 2.5.0 和 HushMessenger 0.30.0（98 個補丁）保持不變。

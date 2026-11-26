@@ -7,6 +7,7 @@ package app.morphe.extension.facebook.feed;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
@@ -23,6 +24,9 @@ import app.morphe.extension.shared.SettingsContextRule;
 import app.morphe.extension.shared.diagnostics.HookStatus;
 import app.morphe.extension.shared.settings.HushfacebookPause;
 import app.morphe.extension.shared.settings.PauseForTests;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Hide post prompts: with the switch on, a story the bumper predicate says has a bumper is answered
@@ -50,9 +54,94 @@ public class PostPromptsTest {
         Settings.HIDE_POST_COUNTS.resetToDefault();
         Settings.HIDE_POST_REACTIONS.resetToDefault();
         Settings.HIDE_COMMENT_REACTIONS.resetToDefault();
+        Settings.HIDE_COMMENT_REACTION_COUNTS.resetToDefault();
         Settings.HIDE_REACTION_BUBBLES.resetToDefault();
         Settings.HIDE_REACTOR_NAMES.resetToDefault();
+        Settings.SHOW_POST_COMMENT_BUTTON.resetToDefault();
         HookStatus.clear();
+    }
+
+    /**
+     * A post whose author turned comments off or limited who can comment answers no to "can you
+     * comment", which leaves its Comment button out (#299). With the switch on, that no becomes a
+     * yes and the status line counts it. A post you can comment on keeps its yes either way, and
+     * off, paused or before the settings are ready the no stays.
+     */
+    @Test
+    public void aPostYouCantCommentOnKeepsItsCommentButtonOnlyWithTheSwitchOn() {
+        assertFalse(Settings.SHOW_POST_COMMENT_BUTTON.defaultValue);
+        assertFalse("asked as each footer is built, so no restart", Settings.SHOW_POST_COMMENT_BUTTON.rebootApp);
+        assertFalse("off, a post you can't comment on got the button", PostPrompts.showsCommentButton(false));
+        assertTrue("off, a post you can comment on lost the button", PostPrompts.showsCommentButton(true));
+
+        Settings.SHOW_POST_COMMENT_BUTTON.save(true);
+        assertTrue("on, a post you can't comment on has no button", PostPrompts.showsCommentButton(false));
+        assertTrue("on, a post you can comment on lost the button", PostPrompts.showsCommentButton(true));
+        assertTrue(String.valueOf(statusLine()), statusLine().contains(PostPrompts.COMMENT_KEPT + " 1"));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertFalse("paused, a post you can't comment on got the button", PostPrompts.showsCommentButton(false));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse(
+                "before the settings were ready, a post you can't comment on got the button",
+                PostPrompts.showsCommentButton(false)));
+        Settings.SHOW_POST_COMMENT_BUTTON.save(false);
+        assertFalse(PostPrompts.showsCommentButton(false));
+    }
+
+    /** Stands in for Facebook's footer item enum: obfuscated names, the server's name from toString. */
+    enum FooterItem {
+        A("REACT"), B("COMMENT"), C("SHARE"), D("SEND");
+
+        private final String serverValue;
+
+        FooterItem(String serverValue) {
+            this.serverValue = serverValue;
+        }
+
+        @Override
+        public String toString() {
+            return serverValue;
+        }
+    }
+
+    /**
+     * #299: a post can come with its buttons named by the server, and on one you can't comment on
+     * that list has no Comment. With the switch on, Comment goes back right after Like; off, or on a
+     * post you can comment on, or a list with Comment or without Like, it's the very same list.
+     */
+    @Test
+    public void aSentButtonListWithoutCommentGetsItBackAfterLikeOnlyWithTheSwitchOn() {
+        List<FooterItem> sent = Arrays.asList(FooterItem.A, FooterItem.C, FooterItem.D);
+        assertSame("off, the sent list changed", sent, PostPrompts.withCommentButton(sent, false));
+
+        Settings.SHOW_POST_COMMENT_BUTTON.save(true);
+        assertEquals(Arrays.asList(FooterItem.A, FooterItem.B, FooterItem.C, FooterItem.D),
+                PostPrompts.withCommentButton(sent, false));
+        assertEquals(Arrays.asList(FooterItem.A, FooterItem.C, FooterItem.D), sent);
+        assertTrue(String.valueOf(statusLine()), statusLine().contains(PostPrompts.COMMENT_KEPT + " 1"));
+
+        assertSame("a post you can comment on changed", sent, PostPrompts.withCommentButton(sent, true));
+        List<FooterItem> withComment = Arrays.asList(FooterItem.A, FooterItem.B, FooterItem.C);
+        assertSame("a list with Comment changed", withComment, PostPrompts.withCommentButton(withComment, false));
+        List<FooterItem> noLike = Arrays.asList(FooterItem.C, FooterItem.D);
+        assertSame("a list without Like changed", noLike, PostPrompts.withCommentButton(noLike, false));
+        assertNull(PostPrompts.withCommentButton(null, false));
+        List<Object> strangers = Arrays.asList("REACT", "SHARE");
+        assertSame("a list that isn't the enum changed", strangers, PostPrompts.withCommentButton(strangers, false));
+
+        PauseForTests.pause(HushfacebookPause.Reason.SWITCH);
+        assertSame("paused, the sent list changed", sent, PostPrompts.withCommentButton(sent, false));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertSame(
+                "before the settings were ready, the sent list changed", sent, PostPrompts.withCommentButton(sent, false)));
+
+        // The builder's start hands over the post's answer and its returns use it once.
+        PostPrompts.footerPost(false);
+        assertEquals(Arrays.asList(FooterItem.A, FooterItem.B, FooterItem.C, FooterItem.D), PostPrompts.withCommentButton(sent));
+        assertSame("a second list reused the last post's answer", sent, PostPrompts.withCommentButton(sent));
+        PostPrompts.footerPost(true);
+        assertSame("a post you can comment on changed", sent, PostPrompts.withCommentButton(sent));
     }
 
     private static String statusLine() {
@@ -419,6 +508,47 @@ public class PostPromptsTest {
             PauseForTests.resume();
         }
         assertTrue("resumed, the comment preview didn't go again", PostPrompts.hideReactionPreview(true));
+    }
+
+    /**
+     * A comment's reaction count answers to its own switch (#483): on, its length comes back 0 so
+     * Facebook takes its no-count branch, and the status line counts it. A post's count, an empty
+     * count and the faces' own switch leave the length alone.
+     */
+    @Test
+    public void aCommentsReactionCountGoesOnlyWithItsSwitchOn() {
+        assertFalse("the switch doesn't start on", Settings.HIDE_COMMENT_REACTION_COUNTS.get());
+        assertFalse("asked as each comment is drawn, so no restart", Settings.HIDE_COMMENT_REACTION_COUNTS.rebootApp);
+        assertEquals("a comment's count went with the switch off", 12, PostPrompts.commentReactionCount(12, true));
+
+        Settings.HIDE_COMMENT_REACTIONS.save(true);
+        assertEquals("the faces' switch took the count", 12, PostPrompts.commentReactionCount(12, true));
+        Settings.HIDE_COMMENT_REACTIONS.save(false);
+
+        Settings.HIDE_COMMENT_REACTION_COUNTS.save(true);
+        assertEquals("a comment's count stayed with the switch on", 0, PostPrompts.commentReactionCount(12, true));
+        assertTrue("the status line doesn't count the hidden comment count",
+                statusLine().contains(PostPrompts.COMMENT_COUNT_HIDDEN + " 1"));
+        assertEquals("a post's count went", 56, PostPrompts.commentReactionCount(56, false));
+        assertEquals("an empty count changed", 0, PostPrompts.commentReactionCount(0, true));
+        assertTrue("an empty count was counted as hidden",
+                statusLine().contains(PostPrompts.COMMENT_COUNT_HIDDEN + " 1"));
+
+        Settings.HIDE_COMMENT_REACTION_COUNTS.save(false);
+        assertEquals("turning the switch off didn't bring the count back", 12, PostPrompts.commentReactionCount(12, true));
+    }
+
+    @Test
+    public void pausedACommentsReactionCountStays() {
+        Settings.HIDE_COMMENT_REACTION_COUNTS.save(true);
+        for (HushfacebookPause.Reason reason : new HushfacebookPause.Reason[] {
+                HushfacebookPause.Reason.SWITCH, HushfacebookPause.Reason.CRASH_LOOP}) {
+            PauseForTests.pause(reason);
+            assertEquals("a Hushfacebook paused by " + reason + " hid a comment's count",
+                    12, PostPrompts.commentReactionCount(12, true));
+            PauseForTests.resume();
+        }
+        assertEquals("resumed, the comment's count didn't go again", 0, PostPrompts.commentReactionCount(12, true));
     }
 
     /** The post switch and the comment switch each answer for their own surface only. */

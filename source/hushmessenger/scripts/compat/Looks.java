@@ -55,11 +55,11 @@ import static compat.Drawer.*;
 /** Looks: the tab bar, avatar shape and story rings. */
 final class Looks {
 
-    // 587's numbering (586 read 0x0101055400014313 and 0x0101039400033264).
-    static final long FLOATING_TAB_BAR_FLAG = 0x0101055600014560L;
-    static final long CHATS_SCROLL_AWAY_FLAG = 0x0101039000033352L;
+    // 588's numbering (587 read 0x0101055600014560, 0x0101039000033352 and 0x0101039000003351).
+    static final long FLOATING_TAB_BAR_FLAG = 0x010105590001470eL;
+    static final long CHATS_SCROLL_AWAY_FLAG = 0x01010390000333f8L;
     // The Chats page's slide answer, which the bar's frame asks before a scroll may move the bar at all.
-    static final long CHATS_SLIDE_FLAG = 0x0101039000003351L;
+    static final long CHATS_SLIDE_FLAG = 0x01010390000033f7L;
     static final String FUNCTION0 = "Lkotlin/jvm/functions/Function0;";
     static final List<String> TAB_BAR_BUILDER_PARAMETERS =
         List.of("Landroid/content/Context;", "Lcom/facebook/auth/usersession/FbUserSession;", "Z");
@@ -312,6 +312,124 @@ final class Looks {
         for (var cls : classes) for (var method : cls.getMethods())
             if ("Z".equals(method.getReturnType()) && tabBarSlideCheck(method, page, slide.getName()) >= 0) found.add(method);
         return found.size() == 2 ? List.of() : found;
+    }
+
+    /**
+     * The home screen's current tab: an instance method with no parameters ending in the tab configuration's list, the
+     * selected index and a cast of list.get(index) to the tab it returns, with the configuration read from one field of
+     * the home screen itself. The tab's type, or null. Mirrors TabSwipe.kt.
+     */
+    static String tabReaderType(Method method) {
+        if (AccessFlags.STATIC.isSet(method.getAccessFlags()) || !method.getParameterTypes().isEmpty() ||
+            !method.getReturnType().startsWith("L") || method.getImplementation() == null) return null;
+        int self = parameterSlot(method, 0);
+        var code = instructions(method);
+        int end = code.size() - 1;
+        if (end < 5) return null;
+        // The opcodes first, so every reference and register below is read off an instruction that carries one.
+        if (code.get(end).getOpcode() != Opcode.RETURN_OBJECT || code.get(end - 1).getOpcode() != Opcode.CHECK_CAST ||
+            code.get(end - 2).getOpcode() != Opcode.MOVE_RESULT_OBJECT || code.get(end - 3).getOpcode() != Opcode.INVOKE_INTERFACE ||
+            code.get(end - 4).getOpcode() != Opcode.IGET || code.get(end - 5).getOpcode() != Opcode.IGET_OBJECT) return null;
+        if (!(((ReferenceInstruction) code.get(end - 5)).getReference() instanceof FieldReference tabs) ||
+            !(((ReferenceInstruction) code.get(end - 4)).getReference() instanceof FieldReference index) ||
+            !(((ReferenceInstruction) code.get(end - 3)).getReference() instanceof MethodReference get)) return null;
+        int held = register(code.get(end - 2));
+        var types = new ArrayList<String>();
+        for (var type : get.getParameterTypes()) types.add(type.toString());
+        if (register(code.get(end)) != held || register(code.get(end - 1)) != held ||
+            !method.getReturnType().equals(ref(code.get(end - 1))) ||
+            !"Ljava/util/List;".equals(get.getDefiningClass()) ||
+            !"get".equals(get.getName()) || !types.equals(List.of("I")) || !"Ljava/lang/Object;".equals(get.getReturnType()) ||
+            !reads(code.get(end - 3)).equals(List.of(register(code.get(end - 5)), register(code.get(end - 4)))) ||
+            !index.getDefiningClass().equals(method.getDefiningClass()) ||
+            !"I".equals(index.getType()) || ((TwoRegisterInstruction) code.get(end - 4)).getRegisterB() != self ||
+            !"Ljava/util/List;".equals(tabs.getType())) return null;
+        var names = new HashSet<String>();
+        for (int at = 0; at < code.size(); at++) {
+            if (code.get(at).getOpcode() != Opcode.IGET_OBJECT ||
+                ((TwoRegisterInstruction) code.get(at)).getRegisterB() != self ||
+                register(code.get(at)) != ((TwoRegisterInstruction) code.get(end - 5)).getRegisterB() ||
+                !(((ReferenceInstruction) code.get(at)).getReference() instanceof FieldReference config) ||
+                !config.getType().equals(tabs.getDefiningClass())) continue;
+            if (!config.getDefiningClass().equals(method.getDefiningClass())) return null;
+            names.add(config.getName());
+        }
+        return names.size() == 1 ? method.getReturnType() : null;
+    }
+
+    /** The home screen's tab switch: `A1s(null, tab)` with the answer thrown away, and nothing else. Mirrors TabSwipe.kt. */
+    static boolean tabSelect(Method method, String tab) {
+        var parameters = new ArrayList<String>();
+        for (var type : method.getParameterTypes()) parameters.add(type.toString());
+        if (AccessFlags.STATIC.isSet(method.getAccessFlags()) || !"V".equals(method.getReturnType()) ||
+            method.getImplementation() == null || !parameters.equals(List.of(tab))) return false;
+        int self = parameterSlot(method, 0);
+        var code = instructions(method);
+        if (code.size() != 3 || code.get(0).getOpcode() != Opcode.CONST_4 || code.get(1).getOpcode() != Opcode.INVOKE_VIRTUAL ||
+            !Long.valueOf(0L).equals(wide(code.get(0))) ||
+            !(((ReferenceInstruction) code.get(1)).getReference() instanceof MethodReference call)) return false;
+        var types = new ArrayList<String>();
+        for (var type : call.getParameterTypes()) types.add(type.toString());
+        return call.getDefiningClass().equals(method.getDefiningClass()) &&
+            "Z".equals(call.getReturnType()) && types.equals(List.of("Landroid/os/Bundle;", tab)) &&
+            reads(code.get(1)).equals(List.of(self, register(code.get(0)), self + 1)) &&
+            code.get(2).getOpcode() == Opcode.RETURN_VOID;
+    }
+
+    static final String HOME_VIEW_CALL = "onCreateView(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;";
+
+    /**
+     * The view builder the patch will take: one exit, two locals free for the call it puts in front of it, nothing
+     * jumping onto that exit and no catch covering it. Mirrors validateTabSwipe in TabSwipe.kt.
+     */
+    static boolean homeViewUsable(Method method) {
+        if (method.getImplementation() == null) return false;
+        var code = instructions(method);
+        int exit = -1;
+        for (int at = 0; at < code.size(); at++) {
+            if (code.get(at).getOpcode() != Opcode.RETURN_OBJECT) continue;
+            if (exit >= 0) return false;
+            exit = at;
+        }
+        if (exit < 0 || mediaTargets(method).contains(exit) || parameterSlot(method, 0) < 2) return false;
+        int address = 0;
+        for (int at = 0; at < exit; at++) address += code.get(at).getCodeUnits();
+        for (var block : method.getImplementation().getTryBlocks()) {
+            int offset = address - block.getStartCodeAddress();
+            if (offset >= 0 && offset < block.getCodeUnitCount()) return false;
+        }
+        return true;
+    }
+
+    /**
+     * tab_swipe: the one home screen, which has one current-tab read, one tab switch for the tab that read returns and
+     * one onCreateView, and its view builder is the hook. Empty when none or more than one looks like that. Mirrors
+     * TabSwipe.kt.
+     */
+    static List<Method> tabSwipe(List<ClassDef> classes) {
+        Method found = null;
+        for (var cls : classes) {
+            String tab = null;
+            int readers = 0, selects = 0, builders = 0;
+            Method builder = null;
+            for (var method : cls.getMethods()) {
+                String read = tabReaderType(method);
+                if (read != null) { tab = read; readers++; }
+            }
+            if (readers != 1) continue;
+            for (var method : cls.getMethods()) {
+                if (tabSelect(method, tab)) selects++;
+                if (!AccessFlags.STATIC.isSet(method.getAccessFlags()) && HOME_VIEW_CALL.equals(
+                        method.getName() + "(" + String.join("", method.getParameterTypes()) + ")" + method.getReturnType())) {
+                    builder = method;
+                    builders++;
+                }
+            }
+            if (selects != 1 || builders != 1 || !homeViewUsable(builder)) continue;
+            if (found != null) return List.of();
+            found = builder;
+        }
+        return found == null ? List.of() : List.of(found);
     }
 
     /** The register holding parameter n, counting this as 0 on an instance method. */
@@ -616,5 +734,23 @@ final class Looks {
         }
         if (placeholder == null) return List.of();
         return List.of(constructor, legacy, setter, setup, placeholder);
+    }
+
+    /** FbFragmentActivity.onResume: an instance method with code that takes nothing and returns nothing. */
+    static boolean isScreenResume(Method method) {
+        return FB_FRAGMENT_ACTIVITY.equals(method.getDefiningClass()) && method.getName().equals("onResume")
+            && method.getParameterTypes().isEmpty() && method.getReturnType().equals("V")
+            && !AccessFlags.STATIC.isSet(method.getAccessFlags()) && !AccessFlags.ABSTRACT.isSet(method.getAccessFlags())
+            && method.getImplementation() != null;
+    }
+
+    /** refresh_rate: FbFragmentActivity.onResume, only while it's the one such method. Mirrors findRefreshRate in RefreshRate.kt. */
+    static List<Method> refreshRate(List<ClassDef> classes) {
+        var found = new ArrayList<Method>();
+        for (var cls : classes) {
+            if (!FB_FRAGMENT_ACTIVITY.equals(cls.getType())) continue;
+            for (var method : cls.getMethods()) if (isScreenResume(method)) found.add(method);
+        }
+        return found.size() == 1 ? found : List.of();
     }
 }

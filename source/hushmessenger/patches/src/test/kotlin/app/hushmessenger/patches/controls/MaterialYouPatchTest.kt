@@ -1,11 +1,9 @@
 package app.hushmessenger.patches.controls
 
-import app.morphe.patcher.PatcherConfig
-import app.morphe.patcher.PatcherProgress
+import app.hushmessenger.patches.useClasses
+import app.hushmessenger.patches.withPatcherContext
 import app.morphe.patcher.patch.BytecodePatchContext
-import app.morphe.patcher.patch.ResourcePatch
 import app.morphe.patcher.patch.ResourcePatchContext
-import app.morphe.patcher.resource.ResourceMode
 import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -19,7 +17,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import org.junit.jupiter.api.io.TempDir
 import org.w3c.dom.Element
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.readText
 import kotlin.test.*
@@ -243,34 +240,51 @@ class MaterialYouPatchTest {
         }
     }
 
-    /** 584 dropped FDSColors' name (LX/9TH;), leaving a singleton whose (Context, ?, ?)I resolver asks the dark check. */
-    private fun unnamedFdsColors(type: String) = ImmutableClassDef.of(fixtureClass(type, listOf(
+    /**
+     * 584 dropped FDSColors' name (LX/9TH;), leaving a singleton whose (Context, ?, ?)I resolver asks the dark check.
+     * 588 (LX/APm;) dropped the singleton too: [field] null is a class with no fields at all.
+     */
+    private fun unnamedFdsColors(type: String, field: String? = type) = ImmutableClassDef.of(fixtureClass(type, listOf(
         fixtureMethod("$type->A00(Landroid/content/Context;II)I", """
             invoke-static {p0}, LX/DarkCheck;->dark(Landroid/content/Context;)Z
             move-result v0
             const v0, -0xf7f7f7
             return v0
         """.trimIndent(), flags = 9)),
-        extraFields = listOf(ImmutableField(type, "A00", type, AccessFlags.STATIC.value, null, null, null))))
+        extraFields = listOfNotNull(field?.let { ImmutableField(type, "A00", it, AccessFlags.STATIC.value, null, null, null) })))
 
     @Test fun findsFdsColorsByShapeOnceItsNameIsGone(@TempDir temporary: Path) {
-        val classes = themeClasses().filter { it.type != FDS_COLORS } + unnamedFdsColors("LX/9TH;")
-        withThemeContext(temporary, classes) { context, resources ->
-            materialYouPatch.execute(context)
-            val resolver = context.classDefBy("LX/9TH;").methods.single { it.name == "A00" }.implementation!!
-            assertEquals(1, resolver.instructions.count {
-                (it as? ReferenceInstruction)?.reference.toString() == "Lapp/hushmessenger/extension/MaterialYouTheme;->fds(I)I"
-            })
-            assertTrue(resources.hasTheme())
+        for ((build, field) in listOf("584" to "LX/9TH;", "588" to null)) {
+            val classes = themeClasses().filter { it.type != FDS_COLORS } + unnamedFdsColors("LX/9TH;", field)
+            withThemeContext(temporary.resolve(build), classes) { context, resources ->
+                materialYouPatch.execute(context)
+                val resolver = context.classDefBy("LX/9TH;").methods.single { it.name == "A00" }.implementation!!
+                assertEquals(1, resolver.instructions.count {
+                    (it as? ReferenceInstruction)?.reference.toString() == "Lapp/hushmessenger/extension/MaterialYouTheme;->fds(I)I"
+                }, build)
+                assertTrue(resources.hasTheme(), build)
+            }
         }
     }
 
     @Test fun twoClassesShapedLikeFdsColorsChangeNothing(@TempDir temporary: Path) {
-        val classes = themeClasses().filter { it.type != FDS_COLORS } + unnamedFdsColors("LX/9TH;") + unnamedFdsColors("LX/9TI;")
-        withThemeContext(temporary, classes) { context, resources ->
-            assertEquals("Expected one FDSColors, found 2 by shape", assertFails { materialYouPatch.execute(context) }.message)
-            classes.forEach { assertSame(it, context.classDefBy(it.type)) }
-            assertFalse(resources.hasTheme())
+        val shapes = listOf(
+            "584" to listOf(unnamedFdsColors("LX/9TH;"), unnamedFdsColors("LX/9TI;")),
+            "mixed" to listOf(unnamedFdsColors("LX/9TH;"), unnamedFdsColors("LX/9TI;", null)),
+        )
+        for ((name, unnamed) in shapes) {
+            val classes = themeClasses().filter { it.type != FDS_COLORS } + unnamed
+            withThemeContext(temporary.resolve(name), classes) { context, resources ->
+                assertEquals("Expected one FDSColors, found 2 by shape", assertFails { materialYouPatch.execute(context) }.message)
+                classes.forEach { assertSame(it, context.classDefBy(it.type)) }
+                assertFalse(resources.hasTheme())
+            }
+        }
+        // A class with another field isn't FDSColors, with or without its own instance beside it.
+        val other = unnamedFdsColors("LX/9TH;", "Landroid/content/Context;")
+        val classes = themeClasses().filter { it.type != FDS_COLORS } + other
+        withThemeContext(temporary.resolve("other"), classes) { context, _ ->
+            assertEquals("Expected one FDSColors, found 0 by shape", assertFails { materialYouPatch.execute(context) }.message)
         }
     }
 
@@ -325,29 +339,16 @@ class MaterialYouPatchTest {
         action: (BytecodePatchContext, ResourcePatchContext) -> Unit) {
         val apk = Path.of("../extensions/messenger/build/intermediates/linked_resources_binary_format/release/" +
             "processReleaseResources/linked-resources-binary-format-release.ap_").toFile()
-        val config = PatcherConfig(apk, temporary.toFile())
-        val resources = ResourcePatchContext::class.java.getDeclaredConstructor(PatcherConfig::class.java).newInstance(config)
-        resources.use {
-            ResourcePatchContext::class.java.getMethod("decodeResources\$morphe_patcher", ResourceMode::class.java)
-                .invoke(resources, ResourceMode.RAW_ONLY)
-            Files.writeString(temporary.resolve("apk/AndroidManifest.xml"),
-                """<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application /></manifest>""")
-            val context = BytecodePatchContext::class.java.declaredConstructors.single()
-                .newInstance(config, resources.packageMetadata) as BytecodePatchContext
-            val patchClasses = Class.forName("app.morphe.patcher.util.PatchClasses")
-            BytecodePatchContext::class.java.getMethod("setPatchClasses\$morphe_patcher", patchClasses)
-                .invoke(context, patchClasses.getConstructor(Set::class.java, PatcherProgress::class.java).newInstance(classes.toSet(), null))
-            context.use {
-                val capability = materialYouPatch.dependencies.filterIsInstance<ResourcePatch>().single()
-                capability.execute(resources)
-                bundledControls.clear()
-                action(context, resources)
-            }
+        withPatcherContext(apk, temporary, emptyManifest = true) { resources, context ->
+            context.useClasses(classes.toSet())
+            materialYouPatch.capabilityRecord().execute(resources)
+            bundledControls.clear()
+            action(context, resources)
         }
     }
 
     private fun ResourcePatchContext.hasTheme(): Boolean {
-        materialYouPatch.dependencies.filterIsInstance<ResourcePatch>().single().finalize(this)
+        materialYouPatch.capabilityRecord().finalize(this)
         return document("AndroidManifest.xml").use { doc ->
             val metadata = doc.getElementsByTagName("meta-data")
             (0 until metadata.length).any {

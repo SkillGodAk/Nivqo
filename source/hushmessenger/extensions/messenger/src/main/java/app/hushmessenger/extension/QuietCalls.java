@@ -42,6 +42,8 @@ public final class QuietCalls {
     /** A call notification's name that came before its decision, and when. */
     private static volatile String waitingName;
     private static volatile long waitingAt;
+    /** The last name a call notification carried, for a check that has no notification in hand. */
+    private static volatile String lastName;
 
     private QuietCalls() {}
 
@@ -109,6 +111,7 @@ public final class QuietCalls {
     /** Pairs a notification's name with the chat its decision named, or keeps it for a decision still to come. */
     private static void noteName(String name) {
         if (name == null) return;
+        lastName = name;
         long now = SystemClock.elapsedRealtime();
         String chat = ringingChat;
         if (chat != null && now - ringingAt <= PAIR_MILLIS) remember(chat, name);
@@ -118,10 +121,13 @@ public final class QuietCalls {
         }
     }
 
-    /** Puts a chat at the top of the recent list while the switch is on. Nothing is kept with it off. */
+    /**
+     * Puts a chat at the top of the recent list while a control that lists callers is on. Nothing is kept with both
+     * off. Record calls shares the list, so the chats to record are the chats that have called (#193).
+     */
     static synchronized void remember(String chat, String name) {
         SharedPreferences prefs = Settings.preferences;
-        if (prefs == null || !Settings.wouldUse(KEY)) return;
+        if (prefs == null || (!Settings.wouldUse(KEY) && !Settings.wouldUse(CallRecording.KEY))) return;
         String clean = name.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
         List<String[]> chats = recent();
         if (!chats.isEmpty() && chats.get(0)[0].equals(chat) && chats.get(0)[1].equals(clean)) return;
@@ -159,11 +165,23 @@ public final class QuietCalls {
         return chat != null && SystemClock.elapsedRealtime() - ringingAt <= PAIR_MILLIS && prefs.getBoolean(CHAT_PREFIX + chat, false);
     }
 
+    /** The chat whose call the last ring decision named, while it's still fresh. Null when there's none to go on. */
+    static String ringingChat() {
+        String chat = ringingChat;
+        return chat != null && SystemClock.elapsedRealtime() - ringingAt <= PAIR_MILLIS ? chat : null;
+    }
+
+    /** The name the last call notification carried. Quiet mode asks who's calling, and this is all a call says. */
+    static String lastCallerName() {
+        return lastName;
+    }
+
     /** Forgets the call in progress, for tests. */
     static void resetForTests() {
         ringingChat = null;
         ringingAt = 0;
         waitingName = null;
         waitingAt = 0;
+        lastName = null;
     }
 }

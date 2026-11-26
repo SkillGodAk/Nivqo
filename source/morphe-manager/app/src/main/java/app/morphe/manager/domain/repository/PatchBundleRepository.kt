@@ -471,11 +471,11 @@ val outdatedManagerSources = sourceUidsWhere { isNivqoManagerCompatibilityWarnin
             }
         }
 
-        // Fallbacks for common GitHub URL patterns.
+        // Fallbacks for code host URL patterns.
         if (segments.isEmpty()) return host
-        return when (host) {
-            GITHUB_HOST -> source.repo ?: host
-            GITHUB_API_HOST if segments.size >= 3 && segments[0] == "repos" -> segments[2]
+        return when {
+            source.codeHost != null -> source.repo ?: host
+            host == GITHUB_API_HOST && segments.size >= 3 && segments[0] == "repos" -> segments[2]
             else -> host
         }
     }
@@ -1641,7 +1641,7 @@ val outdatedManagerSources = sourceUidsWhere { isNivqoManagerCompatibilityWarnin
     private suspend fun awaitReady(): BundleState.Ready =
         bundleState.filterIsInstance<BundleState.Ready>().first()
 
-    /** Returns the blocklist key for a normalized bundle URL, or null for non-GitHub/GitLab hosts. */
+    /** Returns the blocklist key for a normalized bundle URL, or null for hosts other than a [CodeHost]. */
     private fun toBlocklistKey(normalizedUrl: String): String? =
         SourceUrl.parse(normalizedUrl)?.repositoryKey?.lowercase(Locale.US)
 
@@ -2375,9 +2375,9 @@ return availableUpdates(remoteBundles.filter { isNivqoUpdateNotificationSource(i
         internal const val HUSHMESSENGER_SOURCE_UID = -1_260_439_702
 
         internal const val HUSHFACEBOOK_BUNDLED_ASSET =
-            "morphe-hush/hushfacebook-0.24.0.mpp"
+            "morphe-hush/hushfacebook-0.25.0.mpp"
         internal const val HUSHMESSENGER_BUNDLED_ASSET =
-            "morphe-hush/hushmessenger-0.30.0.mpp"
+            "morphe-hush/hushmessenger-0.31.0.mpp"
 
         internal const val HUSHFACEBOOK_UPDATE_ENDPOINT =
             "https://raw.githubusercontent.com/SkillGodAk/Nivqo/main/updates/hushfacebook.json"

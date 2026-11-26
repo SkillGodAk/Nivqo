@@ -168,38 +168,46 @@ internal class ReadFlow(method: Method) {
             }
         }
     }
-    fun deadFrom(start: Int, register: Int) {
+    /** Whether nothing reads the register again from here on, down every path out of it, the exceptional ones too. */
+    fun deadAt(start: Int, register: Int): Boolean {
         val pending = ArrayDeque<Int>().apply { add(start) }
         val seen = mutableSetOf<Int>()
         while (pending.isNotEmpty()) {
             val i = pending.removeFirst()
             if (!seen.add(i)) continue
-            readRequire(!code[i].readReads(register))
+            if (code[i].readReads(register)) return false
             pending.addAll(exceptionalSuccessors(i))
             if (!code[i].readWrites(register)) pending.addAll(normalSuccessors(i))
         }
+        return true
     }
+
+    fun deadFrom(start: Int, register: Int) = readRequire(deadAt(start, register))
 }
 
 /**
- * Where the dispatcher's pieces sit in the supported body: the composer and account copies, the thread's null default
- * (its if-eqz, getter and result follow it), the null path's copy and the dispatch.
+ * Where the dispatcher's pieces sit in the supported body, and the registers they live in. The event, composer and
+ * account are copied out of p11, p4 and p0 near the top. The thread's null default comes next (its if-eqz, getter and
+ * result follow it), and the null path copies that default into the thread's register. Just before the dispatch the
+ * composer is staged into the first of its six registers, the account into the second, and the first String into the fifth.
  */
 internal class ReplyReadShape(
-    /** The exact body sizes the seam is known at. */
-    val sizes: Set<Int>, val composer: Int, val session: Int, val nullThread: Int, val absent: Int, val dispatch: Int,
-    /** The register the composer copy lives in, and how many instructions before the dispatch the thread is staged into v12. */
-    val composerReg: Int = 20, val stage: Int = 2,
-    /** The frame size, and the register the dispatch's first String is copied into v15 from once between staging and dispatch. */
-    val registers: Int = 36, val stringReg: Int = 18,
+    /** The exact body sizes the seam is known at, and the frame size. */
+    val sizes: Set<Int>, val registers: Int,
+    val event: Int, val eventReg: Int, val composer: Int, val composerReg: Int, val session: Int, val sessionReg: Int,
+    val nullThread: Int, val nullReg: Int, val threadReg: Int, val absent: Int,
+    /** The dispatch, the first of its six registers, how far before it the composer is staged, and where its first String comes from. */
+    val dispatch: Int, val dispatchStart: Int, val stage: Int, val stringReg: Int,
 )
 
 /**
- * Messenger 587's dispatcher, 398 instructions in a 36-register frame on every build. The composer is copied to v20,
- * the staging sits four before the dispatch and the dispatch's first String comes to v15 from v18. 586's sat two sooner
- * (its inbox tag was a plain const-string where 587 reads it from the string pool) and its family B two sooner again.
+ * Messenger 588's dispatcher, 540 instructions in a 42-register frame. Its thread stays in v2 past the dispatch, so the
+ * hook hands the account and the thread on straight after it. 587 staged the account over its thread (v12) just
+ * before the dispatch, so its hook had to park the thread in p13 first.
  */
-internal val REPLY_READ_SHAPE = ReplyReadShape(sizes = setOf(398), composer = 10, session = 20, nullThread = 26, absent = 71, dispatch = 238, composerReg = 20, stage = 4)
+internal val REPLY_READ_SHAPE = ReplyReadShape(sizes = setOf(540), registers = 42, event = 4, eventReg = 5, composer = 10, composerReg = 26,
+    session = 20, sessionReg = 4, nullThread = 27, nullReg = 18, threadReg = 2, absent = 158, dispatch = 347, dispatchStart = 12, stage = 5,
+    stringReg = 23)
 
 internal val REPLY_READ_SHAPES = listOf(REPLY_READ_SHAPE)
 
@@ -207,57 +215,148 @@ internal val REPLY_READ_SHAPES = listOf(REPLY_READ_SHAPE)
 private fun MutableMethod.replyReadShape(size: Int) =
     REPLY_READ_SHAPES.singleOrNull { size in it.sizes && implementation?.registerCount == it.registers }
 
-/** The exact 586 staging seam. The thread survives in v12 until the account is staged there for dispatch. */
+/**
+ * The exact staging seam. The account and the thread are both still in their own registers when the dispatch returns,
+ * and only the dispatch leads to the instruction after it.
+ */
 internal fun MutableMethod.validateReplyRead(): Int {
     readRequire(isReplyReadDispatch())
     val flow = ReadFlow(this)
     val c = flow.code
     val shape = replyReadShape(c.size) ?: throw PatchException("Messenger controls: the account-scoped read receipt contract changed (identity flow)")
     val d = shape.dispatch
-    val s = d - shape.stage
-    val cr = shape.composerReg
+    val staged = d - shape.stage
     val n = shape.nullThread
     val absent = shape.absent
+    val thread = shape.threadReg
+    val account = shape.sessionReg
+    val first = shape.dispatchStart
     // Insertion can extend a try ending at the old next instruction over the new throwing callback.
-    readRequire((s - 3..d + 1).none { flow.protected(it) }, "unprotected send seam")
-    fun move(i: Int, a: Int, b: Int, op: Opcode) = c[i].opcode == op && (c[i] as? TwoRegisterInstruction)?.let { it.registerA == a && it.registerB == b } == true
-    readRequire(move(4, 7, parameterRegister(11), Opcode.MOVE_OBJECT_FROM16) && move(shape.composer, cr, parameterRegister(4), Opcode.MOVE_OBJECT_FROM16))
-    readRequire(move(shape.session, 10, parameterRegister(0), Opcode.MOVE_OBJECT_FROM16))
+    readRequire((staged - 3..d + 1).none { flow.protected(it) }, "unprotected send seam")
+    readRequire(thread <= 15 && account <= 15 && thread != account, "thread and account registers")
+    // A copy is a copy at whatever width its registers need.
+    val copies = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+    fun move(i: Int, a: Int, b: Int) = c[i].opcode in copies && (c[i] as? TwoRegisterInstruction)?.let { it.registerA == a && it.registerB == b } == true
+    readRequire(move(shape.event, shape.eventReg, parameterRegister(11)) && move(shape.composer, shape.composerReg, parameterRegister(4)))
+    readRequire(move(shape.session, account, parameterRegister(0)))
     val getter = c[n + 2].readRef() as? MethodReference
     readRequire(c[n + 2].opcode == Opcode.INVOKE_INTERFACE_RANGE && c[n + 2].readArgs() == listOf(parameterRegister(7)), "thread provider argument")
     readRequire(getter?.definingClass == parameterTypes[7].toString() && getter.parameterTypes.isEmpty() && getter.returnType == THREAD_KEY_TYPE, "typed thread getter")
-    readRequire(c[n + 3].opcode == Opcode.MOVE_RESULT_OBJECT && (c[n + 3] as OneRegisterInstruction).registerA == 12, "thread result")
-    readRequire(flow.definitionsAt(shape.session, parameterRegister(0)) == setOf(-1) && flow.definitionsAt(4, parameterRegister(11)) == setOf(-1) &&
+    readRequire(c[n + 3].opcode == Opcode.MOVE_RESULT_OBJECT && (c[n + 3] as OneRegisterInstruction).registerA == thread, "thread result")
+    readRequire(flow.definitionsAt(shape.session, parameterRegister(0)) == setOf(-1) && flow.definitionsAt(shape.event, parameterRegister(11)) == setOf(-1) &&
         flow.definitionsAt(shape.composer, parameterRegister(4)) == setOf(-1) && flow.definitionsAt(n + 2, parameterRegister(7)) == setOf(-1) &&
-        flow.definitionsAt(d, 10) == setOf(shape.session) && flow.definitionsAt(d, cr) == setOf(shape.composer) && flow.definitionsAt(d, 7) == setOf(4))
-    readRequire(flow.definitionsAt(s, 12) == setOf(n + 3, absent) && flow.definitionsAt(absent, 5) == setOf(n) && move(absent, 12, 5, Opcode.MOVE_OBJECT) &&
-        c[n].opcode == Opcode.CONST_4 && (c[n] as OneRegisterInstruction).registerA == 5 && (c[n] as NarrowLiteralInstruction).narrowLiteral == 0 &&
+        flow.definitionsAt(d, account) == setOf(shape.session) && flow.definitionsAt(d, shape.composerReg) == setOf(shape.composer) &&
+        flow.definitionsAt(d, shape.eventReg) == setOf(shape.event))
+    val zero = c[n]
+    readRequire(flow.definitionsAt(d, thread) == setOf(n + 3, absent) && flow.definitionsAt(absent, shape.nullReg) == setOf(n) &&
+        move(absent, thread, shape.nullReg) && (zero.opcode == Opcode.CONST_4 || zero.opcode == Opcode.CONST_16) &&
+        (zero as OneRegisterInstruction).registerA == shape.nullReg && (zero as NarrowLiteralInstruction).narrowLiteral == 0 &&
         c[n + 1].opcode == Opcode.IF_EQZ && (c[n + 1] as OneRegisterInstruction).registerA == parameterRegister(7) && c.branchTarget(n + 1) == absent)
     readRequire(c.indices.none { i -> i != n + 1 && flow.successors(i).contains(absent) } && jumpTargets().none { it in n..n + 3 } &&
         !flow.reaches(0, absent, setOf(n)))
-    readRequire(move(s - 1, 11, cr, Opcode.MOVE_OBJECT_FROM16))
-    val stringMove = if (shape.stringReg < 16) Opcode.MOVE_OBJECT else Opcode.MOVE_OBJECT_FROM16
-    readRequire(move(s, 12, 10, Opcode.MOVE_OBJECT) && (s + 1 until d).count { move(it, 15, shape.stringReg, stringMove) } == 1)
+    readRequire(move(staged, first, shape.composerReg) && move(staged + 1, first + 1, account) &&
+        (staged + 2 until d).count { move(it, first + 4, shape.stringReg) } == 1)
     val dispatch = c[d].readRef() as? MethodReference
-    readRequire(c[d].opcode == Opcode.INVOKE_INTERFACE_RANGE && c[d].readArgs() == (11..16).toList() &&
+    readRequire(c[d].opcode == Opcode.INVOKE_INTERFACE_RANGE && c[d].readArgs() == (first..first + 5).toList() &&
         dispatch?.definingClass == parameterTypes[4].toString() && dispatch.returnType == "V" && dispatch.parameterTypes.size == 5 &&
         dispatch.parameterTypes[0] == FB_USER_SESSION && dispatch.parameterTypes.takeLast(2) == listOf("Ljava/lang/String;", "Ljava/lang/String;"))
-    readRequire(jumpTargets().none { it in s..d + 1 } && listOf(4, shape.composer, shape.session).none { flow.reaches(0, d, setOf(it)) } &&
-        !flow.reaches(0, s, setOf(n + 3, absent)))
-    flow.deadFrom(s, parameterRegister(13))
-    flow.deadFrom(d + 1, 0)
-    flow.deadFrom(d + 1, 1)
+    readRequire(flow.definitionsAt(d, first) == setOf(staged) && flow.definitionsAt(d, first + 1) == setOf(staged + 1))
+    // Messenger's own branches may land on the composer's staging, never past it.
+    readRequire(jumpTargets().none { it in staged + 1..d + 1 } && listOf(shape.event, shape.composer, shape.session).none { flow.reaches(0, d, setOf(it)) } &&
+        !flow.reaches(0, staged, setOf(n + 3, absent)))
     return d
 }
 
 internal fun MutableMethod.injectReplyRead() {
     val dispatch = validateReplyRead()
-    val stage = replyReadShape(readCode().size)!!.stage
-    // Insert backwards so both indices refer to the unmodified stock method.
-    addInstructions(dispatch + 1, """
-        move-object v0, v10
-        move-object/from16 v1, p13
-        invoke-static {v0, v1}, $SETTINGS->noteMessageSent(Ljava/lang/Object;Ljava/lang/Object;)V
-    """.trimIndent())
-    addInstructions(dispatch - stage, "move-object/16 p13, v12")
+    val shape = replyReadShape(readCode().size)!!
+    addInstructions(dispatch + 1, "invoke-static {v${shape.sessionReg}, v${shape.threadReg}}, $SETTINGS->noteMessageSent(Ljava/lang/Object;Ljava/lang/Object;)V")
+}
+
+internal const val DELIVERY_RECEIPT = "delivery_receipt"
+internal const val DELIVERY_RECEIPT_OP = "send_delivery_receipt_batch"
+internal const val DELIVERY_RECEIPT_TAG = "DefaultSendDeliveryReceiptManager"
+internal const val DELIVERY_RECEIPT_TOPIC = "/t_dr_batch"
+
+/**
+ * Delivered is sent from one batch manager, named by the op it publishes rather than by its obfuscated class. Its two
+ * callers, the ordinary send and the retry task, both land here, so the one hook covers every Delivered Messenger
+ * reports over this transport. Encrypted chats answer on their own msys path and are left alone.
+ */
+internal fun Method.isDeliveryReceiptSend() = !AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" &&
+    parameterTypes.size == 4 && parameterTypes[0].toString() == FB_USER_SESSION &&
+    stringLiterals().containsAll(setOf(DELIVERY_RECEIPT_OP, DELIVERY_RECEIPT_TAG, DELIVERY_RECEIPT_TOPIC))
+
+internal fun findDeliveryReceipt(classes: Iterable<ClassDef>): List<Method> =
+    classes.flatMap { it.methods }.filter { it.isDeliveryReceiptSend() }
+
+/** Where the batch leaves its holder: the drain, the register it lands in, the clearing store and the empty check. */
+private class DeliverySeam(val merge: Int, val batch: Int, val cleared: Int, val zero: Int, val gate: Int)
+
+/**
+ * The sender takes the lock, merges whatever is waiting with the batch it was handed, clears the holder and releases
+ * the lock, then returns when the merge came back empty. Everything after that is this batch alone.
+ *
+ * The same merge runs a second time when the send fails and the batch goes back in the holder, so the call alone
+ * doesn't name the seam. Only the drain clears the holder and gates on what came back, and only one place does.
+ */
+private fun Method.deliverySeam(): DeliverySeam? {
+    val code = readCode()
+    val merges = code.withIndex().filter { (_, insn) ->
+        insn.opcode == Opcode.INVOKE_STATIC && (insn.readRef() as? MethodReference)?.let { ref ->
+            val held = ref.returnType
+            held.startsWith("L") && ref.parameterTypes.map { it.toString() } == listOf(held, held)
+        } == true
+    }.map { it.index }
+    return merges.mapNotNull { merge ->
+        val held = (code[merge].readRef() as MethodReference).returnType
+        val moved = code.getOrNull(merge + 1)
+        if (moved?.opcode != Opcode.MOVE_RESULT_OBJECT || (moved as OneRegisterInstruction).registerA > 15) return@mapNotNull null
+        val cleared = code.withIndex().drop(merge + 2).firstOrNull { (_, insn) ->
+            insn.opcode == Opcode.IPUT_OBJECT && (insn.readRef() as? FieldReference)?.type == held
+        } ?: return@mapNotNull null
+        if (code.getOrNull(cleared.index + 1)?.opcode != Opcode.MONITOR_EXIT) return@mapNotNull null
+        val gate = cleared.index + 2
+        val branch = code.getOrNull(gate) ?: return@mapNotNull null
+        if (branch.opcode != Opcode.IF_EQZ || (branch as OneRegisterInstruction).registerA != moved.registerA) return@mapNotNull null
+        DeliverySeam(merge, moved.registerA, cleared.index, (cleared.value as TwoRegisterInstruction).registerA, gate)
+    }.singleOrNull()
+}
+
+/**
+ * The seam one past the empty check. The batch is out of the holder and the lock is already released there, so an
+ * early return drops these receipts instead of letting them pile up for the next send.
+ */
+internal fun MutableMethod.validateDeliveryReceipt(): Int {
+    readRequire(isDeliveryReceiptSend(), "the batch payload moved out of ${hookId()}")
+    val seam = deliverySeam()
+    readRequire(seam != null, "no empty-batch return in ${hookId()}")
+    val at = seam!!.gate + 1
+    val flow = ReadFlow(this)
+    val c = flow.code
+    // The holder has to be cleared with a register a const zero proves zero on every path into the store.
+    val zeroed = flow.definitionsAt(seam.cleared, seam.zero).singleOrNull() ?: -1
+    readRequire(zeroed >= 0 && c[zeroed].opcode == Opcode.CONST_4 &&
+        (c[zeroed] as NarrowLiteralInstruction).narrowLiteral == 0, "the batch holder isn't cleared")
+    readRequire(flow.definitionsAt(at, seam.batch) == setOf(seam.merge + 1), "the batch reaches the send from elsewhere")
+    // Insertion can stretch a try that ended at the old next instruction over the new throwing call, and the
+    // handler past the monitor exit would release a monitor this thread no longer holds.
+    readRequire((seam.gate..at).none { flow.protected(it) }, "the empty check sits inside a try")
+    readRequire(at !in jumpTargets(), "a jump lands on the empty-batch exit")
+    readRequire(!flow.reaches(0, at, setOf(seam.gate)), "the send is reachable without the empty check")
+    val exit = c.branchTarget(seam.gate)
+    readRequire(exit >= 0 && c[exit].opcode == Opcode.RETURN_VOID, "the empty-batch branch stopped being a bare return")
+    flow.deadFrom(at, 0)
+    validateSwitch()
+    return at
+}
+
+internal fun MutableMethod.injectDeliveryReceipt() {
+    val at = validateDeliveryReceipt()
+    addInstructionsWithLabels(at, """
+        invoke-static {}, $SETTINGS->hideDeliveryReceipts()Z
+        move-result v0
+        if-eqz v0, :stock_delivery
+        return-void
+    """.trimIndent(), ExternalLabel("stock_delivery", getInstruction(at)))
 }

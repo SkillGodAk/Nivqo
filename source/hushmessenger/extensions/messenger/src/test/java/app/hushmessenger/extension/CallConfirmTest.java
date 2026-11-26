@@ -1,7 +1,11 @@
 package app.hushmessenger.extension;
 
+import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.os.Looper;
 import android.view.View;
+import android.view.WindowManager;
 import app.hushmessenger.extension.MarkReadButtonTest.DetailsButton;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,10 +15,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.LooperMode;
+import org.robolectric.shadows.ShadowDialog;
 import static org.junit.Assert.*;
 
 @RunWith(RobolectricTestRunner.class)
@@ -49,6 +56,26 @@ public class CallConfirmTest {
         @Override public void onClick(View view) {
             taps++;
             last = view;
+        }
+    }
+
+    /** An audio or video row of the menu on someone's picture, with the patch's hook at the top of its tap. */
+    static final class ProfileRow {
+        final int video;
+        int taps;
+        View tapped;
+        Object message;
+
+        ProfileRow(int video) {
+            this.video = video;
+        }
+
+        boolean tap(Context context, View view, CharSequence about) {
+            if (CallConfirm.profileCall(this, context, view, about, video)) return true;
+            taps++;
+            tapped = view;
+            message = about;
+            return true;
         }
     }
 
@@ -222,6 +249,66 @@ public class CallConfirmTest {
         assertFalse(CallConfirm.isTapListener(Counting.class));
     }
 
+    /** The question Messenger's own call button gets in a chat: an ordinary dialog, and Call runs its tap. */
+    @Test public void theQuestionGoesUpOverTheChat() {
+        on(true);
+        CallConfirm.asker = shown;
+        Counting tap = new Counting();
+        Spec audio = new Spec("audio_call_button", tap, null);
+        CallConfirm.guard(new ArrayList<>(Collections.singletonList(audio)));
+        Activity chat = Robolectric.buildActivity(Activity.class).setup().get();
+        audio.click.onClick(new View(chat));
+        AlertDialog question = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertTrue(question.isShowing());
+        assertEquals(WindowManager.LayoutParams.TYPE_APPLICATION, question.getWindow().getAttributes().type);
+        assertEquals(0, tap.taps);
+        answer(question, AlertDialog.BUTTON_POSITIVE);
+        assertEquals(1, tap.taps);
+        assertTrue(Settings.hookErrors.isEmpty());
+    }
+
+    /**
+     * #172: a chat head draws from Messenger's own service, where no activity holds a window for a dialog, so the
+     * question never reached the screen and the call rang anyway. It goes up over other apps there instead.
+     */
+    @Test public void theQuestionGoesUpInAChatHeadToo() {
+        on(true);
+        CallConfirm.asker = shown;
+        Counting tap = new Counting();
+        Spec call = new Spec(CallConfirm.VIDEO_TAG, tap, null);
+        CallConfirm.guard(new ArrayList<>(Collections.singletonList(call)));
+        // The application context a chat head's window leads to, with no activity anywhere up the chain.
+        assertNull(ChatJump.activity(view.getContext()));
+        call.click.onClick(view);
+        AlertDialog question = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertTrue(question.isShowing());
+        assertEquals(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, question.getWindow().getAttributes().type);
+        assertEquals(0, tap.taps);
+        answer(question, AlertDialog.BUTTON_POSITIVE);
+        assertEquals(1, tap.taps);
+        assertTrue(Settings.hookErrors.isEmpty());
+    }
+
+    /** Cancel in a chat head leaves the call alone, the same as it does in a chat. */
+    @Test public void cancelInAChatHeadLeavesTheCall() {
+        on(true);
+        CallConfirm.asker = shown;
+        Counting tap = new Counting();
+        Spec call = new Spec("audio_call_button", tap, null);
+        CallConfirm.guard(new ArrayList<>(Collections.singletonList(call)));
+        call.click.onClick(view);
+        AlertDialog question = (AlertDialog) ShadowDialog.getLatestDialog();
+        answer(question, AlertDialog.BUTTON_NEGATIVE);
+        assertEquals(0, tap.taps);
+        assertFalse(question.isShowing());
+    }
+
+    /** Presses a dialog button and lets the answer reach the listener. */
+    private static void answer(AlertDialog question, int button) {
+        question.getButton(button).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+    }
+
     @Test public void aQuestionThatCantGoUpLetsTheCallThroughAndSaysWhy() {
         on(true);
         CallConfirm.asker = (tapped, video, call) -> { throw new IllegalStateException("no window"); };
@@ -230,6 +317,56 @@ public class CallConfirmTest {
         CallConfirm.guard(new ArrayList<>(Collections.singletonList(audio)));
         audio.click.onClick(view);
         assertEquals(1, tap.taps);
+        assertTrue(Settings.hookErrors.containsKey(CallConfirm.KEY));
+    }
+
+    /** #201: these rows call from inside their own tap, so Cancel has to leave the row's tap never having run. */
+    @Test public void aProfileMenuCallRowAsksFirstAndCancelStartsNothing() {
+        on(true);
+        ProfileRow audio = new ProfileRow(0), video = new ProfileRow(1);
+        assertTrue(audio.tap(view.getContext(), view, "message"));
+        assertTrue(video.tap(view.getContext(), view, "message"));
+        assertEquals(Arrays.asList(false, true), asked);
+        assertEquals(0, audio.taps);
+        assertEquals(0, video.taps);
+    }
+
+    @Test public void callOnAProfileMenuRowRunsItsOwnTapOnceAndTheNextTapAsksAgain() {
+        on(true);
+        ProfileRow row = new ProfileRow(1);
+        row.tap(view.getContext(), view, "message");
+        waiting.get(0).run();
+        assertEquals("Call must not ask a second time", 1, asked.size());
+        assertEquals(1, row.taps);
+        assertSame(view, row.tapped);
+        assertEquals("message", row.message);
+
+        row.tap(view.getContext(), view, "message");
+        assertEquals(2, asked.size());
+        assertEquals(1, row.taps);
+    }
+
+    @Test public void offAProfileMenuRowCallsStraightAway() {
+        on(false);
+        ProfileRow row = new ProfileRow(0);
+        row.tap(view.getContext(), view, "message");
+        assertTrue(asked.isEmpty());
+        assertEquals(1, row.taps);
+    }
+
+    @Test public void aProfileMenuQuestionThatCantGoUpLetsTheCallThroughAndSaysWhy() {
+        on(true);
+        CallConfirm.asker = (tapped, video, call) -> { throw new IllegalStateException("no window"); };
+        ProfileRow row = new ProfileRow(0);
+        row.tap(view.getContext(), view, "message");
+        assertEquals(1, row.taps);
+        assertTrue(Settings.hookErrors.containsKey(CallConfirm.KEY));
+    }
+
+    @Test public void aRowWithoutItsTapMethodIsReportedAndLeftToCall() {
+        on(true);
+        assertFalse(CallConfirm.profileCall(new Object(), view.getContext(), view, "message", 0));
+        assertTrue(asked.isEmpty());
         assertTrue(Settings.hookErrors.containsKey(CallConfirm.KEY));
     }
 }

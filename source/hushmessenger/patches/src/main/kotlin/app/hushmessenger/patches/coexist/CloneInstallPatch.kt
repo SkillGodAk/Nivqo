@@ -9,22 +9,26 @@ import app.hushmessenger.patches.MessengerTarget
 import app.hushmessenger.patches.controls.BASE_PROFILE
 import app.hushmessenger.patches.controls.DEFAULT_STRINGS
 import app.hushmessenger.patches.controls.MANIFEST_STRINGS
-import app.hushmessenger.patches.controls.PROFILE_347415280
-import app.hushmessenger.patches.controls.PROFILE_347415262
-import app.hushmessenger.patches.controls.PROFILE_347415302
+import app.hushmessenger.patches.controls.PROFILE_347617497
 import app.hushmessenger.patches.controls.SETTINGS_LABEL
 import app.hushmessenger.patches.controls.SETTINGS_LABEL_NAME
 import app.hushmessenger.patches.controls.SHORTCUTS_DIRECTORIES
 import app.hushmessenger.patches.controls.addStrings
-import app.hushmessenger.patches.controls.setString
 import app.hushmessenger.patches.controls.controlProfileFor
 import app.hushmessenger.patches.controls.hookId
 import app.hushmessenger.patches.controls.resolveShortcutsPath
+import app.hushmessenger.patches.controls.setString
+import app.hushmessenger.patches.isExtension
+import app.hushmessenger.patches.messengerClasses
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.patcher.patch.resourcePatch
+import app.morphe.patcher.patch.decode
+import app.morphe.patcher.patch.document
+import app.morphe.patcher.patch.mutableClassDefBy
+import app.morphe.patcher.patch.packageMetadata
+import app.morphe.patcher.patch.patch
+import app.morphe.patcher.patch.resourceFile
 import app.morphe.patcher.patch.stringOption
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -50,6 +54,11 @@ import org.w3c.dom.Element
 internal const val CLONE_PATCH_NAME = "Clone install under another package name"
 internal const val CLONE_DEFAULT_PACKAGE = "com.facebook.orca.hush"
 internal const val CLONE_DEFAULT_LABEL = "Messenger Clone"
+/**
+ * Morphe Manager treats a patched app as a clone (its Clone chip, its own card and repatch target) only when a selected
+ * patch has an option keyed exactly this (PatchRunTargeting.kt `producesClone`, `PACKAGE_NAME_OPTION_KEY`).
+ */
+internal const val CLONE_PACKAGE_OPTION = "packageName"
 /** The string resource the clone's app name and launcher icons point at. */
 internal const val CLONE_LABEL = "hush_clone_label"
 private const val ORIGINAL = MessengerTarget.PACKAGE
@@ -332,7 +341,7 @@ internal fun findCloneSites(classes: Iterable<ClassDef>, pools: Set<String> = ow
         if (calls.isEmpty() && !pinned) emptyList() else (if (pinned) listOf(method.hookId()) else emptyList()) + calls.map { "${method.hookId()}@$it" }
     }.toSet()
 
-private const val ATTACHMENT_CHECK = "->A00(Ljava/lang/String;)Z"
+internal const val ATTACHMENT_CHECK = "->A00(Ljava/lang/String;)Z"
 private const val BROADCAST = "->A00(Landroid/content/Intent;Landroid/content/Context;)V"
 private const val NOTIFICATION = "(Landroid/os/Bundle;)"
 private const val CLICK = "->onClick(Landroid/view/View;)V"
@@ -340,20 +349,16 @@ private const val CLICK = "->onClick(Landroid/view/View;)V"
 /**
  * Each build family's backup lookup and attachment check, then every setPackage call that sends Messenger to itself:
  * the in-app broadcast sender, the push notification's click and link intents, the bulk delete link in the inbox and
- * the story link button. 587 has three arm64 families and an armv7 one. The native test checks them on every supported
+ * the story link button. 588 has one arm64 family and one armv7 family. The native test checks them on every supported
  * build.
  */
 internal fun expectedCloneSitesFor(versionCode: String): Set<String> {
     validateVersionCode(versionCode)
     return when (controlProfileFor(versionCode)) {
-        BASE_PROFILE -> setOf("LX/RtJ;-><init>()V", "LX/4ER;$ATTACHMENT_CHECK", "LX/3Ap;$BROADCAST@1",
-            "LX/8TJ;->A04${NOTIFICATION}LX/9Lc;@226", "LX/8TJ;->A04${NOTIFICATION}LX/9Lc;@319", "LX/JeJ;$CLICK@71", "LX/JeW;$CLICK@169")
-        PROFILE_347415302 -> setOf("LX/RtH;-><init>()V", "LX/4ER;$ATTACHMENT_CHECK", "LX/3Ap;$BROADCAST@1",
-            "LX/8TJ;->A04${NOTIFICATION}LX/9Lc;@226", "LX/8TJ;->A04${NOTIFICATION}LX/9Lc;@319", "LX/JeI;$CLICK@71", "LX/JeV;$CLICK@169")
-        PROFILE_347415262 -> setOf("LX/Oam;-><init>()V", "LX/4Eu;$ATTACHMENT_CHECK", "LX/3BB;$BROADCAST@1",
-            "LX/8Uf;->A05${NOTIFICATION}LX/9Mz;@185", "LX/8Uf;->A05${NOTIFICATION}LX/9Mz;@282", "LX/Jal;$CLICK@71", "LX/Jaz;$CLICK@169")
-        PROFILE_347415280 -> setOf("LX/OfE;-><init>()V", "LX/4Dn;$ATTACHMENT_CHECK", "LX/3Ao;$BROADCAST@1",
-            "LX/8U5;->A04${NOTIFICATION}LX/9Lz;@226", "LX/8U5;->A04${NOTIFICATION}LX/9Lz;@321", "LX/JOV;$CLICK@71", "LX/JOi;$CLICK@169")
+        BASE_PROFILE -> setOf("LX/Ukb;-><init>()V", "LX/4VT;$ATTACHMENT_CHECK", "LX/59I;$BROADCAST@1",
+            "LX/60J;->A04${NOTIFICATION}LX/6YQ;@230", "LX/60J;->A04${NOTIFICATION}LX/6YQ;@326", "LX/KAf;$CLICK@201", "LX/KAw;$CLICK@101")
+        PROFILE_347617497 -> setOf("LX/MF6;-><init>()V", "LX/4Yk;$ATTACHMENT_CHECK", "LX/5CZ;$BROADCAST@1",
+            "LX/63a;->A05${NOTIFICATION}LX/6bK;@189", "LX/63a;->A05${NOTIFICATION}LX/6bK;@285", "LX/K0T;$CLICK@69", "LX/K0k;$CLICK@197")
         else -> fail("version code $versionCode has no checked clone sites")
     }
 }
@@ -391,8 +396,14 @@ private fun Instruction.dedupString(): String? {
     return string.takeIf { it == DEDUP_AUTHORITY || it in DEDUP_URIS }
 }
 
-/** Every load of the push dedup provider's authority or URIs, by method and index. */
-internal fun findDedupSites(classes: Iterable<ClassDef>): Set<String> = classes.flatMap { it.methods }.flatMap { method ->
+/**
+ * Every load of the push dedup provider's authority or URIs in Messenger's own code, by method and index. The extension
+ * builds the running copy's names from the same strings, and reading those fields back while it sets them leaves every
+ * name null, so its classes are never sites.
+ */
+internal fun findDedupSites(classes: Iterable<ClassDef>): Set<String> = classes
+    .filterNot { it.isExtension() }
+    .flatMap { it.methods }.flatMap { method ->
     val code = method.implementation?.instructions?.toList() ?: return@flatMap emptyList()
     code.indices.filter { code[it].dedupString() != null }.map { "${method.hookId()}@$it" }
 }.toSet()
@@ -559,7 +570,7 @@ internal fun requestClone(packageName: String, label: String) {
     cloneRequest = CloneRequest(packageName, label)
 }
 
-internal val cloneResources = resourcePatch(description = "Move Messenger's manifest to the clone's package name") {
+internal val cloneResources = patch(description = "Move Messenger's manifest to the clone's package name") {
     execute {
         cloneRequest = null
     }
@@ -569,12 +580,12 @@ internal val cloneResources = resourcePatch(description = "Move Messenger's mani
         cloneRequest = null
         val shortcutsPath = resolveShortcutsPath(decode(SHORTCUTS_DIRECTORIES)) { path -> document(path).use { it } }
         // Settings decoded these already when it's in the patch. Decoding one again would read it back from the APK.
-        val undecoded = MANIFEST_STRINGS.keys.filterNot { get(it, false).exists() }
+        val undecoded = MANIFEST_STRINGS.keys.filterNot { resourceFile(it, false).exists() }
         if (undecoded.isNotEmpty()) decode(*undecoded.toTypedArray())
-        if (!get(DEFAULT_STRINGS, false).exists()) fail("Messenger has no $DEFAULT_STRINGS to hold the app name")
+        if (!resourceFile(DEFAULT_STRINGS, false).exists()) fail("Messenger has no $DEFAULT_STRINGS to hold the app name")
         document("AndroidManifest.xml").use { it.renameForClone(request.packageName, request.label) }
         document(shortcutsPath).use { it.retargetShortcuts(request.packageName) }
-        for (path in MANIFEST_STRINGS.keys) if (get(path, false).exists()) document(path).use { it.nameClone(path, request.label) }
+        for (path in MANIFEST_STRINGS.keys) if (resourceFile(path, false).exists()) document(path).use { it.nameClone(path, request.label) }
     }
 }
 
@@ -588,7 +599,7 @@ internal fun Document.nameClone(path: String, label: String) {
 }
 
 @Suppress("unused")
-val cloneInstallPatch = bytecodePatch(
+val cloneInstallPatch = patch(
     name = CLONE_PATCH_NAME,
     description = "Installs a second copy of Messenger beside the first, with its own app name. Push notifications may not reach the copy. Pick it in Morphe Manager's Expert mode. Works as soon as you patch it in, with no switch.",
     default = false,
@@ -598,7 +609,7 @@ val cloneInstallPatch = bytecodePatch(
     dependsOn(installBesideMetaAppsPatch, cloneResources)
 
     val packageName by stringOption(
-        key = "clonePackageName",
+        key = CLONE_PACKAGE_OPTION,
         default = CLONE_DEFAULT_PACKAGE,
         title = "Package name",
         description = "The copy's unique app ID, like com.facebook.orca.hush. Use words joined by dots, each starting with a letter. It can't match Messenger or another Meta app.",
@@ -626,7 +637,7 @@ val cloneInstallPatch = bytecodePatch(
         val label = appLabel?.takeIf(::isCloneLabel) ?: fail("\"$appLabel\" can't be used as an app name")
         val expected = expectedCloneSitesFor(packageMetadata.versionCode)
         // The story link button gets Messenger's name from a string pool in some builds, so every class is read.
-        val classes = mutableListOf<ClassDef>().apply { classDefForEach { add(it) } }
+        val classes = messengerClasses()
         val pools = ownNamePoolKeys(classes)
         if (findCloneSites(classes, pools) != expected) {
             fail("the backup lookup, attachment check or Messenger's intents to itself differ from the tested build")

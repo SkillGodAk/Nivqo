@@ -50,8 +50,8 @@ public final class SpecialContacts {
     private static volatile long nextCheck;
     private static volatile long nextNames;
     private static volatile Field userId;
-    /** Guarded by the class. Null until an account is read. */
-    private static SpecialContactsStore store;
+    /** Written under the class lock. Null until an account is read, and read without the lock by {@link #names()}. */
+    private static volatile SpecialContactsStore store;
 
     private SpecialContacts() {}
 
@@ -196,6 +196,15 @@ public final class SpecialContacts {
         }
     }
 
+    /**
+     * The names of everyone tracked under the account last read, lowercased. Quiet mode asks this on the thread a
+     * notification goes up on, so it never waits on the store or on a lock: an account not read yet has no names.
+     */
+    static Set<String> names() {
+        SpecialContactsStore people = store;
+        return people == null ? Collections.emptySet() : people.names();
+    }
+
     /** Settings' list of everyone tracked under the account in use. */
     static List<SpecialContactsStore.Person> list() {
         SpecialContactsStore people = current();
@@ -303,7 +312,7 @@ public final class SpecialContacts {
                 return null;
             }
             if (store == null || !user.equals(store.account)) {
-                SpecialContactsStore next = new SpecialContactsStore(new File(new File(context.getNoBackupFilesDir(), FOLDER), user));
+                SpecialContactsStore next = new SpecialContactsStore(new File(folder(context), user));
                 next.load();
                 store = next;
             }
@@ -318,8 +327,36 @@ public final class SpecialContacts {
         }
     }
 
+    /** Where every account's list lives, one folder per account. */
+    static File folder(Context context) {
+        return new File(context.getNoBackupFilesDir(), FOLDER);
+    }
+
+    /** The accounts that have a list, in order. */
+    static List<String> accounts(Context context) {
+        String[] names = folder(context).list();
+        List<String> accounts = new ArrayList<>();
+        if (names != null) for (String name : names) if (SpecialContactsStore.validId(name)) accounts.add(name);
+        Collections.sort(accounts);
+        return accounts;
+    }
+
+    /** [account]'s list: the one the hooks use when it's the account in use, so both see the same people. */
+    static SpecialContactsStore store(Context context, String account) {
+        synchronized (SpecialContacts.class) {
+            if (store != null && store.account.equals(account)) return store;
+        }
+        SpecialContactsStore inUse = current();
+        return inUse != null && inUse.account.equals(account) ? inUse : new SpecialContactsStore(new File(folder(context), account));
+    }
+
+    /** A restore added people to [people], so the hooks start looking for them. */
+    static void restored(SpecialContactsStore people) {
+        published(people);
+    }
+
     /** Every so often the hooks look at which account is in use, off their own thread. */
-    private static void checkSoon() {
+    static void checkSoon() {
         long now = SystemClock.uptimeMillis();
         if (now < nextCheck) return;
         nextCheck = now + ACCOUNT_CHECK_MILLIS;

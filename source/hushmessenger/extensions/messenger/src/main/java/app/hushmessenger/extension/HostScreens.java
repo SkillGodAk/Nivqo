@@ -59,6 +59,11 @@ public final class HostScreens {
             Log.e("HushMessenger", "Can't watch for calls", error);
         }
         try {
+            if (app != null && Settings.bundled(bundledControls()).contains(InvisibleButtons.KEY)) InvisibleButtons.register(app);
+        } catch (RuntimeException | LinkageError error) {
+            Log.e("HushMessenger", "Can't watch Messenger's screens for buttons", error);
+        }
+        try {
             if (app != null) SettingsReopen.watch(app);
         } catch (RuntimeException | LinkageError error) {
             Log.e("HushMessenger", "Can't watch for the first screen after a restart", error);
@@ -120,7 +125,7 @@ public final class HostScreens {
     }
 
     /**
-     * The Messenger build the patch started from, "587.0.0.54.96|347415354|base": version name, version code and the
+     * The Messenger build the patch started from, "588.1.0.66.98|347617503|base": version name, version code and the
      * mapping its hooks came from. The patch rewrites this, so it holds on Root Mount installs and under Spoof package
      * version, where Android's version code says something else. The extension alone has none.
      */
@@ -152,6 +157,16 @@ public final class HostScreens {
 
     /** Rewritten with Messenger's own Log out, "Lowner;->name(Landroid/content/Context;)V", once the patch proves it (#88). */
     static String logoutRoute() {
+        return "";
+    }
+
+    /** Rewritten with Messenger's own "is this user an AI bot", "Lowner;->name()Z", once the patch proves it (#204). */
+    static String aiUserRoute() {
+        return "";
+    }
+
+    /** Rewritten with the home screen's open tab, its tab list and its tab switch once the patch proves all three. */
+    static String tabSwipeRoute() {
         return "";
     }
 
@@ -485,6 +500,9 @@ public final class HostScreens {
         // Converted copies of picked videos go a day after their last use, switch on or off, without another pick.
         if (started && !failed && Settings.installed.contains(XheAudio.KEY)
                 && context.getPackageName().equals(Application.getProcessName())) XheAudio.pruneLater(context);
+        // After CrashGuard as well, so Pause and safe mode give encrypted chats Messenger's own mute check back.
+        if (started && !failed && Settings.installed.contains(MessageLog.KEY)
+                && context.getPackageName().equals(Application.getProcessName())) MuteQuery.follow(context);
         // A failed start can't follow the switch, so entries an earlier run left on come out. Settings.installed may
         // never have loaded here, and TextStyleActivity checks the manifest itself.
         if (failed && context.getPackageName().equals(Application.getProcessName())) TextStyleActivity.turnOff(context);

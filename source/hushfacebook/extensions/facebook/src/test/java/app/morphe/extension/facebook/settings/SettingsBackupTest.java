@@ -194,6 +194,14 @@ public class SettingsBackupTest {
                 "it records the 3-dot menu rows this install's Facebook showed, which the hook writes, not a choice.");
         out.put("hushfacebook_seen_menu_tiles",
                 "it records the Menu tiles this install's Facebook showed, which the hook writes, not a choice.");
+        out.put("hushfacebook_chat_background_color",
+                "it waits for the settings file format to carry a one or two color code (#573), with its check "
+                        + "for a code that reads as a color.");
+        out.put("hushfacebook_chat_backgrounds",
+                "it lists this account's chats by their keys, other people's ids among them, which a shared "
+                        + "settings file shouldn't show.");
+        out.put("hushfacebook_chat_background_last",
+                "it records the last chat this install opened, which the hook writes, not a choice.");
         out.put("hushfacebook_reset_undo",
                 "it is the settings file Undo the reset puts back, which Reset settings writes, not a choice.");
         return Collections.unmodifiableMap(out);
@@ -254,6 +262,7 @@ public class SettingsBackupTest {
         Settings.HOLD_REACTION.resetToDefault();
         Settings.FOLD_POST_TEXT.resetToDefault();
         Settings.FOLD_COMMENTS.resetToDefault();
+        Settings.FOLD_REEL_CAPTIONS.resetToDefault();
         Settings.GRAY_REELS_OVER.resetToDefault();
         Settings.REEL_POST_DATE_STYLE.resetToDefault();
         Settings.RECENTLY_WATCHED_KEEP.resetToDefault();
@@ -334,7 +343,7 @@ public class SettingsBackupTest {
         for (Setting<?> setting : SettingsBackup.VALUES) {
             assertFalse(setting.key + " is carried and kept out at once", VALUES_STAY_OUT.containsKey(setting.key));
         }
-        assertEquals(Arrays.<Setting<?>>asList(Settings.HIDDEN_WORDS, Settings.KEPT_WORDS, Settings.HIDDEN_SOURCES, Settings.HIDDEN_FEED_TYPES, Settings.HIDE_POSTS_OVER_REACTIONS, Settings.REEL_CLEAN_RETURN, Settings.BURN_IN_GUARD, Settings.BURN_IN_WAIT, Settings.GRAY_REELS_OVER, Settings.REEL_POST_DATE_STYLE, Settings.REELS_ORDER, Settings.HOLD_REACTION, Settings.COMMENTS_HEIGHT, Settings.RECENTLY_WATCHED_KEEP, Settings.HIDDEN_SHARE_ITEMS, Settings.HIDDEN_POST_MENU_ITEMS, Settings.HIDDEN_MENU_TILES, Settings.HOME_FEED, Settings.TAB_ORDER, Settings.AMOLED_BACKGROUND, Settings.AMOLED_LIGHT_BACKGROUND, Settings.HEADER_TEXT, Settings.HEADER_TEXT_FONT, Settings.SEEN_POSTS_KEEP, Settings.FOLD_POST_TEXT, Settings.FOLD_COMMENTS, Settings.SAVE_TO,
+        assertEquals(Arrays.<Setting<?>>asList(Settings.HIDDEN_WORDS, Settings.KEPT_WORDS, Settings.HIDDEN_SOURCES, Settings.HIDDEN_FEED_TYPES, Settings.HIDE_POSTS_OVER_REACTIONS, Settings.REEL_CLEAN_RETURN, Settings.BURN_IN_GUARD, Settings.BURN_IN_WAIT, Settings.GRAY_REELS_OVER, Settings.REEL_POST_DATE_STYLE, Settings.REELS_ORDER, Settings.HOLD_REACTION, Settings.COMMENTS_HEIGHT, Settings.RECENTLY_WATCHED_KEEP, Settings.HIDDEN_SHARE_ITEMS, Settings.HIDDEN_POST_MENU_ITEMS, Settings.HIDDEN_MENU_TILES, Settings.HOME_FEED, Settings.TAB_ORDER, Settings.AMOLED_BACKGROUND, Settings.AMOLED_LIGHT_BACKGROUND, Settings.HEADER_TEXT, Settings.HEADER_TEXT_FONT, Settings.SEEN_POSTS_KEEP, Settings.FOLD_POST_TEXT, Settings.FOLD_COMMENTS, Settings.FOLD_REEL_CAPTIONS, Settings.SAVE_TO,
                 Settings.SAVE_FOLDER, Settings.VIDEO_SUBFOLDER, Settings.PHOTO_SUBFOLDER, Settings.DOWNLOAD_QUALITY,
                 Settings.FILENAME_TEMPLATE, Settings.PHOTO_FILENAME_TEMPLATE, Settings.DOWNLOAD_ACTION, Settings.SEND_TO_APP,
                 Settings.START_TAB, Settings.FEEDS_SUBTAB, Settings.COMMENT_ORDER, Settings.PLAYBACK_QUALITY,
@@ -877,6 +886,28 @@ public class SettingsBackupTest {
         assertFalse(Settings.HIDE_SPONSORED_REELS.savedValue());
         assertFalse("a file paused Hushfacebook", BaseSettings.PAUSED.savedValue());
         assertFalse("a file turned on debug logging", BaseSettings.DEBUG.savedValue());
+    }
+
+    /**
+     * A file saved while Unlock app icons was in Hushfacebook still imports: its two switches are
+     * names this build doesn't know, so they're counted and left out, and every other value comes in.
+     */
+    @Test
+    public void aFileWithTheRemovedAppIconSwitchesStillImportsTheRest() throws Exception {
+        JSONObject file = new JSONObject(SettingsBackup.create());
+        file.getJSONObject("settings").put(Settings.HIDE_SPONSORED_REELS.key, false);
+        int before = SettingsBackup.parse(file.toString()).unknown;
+        file.getJSONObject("settings")
+                .put("hushfacebook_unlock_app_icons", true)
+                .put("hushfacebook_use_app_icon_in_header", true);
+        SettingsBackup.Snapshot snapshot = SettingsBackup.parse(file.toString());
+        assertEquals("the two removed switches are unknown names", before + 2, snapshot.unknown);
+        assertEquals(1, snapshot.changes().size());
+        assertEquals(1, SettingsBackup.apply(snapshot));
+        assertFalse(Settings.HIDE_SPONSORED_REELS.savedValue());
+        String again = SettingsBackup.create();
+        assertFalse(again, again.contains("hushfacebook_unlock_app_icons"));
+        assertFalse(again, again.contains("hushfacebook_use_app_icon_in_header"));
     }
 
     /**

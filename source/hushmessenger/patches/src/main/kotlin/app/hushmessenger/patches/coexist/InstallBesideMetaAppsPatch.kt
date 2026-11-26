@@ -6,13 +6,16 @@
 package app.hushmessenger.patches.coexist
 
 import app.hushmessenger.patches.MessengerTarget
+import app.hushmessenger.patches.isExtension
 import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
-import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.patcher.patch.resourcePatch
+import app.morphe.patcher.patch.classDefByStrings
+import app.morphe.patcher.patch.document
+import app.morphe.patcher.patch.mutableClassDefBy
+import app.morphe.patcher.patch.packageMetadata
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -88,51 +91,45 @@ internal val expectedGuardOwners = mapOf(
     ),
 )
 
-/** The three permission loads in 587.0.0.54.96's main arm64 build and the builds renamed from it. Generated from 347415354's record. */
-internal val expectedDexSites347415354 = mapOf(
-    "LX/0k8;->A00()Ljava/lang/String;@7" to APP_COMMUNICATION_FORMAT,
-    "LX/0yY;->A03()V@25" to APP_COMMUNICATION,
-    "LX/1h7;->A09(Lcom/facebook/auth/usersession/FbUserSession;LX/1h7;Ljava/lang/String;Ljava/lang/String;)V@34" to APP_COMMUNICATION,
-)
-
-/** The three permission loads in 587.0.0.54.96's other arm64 builds. Generated from 347415280's record. */
-internal val expectedDexSites347415280 = mapOf(
-    "LX/0k5;->A00()Ljava/lang/String;@7" to APP_COMMUNICATION_FORMAT,
-    "LX/0yd;->A03()V@25" to APP_COMMUNICATION,
-    "LX/1h7;->A0A(Lcom/facebook/auth/usersession/FbUserSession;LX/1h7;Ljava/lang/String;Ljava/lang/String;)V@34" to APP_COMMUNICATION,
-)
-
-/** The three permission loads in 587.0.0.54.96's armv7 builds. Generated from 347415262's record. */
-internal val expectedDexSites347415262 = mapOf(
-    "LX/0kT;->A00()Ljava/lang/String;@7" to APP_COMMUNICATION_FORMAT,
+/** The three permission loads in 588.1.0.66.98's arm64 builds. Generated from 347617503's record. */
+internal val expectedDexSites347617503 = mapOf(
+    "LX/0kh;->A00()Ljava/lang/String;@7" to APP_COMMUNICATION_FORMAT,
     "LX/0zs;->A03()V@25" to APP_COMMUNICATION,
-    "LX/1hX;->A09(Lcom/facebook/auth/usersession/FbUserSession;LX/1hX;Ljava/lang/String;Ljava/lang/String;)V@34" to APP_COMMUNICATION,
+    "LX/1mW;->A0A(Lcom/facebook/auth/usersession/FbUserSession;LX/1mW;Ljava/lang/String;Ljava/lang/String;)V@34" to APP_COMMUNICATION,
+)
+
+/** The three permission loads in 588.1.0.66.98's armv7 builds. Generated from 347617497's record. */
+internal val expectedDexSites347617497 = mapOf(
+    "LX/0kq;->A00()Ljava/lang/String;@7" to APP_COMMUNICATION_FORMAT,
+    "LX/12L;->A03()V@25" to APP_COMMUNICATION,
+    "LX/1mv;->A0A(Lcom/facebook/auth/usersession/FbUserSession;LX/1mv;Ljava/lang/String;Ljava/lang/String;)V@34" to APP_COMMUNICATION,
 )
 
 /** The loads an unknown build is checked against. */
-internal val expectedDexSites = expectedDexSites347415354
+internal val expectedDexSites = expectedDexSites347617503
 
 /** Each supported build's permission loads, by version code, as scripts/profiles records them. */
 internal val expectedDexSitesByBuild: Map<Int, Map<String, String>> = mapOf(
-    347415262 to expectedDexSites347415262,
-    347415267 to expectedDexSites347415354,
-    347415268 to expectedDexSites347415354,
-    347415280 to expectedDexSites347415280,
-    347415281 to expectedDexSites347415280,
-    347415284 to expectedDexSites347415280,
-    347415285 to expectedDexSites347415280,
-    347415295 to expectedDexSites347415262,
-    347415299 to expectedDexSites347415354,
-    347415301 to expectedDexSites347415354,
-    347415302 to expectedDexSites347415354,
-    347415333 to expectedDexSites347415354,
-    347415337 to expectedDexSites347415354,
-    347415348 to expectedDexSites347415262,
-    347415350 to expectedDexSites347415354,
-    347415351 to expectedDexSites347415354,
-    347415352 to expectedDexSites347415354,
-    347415354 to expectedDexSites347415354,
-    347415355 to expectedDexSites347415354,
+    347617497 to expectedDexSites347617497,
+    347617499 to expectedDexSites347617503,
+    347617503 to expectedDexSites347617503,
+    347617513 to expectedDexSites347617497,
+    347617515 to expectedDexSites347617503,
+    347617516 to expectedDexSites347617503,
+    347617517 to expectedDexSites347617503,
+    347617519 to expectedDexSites347617503,
+    347617532 to expectedDexSites347617503,
+    347617533 to expectedDexSites347617503,
+    347617535 to expectedDexSites347617503,
+    347617537 to expectedDexSites347617503,
+    347617566 to expectedDexSites347617497,
+    347617569 to expectedDexSites347617503,
+    347617572 to expectedDexSites347617503,
+    347617583 to expectedDexSites347617497,
+    347617586 to expectedDexSites347617503,
+    347617587 to expectedDexSites347617503,
+    347617588 to expectedDexSites347617503,
+    347617590 to expectedDexSites347617503,
 )
 
 internal fun expectedDexSitesFor(
@@ -221,14 +218,14 @@ internal fun Document.renameSharedPermissions() {
     mentions.values.flatten().forEach { it.value = renamed(it.value) }
 }
 
-private val validatePermissionBytecode = bytecodePatch(description = "Validate Messenger shared-permission bytecode") {
+private val validatePermissionBytecode = patch(description = "Validate Messenger shared-permission bytecode") {
     execute {
         validateVersionCode(packageMetadata.versionCode)
         checkedPermissionMethods()
     }
 }
 
-private val renameManifest = resourcePatch(description = "Rename Messenger shared permissions") {
+private val renameManifest = patch(description = "Rename Messenger shared permissions") {
     dependsOn(validatePermissionBytecode)
     execute {
         validateVersionCode(packageMetadata.versionCode)
@@ -277,9 +274,9 @@ private fun MutableMethod.renameSharedNames(): Int {
     return sites.size
 }
 
-private fun BytecodePatchContext.checkedPermissionMethods(): List<MutableMethod> {
+private fun checkedPermissionMethods(): List<MutableMethod> {
     val classes = dexNames.flatMap { classDefByStrings(it, StringComparisonType.EQUALS) }
-        .map { it.type }.distinct()
+        .filterNot { it.isExtension() }.map { it.type }.distinct()
     val methods = classes.flatMap { type ->
         mutableClassDefBy(type).methods.filter { it.hasSharedName() }
     }
@@ -296,7 +293,7 @@ private fun BytecodePatchContext.checkedPermissionMethods(): List<MutableMethod>
     return methods
 }
 
-private fun BytecodePatchContext.renameDexNames(): Int {
+private fun renameDexNames(): Int {
     val methods = checkedPermissionMethods()
     val renamed = methods.sumOf { it.renameSharedNames() }
     if (renamed != expectedDexSitesFor(packageMetadata.versionCode).size || methods.any { it.hasSharedName() }) {
@@ -311,7 +308,7 @@ private fun BytecodePatchContext.renameDexNames(): Int {
  * two patched apps still requires one signing key and separate cross-app trust checks.
  */
 @Suppress("unused")
-val installBesideMetaAppsPatch = bytecodePatch(
+val installBesideMetaAppsPatch = patch(
     name = PATCH_NAME,
     description = "Lets your patched Messenger install next to Facebook and other Meta apps. Without it, the apps can clash over shared permissions and the install can stop at a blank screen. Works as soon as you patch it in, with no switch.",
     default = true,

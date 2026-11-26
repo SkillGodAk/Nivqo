@@ -14,10 +14,15 @@
 package app.hushmessenger.patches.controls
 
 import app.hushmessenger.patches.MessengerTarget
+import app.hushmessenger.patches.isExtension
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
-import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.patcher.patch.resourcePatch
+import app.morphe.patcher.patch.classDefBy
+import app.morphe.patcher.patch.classDefByOrNull
+import app.morphe.patcher.patch.classDefForEach
+import app.morphe.patcher.patch.document
+import app.morphe.patcher.patch.mutableClassDefBy
+import app.morphe.patcher.patch.patch
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -83,14 +88,17 @@ private fun isFdsResolver(method: Method): Boolean =
 
 /**
  * FDSColors by its shape, for the builds that dropped its name (584 calls it LX/9TH;): a class whose only field is a
- * static instance of itself, with FDS resolvers. scripts/CompatReport.java looks for the same shape.
+ * static instance of itself, with FDS resolvers. 588 (LX/APm;) dropped the instance too and keeps one static resolver in
+ * a class with no fields. scripts/CompatReport.java looks for the same shape.
  */
 internal fun isFdsColorsShape(cls: ClassDef): Boolean {
-    val field = cls.fields.singleOrNull() ?: return false
-    return field.type == cls.type && AccessFlags.STATIC.isSet(field.accessFlags) && cls.methods.any(::isFdsResolver)
+    val fields = cls.fields.toList()
+    val field = fields.singleOrNull()
+    val selfOnly = fields.isEmpty() || field != null && field.type == cls.type && AccessFlags.STATIC.isSet(field.accessFlags)
+    return selfOnly && cls.methods.any(::isFdsResolver)
 }
 
-private val materialYouResources = resourcePatch(description = "Record HushMessenger capability: material_you") {
+private val materialYouResources = patch(description = "Record HushMessenger capability: material_you") {
     dependsOn(settingsResources)
     execute {
         materialYouApplied = false
@@ -102,7 +110,7 @@ private val materialYouResources = resourcePatch(description = "Record HushMesse
 }
 
 @Suppress("unused")
-val materialYouPatch = bytecodePatch(
+val materialYouPatch = patch(
     name = "Material You theme",
     description = "Colors Messenger's dark mode with your wallpaper colors on Android 12 and newer, and a fixed blue on Android 11. Turn on dark mode in Messenger first. Light mode keeps its colors unless you turn on Light mode accent. Starts off. Turn it on in HushMessenger settings > Controls.",
 ) {
@@ -146,7 +154,7 @@ val materialYouPatch = bytecodePatch(
         val fdsShapes = mutableListOf<ClassDef>()
         val colorCalls = MemberTable(materialYouColorCalls)
         classDefForEach { cls ->
-            if (cls.type.startsWith("Lapp/hushmessenger/extension/")) return@classDefForEach
+            if (cls.isExtension()) return@classDefForEach
             if (isFdsColorsShape(cls)) fdsShapes += cls
             for (method in cls.methods) {
                 val implementation = method.implementation ?: continue

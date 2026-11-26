@@ -14,6 +14,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction;
+import com.android.tools.smali.dexlib2.iface.instruction.PayloadInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction;
@@ -59,15 +60,15 @@ final class Media {
     static final String QUICKSNAP_VIEWER = "Lcom/facebook/messaging/quicksnap/consumption/viewer/MsgrQuicksnapViewerFragment;";
     static final String WINDOW = "Landroid/view/Window;";
     static final String SET_FLAGS = WINDOW + "->setFlags(II)V", ADD_FLAGS = WINDOW + "->addFlags(I)V";
-    // "Generate AI stickers" as 587 numbers it, as in NativeMediaControls.kt
-    static final int GENERATE_AI_LABEL = 0x7f140566;
+    // "Generate AI stickers" as 588 numbers it, as in NativeMediaControls.kt
+    static final int GENERATE_AI_LABEL = 0x7f14056e;
     // "Generate": the same cell's label when its tap opens the custom, AI and music sticker menu
-    static final int GENERATE_MENU_LABEL = 0x7f141c62;
-    // The same label in 587's armv7 string pack, two resources on
-    static final int GENERATE_MENU_LABEL_ARMV7 = 0x7f141c64;
-    // The viewer's onCreateDialog override in 587, its armv7 build included, and A1M in its other arm64 builds
-    static final Set<String> EPHEMERAL_DIALOGS = Set.of("A1L", "A1M");
-    // The Quicksnap viewer's onCreateView frame in 587: 39 registers, 40 in its armv7 build
+    static final int GENERATE_MENU_LABEL = 0x7f141c71;
+    // The same label in 588's armv7 string pack, two resources on
+    static final int GENERATE_MENU_LABEL_ARMV7 = 0x7f141c73;
+    // The viewer's onCreateDialog override: A1N in 588's arm64 builds, A1L in its armv7 ones
+    static final Set<String> EPHEMERAL_DIALOGS = Set.of("A1N", "A1L");
+    // The Quicksnap viewer's onCreateView frame: 39 registers, 40 in the armv7 builds
     static final Set<Integer> QUICKSNAP_FRAMES = Set.of(39, 40);
 
     static int mediaTarget(List<Instruction> code, int at) {
@@ -98,6 +99,61 @@ final class Media {
             for (var h : b.getExceptionHandlers()) targets.add(offsets.getOrDefault(h.getHandlerCodeAddress(), -1));
         return targets;
     }
+    static final String SEND_CLICKED = "ComposeFragment.onSendClicked";
+    static final String CAPTION_MAP = "Lcom/google/common/collect/ImmutableMap;";
+    static final String CAPTION_STRING = "Ljava/lang/String;";
+
+    /** The compose fragment's own text send, as MediaCaption.kt reads it: static, returns nothing, takes a list last. */
+    static List<String> mediaCaptionSends(Method method) {
+        var sends = new ArrayList<String>();
+        for (var i : instructions(method)) {
+            if (i.getOpcode() != Opcode.INVOKE_STATIC && i.getOpcode() != Opcode.INVOKE_STATIC_RANGE) continue;
+            if (!(i instanceof ReferenceInstruction r) || !(r.getReference() instanceof MethodReference m)) continue;
+            var params = m.getParameterTypes().stream().map(Object::toString).toList();
+            if (!m.getDefiningClass().equals(method.getDefiningClass()) || !"V".equals(m.getReturnType())) continue;
+            if (!params.equals(List.of(method.getDefiningClass(), IMMUTABLE_LIST, CAPTION_MAP, CAPTION_STRING, "Ljava/util/List;"))) continue;
+            var id = m.getName() + "(" + String.join("", params) + ")";
+            if (!sends.contains(id)) sends.add(id);
+        }
+        return sends;
+    }
+
+    /**
+     * Whether the composer's send hands the typed text to the media parameters once, in a plain invoke-direct whose
+     * object register isn't the text's, with nothing branching onto the new-instance in front of it, and the fragment
+     * having exactly one text send to pass the words to. Mirrors MediaCaption.kt.
+     */
+    static boolean mediaCaptionSite(Method method) {
+        var code = instructions(method);
+        boolean marked = false;
+        for (var i : code)
+            if ((i.getOpcode() == Opcode.CONST_STRING || i.getOpcode() == Opcode.CONST_STRING_JUMBO) &&
+                i instanceof ReferenceInstruction r && r.getReference() instanceof StringReference s && SEND_CLICKED.equals(s.getString())) marked = true;
+        if (!marked || mediaCaptionSends(method).size() != 1) return false;
+        var sites = new ArrayList<Integer>();
+        for (int at = 0; at + 1 < code.size(); at++) {
+            if (code.get(at).getOpcode() != Opcode.NEW_INSTANCE) continue;
+            if (!(code.get(at) instanceof ReferenceInstruction made) || !(made.getReference() instanceof TypeReference built)) continue;
+            int holder = register(code.get(at));
+            var next = code.get(at + 1);
+            if (next.getOpcode() != Opcode.INVOKE_DIRECT || !(next instanceof FiveRegisterInstruction call)) continue;
+            if (!(next instanceof ReferenceInstruction r) || !(r.getReference() instanceof MethodReference ctor)) continue;
+            var params = ctor.getParameterTypes().stream().map(Object::toString).toList();
+            if (!ctor.getDefiningClass().equals(built.getType()) || !"<init>".equals(ctor.getName()) || call.getRegisterCount() != 5) continue;
+            if (!params.equals(List.of(method.getDefiningClass(), IMMUTABLE_LIST, CAPTION_MAP, CAPTION_STRING))) continue;
+            if (call.getRegisterC() != holder || call.getRegisterG() == holder) continue;
+            sites.add(at);
+        }
+        return sites.size() == 1 && !mediaTargets(method).contains(sites.get(0));
+    }
+
+    /** media_caption: the one send that carries a caption into the media parameters. Mirrors MediaCaption.kt. */
+    static List<Method> mediaCaption(List<ClassDef> classes) {
+        var found = new ArrayList<Method>();
+        for (var cls : classes) for (var method : cls.getMethods()) if (mediaCaptionSite(method)) found.add(method);
+        return found;
+    }
+
     static boolean mediaWrites(Instruction i, int r) {
         return i.getOpcode().setsRegister() && (register(i) == r || (i.getOpcode().name().contains("WIDE") && register(i) + 1 == r));
     }
@@ -125,7 +181,7 @@ final class Media {
      * guarded prefix: the Ephemeral viewer's bodies have none, and the Quicksnap viewer's all start past its site.
      */
     static List<Integer> screenshotViewerSites(Method method) {
-        if (!Set.of(EPHEMERAL_VIEWER, QUICKSNAP_VIEWER).contains(method.getDefiningClass())) return List.of();
+        if (!Set.of(EPHEMERAL_VIEWER, QUICKSNAP_VIEWER).contains(method.getDefiningClass())) return quicksnapHelperSites(method);
         var impl = method.getImplementation(); var c = instructions(method); var p = bubbleParameters(method);
         if (impl == null || AccessFlags.STATIC.isSet(method.getAccessFlags())) return List.of();
         List<Integer> sites; boolean valid, resume = false, hoisted = false; int reentry = -1, reentrySource = -1;
@@ -181,6 +237,68 @@ final class Media {
         if (resume) for (int i = 0; i < c.size(); i++) if (i != 10 && i != 13 && c.get(i) instanceof OffsetInstruction && mediaTarget(c, i) == 15) return List.of();
         if (hoisted) for (int i = 0; i < c.size(); i++) if (i != reentrySource && c.get(i) instanceof OffsetInstruction && mediaTarget(c, i) == reentry) return List.of();
         return sites;
+    }
+
+    static final String CLEAR_FLAGS = WINDOW + "->clearFlags(I)V";
+    static final List<String> QUICKSNAP_SECURE_PARAMS = List.of(WINDOW, "Lcom/facebook/auth/usersession/FbUserSession;", "Z");
+
+    /**
+     * 588's Quicksnap viewer hands its dialog's window to a helper with yes, and has no window flag call of its own: the
+     * helper's id, when the viewer makes that one call on the window Dialog.getWindow() gave it and a yes every path
+     * sets, or null. Mirrors quicksnapSecureHelper in NativeMediaControls.kt.
+     */
+    static String quicksnapSecureHelper(Method viewer) {
+        var c = instructions(viewer);
+        int call = -1;
+        for (int i = 0; i < c.size(); i++) {
+            var r = ref(c.get(i));
+            if (r != null && Set.of(SET_FLAGS, ADD_FLAGS, CLEAR_FLAGS).contains(r)) return null;
+            if (c.get(i) instanceof ReferenceInstruction ri && ri.getReference() instanceof MethodReference m && "V".equals(m.getReturnType()) &&
+                refParams(m).equals(QUICKSNAP_SECURE_PARAMS)) {
+                if (call >= 0) return null;
+                call = i;
+            }
+        }
+        if (call < 0 || c.get(call).getOpcode() != Opcode.INVOKE_VIRTUAL) return null;
+        var args = bubbleArgs(c.get(call));
+        if (args.size() != 4) return null;
+        var windows = definitionsAt(viewer, call, args.get(1));
+        var yeses = definitionsAt(viewer, call, args.get(3));
+        if (windows == null || yeses == null || windows.isEmpty() || yeses.isEmpty()) return null;
+        // A missing dialog's tail hands the helper a null window, which the helper checks first.
+        boolean fromDialog = false;
+        for (int w : windows) {
+            boolean dialog = w >= 1 && c.get(w).getOpcode() == Opcode.MOVE_RESULT_OBJECT && ("Landroid/app/Dialog;->getWindow()" + WINDOW).equals(ref(c.get(w - 1)));
+            boolean none = w >= 0 && c.get(w).getOpcode() == Opcode.CONST_4 && ((NarrowLiteralInstruction) c.get(w)).getNarrowLiteral() == 0;
+            if (!dialog && !none) return null;
+            fromDialog |= dialog;
+        }
+        if (!fromDialog) return null;
+        for (int y : yeses)
+            if (y < 0 || c.get(y).getOpcode() != Opcode.CONST_4 || ((NarrowLiteralInstruction) c.get(y)).getNarrowLiteral() != 1) return null;
+        return ref(c.get(call));
+    }
+
+    /** The helper's addFlags site, the one between its flag constant and its clearFlags for no, or none. */
+    static List<Integer> quicksnapHelperSites(Method m) {
+        var impl = m.getImplementation();
+        if (impl == null || AccessFlags.STATIC.isSet(m.getAccessFlags()) || !"V".equals(m.getReturnType()) ||
+            !bubbleParameters(m).equals(QUICKSNAP_SECURE_PARAMS) || !impl.getTryBlocks().isEmpty()) return List.of();
+        var c = instructions(m);
+        int window = parameterRegister(m, 1), yes = parameterRegister(m, 3), site = -1;
+        var setters = new ArrayList<Integer>();
+        for (int i = 0; i < c.size(); i++) {
+            var r = ref(c.get(i));
+            if (r != null && Set.of(SET_FLAGS, ADD_FLAGS, CLEAR_FLAGS).contains(r)) setters.add(i);
+            if (ADD_FLAGS.equals(r)) { if (site >= 0) return List.of(); site = i; }
+            if (mediaWrites(c.get(i), window)) return List.of();
+        }
+        if (site < 2 || site + 4 != c.size() || !setters.equals(List.of(site, site + 2))) return List.of();
+        int flag = register(c.get(site - 2));
+        if (!mediaLiteral(c, site - 2, flag) || !mediaNull(c, site - 1, yes, site + 2) || !mediaCall(c, site, ADD_FLAGS, window, flag) ||
+            !mediaOp(c, site + 1, Opcode.RETURN_VOID) || !mediaCall(c, site + 2, CLEAR_FLAGS, window, flag) || !mediaOp(c, site + 3, Opcode.RETURN_VOID)) return List.of();
+        for (int t : mediaTargets(m)) if (t >= 1 && t <= site) return List.of();
+        return List.of(site);
     }
 
     /**
@@ -692,7 +810,20 @@ final class Media {
                 at = i;
             }
         if (at < 0) return null;
-        int media = copiedMedia(code, at), params = register(code.get(at));
+        // 588 copies inside a try and its goto takes the copy on to the builder; the hook goes past the method's end there.
+        int jump = -1;
+        if (copiedMedia(code, at) < 0) {
+            for (int i = 0; i < code.size(); i++)
+                if (TRAY_GOTOS.contains(code.get(i).getOpcode()) && mediaTarget(code, i) == at && copiedMedia(code, i) >= 0) {
+                    if (jump >= 0) return null;
+                    jump = i;
+                }
+            if (jump < 0) return null;
+            var last = code.get(code.size() - 1);
+            if (!(last instanceof PayloadInstruction) && !CHAT_RUN_ENDS.contains(last.getOpcode()) && !TRAY_GOTOS.contains(last.getOpcode())) return null;
+        }
+        int copied = jump >= 0 ? jump : at;
+        int media = copiedMedia(code, copied), params = register(code.get(at));
         if (media < 0) return null;
         int open = at + 1;
         for (; open < code.size(); open++) {
@@ -713,12 +844,13 @@ final class Media {
                 put.getRegisterB() == params && ((ReferenceInstruction) code.get(i)).getReference() instanceof FieldReference f &&
                 EDITOR_BUILDER.equals(f.getDefiningClass()) && CHAT_MEDIA.equals(f.getType())) stored = true;
         if (!stored) return null;
-        int start = at - 2;
+        int start = copied - 2;
         while (start > 0 && !endsChatRun(code.get(start - 1))) start--;
         var landings = mediaTargets(m);
-        for (int i = start + 1; i < at; i++) if (landings.contains(i)) return null;
+        for (int i = start + 1; i < copied; i++) if (landings.contains(i)) return null;
+        if (jump >= 0 && landings.contains(jump)) return null;
         int typed = -1, cast = -1;
-        for (int i = start; i < at; i++) {
+        for (int i = start; i < copied; i++) {
             if (code.get(i).getOpcode() == Opcode.INVOKE_VIRTUAL && ITEM_TYPE_CALL.equals(ref(code.get(i)))) {
                 if (typed >= 0) return null;
                 typed = i;
@@ -730,15 +862,15 @@ final class Media {
         }
         if (typed < 0 || cast < 0) return null;
         int intent = ((FiveRegisterInstruction) code.get(typed)).getRegisterC(), chat = register(code.get(cast));
-        for (int i = typed + 1; i < at; i++) if (writesRegister(code.get(i), intent)) return null;
-        for (int i = cast + 1; i < at; i++) if (writesRegister(code.get(i), chat)) return null;
+        for (int i = typed + 1; i < copied; i++) if (writesRegister(code.get(i), intent)) return null;
+        for (int i = cast + 1; i < copied; i++) if (writesRegister(code.get(i), chat)) return null;
         var registers = List.of(intent, media, chat, params);
         int locals = parameterRegister(m, 0);
         if (new HashSet<>(registers).size() != 4 || registers.stream().anyMatch(r -> r > 15 || r >= locals)) return null;
         int address = 0;
         for (int i = 0; i < at; i++) address += code.get(i).getCodeUnits();
         for (var block : m.getImplementation().getTryBlocks())
-            if (address >= block.getStartCodeAddress() && address < block.getStartCodeAddress() + block.getCodeUnitCount()) return null;
+            if (jump < 0 && address >= block.getStartCodeAddress() && address < block.getStartCodeAddress() + block.getCodeUnitCount()) return null;
         return new GalleryChatSite(at, intent, media, chat, params, typeOf(code.get(cast)), unit.toString());
     }
 
@@ -799,25 +931,56 @@ final class Media {
     static final String COMPOSER_FACTORY = "Lcom/facebook/messaging/msys/thread/composer/configuration/xapp/BaseXappComposerConfigurationFactory;";
     static final Set<Opcode> TRAY_NULLS = Set.of(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST);
     static final Set<Opcode> TRAY_GOTOS = Set.of(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32);
+    static final Set<Opcode> TRAY_COPIES = Set.of(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16);
+
+    static boolean trayZero(Instruction i) {
+        return TRAY_NULLS.contains(i.getOpcode()) && ((NarrowLiteralInstruction) i).getNarrowLiteral() == 0;
+    }
 
     /** The tray gate's single return, when no branch lands on it and its register is below v16. Mirrors traySite. */
     static int traySite(Method m) {
         if (!m.getParameterTypes().isEmpty() || !"Z".equals(m.getReturnType()) || m.getImplementation() == null) return -1;
         var code = instructions(m);
-        int at = -1;
+        int at = -1, ends = 0;
         for (int i = 0; i < code.size(); i++)
             if (CHAT_RUN_ENDS.contains(code.get(i).getOpcode())) {
-                if (at >= 0) return -1;
+                ends++;
                 at = i;
             }
+        if (ends != 1) at = trayDispatchReturn(m);
         if (at < 0 || code.get(at).getOpcode() != Opcode.RETURN || register(code.get(at)) > 15 || mediaTargets(m).contains(at)) return -1;
         return at;
     }
 
     /**
+     * 588's base tray gate, which answers for one factory behind instance-of on this and false for every other: the
+     * index of that factory's branch's return, or -1. Mirrors trayDispatch in GalleryToChat.kt.
+     */
+    static int trayDispatchReturn(Method m) {
+        if (AccessFlags.STATIC.isSet(m.getAccessFlags()) || m.getImplementation() == null) return -1;
+        var code = instructions(m);
+        if (code.size() < 5 || code.get(0).getOpcode() != Opcode.INSTANCE_OF || code.get(1).getOpcode() != Opcode.IF_EQZ) return -1;
+        var test = (TwoRegisterInstruction) code.get(0);
+        if (test.getRegisterB() != parameterRegister(m, 0) || register(code.get(1)) != test.getRegisterA()) return -1;
+        int other = mediaTarget(code, 1);
+        if (other < 3 || other + 2 != code.size() || code.get(other).getOpcode() != Opcode.CONST_4 ||
+            ((NarrowLiteralInstruction) code.get(other)).getNarrowLiteral() != 0 || register(code.get(other)) != register(code.get(other + 1)) ||
+            code.get(other + 1).getOpcode() != Opcode.RETURN || code.get(other - 1).getOpcode() != Opcode.RETURN) return -1;
+        for (int i = 2; i < other - 1; i++)
+            if (code.get(i) instanceof OffsetInstruction || CHAT_RUN_ENDS.contains(code.get(i).getOpcode())) return -1;
+        return other - 1;
+    }
+
+    /** The factory a base tray gate answers for, or null. */
+    static String trayDispatchType(Method m) {
+        return trayDispatchReturn(m) < 0 ? null : typeOf(instructions(m).get(0));
+    }
+
+    /**
      * The composer factory's override of the base call it asks before building the tray plugin, the one whose event set
-     * takes the tray insert. A false answer jumps to a zero for the plugin and a goto past where it's built. Only a factory
-     * that overrides its gate counts. Mirrors trayGate in GalleryToChat.kt.
+     * takes the tray insert. A false answer jumps to a zero for the plugin (on 588 a copy of a register only zeros reach)
+     * and a goto past where it's built. Only a factory that overrides its gate counts, or on 588 the base gate that
+     * answers for that factory behind an instance-of. Mirrors trayGate in GalleryToChat.kt.
      */
     static Method trayGate(List<ClassDef> classes) {
         var trays = new HashSet<String>();
@@ -826,6 +989,8 @@ final class Media {
             for (var i : instructions(m)) if (i.getOpcode() == Opcode.CONST_CLASS && INSERT_PREVIEW.equals(typeOf(i))) trays.add(cls.getType());
         }
         var gates = new LinkedHashSet<String>();
+        ClassDef base = null;
+        for (var cls : classes) if (COMPOSER_FACTORY.equals(cls.getType())) base = cls;
         for (var factory : classes) {
             if (!COMPOSER_FACTORY.equals(factory.getSuperclass())) continue;
             for (var m : factory.getMethods()) {
@@ -836,8 +1001,17 @@ final class Media {
                     int plugin = register(code.get(built));
                     for (int none = 0; none + 1 < code.size(); none++) {
                         var zero = code.get(none);
-                        if (!TRAY_NULLS.contains(zero.getOpcode()) || register(zero) != plugin || ((NarrowLiteralInstruction) zero).getNarrowLiteral() != 0 ||
+                        if (!(zero instanceof OneRegisterInstruction) || register(zero) != plugin ||
                             !TRAY_GOTOS.contains(code.get(none + 1).getOpcode()) || mediaTarget(code, none + 1) <= built) continue;
+                        if (!trayZero(zero)) {
+                            // 588: a copy of a register every path reaches set to zero.
+                            if (!TRAY_COPIES.contains(zero.getOpcode())) continue;
+                            var defs = definitionsAt(m, none, ((TwoRegisterInstruction) zero).getRegisterB());
+                            if (defs == null || defs.isEmpty() || defs.contains(-1)) continue;
+                            boolean zeros = true;
+                            for (int d : defs) zeros &= trayZero(code.get(d));
+                            if (!zeros) continue;
+                        }
                         for (int guard = 2; guard < code.size(); guard++) {
                             if (code.get(guard).getOpcode() != Opcode.IF_EQZ || mediaTarget(code, guard) != none) continue;
                             var call = code.get(guard - 2);
@@ -849,6 +1023,12 @@ final class Media {
                             for (var own : factory.getMethods())
                                 overridden |= own.getName().equals(asked.getName()) && own.getParameterTypes().isEmpty() && "Z".equals(own.getReturnType());
                             if (overridden) gates.add(factory.getType() + "->" + asked.getName() + "()Z");
+                            else if (base != null) {
+                                Method folded = null; int same = 0;
+                                for (var own : base.getMethods())
+                                    if (own.getName().equals(asked.getName()) && own.getParameterTypes().isEmpty() && "Z".equals(own.getReturnType())) { same++; folded = own; }
+                                if (same == 1 && factory.getType().equals(trayDispatchType(folded))) gates.add(COMPOSER_FACTORY + "->" + asked.getName() + "()Z");
+                            }
                         }
                     }
                 }
@@ -950,6 +1130,237 @@ final class Media {
         if (editors.size() != 1) return List.of();
         var tray = trayGate(classes);
         return tray == null ? List.of() : List.of(items, editors.get(0), tray);
+    }
+
+    static final String TEXT_INPUT_VIEW = "Lcom/facebook/primitive/textinput/TextInputView;";
+    static final String PASTE_INPUT_CONNECTION =
+        TEXT_INPUT_VIEW + "->onCreateInputConnection(Landroid/view/inputmethod/EditorInfo;)Landroid/view/inputmethod/InputConnection;";
+    static final String CONTENT_INFO = "Landroid/view/ContentInfo;";
+    static final String PASTE_CLIP = "Landroid/content/ClipData;";
+    static final String PASTE_CHAT_RESULT = "onActivityResult(IILandroid/content/Intent;)V";
+    static final String WEAK_REFERENCE = "Ljava/lang/ref/WeakReference;";
+    static final String REDEX_NAME = "__redex_internal_original_name";
+    static final String CHAT_FRAGMENT_NAME = "MsysThreadViewFragment";
+    static final Set<Opcode> PASTE_ENDS =
+        Set.of(Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT, Opcode.THROW);
+    static final Set<Opcode> PASTE_GOTOS = Set.of(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32);
+
+    /** What can run right after [at]: none after a return or throw, null after a switch. Mirrors galleryNext in ExternalGallery.kt. */
+    static List<Integer> pasteNext(List<Instruction> code, int at) {
+        var i = code.get(at);
+        if (PASTE_ENDS.contains(i.getOpcode())) return List.of();
+        if (i.getOpcode() == Opcode.PACKED_SWITCH || i.getOpcode() == Opcode.SPARSE_SWITCH) return null;
+        if (i instanceof OffsetInstruction) {
+            int target = mediaTarget(code, at);
+            if (target < 0) return null;
+            return PASTE_GOTOS.contains(i.getOpcode()) ? List.of(target) : List.of(at + 1, target);
+        }
+        return List.of(at + 1);
+    }
+
+    /** Every instruction the code can run from [start] on, or null when that takes a switch or runs off the end. Mirrors galleryReach. */
+    static Set<Integer> pasteReach(List<Instruction> code, int start) {
+        var reach = new LinkedHashSet<Integer>();
+        var pending = new ArrayDeque<Integer>();
+        pending.add(start);
+        while (!pending.isEmpty()) {
+            int i = pending.removeFirst();
+            if (i < 0 || i >= code.size()) return null;
+            if (!reach.add(i)) continue;
+            var next = pasteNext(code, i);
+            if (next == null) return null;
+            pending.addAll(next);
+        }
+        return reach;
+    }
+
+    /** Whether this writes [register], whole or as half of a wide pair. Mirrors galleryWrites. */
+    static boolean pasteWrites(Instruction i, int register) {
+        if (!i.getOpcode().setsRegister() || !(i instanceof OneRegisterInstruction one)) return false;
+        return one.getRegisterA() == register || (i.getOpcode().setsWideRegister() && one.getRegisterA() + 1 == register);
+    }
+
+    /** Every register this may read, erring toward more. Mirrors galleryReads. */
+    static Set<Integer> pasteReads(Instruction i) {
+        String op = i.getOpcode().name();
+        boolean onlyWrites = i.getOpcode().setsRegister() && i.getOpcode() != Opcode.CHECK_CAST && !op.endsWith("_2ADDR");
+        var read = new ArrayList<Integer>();
+        if (i instanceof FiveRegisterInstruction || i instanceof RegisterRangeInstruction) read.addAll(bubbleArgs(i));
+        else if (i instanceof ThreeRegisterInstruction three) {
+            if (!onlyWrites) read.add(three.getRegisterA());
+            read.add(three.getRegisterB());
+            read.add(three.getRegisterC());
+        } else if (i instanceof TwoRegisterInstruction two) {
+            if (!onlyWrites) read.add(two.getRegisterA());
+            read.add(two.getRegisterB());
+        } else if (i instanceof OneRegisterInstruction one) {
+            if (!onlyWrites) read.add(one.getRegisterA());
+        }
+        boolean wide = op.contains("WIDE") || op.contains("LONG") || op.contains("DOUBLE");
+        var out = new HashSet<Integer>();
+        for (int r : read) { out.add(r); if (wide) out.add(r + 1); }
+        return out;
+    }
+
+    /** Whether every way on from [start] writes [register] before it reads it, or ends without touching it. Mirrors galleryFree. */
+    static boolean pasteFree(List<Instruction> code, int start, int register) {
+        var seen = new HashSet<Integer>();
+        var pending = new ArrayDeque<Integer>();
+        pending.add(start);
+        while (!pending.isEmpty()) {
+            int i = pending.removeFirst();
+            if (!seen.add(i)) continue;
+            if (pasteReads(code.get(i)).contains(register)) return false;
+            if (!pasteWrites(code.get(i), register)) pending.addAll(pasteNext(code, i));
+        }
+        return true;
+    }
+
+    /** The listener's own method: one non-static (View, payload) -> payload with a body. Mirrors pasteListener in PastePhoto.kt. */
+    static Method pasteListener(ClassDef cls) {
+        Method only = null;
+        for (var m : cls.getMethods()) {
+            if (AccessFlags.STATIC.isSet(m.getAccessFlags()) || "<init>".equals(m.getName()) || m.getImplementation() == null) continue;
+            var params = new ArrayList<String>();
+            for (var p : m.getParameterTypes()) params.add(p.toString());
+            if (params.size() != 2 || !"Landroid/view/View;".equals(params.get(0)) || !params.get(1).equals(m.getReturnType())) continue;
+            if (only != null) return null;
+            only = m;
+        }
+        return only;
+    }
+
+    /** The payload androidx wraps pasted content in, matched by shape. Mirrors isPastePayload in PastePhoto.kt. */
+    static boolean pastePayload(ClassDef cls) {
+        boolean maker = false;
+        boolean unwrap = false;
+        for (var m : cls.getMethods()) {
+            var params = new ArrayList<String>();
+            for (var p : m.getParameterTypes()) params.add(p.toString());
+            boolean isStatic = AccessFlags.STATIC.isSet(m.getAccessFlags());
+            if (isStatic && cls.getType().equals(m.getReturnType()) && params.equals(List.of(CONTENT_INFO))) maker = true;
+            if (!isStatic && CONTENT_INFO.equals(m.getReturnType()) && params.isEmpty()) unwrap = true;
+        }
+        return maker && unwrap;
+    }
+
+    /** The clip read the listener opens with: the payload's own field, read off the parameter. Mirrors pasteClipRead. */
+    static FieldReference pasteClipField(Method listener, String payload) {
+        var code = instructions(listener);
+        if (listener.getImplementation() == null) return null;
+        int register = parameterRegister(listener, 2);
+        for (int i = 0; i < code.size() - 1; i++) {
+            if (code.get(i).getOpcode() != Opcode.IGET_OBJECT || ((TwoRegisterInstruction) code.get(i)).getRegisterB() != register) continue;
+            if (!(((ReferenceInstruction) code.get(i)).getReference() instanceof FieldReference field)) continue;
+            if (!payload.equals(field.getDefiningClass())) continue;
+            int got = ((TwoRegisterInstruction) code.get(i)).getRegisterA();
+            var call = code.get(i + 1);
+            if (call.getOpcode() != Opcode.INVOKE_INTERFACE || !(call instanceof ReferenceInstruction ri) ||
+                !(ri.getReference() instanceof MethodReference getter)) continue;
+            if (((FiveRegisterInstruction) call).getRegisterCount() != 1 || ((FiveRegisterInstruction) call).getRegisterC() != got) continue;
+            if (!getter.getDefiningClass().equals(field.getType()) || !getter.getParameterTypes().isEmpty() ||
+                !PASTE_CLIP.equals(getter.getReturnType())) continue;
+            return field;
+        }
+        return null;
+    }
+
+    /** The listener's hook fits when it has a local for the clip and nothing reads that local first. Mirrors pasteHooked. */
+    static boolean pasteHooked(Method listener) {
+        if (listener.getImplementation() == null) return false;
+        var code = instructions(listener);
+        return parameterRegister(listener, 0) >= 1 && parameterRegister(listener, 2) <= 15 &&
+            pasteReach(code, 0) != null && pasteFree(code, 0, 0);
+    }
+
+    /** The chat fragment's own result handler, the one that makes the composer's activity result event. Mirrors pasteResult. */
+    static boolean pasteResultMaker(Method method) {
+        if (!hookId(method).equals(method.getDefiningClass() + "->" + PASTE_CHAT_RESULT)) return false;
+        for (var i : instructions(method)) {
+            if (i.getOpcode() != Opcode.INVOKE_STATIC || !(i instanceof ReferenceInstruction ri) ||
+                !(ri.getReference() instanceof MethodReference maker)) continue;
+            if (!ACTIVITY_RESULT_EVENT.equals(maker.getReturnType())) continue;
+            var params = new ArrayList<String>();
+            for (var p : maker.getParameterTypes()) params.add(p.toString());
+            if (params.equals(List.of("Landroid/content/Intent;", "I", "I"))) return true;
+        }
+        return false;
+    }
+
+    /** The chat fragment's own onViewCreated, where the chat first has a view. Mirrors isChatJumpView in ChatJump.kt. */
+    static boolean chatJumpView(Method method) {
+        var params = new ArrayList<String>();
+        for (var p : method.getParameterTypes()) params.add(p.toString());
+        return !AccessFlags.STATIC.isSet(method.getAccessFlags()) && "onViewCreated".equals(method.getName()) &&
+            "V".equals(method.getReturnType()) && params.equals(List.of("Landroid/view/View;", "Landroid/os/Bundle;")) &&
+            method.getImplementation() != null;
+    }
+
+    /**
+     * paste_photo: the listener the chat's text input hands pasted content to, and the chat fragment's view handover. The
+     * text input builds the listener itself, so it's whichever class it makes that the content route's shape fits: a weak
+     * reference to its view, and one method taking a view and androidx's payload whose body reads the clip off it. The
+     * chat fragment also has to carry the result handler the extension hands the photo to. Mirrors findPastePhoto in
+     * PastePhoto.kt.
+     */
+    static List<Method> pastePhotoHooks(List<ClassDef> classes) {
+        var byType = new HashMap<String, ClassDef>();
+        for (var cls : classes) byType.put(cls.getType(), cls);
+        var input = byType.get(TEXT_INPUT_VIEW);
+        if (input == null) return List.of();
+        Method create = null;
+        for (var m : input.getMethods()) {
+            if (!PASTE_INPUT_CONNECTION.equals(hookId(m))) continue;
+            if (create != null) return List.of();
+            create = m;
+        }
+        if (create == null) return List.of();
+        var built = new LinkedHashSet<String>();
+        for (var i : instructions(create)) if (i.getOpcode() == Opcode.NEW_INSTANCE && typeOf(i) != null) built.add(typeOf(i));
+        var listeners = new ArrayList<Method>();
+        for (var type : built) {
+            var cls = byType.get(type);
+            if (cls == null || cls.getInterfaces().size() != 1) continue;
+            Field field = null;
+            int fields = 0;
+            for (var f : cls.getFields()) { field = f; fields++; }
+            if (fields != 1 || !WEAK_REFERENCE.equals(field.getType())) continue;
+            boolean ctor = false;
+            for (var m : cls.getMethods()) {
+                var params = new ArrayList<String>();
+                for (var p : m.getParameterTypes()) params.add(p.toString());
+                if ("<init>".equals(m.getName()) && params.equals(List.of(WEAK_REFERENCE))) ctor = true;
+            }
+            if (!ctor) continue;
+            var listener = pasteListener(cls);
+            if (listener == null) continue;
+            var payload = byType.get(listener.getReturnType());
+            if (payload == null || !pastePayload(payload)) continue;
+            if (pasteClipField(listener, payload.getType()) == null) continue;
+            if (!pasteHooked(listener)) continue;
+            listeners.add(listener);
+        }
+        if (listeners.size() != 1) return List.of();
+        ClassDef chat = null;
+        for (var cls : classes) {
+            String original = null;
+            for (var f : cls.getFields()) if (REDEX_NAME.equals(f.getName())) {
+                original = f.getInitialValue() instanceof StringEncodedValue s ? s.getValue() : null;
+                break;
+            }
+            if (!CHAT_FRAGMENT_NAME.equals(original)) continue;
+            if (chat != null) return List.of();
+            chat = cls;
+        }
+        if (chat == null) return List.of();
+        Method view = null;
+        Method result = null;
+        for (var m : chat.getMethods()) {
+            if (chatJumpView(m)) { if (view != null) return List.of(); view = m; }
+            if (pasteResultMaker(m)) { if (result != null) return List.of(); result = m; }
+        }
+        if (view == null || result == null) return List.of();
+        return List.of(listeners.get(0), view);
     }
 
     static final String PRESENCE_ITEM = "Lcom/facebook/presence/model/PresenceItem;";
@@ -1221,14 +1632,160 @@ final class Media {
         return copies ? List.of(lists.get(0), arrays.get(0)) : List.of();
     }
 
-    /** menu_blur: DialogFragment's onStart, while exactly one class has the DialogFragment shape. Mirrors MenuBlur.kt. */
+    static final String VIEW_ONCE_PROP = "showViewOnceToggle";
+    static final String VIEW_ONCE_STRING_ARRAY = "[Ljava/lang/String;";
+    static final String VIEW_ONCE_BIT_SET = "Ljava/util/BitSet;";
+    static final String VIEW_ONCE_BIT_SET_SET = "Ljava/util/BitSet;->set(I)V";
+    static final String VIEW_ONCE_CAPABILITIES = "Lcom/facebook/xapp/messaging/capability/vector/Capabilities;";
+
+    /** The builder that counts the View once prop, the component it builds and the prop's index. Mirrors ViewOnceGate. */
+    record ViewOnceGate(String builder, String component, int prop) {}
+
+    static FieldReference viewOnceField(Instruction i) {
+        return i instanceof ReferenceInstruction r && r.getReference() instanceof FieldReference f ? f : null;
+    }
+
+    /**
+     * The required prop names a generated Litho builder packs into one string array, in the order the array takes them
+     * rather than the order Redex loaded them. Null when it packs none, or packs a register it didn't load itself.
+     * Mirrors requiredProps in ViewOnceAnywhere.kt.
+     */
+    static List<String> viewOnceRequiredProps(Method m) {
+        if (m.getImplementation() == null) return null;
+        var loaded = new HashMap<Integer, String>();
+        for (var i : instructions(m)) {
+            if (i.getOpcode() == Opcode.CONST_STRING || i.getOpcode() == Opcode.CONST_STRING_JUMBO) {
+                if (!(i instanceof ReferenceInstruction r) || !(r.getReference() instanceof StringReference s)) return null;
+                loaded.put(register(i), s.getString());
+                continue;
+            }
+            if (i.getOpcode() != Opcode.FILLED_NEW_ARRAY && i.getOpcode() != Opcode.FILLED_NEW_ARRAY_RANGE) continue;
+            if (!(i instanceof ReferenceInstruction r) || !(r.getReference() instanceof TypeReference t) ||
+                !VIEW_ONCE_STRING_ARRAY.equals(t.getType())) continue;
+            var props = new ArrayList<String>();
+            for (var packed : callArgs(i)) {
+                var name = loaded.get(packed);
+                if (name == null) return null;
+                props.add(name);
+            }
+            return props;
+        }
+        return null;
+    }
+
+    /** A builder constructor that keeps what it counted, each in a field of its own class. Mirrors keepsProps. */
+    static boolean viewOnceKeepsProps(Method m) {
+        if (m.getImplementation() == null) return false;
+        boolean names = false, bits = false;
+        for (var i : instructions(m)) {
+            if (i.getOpcode() != Opcode.IPUT_OBJECT) continue;
+            var field = viewOnceField(i);
+            if (field == null || !field.getDefiningClass().equals(m.getDefiningClass())) continue;
+            if (VIEW_ONCE_STRING_ARRAY.equals(field.getType())) names = true;
+            if (VIEW_ONCE_BIT_SET.equals(field.getType())) bits = true;
+        }
+        return names && bits;
+    }
+
+    /** The one generated builder in the app that counts the View once prop. Mirrors viewOncePropOf. */
+    static ViewOnceGate viewOncePropOf(List<ClassDef> classes) {
+        var gates = new ArrayList<ViewOnceGate>();
+        for (var cls : classes) for (var m : cls.getMethods()) {
+            if (!"<init>".equals(m.getName()) || m.getParameterTypes().size() != 2) continue;
+            String component = m.getParameterTypes().get(1).toString();
+            if (!component.startsWith("L")) continue;
+            var props = viewOnceRequiredProps(m);
+            if (props == null || new HashSet<>(props).size() != props.size()) continue;
+            int prop = props.indexOf(VIEW_ONCE_PROP);
+            if (prop < 0 || !viewOnceKeepsProps(m)) continue;
+            var gate = new ViewOnceGate(m.getDefiningClass(), component, prop);
+            if (!gates.contains(gate)) gates.add(gate);
+        }
+        return gates.size() == 1 ? gates.get(0) : null;
+    }
+
+    /**
+     * Where a method writes the gallery's View once prop, which is the only place its answer can still be changed: the
+     * boolean write into the component, then the constant and the BitSet.set that name the prop. -1 unless there is
+     * exactly one such write and its value is a local the hook can hand on and take back. Mirrors viewOnceSite.
+     */
+    static int viewOnceSite(Method m, ViewOnceGate gate) {
+        if (m.getImplementation() == null) return -1;
+        var code = instructions(m);
+        int local = parameterRegister(m, 0);
+        int site = -1;
+        for (int i = 0; i + 2 < code.size(); i++) {
+            if (code.get(i).getOpcode() != Opcode.IPUT_BOOLEAN) continue;
+            var field = viewOnceField(code.get(i));
+            if (field == null || !gate.component().equals(field.getDefiningClass()) || !"Z".equals(field.getType())) continue;
+            var index = code.get(i + 1);
+            var set = code.get(i + 2);
+            if (index.getOpcode() != Opcode.CONST_4 && index.getOpcode() != Opcode.CONST_16 && index.getOpcode() != Opcode.CONST) continue;
+            if (!(index instanceof NarrowLiteralInstruction lit) || lit.getNarrowLiteral() != gate.prop()) continue;
+            if (set.getOpcode() != Opcode.INVOKE_VIRTUAL && set.getOpcode() != Opcode.INVOKE_VIRTUAL_RANGE) continue;
+            if (!VIEW_ONCE_BIT_SET_SET.equals(ref(set))) continue;
+            var args = callArgs(set);
+            if (args.size() < 2 || args.get(1) != register(index)) continue;
+            int value = ((TwoRegisterInstruction) code.get(i)).getRegisterA();
+            if (value > 15 || value >= local) continue;
+            if (site >= 0) return -1;
+            site = i;
+        }
+        return site;
+    }
+
+    /**
+     * view_once_anywhere: the chat composer's gallery plugin, the one method that takes the capability vector, makes the
+     * gallery component's builder and writes the View once prop once. The other two gallery surfaces write the prop from
+     * a plain answer of their own, so they're left alone. Mirrors findViewOnceAnywhere in ViewOnceAnywhere.kt.
+     */
+    static List<Method> viewOnceAnywhere(List<ClassDef> classes) {
+        var gate = viewOncePropOf(classes);
+        if (gate == null) return List.of();
+        boolean built = false;
+        for (var cls : classes) if (gate.component().equals(cls.getType())) built = true;
+        if (!built) return List.of();
+        var hosts = new ArrayList<Method>();
+        for (var cls : classes) for (var m : cls.getMethods()) {
+            boolean vector = false;
+            for (var p : m.getParameterTypes()) if (VIEW_ONCE_CAPABILITIES.contentEquals(p)) vector = true;
+            if (!vector || viewOnceSite(m, gate) < 0) continue;
+            boolean makes = false;
+            for (var i : instructions(m)) if (i.getOpcode() == Opcode.NEW_INSTANCE && gate.builder().equals(typeOf(i))) makes = true;
+            if (makes) hosts.add(m);
+        }
+        return hosts.size() == 1 ? hosts : List.of();
+    }
+
+    /** The menu a long press on a message opens on 587, which Messenger draws inside the chat with no dialog. */
+    static final String REACTIONS_BAR = "Lcom/facebook/xapp/messaging/reactions/sendbar/fragment/ReactionsBarFragment;";
+
+    /**
+     * menu_blur: DialogFragment's onStart, while exactly one class has the DialogFragment shape, and ReactionsBarFragment's
+     * onViewCreated(View, Bundle) when there's exactly one. Mirrors MenuBlur.kt's findMenuBlur.
+     */
     static List<Method> menuBlur(List<ClassDef> classes) {
         var fragments = new ArrayList<ClassDef>();
         for (var cls : classes) if (dialogFragment(cls)) fragments.add(cls);
         if (fragments.size() != 1) return List.of();
         var sites = new ArrayList<Method>();
         for (var method : fragments.get(0).getMethods()) if (menuBlurSite(method) >= 0) sites.add(method);
-        return sites.size() == 1 ? sites : List.of();
+        var found = new ArrayList<Method>(sites.size() == 1 ? sites : List.of());
+        var inChat = new ArrayList<Method>();
+        for (var cls : classes) {
+            if (!REACTIONS_BAR.equals(cls.getType())) continue;
+            for (var method : cls.getMethods()) if (reactionsBarView(method)) inChat.add(method);
+        }
+        if (inChat.size() == 1) found.addAll(inChat);
+        return found;
+    }
+
+    /** ReactionsBarFragment's own onViewCreated(View, Bundle), with a body. Mirrors MenuBlur.kt's isReactionsBarView. */
+    static boolean reactionsBarView(Method method) {
+        return REACTIONS_BAR.equals(method.getDefiningClass()) && "onViewCreated".equals(method.getName())
+            && "V".equals(method.getReturnType())
+            && List.of("Landroid/view/View;", "Landroid/os/Bundle;").equals(method.getParameterTypes().stream().map(CharSequence::toString).toList())
+            && !AccessFlags.STATIC.isSet(method.getAccessFlags()) && method.getImplementation() != null;
     }
 
     /**

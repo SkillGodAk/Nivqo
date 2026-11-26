@@ -86,7 +86,7 @@ private fun fixtureCall(target: Any, name: String, vararg arguments: Any): Any? 
 }.invoke(target, *arguments)
 
 /** The supported build number the lifecycle manifest claims. Its classes follow the synthetic mapping instead. */
-internal const val LIFECYCLE_VERSION_CODE = 347415354
+internal const val LIFECYCLE_VERSION_CODE = 347617503
 
 internal fun lifecycleApk(directory: Path, classes: List<ClassDef>, manifestExtra: String = "", applicationExtra: String = ""): File {
     // Patching reads the profile by the manifest's version code, and these classes carry the synthetic names.
@@ -101,11 +101,12 @@ internal fun lifecycleApk(directory: Path, classes: List<ClassDef>, manifestExtr
     (module as Closeable).use {
         val table = fixtureCall(module, "getTableBlock")!!
         val pkg = fixtureCall(table, "getOrCreatePackage", 0x7f, "com.facebook.orca")!!
-        fixtureCall(fixtureCall(pkg, "getOrCreate", "", "string", "stock")!!, "setValueAsString", "Stock")
+        // The ARSCLib the patcher pins since 2.4.0 calls these setDataAs*, where 2.3.0's called them setValueAs*.
+        fixtureCall(fixtureCall(pkg, "getOrCreate", "", "string", "stock")!!, "setDataAsString", "Stock")
         // The full resource writer reads ids.xml even when these patches introduce no new IDs.
-        fixtureCall(fixtureCall(pkg, "getOrCreate", "", "id", "stock_id")!!, "setValueAsBoolean", false)
+        fixtureCall(fixtureCall(pkg, "getOrCreate", "", "id", "stock_id")!!, "setDataAsBoolean", false)
         fixtureCall(fixtureCall(pkg, "getOrCreate", "", "xml", "stock_shortcuts")!!,
-            "setValueAsString", "res/xml/stock_shortcuts.xml")
+            "setDataAsString", "res/xml/stock_shortcuts.xml")
         moduleType.getMethod("initializeAndroidFramework", Int::class.javaObjectType).invoke(module, null)
         val parser = Class.forName("com.reandroid.xml.XMLFactory").getMethod("newPullParser", Reader::class.java)
         val manifest = fixtureCall(module, "getAndroidManifest")!!
@@ -113,7 +114,7 @@ internal fun lifecycleApk(directory: Path, classes: List<ClassDef>, manifestExtr
         fixtureCall(manifest, "setPackageBlock", pkg)
         fixtureCall(manifest, "parse", parser.invoke(null, StringReader("""
             <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.facebook.orca"
-                android:versionCode="$LIFECYCLE_VERSION_CODE" android:versionName="587.0.0.54.96">
+                android:versionCode="$LIFECYCLE_VERSION_CODE" android:versionName="588.1.0.66.98">
               <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="36"/>
               $manifestExtra
               <application android:appComponentFactory="$APP_COMPONENT_FACTORY">
@@ -195,6 +196,9 @@ internal fun <T> withLifecycleExtension(bytes: ByteArray, action: (() -> Int) ->
     field.set(settingsExtension, listOf(provider))
     return try { action { reads } } finally { field.set(settingsExtension, original) }
 }
+
+/** The control's own capability record, the dependency that isn't the shared settings extension. */
+internal fun Patch.capabilityRecord(): Patch = dependencies.single { it !== settingsExtension }
 
 /** Collect the actual cold flow without adding the patcher's runtime coroutine library to compile dependencies. */
 internal fun collectLifecycle(patcher: Patcher): List<PatchResult> {

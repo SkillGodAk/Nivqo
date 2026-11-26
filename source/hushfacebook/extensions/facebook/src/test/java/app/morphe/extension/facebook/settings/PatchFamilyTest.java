@@ -440,7 +440,7 @@ public class PatchFamilyTest {
                         + "Default comment order, Hide Meta AI comment summaries, Comment sheet options, Open comments "
                         + "at full height, Tag suggestions only after @, Tap to play, Resume long videos, Frame step, Default playback quality, "
                         + "Picture-in-picture, Keep playing in the background, Turn off HDR brightness, Skip silent parts, Video buffer, Keep feed videos muted, Keep the progress bar, Use the system font, "
-                        + "Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Unlock app icons, Home header text, Open links in "
+                        + "Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Home header text, Open links in "
                         + "external browser, Sanitize sharing links, Stop update prompts, Download any story, "
                         + "Download any reel, Download any video, Download any photo, Open on a chosen tab, Following "
                         + "feed on Home, Marketplace only, Show View profile on Marketplace sellers, Remove the gap above Marketplace listings, Hide the Reels "
@@ -448,7 +448,7 @@ public class PatchFamilyTest {
                         + "mode, Hide the Get Messenger card, Clean up Facebook's chat list, Open Messenger from the "
                         + "top bar, Hide Menu promotions, Hide Meta upsells, Share sheet items, Post menu items, Hide Meta AI in search, "
                         + "Don't save search history, Search date range, Search posts tab, Saved button in search, Hold back analytics uploads, Allow screenshots, Block screenshot detection, Skip location prompts, Hide typing indicator, "
-                        + "Hide read receipts, Send chat photos and videos at original quality, Block promotional "
+                        + "Hide read receipts, Send chat photos and videos at original quality, Share to Facebook chats, Chat background, Block promotional "
                         + "notifications, Block ad telemetry, Disable Audience Network, AMOLED black theme, Material "
                         + "You theme, Accent color, Badge and logo colors, Restore screens on re-signed builds, Start on x86 devices, "
                         + "Install beside Meta's apps, Disable Play Store updates, GmsCore support, Clone install under "
@@ -464,7 +464,7 @@ public class PatchFamilyTest {
                         + "Hold a reel for 2x, Default comment order, Hide Meta AI comment summaries, Comment sheet "
                         + "options, Open comments at full height, Tag suggestions only after @, Tap to play, Resume long videos, Frame step, Default playback "
                         + "quality, Picture-in-picture, Keep playing in the background, Turn off HDR brightness, Skip silent parts, Video buffer, Keep feed videos muted, Keep the progress bar, Use the "
-                        + "system font, Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Unlock app icons, Home header text, Open "
+                        + "system font, Use the phone's emoji, Turn off haptics, Hide carrier data banners, Turn off screen transitions, Home header text, Open "
                         + "links in external browser, Sanitize sharing links, Stop update prompts, Download any "
                         + "story, Download any reel, Download any video, Download any photo, Open on a chosen tab, "
                         + "Following feed on Home, Marketplace only, Show View profile on Marketplace sellers, Remove the gap above Marketplace listings, Hide "
@@ -472,7 +472,7 @@ public class PatchFamilyTest {
                         + "Force dark mode, Hide the Get Messenger card, Clean up Facebook's chat list, Open "
                         + "Messenger from the top bar, Hide Menu promotions, Hide Meta upsells, Share sheet items, Post menu items, Hide "
                         + "Meta AI in search, Don't save search history, Search date range, Search posts tab, Saved button in search, Hold back analytics uploads, Allow screenshots, Block screenshot detection, Skip location prompts, Hide "
-                        + "typing indicator, Hide read receipts, Send chat photos and videos at original quality, "
+                        + "typing indicator, Hide read receipts, Send chat photos and videos at original quality, Share to Facebook chats, Chat background, "
                         + "Block promotional notifications, Block ad telemetry, Disable Audience Network, Accent "
                         + "color, Badge and logo colors, Restore screens on re-signed builds, Start on x86 devices, Install beside Meta's "
                         + "apps, Open in Facebook from the share menu, Hushfacebook in the Menu"),
@@ -482,27 +482,28 @@ public class PatchFamilyTest {
         assertEquals("Clean up Reels: on (hushfacebook_hide_reel_chips=off, hushfacebook_hide_reel_follow_button=on, "
                         + "hushfacebook_hide_video_subscribe_button=off, hushfacebook_hide_reel_social_footer=off, hushfacebook_hide_reel_threads_cards=off, "
                         + "hushfacebook_hide_reel_post_cards=off, hushfacebook_followed_reels_only=off, hushfacebook_reel_clean_mode=off, hushfacebook_reel_clean_button=off, "
-                        + "hushfacebook_reel_clean_return=OFF, hushfacebook_play_reels_once=off, "
+                        + "hushfacebook_reel_clean_return=OFF, hushfacebook_reel_clean_exit_faint=off, hushfacebook_play_reels_once=off, "
                         + "hushfacebook_original_audio=off, hushfacebook_hide_reel_search_pill=off, "
                         + "hushfacebook_hide_viewer_top_buttons=off, hushfacebook_hide_reels_tab_title=off, "
                         + "hushfacebook_hide_viewer_back_button=off, hushfacebook_burn_in_guard=OFF, "
                         + "hushfacebook_burn_in_wait=FIVE_SECONDS, hushfacebook_burn_in_level=25, "
-                        + "hushfacebook_burn_in_stay_dim=off, hushfacebook_burn_in_fade=off, "
+                        + "hushfacebook_burn_in_stay_dim=off, hushfacebook_burn_in_tap_back=off, hushfacebook_burn_in_fade=off, "
                         + "hushfacebook_gray_reels=off, hushfacebook_reels_minutes=off, hushfacebook_hide_reel_counts=off, hushfacebook_hide_reel_save_button=off, "
                         + "hushfacebook_hide_reel_whatsapp_button=off, hushfacebook_hide_reel_like_button=off, "
                         + "hushfacebook_hide_reel_comment_button=off, hushfacebook_hide_reel_repost_button=off, "
                         + "hushfacebook_hide_reel_share_button=off, "
-                        + "hushfacebook_show_reel_comment_button=off, hushfacebook_show_reel_post_date=off, "
-                        + "hushfacebook_reel_post_date_style=AGO, hushfacebook_hide_reel_new_for_you=off, "
+                        + "hushfacebook_show_reel_comment_button=off, hushfacebook_long_video_buttons=off, "
+                        + "hushfacebook_show_reel_post_date=off, "
+                        + "hushfacebook_reel_post_date_style=AGO, hushfacebook_reel_post_date_after_caption=off, hushfacebook_hide_reel_new_for_you=off, "
                         + "hushfacebook_hide_reel_sound_button=off, hushfacebook_reel_speaker_above_menu=off, "
                         + "hushfacebook_hide_reel_audio_line=off, "
                         + "hushfacebook_hide_slow_connection_message=off, hushfacebook_hide_up_next=off, "
                         + "hushfacebook_hide_reel_fullscreen_pill=off, hushfacebook_hide_feed_video_buttons=off, hushfacebook_feed_videos_alone=off, "
                         + "hushfacebook_shared_reels_alone=off, hushfacebook_hide_shared_reel_friend_sheet=off, hushfacebook_watch_again_in_place=off, "
                         + "hushfacebook_saved_videos_in_player=off, hushfacebook_saved_videos_in_order=off, "
-                        + "hushfacebook_saved_videos_stay_on_end=off, "
+                        + "hushfacebook_saved_videos_stay_on_end=off, hushfacebook_saved_posts_in_row=off, "
                         + "hushfacebook_skip_still_watching=off, hushfacebook_fill_reels=off, "
-                        + "hushfacebook_play_feed_reels_whole=off)",
+                        + "hushfacebook_fill_every_reel=off, hushfacebook_play_feed_reels_whole=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.REEL_DECLUTTER), false).get(0));
         // Share sheet items is set by its list, and its group switch is saved beside it.
         Settings.HIDE_SHARE_GROUP_BUTTONS.save(true);
@@ -513,14 +514,17 @@ public class PatchFamilyTest {
                         + "hushfacebook_hide_share_group_buttons=on, hushfacebook_hide_share_people_row=off)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.SHARE_SHEET_ITEMS), true).get(0));
         Settings.HIDE_SHARE_GROUP_BUTTONS.resetToDefault();
-        // Fold long text is set by its two lists, and the comments' list is saved beside the posts' (#497).
-        assertEquals("Fold long text: set by its list (hushfacebook_fold_post_text=FACEBOOK, hushfacebook_fold_comments=FACEBOOK)",
+        // Fold long text is set by its lists, and the comments' and reel captions' lists are saved beside the posts' (#497, #506).
+        assertEquals("Fold long text: set by its list (hushfacebook_fold_post_text=FACEBOOK, hushfacebook_fold_comments=FACEBOOK, "
+                        + "hushfacebook_fold_reel_captions=FACEBOOK)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.FOLD_LONG_TEXT), false).get(0));
         Settings.FOLD_COMMENTS.save(FoldLines.TEN);
+        Settings.FOLD_REEL_CAPTIONS.save(FoldLines.TWO);
         assertEquals("Fold long text: disabled while paused (saved hushfacebook_fold_post_text=FACEBOOK, "
-                        + "hushfacebook_fold_comments=TEN)",
+                        + "hushfacebook_fold_comments=TEN, hushfacebook_fold_reel_captions=TWO)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.FOLD_LONG_TEXT), true).get(0));
         Settings.FOLD_COMMENTS.resetToDefault();
+        Settings.FOLD_REEL_CAPTIONS.resetToDefault();
         // Video buffer is set by its list, and a pause hands the sizes back to Facebook (#526).
         assertEquals("Video buffer: set by its list (hushfacebook_video_buffer=FACEBOOK)",
                 PatchFamily.reportLines(EnumSet.of(PatchFamily.VIDEO_BUFFER), false).get(0));

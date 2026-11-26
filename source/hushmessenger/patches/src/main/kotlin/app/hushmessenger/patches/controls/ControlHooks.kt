@@ -68,6 +68,8 @@ internal const val STORY_SAVE_HELPER = "hushmessengerAddStorySave"
 /** Every notes tip sheet, Make my notes public and Add lyrics included, opens under this fragment tag. */
 internal const val NOTES_TIP_SHEET = "NotesMigNuxBottomSheet"
 internal const val NOTES_TIP_TYPE_ARG = "arg_nux_type"
+/** The chat header's Turn on active status line counts its dismissals under this preference key. */
+internal const val ACTIVE_STATUS_UPSELL_KEY = "an_upsell_thread_header_dismiss_count"
 /** The story viewer caps its Share your own story card per day under this preference key. */
 internal const val STORY_CARD_DATE_KEY = "last_date_creation_card_shown"
 internal const val ANDROIDX_FRAGMENT = "Landroidx/fragment/app/Fragment;"
@@ -133,8 +135,13 @@ private fun sharedChecks(): List<WalkCheck> = listOf(
     callButtonShapes, summaryPillHandlers, homeHeaders, composerResults, cameraLaunches, chatCameraFactories,
     captureLaunchers, launcherStarts, cameraUriChecks, internalFileOpens, galleryItemsShapes, galleryHandlerShapes,
     inboundCopies, tempFolderChecks, configHolders, playoutSwitches, playoutWriters, recordHandovers, recentMediaDetectors,
-    attributionUploads, instantCaptures, pinLimitLoaders, sharedFlagReaders, aiMentionShapes, headerRenders, logBars,
+    attributionUploads, instantCaptures, pinLimitLoaders, sharedFlagReaders, aiMentionShapes, imagineYourselfReaders, headerRenders, logBars,
     ringMountClasses, roundingPrinterClasses, legacyRoundings, tileShapeFlags, messageDebugStrings,
+    profileMenuBuilders, profileCallRows, recoveryCodeRows, noteLimitMethods,
+    searchResultSources, searchSectionTypes, aiChatLaunchers,
+    storyTrayBuilders,
+    pinnedBarLoaders,
+    messageSoundPickers,
 )
 
 /** Match semantics first, then require the exact set the build's profile records. */
@@ -151,14 +158,21 @@ private fun findControlsIn(classes: Iterable<ClassDef>, community: CommunityInbo
     val peopleJewelKeys = findPeopleJewelKeys(classes)
     val storyCardKeys = findStoryCardKeys(classes)
     resolveMessageGetterNames(classes)
-    val appIconManagers = findAppIconManagers(classes)
     val stringTables = redexStringTables(classes)
     activeStringTables = stringTables
-    val scan = ControlScan(found, peopleJewelKeys, storyCardKeys, appIconManagers, stringTables)
+    val scan = ControlScan(found, peopleJewelKeys, storyCardKeys, stringTables)
     for (cls in classes) {
         val original = cls.fields.firstOrNull { it.name == "__redex_internal_original_name" }
             ?.initialValue.let { (it as? StringEncodedValue)?.value }
         for (method in cls.methods) scan.visit(cls, original, method)
+    }
+    scan.quicksnapHelper?.let { id ->
+        try {
+            found.getValue("screenshot_viewers").add(resolveQuicksnapSecureHelper(classes, id))
+        } catch (refusal: PatchException) {
+            scan.changedViewer = true
+            screenshotViewerRefusal = refusal.message
+        }
     }
     val searchFieldRender = scan.searchFieldRender
     val changedViewer = scan.changedViewer
@@ -197,11 +211,14 @@ private fun findControlsIn(classes: Iterable<ClassDef>, community: CommunityInbo
     if (changedViewer) found.getValue("screenshot_viewers").clear() else screenshotViewerRefusal = null
     found.getValue(EMOJI_DRAWER).addAll(connectEmojiDrawer(scan.drawerReaders, scan.drawerAnchors, scan.drawerInterfaces))
     found.getValue(INBOX_SEARCH_BAR).addAll(connectSearchBar(scan.searchIconReaders, scan.searchIconAnchors))
+    found.getValue(LONGER_NOTES).addAll(findLongerNotes(classes))
     found.getValue(EMOJI_SEARCH).addAll(findEmojiSearch(classes))
     found.getValue(TAB_BADGES).addAll(findTabBadges(classes))
     found.getValue(FACEBOOK_BADGE).addAll(findFacebookBadge(classes))
     found.getValue(FACEBOOK_PROFILE_HEADER).addAll(findProfileHeader(classes))
     found.getValue(TAB_CONFIG).addAll(findTabConfig(classes))
+    found.getValue(TAB_LABELS).addAll(findTabLabels(classes))
+    found.getValue(TAB_ICONS).addAll(findTabIcons(classes))
     found.getValue(AI_MENTIONS).addAll(findAiMentions(classes))
     found.getValue(AI_COMMANDS).addAll(findAiCommands(classes))
     val searchBars = findAiSearchHint(classes)
@@ -221,17 +238,34 @@ private fun findControlsIn(classes: Iterable<ClassDef>, community: CommunityInbo
         findXAnalyticsUploadTimers(classes) + findInProcessUploadStarts(classes, stringTables))
     found.getValue(ATTRIBUTION_UPLOADS).addAll(findAttributionUploads(classes))
     found.getValue(AD_EVENTS).addAll(findAdEvents(classes))
+    found.getValue(DWELL_TRACKING).addAll(findDwellTracking(classes))
     found.getValue(MQTT_TELEMETRY).addAll(findMqttTelemetry(classes))
+    found.getValue(LINK_PLAYER).addAll(findLinkPlayer(classes))
     findPinnedChats(classes).forEach { (hook, methods) -> found.getValue(hook).addAll(methods) }
     val hiddenChats = findHiddenChats(classes)
     hiddenChats.forEach { (hook, methods) -> found.getValue(hook).addAll(methods) }
     found.getValue(CHAT_MENU_ITEMS).addAll(chatMenuRows(hiddenChats))
+    val profileMenus = findProfileMenuItems(classes)
+    found.getValue(PROFILE_MENU_ITEMS).addAll(profileMenus)
+    found.getValue(PROFILE_MENU_CALL).addAll(findProfileMenuCalls(classes, profileMenus, stringTables))
+    found.getValue(REACTION_READ).addAll(findReactionRead(classes, stringTables))
+    found.getValue(SEARCH_SECTIONS).addAll(findSearchSections(classes))
+    found.getValue(SEARCH_ITEMS).addAll(findSearchItems(classes))
+    found.getValue(AI_CHAT_OPEN).addAll(findAiChatOpen(classes))
+    found.getValue(STORY_CREATE_TILE).addAll(findStoryCreateTile(classes))
+    pinnedBarLoader = resolvePinnedBarLoader(classes)
+    found.getValue(PINNED_BAR).addAll(findPinnedBar(classes, pinnedBarLoader))
+    found.getValue(OPEN_CHAT_SOUND).addAll(findOpenChatSound(classes))
     found.getValue(NEARBY_SCANS).addAll(patchStage("Find nearby scans") { findNearbyScans(classes) })
     found.getValue(WIFI_IDENTITY).addAll(patchStage("Find Wi-Fi identity reads") { findWifiIdentityReads(classes) })
     found.getValue(PHONE_ID_SYNC).addAll(findPhoneIdSync(classes))
+    found.getValue(PASSKEY_LOGIN).addAll(findPasskeyLogin(classes))
+    found.getValue(RECOVERY_CODE_ROW).addAll(findRecoveryCodeRow(classes))
     found.getValue(STORY_HOLD).addAll(findStoryHold(classes))
     found.getValue(CHAT_PREVIEW).addAll(findChatPreview(classes))
     found.getValue(CHAT_PREVIEW_SIZE).addAll(findChatPreviewSize(classes))
+    found.getValue(INBOX_TYPING).addAll(findInboxTyping(classes))
+    found.getValue(MEDIA_CAPTION).addAll(findMediaCaption(classes))
     found.getValue(LANDSCAPE_LOCK).addAll(findPortraitLock(classes))
     found.getValue(LANDSCAPE_MEDIA).addAll(findMediaOrientation(classes))
     found.getValue(BLOCKED_LIST_PICTURES).addAll(findBlockedListPictures(classes))
@@ -241,10 +275,12 @@ private fun findControlsIn(classes: Iterable<ClassDef>, community: CommunityInbo
     found.getValue(FLOATING_TAB_BAR).addAll(findFloatingTabBar(classes))
     found.getValue(TAB_BAR_OVERLAY).addAll(findTabBarOverlay(classes))
     found.getValue(TAB_BAR_SCROLL_AWAY).addAll(findTabBarScrollAway(classes))
+    found.getValue(TAB_SWIPE).addAll(findTabSwipe(classes))
     found.getValue(AVATAR_SHAPE).addAll(findAvatarShape(classes))
     found.getValue(STORY_RING).addAll(findStoryRing(classes))
     found.getValue(QUIET_CALL_RING).addAll(findQuietCallRing(classes))
     found.getValue(QUIET_CALL_NOTIFICATION).addAll(findQuietCallNotification(classes))
+    found.getValue(QUIET_MODE).addAll(findQuietModeNotify(classes))
     found.getValue(CAR_MESSAGES).addAll(findCarMessages(classes))
     found.getValue(CAR_EXTENSION_GATE).addAll(findCarExtensionGate(classes))
     found.getValue(LOCAL_CHAT_SEARCH).addAll(findLocalChatSearch(classes))
@@ -271,18 +307,21 @@ private fun findControlsIn(classes: Iterable<ClassDef>, community: CommunityInbo
     found.getValue(MARK_READ_BAR).addAll(markReadBar)
     found.getValue(HIDE_CALL_BAR).addAll(markReadBar)
     found.getValue(MARK_READ_CLICK).addAll(markReadClick)
+    found.getValue(LOCAL_READ).addAll(findLocalRead(classes))
     val (logBar, logClick) = findMessageLogButton(classes)
     found.getValue(MESSAGE_LOG_BUTTON).addAll(logBar)
     found.getValue(MESSAGE_LOG_CLICK).addAll(logClick)
-    found.getValue(APP_THEME_PICK).addAll(findAppThemePick(classes))
     found.getValue(SYSTEM_CAMERA).addAll(findSystemCamera(classes))
     found.getValue(EXTERNAL_GALLERY).addAll(findExternalGallery(classes))
     found.getValue(INSTANT_GALLERY).addAll(findInstantGallery(classes))
+    found.getValue(VIEW_ONCE_ANYWHERE).addAll(findViewOnceAnywhere(classes))
     found.getValue(SPECIAL_CONTACTS).addAll(findSpecialContacts(classes))
     found.getValue(MENU_BLUR).addAll(findMenuBlur(classes))
     found.getValue(GALLERY_TEMP_FILE).addAll(findGalleryTempFile(classes))
     found.getValue(GALLERY_TO_CHAT).addAll(findGalleryToChat(classes))
+    found.getValue(PASTE_PHOTO).addAll(findPastePhoto(classes))
     for ((hook, methods) in findCustomFont(classes)) found.getValue(hook).addAll(methods)
+    found.getValue(REFRESH_RATE).addAll(findRefreshRate(classes))
     return found
 }
 
@@ -415,11 +454,11 @@ private class ControlScan(
     val found: Map<String, MutableList<Method>>,
     val peopleJewelKeys: Set<String>,
     val storyCardKeys: Set<String>,
-    val appIconManagers: Set<String>,
     val stringTables: Map<String, Map<Int, String>>,
 ) {
     var searchFieldRender: Method? = null
     var changedViewer = false
+    var quicksnapHelper: String? = null
     val drawerReaders = mutableListOf<Method>()
     val drawerAnchors = mutableListOf<Method>()
     val drawerInterfaces = mutableMapOf<String, List<String>>()
@@ -433,13 +472,20 @@ private class ControlScan(
     val peopleSearch = StringMatch(PEOPLE_SEARCH_SOURCE)
     val drawerRefresh = StringMatch(DRAWER_REFRESH)
     val notesTip = StringMatch(NOTES_TIP_SHEET)
+    val reportUserStatus = StringMatch(REPORT_USER_STATUS)
+    val foregroundAvailability = StringMatch(FOREGROUND_AVAILABILITY)
 
     fun visit(cls: ClassDef, original: String?, method: Method) {
         if ((cls.type == EPHEMERAL_VIEWER && (method.name in EPHEMERAL_DIALOGS || method.name == "onResume")) ||
             (cls.type == QUICKSNAP_VIEWER && method.name == "onCreateView")) {
             try {
-                method.screenshotViewerSites()
-                found.getValue("screenshot_viewers").add(method)
+                // 588's Quicksnap viewer hands its window to a helper, which is checked once every class is in.
+                val helper = if (cls.type == QUICKSNAP_VIEWER) method.quicksnapSecureHelper() else null
+                if (helper != null) quicksnapHelper = helper
+                else {
+                    method.screenshotViewerSites()
+                    found.getValue("screenshot_viewers").add(method)
+                }
             } catch (refusal: PatchException) {
                 // The reason would be lost behind the generic "hooks differ", so validateControls repeats it.
                 changedViewer = true
@@ -467,8 +513,6 @@ private class ControlScan(
             for ((key, spec) in pluginGates) if (anchors.any { it in spec.anchors }) add(key)
         }
         if (gate && "com.facebook.messaging.friendsinboxunit.plugins.inboxunit.FriendsInboxUnitKillSwitch" in strings) add("stories")
-        if (cls.type in appIconManagers && method.isAppIconGate()) add(APP_ICONS)
-        if (method.isAppThemeGate()) add(APP_THEMES)
         if (gate) {
             val shortcuts = instructions.filter { it.opcode == Opcode.NEW_INSTANCE }
                 .mapNotNull { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type }
@@ -523,6 +567,12 @@ private class ControlScan(
             !AccessFlags.STATIC.isSet(method.accessFlags) &&
             instructions.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == FLAG_SECURE } &&
             refs.any { it.toString() == "Landroid/view/Window;->addFlags(I)V" }) add("allow_screenshot")
+        // Our own active status, reported in two places: the msys self-report and each MQTT client-settings publisher.
+        if (cls.type == PRESENCE_MANAGER && ret == "V" && params == listOf("Z") &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) && refs.any { reportUserStatus.matches(it) }) add(APPEAR_OFFLINE)
+        if (ret == "V" && params.size == 2 && params[0] == FB_SHARED_PREFERENCES &&
+            !AccessFlags.STATIC.isSet(method.accessFlags) && refs.any { foregroundAvailability.matches(it) } &&
+            CLIENT_SETTINGS_TOPIC in strings) add(AVAILABILITY_SETTING)
         if (cls.type == MEDIA_TRANSCODER && method.hookId() in ORIGINAL_PHOTO_HOOKS) add("original_photo")
         if (cls.type == MEDIA_TRANSCODER && method.isVideoTranscode(strings)) {
             add(ORIGINAL_VIDEO)
@@ -568,6 +618,8 @@ private class ControlScan(
         // An open chat marks itself read, which also sends Seen, only through the job its seen handler schedules here.
         if (method.isChatSeenBroadcast()) add(HIDE_READ_RECEIPTS)
         if (method.isReplyReadDispatch()) add(REPLY_READ)
+        // Delivered goes out as a batch from one manager, which publishes its own op name over its own topic.
+        if (method.isDeliveryReceiptSend()) add(DELIVERY_RECEIPT)
         // Opening a story card sends its seen state through the handler Messenger tags with this name.
         if (ret == "V" && params == listOf(MONTAGE_CARD, "Z") &&
             !AccessFlags.STATIC.isSet(method.accessFlags) && STORY_MARK_READ_TAG in strings) add("anonymous_stories")
@@ -583,6 +635,9 @@ private class ControlScan(
         // The story viewer adds its Share your own story card only while this daily cap check passes.
         if (AccessFlags.STATIC.isSet(method.accessFlags) && ret == "Z" && params == listOf(cls.type) &&
             refs.any { it.toString() in storyCardKeys }) add("growth_story_card")
+        // The chat header shows its Turn on active status line only while this upsell check passes.
+        if (AccessFlags.STATIC.isSet(method.accessFlags) && ret == "Z" && params.size == 2 &&
+            params[0].toString() == FB_USER_SESSION && ACTIVE_STATUS_UPSELL_KEY in strings) add("growth_active_status")
         if (cls.type == ANDROIDX_FRAGMENT && method.hookId() == FRAGMENT_ANIMATION) add("chat_animation")
         // The chat and the inbox under it inherit that answer. androidx needs each fragment's no-argument
         // constructor, so it names the class the animation hook tells apart.
@@ -590,7 +645,15 @@ private class ControlScan(
             if (original == CHAT_FRAGMENT_NAME) add("chat_fragment")
             if (original == "M4TabNavigationFragment") add("chat_inbox")
         }
-        if (original == CHAT_FRAGMENT_NAME && method.isChatJumpView()) add(CHAT_JUMP)
+        // Five controls open at the chat's own view handover: the jump menu, the screenshot block, the dimmer, the
+        // translucent bars and the chat bar's + menu.
+        if (original == CHAT_FRAGMENT_NAME && method.isChatJumpView()) {
+            add(CHAT_JUMP)
+            add(SECURE_CHAT)
+            add(INVISIBLE_BUTTONS)
+            add(IOS_BARS)
+            add(CHAT_BAR_PLUS)
+        }
         // Chats on Messenger's older route open in this fragment, which loads its own animation.
         if (original == "ThreadViewFragment" && method.name == "onCreateAnimation" &&
             method.hookId() == "${cls.type}->onCreateAnimation(IZI)$ANIMATION") add("chat_legacy")
@@ -1016,8 +1079,8 @@ internal fun ClassDef.isCqlRowWrapper(): Boolean =
 internal fun ClassDef.hasMessageIdGetter(): Boolean = messageIdGetterName.isNotEmpty() &&
     methods.any { it.name == messageIdGetterName && it.returnType == "Ljava/lang/String;" && it.parameterTypes == listOf("I") }
 
-/** The Notifications tab's server flag ID as 587 numbers it (586 read 72344145666062935). Meta renumbers it with each release. */
-private const val PEOPLE_SERVER_FLAG = 72344137076128710L
+/** The Notifications tab's server flag ID as 588 numbers it (587 read 72344137076128710). Meta renumbers it with each release. */
+private const val PEOPLE_SERVER_FLAG = 72344141371096311L
 
 /**
  * Where the Notifications tab loads its server flag: the method's only constant with that value, at 17, after the
@@ -1274,15 +1337,17 @@ internal fun MutableMethod.injectMenuDrawerAdd() {
 }
 
 private const val IMMUTABLE_LIST_BUILDER = "Lcom/google/common/collect/ImmutableList\$Builder;"
+private const val KEYBOARD_TABS_ADD_ALL = "$IMMUTABLE_LIST_BUILDER->addAll(Ljava/lang/Iterable;)$IMMUTABLE_LIST_BUILDER"
 
 /**
  * The composer fills the keyboard's tab list inline and returns it: a local ArrayList of tab items goes into a fresh
- * ImmutableList.Builder through one static call that adds it all and builds, as 583 did (584 to 586 called addAll and
- * then a static build):
+ * ImmutableList.Builder through one static call that adds it all and builds, as 583 and 587 did, or (584 to 586, and
+ * 588 with a virtual build) through the builder's own addAll:
  *
  *     invoke-static {}, ImmutableList;->builder()
  *     move-result-object vB
  *     invoke-static {vB, vList}, <static (Builder, Iterable) -> ImmutableList>
+ *     (or invoke-virtual {vB, vList}, ImmutableList$Builder;->addAll(Iterable)ImmutableList$Builder)
  *
  * Returns the copy's index and list register.
  */
@@ -1291,8 +1356,9 @@ internal fun MutableMethod.validateKeyboardTabsInline(): Pair<Int, Int> {
     val code = implementation!!.instructions.toList()
     val copy = code.indices.filter { index ->
         val call = (code[index] as? ReferenceInstruction)?.reference as? DexMethodReference
-        code[index].opcode == Opcode.INVOKE_STATIC && call != null && call.returnType == IMMUTABLE_LIST &&
-            call.parameterTypes.map { it.toString() } == listOf(IMMUTABLE_LIST_BUILDER, "Ljava/lang/Iterable;")
+        call != null && ((code[index].opcode == Opcode.INVOKE_STATIC && call.returnType == IMMUTABLE_LIST &&
+            call.parameterTypes.map { it.toString() } == listOf(IMMUTABLE_LIST_BUILDER, "Ljava/lang/Iterable;")) ||
+            (code[index].opcode == Opcode.INVOKE_VIRTUAL && call.toString() == KEYBOARD_TABS_ADD_ALL))
     }.singleOrNull()
     // Code inserted before a jump target would be skipped by whatever jumps there.
     if (returnType != IMMUTABLE_LIST || copy == null || copy < 2 || copy in jumpTargets()) changed()
@@ -1533,10 +1599,25 @@ private fun MutableMethod.readsOneCqlColumn(getter: String, moveResult: Opcode, 
         implementation!!.registerCount == 4 && !AccessFlags.STATIC.isSet(accessFlags)
 }
 
+/**
+ * Which route the text hook already carries, for a getter two controls selected: true for an encrypted chat's row,
+ * which calls the class's own helper, false for the list wrapper's row, which calls the extension straight. Null while
+ * the getter is still stock. Both controls share one block, so the second one through leaves it alone.
+ */
+internal fun MutableMethod.unsentIndicatorRouted(): Boolean? {
+    val calls = implementation?.instructions?.toList().orEmpty()
+        .mapNotNull { ((it as? ReferenceInstruction)?.reference as? DexMethodReference) }
+    if (calls.any { it.name == UNSENT_ROW_HELPER }) return true
+    if (calls.any { it.definingClass == SETTINGS && it.name == "labelKeptUnsent" }) return false
+    return null
+}
+
 /** Whether the text hook sits in an encrypted chat's CQL row class (true) or the list wrapper other chats use (false). */
 internal fun MutableMethod.validateUnsentIndicator(): Boolean {
     if (returnType != "Ljava/lang/String;") throw PatchException("Messenger controls: unsent_indicator hook must return String")
     if (parameterTypes != listOf("I")) throw PatchException("Messenger controls: unsent_indicator hook must take one int param")
+    // Already routed by the other control that selected this getter: the stock-body checks below no longer apply.
+    unsentIndicatorRouted()?.let { return it }
     if (readsOneCqlColumn("getString(II)Ljava/lang/String;", Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT)) {
         if (messageOtidGetterName.isEmpty()) throw PatchException("Messenger controls: unsent_indicator hook needs the row's threading id getter")
         if (messageTimestampGetterName.isEmpty() || messageSenderGetterName.isEmpty() || messageContentTypeGetterName.isEmpty() ||
@@ -1556,6 +1637,8 @@ internal fun MutableMethod.validateUnsentIndicator(): Boolean {
 }
 
 internal fun MutableMethod.injectUnsentIndicator() {
+    // The block is in already, put there by the other control sharing this getter, and it serves both.
+    if (unsentIndicatorRouted() != null) return
     val cql = validateUnsentIndicator()
     val code = implementation!!.instructions.toList()
     val returnIndex = code.indexOfLast { it.opcode == Opcode.RETURN_OBJECT }
@@ -1662,49 +1745,80 @@ internal fun MutableMethod.injectDeltaUnsent() {
     """.trimIndent())
 }
 
-internal fun MutableMethod.validateStorySeen(): Int {
+/**
+ * Where the story mark-read handler's gate goes. Every build starts by zeroing a register its local seen update reads
+ * ([zero], v0 on arm64). 588's armv7 build then copies p0 and the card into low registers before the send, and its local
+ * update reads those copies, so the gate goes in after the last of them ([gate]). The jump from there to [cache] finds
+ * every register the update reads holding what the send would have left in it, and nothing before the gate calls out
+ * or branches, so the send is all the gate skips. [cards] are the registers that hold the card at [cache].
+ */
+internal class StorySeenShape(val gate: Int, val cache: Int, val zero: Int, val cards: Set<Int>)
+
+private val OBJECT_COPIES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+internal fun MutableMethod.validateStorySeen(): StorySeenShape {
     if (AccessFlags.STATIC.isSet(accessFlags) || returnType != "V" || parameterTypes != listOf(MONTAGE_CARD, "Z")) {
         throw PatchException("Messenger controls: the story mark-read handler is ${hookId()}, expected (MontageCard, boolean) void")
     }
     val code = implementation!!.instructions.toList()
     val zero = code.firstOrNull()
-    if (zero?.opcode != Opcode.CONST_4 || (zero as OneRegisterInstruction).registerA != 0 ||
-        (zero as NarrowLiteralInstruction).narrowLiteral != 0) {
-        throw PatchException("Messenger controls: the story mark-read handler no longer starts by zeroing v0")
+    if (zero?.opcode != Opcode.CONST_4 || (zero as NarrowLiteralInstruction).narrowLiteral != 0) {
+        throw PatchException("Messenger controls: the story mark-read handler no longer starts by zeroing a register")
     }
-    val card = implementation!!.registerCount - 2
+    val zeroed = (zero as OneRegisterInstruction).registerA
+    val card = parameterRegister(1)
+    fun copiesCard(i: Int) = i >= 0 && code[i].opcode in OBJECT_COPIES && (code[i] as TwoRegisterInstruction).registerB == card
+    val copies = code.indices.filter(::copiesCard).map { (code[it] as TwoRegisterInstruction).registerA }.toSet()
     val cache = code.indexOfFirst { insn ->
         insn.opcode == Opcode.INVOKE_STATIC && (insn as ReferenceInstruction).reference.toString() == IMMUTABLE_LIST_OF &&
-            (insn as FiveRegisterInstruction).registerCount == 1 && insn.registerC == card
+            (insn as FiveRegisterInstruction).registerCount == 1 && insn.registerC in copies + card
     }
     val targets = jumpTargets()
     if (cache <= 1 || cache !in targets) {
         throw PatchException("Messenger controls: the story mark-read handler's local seen update isn't where the send ends")
     }
-    // The gate goes in at index 1, and a jump back there would send the seen state past it.
-    if (1 in targets) throw PatchException("Messenger controls: the story mark-read handler jumps back to its start")
-    val send = code.subList(1, cache)
+    // Every register the local update reads has one definition reaching it, a parameter's own or one the gate follows.
+    val flow = ReadFlow(this)
+    val reaching = (0 until implementation!!.registerCount).filter { !flow.deadAt(cache, it) }.associateWith { flow.definitionsAt(cache, it) }
+    if (reaching.values.any { it.size != 1 }) {
+        throw PatchException("Messenger controls: the story mark-read handler's local seen update reads what the send sets")
+    }
+    val gate = (reaching.values.map { it.single() } + 0).max() + 1
+    val cards = reaching.filter { (register, defs) -> if (register == card) defs == setOf(-1) else copiesCard(defs.single()) }.keys +
+        listOf(card).filter { flow.definitionsAt(cache, it) == setOf(-1) }
+    if ((code[cache] as FiveRegisterInstruction).registerC !in cards) {
+        throw PatchException("Messenger controls: the story mark-read handler's local seen update isn't handed the card")
+    }
+    // A jump back into the copies would send the seen state past the gate.
+    if ((1..gate).any { it in targets }) throw PatchException("Messenger controls: the story mark-read handler jumps back to its start")
+    val passed = (parameterRegister(0)..parameterRegister(2)).toSet() + zeroed
+    if (code.subList(1, gate).any { insn -> insn is OffsetInstruction || (insn as? ReferenceInstruction)?.reference is DexMethodReference ||
+            passed.any { insn.readWrites(it) } }) {
+        throw PatchException("Messenger controls: the story mark-read handler calls out before its send")
+    }
+    val send = code.subList(gate, cache)
     val exits = setOf(Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT, Opcode.THROW)
     if (send.any { it.opcode in exits } ||
         send.none { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == STORY_MARK_READ_TAG }) {
         throw PatchException("Messenger controls: the story mark-read handler's send no longer matches the tested build")
     }
-    return cache
+    return StorySeenShape(gate, cache, zeroed, cards)
 }
 
 /**
  * The gate hands the handler, the card and its flag to the extension, which keeps them for the Mark as seen button
- * (#169) and says whether to skip the send. A tap replays this same handler, which the gate then lets through.
+ * (#169) and says whether to skip the send. A tap replays this same handler, which the gate then lets through. The
+ * answer goes in the zeroed register, which a no leaves at the 0 the rest of the handler expects, and a yes puts back.
  */
 internal fun MutableMethod.injectStorySeen() {
-    val cache = validateStorySeen()
-    addInstructionsWithLabels(1, """
+    val shape = validateStorySeen()
+    addInstructionsWithLabels(shape.gate, """
         invoke-static/range {p0 .. p2}, $SETTINGS->holdStorySeen(Ljava/lang/Object;Ljava/lang/Object;I)Z
-        move-result v0
-        if-eqz v0, :stock_behavior
-        const/4 v0, 0x0
+        move-result v${shape.zero}
+        if-eqz v${shape.zero}, :stock_behavior
+        const/4 v${shape.zero}, 0x0
         goto/16 :local_seen
-    """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(1)), ExternalLabel("local_seen", getInstruction(cache)))
+    """.trimIndent(), ExternalLabel("stock_behavior", getInstruction(shape.gate)), ExternalLabel("local_seen", getInstruction(shape.cache)))
 }
 
 internal const val STORY_EYE = "Lapp/hushmessenger/extension/StoryEye;"
@@ -1742,15 +1856,18 @@ private fun Method.locals() = implementation!!.registerCount -
 
 /** The handler's local update ends by handing the card itself to the read set; nothing else there takes the card. */
 internal fun MutableMethod.storyReadSetAdd(): DexMethodReference {
-    val cache = validateStorySeen()
-    val card = implementation!!.registerCount - 2
-    val calls = implementation!!.instructions.drop(cache).filter { insn ->
-        val call = (insn as? ReferenceInstruction)?.reference as? DexMethodReference
-        insn.opcode == Opcode.INVOKE_VIRTUAL && call != null && call.returnType == "V" &&
+    val shape = validateStorySeen()
+    val code = implementation!!.instructions.toList()
+    val calls = (shape.cache until code.size).filter { i ->
+        val call = (code[i] as? ReferenceInstruction)?.reference as? DexMethodReference
+        code[i].opcode == Opcode.INVOKE_VIRTUAL && call != null && call.returnType == "V" &&
             call.parameterTypes.firstOrNull()?.toString() == MONTAGE_CARD
     }
-    val add = calls.singleOrNull() as? FiveRegisterInstruction
-    if (add == null || add.registerCount < 2 || add.registerD != card) {
+    val at = calls.singleOrNull()
+    val add = at?.let { code[it] } as? FiveRegisterInstruction
+    // The card's register still holds the card when the read set gets it.
+    if (at == null || add == null || add.registerCount < 2 || add.registerD !in shape.cards ||
+        code.subList(shape.cache, at).any { it.readWrites(add.registerD) }) {
         throw PatchException("Messenger controls: the story mark-read handler no longer hands the card to one read set")
     }
     return (add as ReferenceInstruction).reference as DexMethodReference

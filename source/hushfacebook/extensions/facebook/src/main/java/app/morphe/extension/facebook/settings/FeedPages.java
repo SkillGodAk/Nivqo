@@ -308,6 +308,10 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.HIDE_POST_COUNTS,
                         L10n.t("Takes the numbers off the Like, Comment and Share buttons under posts, so each shows "
                                 + "just its word. The buttons stay where they are. A change shows on the posts drawn after it.")));
+                feed.addPreference(toggle(context, Settings.SHOW_POST_COMMENT_BUTTON,
+                        L10n.t("Keeps the Comment button on posts whose author turned comments off or limited who can "
+                                + "comment, so you can still read the ones already there. A change shows on the posts "
+                                + "drawn after it.")));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_REACTIONS,
                         L10n.t("Hides the stacked reaction icons and the reactions count under posts. The space stays, "
                                 + "so a tap where they were still opens the list of reactions. To take the number off the Like "
@@ -351,6 +355,8 @@ final class FeedPages {
                 feed.addPreference(toggle(context, Settings.HIDE_POST_REPOST_BUTTON, hides));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_SHARE_BUTTON, hides));
                 feed.addPreference(toggle(context, Settings.HIDE_POST_SEND_BUTTON, hides));
+                feed.addPreference(toggle(context, Settings.HIDE_POST_STARS_BUTTON, hides));
+                feed.addPreference(toggle(context, Settings.HIDE_POST_SAVE_BUTTON, hides));
                 feed.addPreference(toggle(context, Settings.IGNORE_POST_ROW_TAPS,
                         L10n.t("A tap on the empty part of the row under a post, between the buttons and the reaction "
                                 + "icons, does nothing instead of opening the comments or who reacted. The buttons work as before.")));
@@ -499,8 +505,8 @@ final class FeedPages {
                         Settings.POST_WORDS_ON_REELS, Settings.POST_WORDS_IN_GROUPS, Settings.POST_WORDS_ON_TIMELINES,
                         Settings.POST_WORDS_IN_SEARCH);
                 feed.addPreference(toggle(context, Settings.HIDE_POSTS_FROM_SOURCES,
-                        L10n.t("Hides posts by people or Pages on your list below, or linking to sites on it, including shares. "
-                                + "Your list stays on this phone unless you export it.")));
+                        L10n.t("Hides posts by people or Pages on your list below, posted in a group on it, or linking to sites "
+                                + "on it, including shares. Your list stays on this phone unless you export it.")));
                 feed.addPreference(page.sourcesRow(context));
                 feed.addPreference(toggle(context, Settings.HIDE_PHOTO_POSTS,
                         L10n.t("Hides posts with a photo or album, including shares.")));
@@ -986,6 +992,9 @@ final class FeedPages {
                 stories.addPreference(toggle(context, Settings.STORY_FLAT_SLIDE,
                         L10n.t("Swiping to the next or previous person's stories slides them across instead of "
                                 + "turning them like a cube. Applies from your next swipe.")));
+                stories.addPreference(toggle(context, Settings.SHOW_STORY_TIME,
+                        L10n.t("Stories that leave out how long ago they were posted, like a Page's, show it next to "
+                                + "the name the way a friend's story does. Applies from the next story you open.")));
             }
             if (build.contains(PatchFamily.STORY_RINGS)) {
                 // Read each time a picture draws, so a change shows on what's drawn after it.
@@ -1068,6 +1077,9 @@ final class FeedPages {
             comments.addPreference(toggle(context, Settings.HIDE_COMMENT_REACTIONS,
                     L10n.t("Hides the stacked reaction icons in the corner of a comment. The space stays, so a tap "
                             + "where they were still opens the list of reactions.")));
+            comments.addPreference(toggle(context, Settings.HIDE_COMMENT_REACTION_COUNTS,
+                    L10n.t("Hides the number next to the reaction icons on a comment. The icons stay, and a tap on them "
+                            + "still opens the list of reactions.")));
         }
         if (pictures) {
             // Read as each comment is built, so a change shows on the comments drawn after it.

@@ -112,6 +112,7 @@ import app.morphe.extension.facebook.settings.SettingsRows.RowSemantics;
 import app.morphe.extension.shared.L10n;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.BooleanSetting;
+import app.morphe.extension.shared.settings.EnumSetting;
 import app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment;
 
 /**
@@ -961,6 +962,64 @@ final class ValueRows {
     }
 
     /**
+     * A Chat background row (#573): the color behind the messages of every chat, or of the last
+     * chat seen. Its summary follows its text, and Save keeps the dialog open over a code that
+     * {@link app.morphe.extension.facebook.chats.ChatBackground} won't take.
+     */
+    static final class ChatColorRow extends EditTextPreference {
+        /** Says why Save was refused. The page sets it, since its dialogs close with it. */
+        @Nullable Consumer<String> refused;
+
+        /** Whether this is the last chat's row rather than every chat's. */
+        final boolean lastChat;
+
+        /** The last chat as {key, name}, or null for every chat's row or when no chat has been seen. */
+        @Nullable final String[] chat;
+
+        ChatColorRow(Context context, boolean lastChat, @Nullable String[] chat) {
+            super(context);
+            this.lastChat = lastChat;
+            this.chat = chat;
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(HushfacebookPreferenceFragment.chatColorSummary(lastChat, chat, text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its edit dialog takes the screen's colours, as the Background color row's does. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) {
+                AlertDialog dialog = (AlertDialog) getDialog();
+                ScreenColors.dialog(dialog);
+                dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(button -> {
+                    String why = app.morphe.extension.facebook.chats.ChatBackground.problem(
+                            getEditText().getText().toString());
+                    if (why != null) {
+                        if (refused != null) refused.accept(why);
+                        return;
+                    }
+                    Handler main = new Handler(Looper.getMainLooper());
+                    main.post(() -> onClick(dialog, DialogInterface.BUTTON_POSITIVE));
+                    main.post(dialog::dismiss);
+                });
+            }
+            fitAboveKeyboard(getDialog());
+        }
+    }
+
+    /**
      * Home header text's row (#230). Its summary follows its text, whoever sets it, and says what
      * the top of Home shows.
      */
@@ -1732,15 +1791,15 @@ final class ValueRows {
     }
 
     /**
-     * Fold long posts or Fold long comments (#497). Its summary follows its value, as Reaction's
-     * does.
+     * Fold long posts, Fold long comments (#497) or Fold reel captions (#506). Its summary follows
+     * its value, as Reaction's does.
      */
     static final class FoldLinesRow extends PlainSummaryList {
-        private final boolean comments;
+        private final EnumSetting<FoldLines> setting;
 
-        FoldLinesRow(Context context, boolean comments) {
+        FoldLinesRow(Context context, EnumSetting<FoldLines> setting) {
             super(context);
-            this.comments = comments;
+            this.setting = setting;
         }
 
         @Override
@@ -1754,7 +1813,7 @@ final class ValueRows {
             for (FoldLines candidate : FoldLines.values()) {
                 if (candidate.name().equals(getValue())) lines = candidate;
             }
-            setSummary(foldLinesSummary(lines, comments));
+            setSummary(foldLinesSummary(lines, setting));
         }
 
         @Override

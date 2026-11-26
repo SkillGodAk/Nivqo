@@ -342,8 +342,12 @@ public final class TabBarScrollAway {
         boolean shown = onReelsTab();
         boolean under = shown ? reelUnderBars(tabsOnTop) : reelsWillRunUnderBars(tabsOnTop);
         int dropped = droppedTop;
+        // A list not laid out yet runs down past the bar Hide the tab bar on the Reels tab takes
+        // away (#566); a list laid out says how tall it is.
+        int freed = list > 0 || tabsOnTop ? 0 : ReelsTabBarHidden.roomFreed();
         Logger.printDebug(() -> "Top bars: a Reels row of " + height + (shown ? " on the Reels tab" : " made ahead")
-                + ", under the bars " + under + ", list " + list + ", tab padding " + tabPad + ", padding dropped " + dropped);
+                + ", under the bars " + under + ", list " + list + ", tab padding " + tabPad + ", padding dropped " + dropped
+                + ", room the hidden tab bar frees " + freed);
         if (list > 0 && window > 0 && height > window) {
             Logger.printDebug(() -> "Top bars: a Reels row of " + height + " is taller than the window's "
                     + window + ", worked out for the screen held the other way, made " + list);
@@ -362,10 +366,19 @@ public final class TabBarScrollAway {
             if (rowMade.get() != height) rowMade.save(height);
             if (listSeen.get() != list) listSeen.save(list);
             if (setupSeen.get() != setup) setupSeen.save(setup);
-        } else if (rowMade.get() == height && setupSeen.get() == setup && listSeen.get() > height) {
+        } else if (rowMade.get() == height && listSeen.get() > height
+                && (setupSeen.get() == setup || sameListUnderTabBar(setupSeen.get(), setup))) {
             wanted = listSeen.get();
-        } else if (under) {
-            wanted = height + (tabsOnTop && tabPad > 0 ? tabPad : shown ? dropped : 0);
+        } else if (under || freed > 0) {
+            int grown = height + (!under ? 0 : tabsOnTop && tabPad > 0 ? tabPad : shown ? dropped : 0) + freed;
+            if (under && list <= 0 && window > 0 && ReelsTabBarHidden.on() && !Settings.KEEP_TOP_BAR.get()) {
+                // The list a reel under the bars runs in once the tab bar is hidden on Reels: the
+                // window down to the navigation bar its page keeps. With no list seen for this
+                // setup yet, as on the first start after the switch goes on, Facebook's height
+                // stopped short of it by the tab bar it was worked out for (#566).
+                grown = Math.max(grown, window - ReelsTabBarHidden.navigationStrip());
+            }
+            wanted = grown;
         } else {
             return height;
         }
@@ -461,12 +474,36 @@ public final class TabBarScrollAway {
                 && screen.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
     }
 
+    /** The {@link #barSetup} bits that only say whether the tab bar slides away or stays on screen. */
+    static final int TAB_BAR_SHOWING = (1 << 2) | (1 << 4);
+
+    /**
+     * Whether a list height seen under {@code seen} fits rows made under {@code setup}: the two
+     * differ only in whether the tab bar slides away or stays, and pages run under the tab bar
+     * ({@link TranslucentBars#stretchesPages}), so the Reels list is the whole page either way.
+     * Choosing Stays on screen used to leave the rows made ahead at the next start short, with the
+     * next reel showing under the bar, until a start after the list was seen again (#552).
+     */
+    static boolean sameListUnderTabBar(int seen, int setup) {
+        return seen >= 0 && ((seen ^ setup) & ~TAB_BAR_SHOWING) == 0 && TranslucentBars.stretchesPages();
+    }
+
+    /**
+     * Set in every {@link #barSetup}, so a list height kept before the setup counted Rounded tab bar
+     * and Hide the tab bar on the Reels tab matches none, and is seen again once (#551).
+     */
+    static final int COUNTS_REELS_BAR_SWITCHES = 1 << 10;
+
     /**
      * The bar switches that change how tall the Reels list runs while Facebook's row stays the same,
      * as one number, so a list height seen under one setup isn't handed to rows under another.
+     * Rounded tab bar and Hide the tab bar on the Reels tab both run the list down to the screen's
+     * bottom. Left out, the height seen with either on stayed the setup's after it was turned off,
+     * so every start grew Facebook's rows by the tab bar's height and the reel's name, caption and
+     * buttons sat behind the bar (#551; emulator 2026-11-24: rows of 2062 made 2272 in a 2062 list).
      */
     static int barSetup() {
-        int bits = 0;
+        int bits = COUNTS_REELS_BAR_SWITCHES;
         if (Settings.TOP_TAB_BAR.get()) bits |= 1;
         if (Settings.BOTTOM_TAB_BAR.get()) bits |= 1 << 1;
         if (Settings.TAB_BAR_SCROLL_AWAY.get()) bits |= 1 << 2;
@@ -476,6 +513,8 @@ public final class TabBarScrollAway {
         if (Settings.HIDE_STATUS_BAR.get()) bits |= 1 << 6;
         // The Reels list runs up under the status bar too (#466), so a height seen before doesn't fit.
         if (ReelsStatusBar.wanted()) bits |= 1 << 7;
+        if (Settings.ROUNDED_TAB_BAR.get()) bits |= 1 << 8;
+        if (Settings.HIDE_REELS_TAB_BAR.get()) bits |= 1 << 9;
         return bits;
     }
 
@@ -495,9 +534,17 @@ public final class TabBarScrollAway {
         static final IntegerSetting WIDE_ROW_MADE = new IntegerSetting("hushfacebook_reels_wide_row_made", 0, false, false);
         static final IntegerSetting WIDE_LIST_HEIGHT = new IntegerSetting("hushfacebook_reels_wide_list_height", 0, false, false);
         static final IntegerSetting WIDE_ROW_SETUP = new IntegerSetting("hushfacebook_reels_wide_row_setup", -1, false, false);
+        /**
+         * The room the tab bar takes above the phone's navigation bar, held upright and on its side,
+         * last read off a laid out bar ({@link ReelsTabBarHidden#roomFreed}). Facebook makes the first
+         * Reels rows as it starts, before its bar is laid out (#566).
+         */
+        static final IntegerSetting BAR_ROOM = new IntegerSetting("hushfacebook_reels_bar_room", 0, false, false);
+        static final IntegerSetting WIDE_BAR_ROOM = new IntegerSetting("hushfacebook_reels_wide_bar_room", 0, false, false);
 
         static {
-            Setting.keepWhenPaused(ROW_MADE, LIST_HEIGHT, ROW_SETUP, WIDE_ROW_MADE, WIDE_LIST_HEIGHT, WIDE_ROW_SETUP);
+            Setting.keepWhenPaused(ROW_MADE, LIST_HEIGHT, ROW_SETUP, WIDE_ROW_MADE, WIDE_LIST_HEIGHT, WIDE_ROW_SETUP,
+                    BAR_ROOM, WIDE_BAR_ROOM);
         }
 
         private Stored() {

@@ -26,7 +26,7 @@ import app.morphe.patcher.dex.BytecodeMode
 import app.morphe.patcher.patch.Patch
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.ResourcePatchContext
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.DexFileFactory
@@ -319,6 +319,11 @@ private fun MutableMethod.loads(index: Int): Pair<Int, String> = code()[index].l
     (it as OneRegisterInstruction).registerA to ((it as ReferenceInstruction).reference as StringReference).string
 }
 
+/** The register and the extension field a read lands in, for a name the running copy gives itself. */
+private fun MutableMethod.reads(index: Int): Pair<Int, String> = code()[index].let {
+    (it as OneRegisterInstruction).registerA to (it as ReferenceInstruction).reference.toString()
+}
+
 class CloneInstallPatchTest {
     @Test fun theManifestMovesWholeToTheNewPackageAndKeepsClassNames() {
         val manifest = xml(STOCK).apply { addSettingsEntry() }
@@ -430,20 +435,28 @@ class CloneInstallPatchTest {
         assertEquals(CLONE_PATCH_NAME, cloneInstallPatch.name)
         assertFalse(cloneInstallPatch.default)
         assertTrue(installBesideMetaAppsPatch in cloneInstallPatch.dependencies)
-        val packageName = assertNotNull(cloneInstallPatch.options["clonePackageName"])
+        val packageName = assertNotNull(cloneInstallPatch.options[CLONE_PACKAGE_OPTION])
         val label = assertNotNull(cloneInstallPatch.options["cloneAppName"])
         assertEquals(CLONE_DEFAULT_PACKAGE, packageName.default)
         assertEquals(CLONE_DEFAULT_LABEL, label.default)
         assertTrue(packageName.required && label.required)
         try {
-            cloneInstallPatch.options.set("clonePackageName", COPY)
+            cloneInstallPatch.options.set(CLONE_PACKAGE_OPTION, COPY)
             assertEquals(COPY, packageName.value)
-            assertFailsWith<Exception> { cloneInstallPatch.options.set("clonePackageName", "com.facebook.orca") }
+            assertFailsWith<Exception> { cloneInstallPatch.options.set(CLONE_PACKAGE_OPTION, "com.facebook.orca") }
             assertFailsWith<Exception> { cloneInstallPatch.options.set("cloneAppName", "@string/app_name") }
         } finally {
             packageName.reset()
             label.reset()
         }
+    }
+
+    @Test fun morpheManagerCanTellTheCopyIsAClone() {
+        // Manager's PACKAGE_NAME_OPTION_KEY: any other key and the copy's card shows no Clone chip and repatches as Messenger.
+        assertEquals("packageName", CLONE_PACKAGE_OPTION)
+        assertEquals(CLONE_DEFAULT_PACKAGE, assertNotNull(cloneInstallPatch.options["packageName"]).default)
+        // The app name and Facebook package keep their keys so saved choices survive the change.
+        assertEquals(setOf("packageName", "cloneAppName", "cloneFacebookPackage"), cloneInstallPatch.options.keys)
     }
 
     @Test fun shortcutsFollowTheCloneAndOtherTargetsStay() {
@@ -652,32 +665,26 @@ class CloneInstallPatchTest {
 
     @Test fun eachBuildFamilyHasItsOwnPinnedSites() {
         val families = MessengerTarget.VERSION_CODES.map { expectedCloneSitesFor(it.toString()) }.toSet()
-        assertEquals(4, families.size)
+        assertEquals(2, families.size)
         assertTrue(families.all { it.size == 7 && it.count { id -> '@' in id } == 5 })
-        assertEquals(setOf("LX/OfE;-><init>()V", "LX/4Dn;->A00(Ljava/lang/String;)Z",
-            "LX/3Ao;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
-            "LX/8U5;->A04(Landroid/os/Bundle;)LX/9Lz;@226", "LX/8U5;->A04(Landroid/os/Bundle;)LX/9Lz;@321",
-            "LX/JOV;->onClick(Landroid/view/View;)V@71", "LX/JOi;->onClick(Landroid/view/View;)V@169"), expectedCloneSitesFor("347415280"))
-        assertEquals(expectedCloneSitesFor("347415280"), expectedCloneSitesFor("347415285"))
-        assertEquals(setOf("LX/RtJ;-><init>()V", "LX/4ER;->A00(Ljava/lang/String;)Z",
-            "LX/3Ap;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
-            "LX/8TJ;->A04(Landroid/os/Bundle;)LX/9Lc;@226", "LX/8TJ;->A04(Landroid/os/Bundle;)LX/9Lc;@319",
-            "LX/JeJ;->onClick(Landroid/view/View;)V@71", "LX/JeW;->onClick(Landroid/view/View;)V@169"), expectedCloneSitesFor("347415354"))
-        // The main build's code under other class names: only the backup lookup and the two click classes are renamed.
-        assertEquals(expectedCloneSitesFor("347415354").map { it.replace("RtJ", "RtH").replace("JeJ", "JeI").replace("JeW", "JeV") }.toSet(),
-            expectedCloneSitesFor("347415302"))
-        assertEquals(expectedCloneSitesFor("347415302"), expectedCloneSitesFor("347415355"))
-        assertEquals(setOf("LX/Oam;-><init>()V", "LX/4Eu;->A00(Ljava/lang/String;)Z",
-            "LX/3BB;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
-            "LX/8Uf;->A05(Landroid/os/Bundle;)LX/9Mz;@185", "LX/8Uf;->A05(Landroid/os/Bundle;)LX/9Mz;@282",
-            "LX/Jal;->onClick(Landroid/view/View;)V@71", "LX/Jaz;->onClick(Landroid/view/View;)V@169"), expectedCloneSitesFor("347415262"))
-        assertFailsWith<PatchException> { expectedCloneSitesFor("347015062") }
+        assertEquals(setOf("LX/Ukb;-><init>()V", "LX/4VT;->A00(Ljava/lang/String;)Z",
+            "LX/59I;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
+            "LX/60J;->A04(Landroid/os/Bundle;)LX/6YQ;@230", "LX/60J;->A04(Landroid/os/Bundle;)LX/6YQ;@326",
+            "LX/KAf;->onClick(Landroid/view/View;)V@201", "LX/KAw;->onClick(Landroid/view/View;)V@101"), expectedCloneSitesFor("347617503"))
+        assertEquals(expectedCloneSitesFor("347617503"), expectedCloneSitesFor("347617590"))
+        assertEquals(setOf("LX/MF6;-><init>()V", "LX/4Yk;->A00(Ljava/lang/String;)Z",
+            "LX/5CZ;->A00(Landroid/content/Intent;Landroid/content/Context;)V@1",
+            "LX/63a;->A05(Landroid/os/Bundle;)LX/6bK;@189", "LX/63a;->A05(Landroid/os/Bundle;)LX/6bK;@285",
+            "LX/K0T;->onClick(Landroid/view/View;)V@69", "LX/K0k;->onClick(Landroid/view/View;)V@197"), expectedCloneSitesFor("347617497"))
+        assertEquals(expectedCloneSitesFor("347617497"), expectedCloneSitesFor("347617583"))
+        // 587's builds and an older release's are refused.
+        assertFailsWith<PatchException> { expectedCloneSitesFor("347415354") }
         assertFailsWith<PatchException> { expectedCloneSitesFor("346611999") }
     }
 
     @Test fun theManifestMovesOnlyWhenACloneIsRequestedAndAfterSettingsAreAdded(@TempDir temporary: Path) {
         val extension = lifecycleExtension()
-        val request = bytecodePatch(description = "Request a test clone") {
+        val request = patch(description = "Request a test clone") {
             dependsOn(cloneResources)
             execute { requestClone(COPY, "Copy") }
         }
@@ -743,7 +750,7 @@ class CloneInstallPatchTest {
             val classes: List<ClassDef> = dex.dexEntryNames.flatMap { dex.getEntry(it)!!.dexFile.classes }
             val expected = expectedCloneSitesFor(code)
             val pools = ownNamePoolKeys(classes)
-            // Every 587 build's two inbox clicks take Messenger's name from one string pool key (586's family B used constants).
+            // Every 588 build's two inbox clicks take Messenger's name from one string pool key (586's family B used constants).
             assertEquals(1, pools.size, code)
             assertEquals(expected, findCloneSites(classes, pools), code)
             families += expected
@@ -816,6 +823,97 @@ class CloneInstallPatchTest {
             val aliases = manifest.elements("activity-alias").filter { it.getAttribute("android:name").startsWith("com.facebook.orca.LauncherAlias") }
             assertEquals(7, aliases.size, code)
             assertTrue(aliases.all { it.getAttribute("android:label") == "@string/$CLONE_LABEL" }, code)
+        }
+    }
+
+    @Test fun aCopyAnotherPatchRenamedStartsAndKeepsItsOwnAttachmentsAndMutes() {
+        val lookup = backupLookup()
+        val check = attachmentCheck()
+        val uris = dedupUris()
+        val matcher = dedupMatcher()
+        val lookupBefore = lookup.code()
+        val checkBefore = check.code()
+        val urisBefore = uris.code()
+        val matcherBefore = matcher.code()
+        assertEquals(RENAMED_PATCH_NAME, renamedCopyPatch.name)
+        assertTrue(renamedCopyPatch.default, "A renamed copy is broken without it, so there's nothing to switch on")
+        assertEquals(5, applyRunningNames(lookup, check, listOf(uris to 4, uris to 8, matcher to 8)))
+
+        // Messenger's own name stays in the lookup, since any other name throws and holds the copy on its loading screen.
+        assertEquals(Opcode.CONST_STRING_JUMBO, lookup.code()[5].opcode)
+        assertEquals(7 to "com.facebook.orca", lookup.loads(5))
+        assertEquals(lookupBefore.take(5), lookup.code().take(5))
+        assertEquals(lookupBefore.drop(5), lookup.code().drop(6))
+        // Attachments, muted chats and friendships name whichever copy is running, which it only knows once it runs.
+        assertEquals(Opcode.SGET_OBJECT, check.code()[6].opcode)
+        assertEquals(0 to RUNNING_NAMES.getValue(TAM_AUTHORITY), check.reads(6))
+        assertEquals(checkBefore.size, check.code().size)
+        assertEquals(checkBefore.filterIndexed { i, _ -> i != 6 }, check.code().filterIndexed { i, _ -> i != 6 })
+        assertEquals(1 to RUNNING_NAMES.getValue(DEDUP_URIS[0]), uris.reads(4))
+        assertEquals(1 to RUNNING_NAMES.getValue(DEDUP_URIS[1]), uris.reads(8))
+        assertEquals(2 to RUNNING_NAMES.getValue(DEDUP_AUTHORITY), matcher.reads(8))
+        // The Facebook app's URI and authority stay, and nothing else moves.
+        assertEquals(urisBefore.filterIndexed { i, _ -> i != 4 && i != 8 }, uris.code().filterIndexed { i, _ -> i != 4 && i != 8 })
+        assertEquals(matcherBefore.filterIndexed { i, _ -> i != 8 }, matcher.code().filterIndexed { i, _ -> i != 8 })
+        // Nothing is left for a second run of the patch to change.
+        assertTrue(findDedupSites(listOf(fixtureClass("LX/6TB;", listOf(uris)), fixtureClass(DEDUP_PROVIDER, listOf(matcher)))).isEmpty())
+        assertEquals(0, applyRunningNames(lookup, check))
+    }
+
+    // The extension builds each copy's names out of these same strings. Pointing its own static initializer at the
+    // fields it was still filling in left every name null, and Messenger crashed on launch the first time it read one.
+    @Test fun theExtensionsOwnNamesAreNotDedupSites() {
+        val compat = dedupUris(id = "Lapp/hushmessenger/extension/CloneCompat;-><clinit>()V")
+        val classes = listOf(fixtureClass("LX/6TB;", listOf(dedupUris())), fixtureClass(DEDUP_PROVIDER, listOf(dedupMatcher())),
+            fixtureClass("Lapp/hushmessenger/extension/CloneCompat;", listOf(compat)))
+        assertEquals(setOf("$DEDUP_URIS_OWNER@4", "$DEDUP_URIS_OWNER@8", "$DEDUP_MATCHER@8"), findDedupSites(classes))
+    }
+
+    @Test fun whatCloneInstallAlreadyPinnedIsLeftAsItIs() {
+        val lookup = backupLookup()
+        val check = attachmentCheck()
+        val uris = dedupUris()
+        val matcher = dedupMatcher()
+        applyCloneSites(lookup, check, COPY, dedup = listOf(uris to 4, uris to 8, matcher to 8))
+        val methods = listOf(lookup, check, uris, matcher)
+        val before = methods.map { it.code() }
+        // Clone install wrote the name it chose into all four while patching, so there's nothing here to name again.
+        assertTrue(findDedupSites(listOf(fixtureClass("LX/6TB;", listOf(uris)), fixtureClass(DEDUP_PROVIDER, listOf(matcher)))).isEmpty())
+        assertEquals(0, applyRunningNames(lookup, check))
+        assertEquals(before, methods.map { it.code() })
+    }
+
+    @Test fun everyStockBuildKeepsWorkingUnderAnotherPatchsName() {
+        // opcode-name-ok: the mnemonic without its suffix, since a longer method can widen a goto or drop padding.
+        fun List<com.android.tools.smali.dexlib2.iface.instruction.Instruction>.shape() =
+            filter { it.opcode != Opcode.NOP }.map { it.opcode.name.substringBefore('/') } // opcode-name-ok
+        for (apk in stockApks()) {
+            val code = apk.fileName.toString().substringBeforeLast(".apk").substringAfterLast('-')
+            val dex = DexFileFactory.loadDexContainer(apk.toFile(), Opcodes.forApi(35))
+            val classes: List<ClassDef> = dex.dexEntryNames.flatMap { dex.getEntry(it)!!.dexFile.classes }
+            val pools = ownNamePoolKeys(classes)
+            fun method(id: String) =
+                MutableMethod(classes.single { it.type == id.substringBefore("->") }.methods.single { it.hookId() == id })
+            val checks = expectedCloneSitesFor(code).filterNot { '@' in it }
+            val lookup = method(checks.single { it.endsWith("-><init>()V") })
+            val check = method(checks.single { it.endsWith(ATTACHMENT_CHECK) })
+            val dedupIds = findDedupSites(classes)
+            assertEquals(3, dedupIds.size, code)
+            val dedupMethods = dedupIds.map { it.substringBefore('@') }.distinct().associateWith { method(it) }
+            val dedup = dedupIds.map { dedupMethods.getValue(it.substringBefore('@')) to it.substringAfter('@').toInt() }
+            val (at, register) = lookup.backupLookupSite(pools)
+            val before = lookup.code()
+            val checkBefore = check.code()
+            assertEquals(5, applyRunningNames(lookup, check, dedup, pools), code)
+
+            assertEquals(register to "com.facebook.orca", lookup.loads(at), code)
+            assertEquals(before.shape(), lookup.code().filterIndexed { i, _ -> i != at }.shape(), code)
+            assertEquals(checkBefore.size, check.code().size, code)
+            assertTrue(check.code().none { (it as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string == TAM_AUTHORITY } }, code)
+            assertEquals(1, check.code().count { (it as? ReferenceInstruction)?.reference?.toString() == RUNNING_NAMES.getValue(TAM_AUTHORITY) }, code)
+            assertTrue(findDedupSites(dedupMethods.values.map { fixtureClass(it.definingClass, listOf(it)) }).isEmpty(), code)
+            assertEquals(listOf(RUNNING_NAMES.getValue(DEDUP_AUTHORITY), RUNNING_NAMES.getValue(DEDUP_URIS[0]),
+                RUNNING_NAMES.getValue(DEDUP_URIS[1])).sorted(), dedup.map { (method, i) -> method.reads(i).second }.sorted(), code)
         }
     }
 

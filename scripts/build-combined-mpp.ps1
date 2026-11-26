@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.4.0",
+    [string]$Version = "1.5.0",
     [string]$OutputPath,
     [string]$AndroidSdk = ""
 )
@@ -97,7 +97,7 @@ try {
     $messengerLock = Join-Path $temp "extensions\messenger\gradle.lockfile"
     $messengerLockText = [System.IO.File]::ReadAllText($messengerLock)
     $messengerLockText = $messengerLockText.Replace(
-        "com.google.guava:guava:33.6.0-jre=",
+        "com.google.guava:guava:33.7.2-jre=",
         "com.google.guava:guava:33.8.0-jre="
     )
     # FB v0.12.0 root graph locks Kotlin stdlib 2.4.21, while Messenger v0.23.0's standalone extension lock uses 2.4.20.
@@ -127,7 +127,6 @@ try {
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("allow_screenshot", "Allow screenshots",' 'controlPatch("allow_screenshot", "Messenger · Allow screenshots",'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("hide_read_receipts", "Hide read receipts",' 'controlPatch("hide_read_receipts", "Messenger · Hide read receipts",'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("typing", "Hide typing indicator",' 'controlPatch("typing", "Messenger · Hide typing indicator",'
-    Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'controlPatch("app_icons", "Unlock app icons",' 'controlPatch("app_icons", "Messenger · Unlock app icons",'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\coexist\RestoreTrustPatch.kt") 'name = "Restore screens on re-signed builds"' 'name = "Messenger · Restore screens on re-signed builds"'
     Replace-ExactlyOnce (Join-Path $temp "patches\src\main\kotlin\app\hushmessenger\patches\controls\MessengerControlsPatch.kt") 'name = "View stories anonymously"' 'name = "Messenger · View stories anonymously"'
     # HushFacebook 0.19.0 also provides Hide tab badges; namespace the Messenger instance.
@@ -165,7 +164,7 @@ try {
         $ErrorActionPreference = $oldPreference
     }
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git add failed" }
-    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.4.0 combined source"
+    & git -C $temp -c user.name="Nivqo Combined Build" -c user.email="local-only@invalid.example" commit -qm "Stamp formal Nivqo 1.5.0 combined source"
     if ($LASTEXITCODE -ne 0) { throw "Combined staging git commit failed" }
     Push-Location $temp
     try {
@@ -211,7 +210,7 @@ try {
     }
 
     $duplicates = @($patches | Group-Object name | Where-Object { $_.Count -gt 1 })
-    if ($patches.Count -ne 225 -or $facebookCount -ne 127 -or $messengerCount -ne 98 -or $otherCount -ne 0) {
+    if ($patches.Count -ne 257 -or $facebookCount -ne 128 -or $messengerCount -ne 129 -or $otherCount -ne 0) {
         throw "Unexpected catalog split: total=$($patches.Count), Facebook=$facebookCount, Messenger=$messengerCount, other=$otherCount"
     }
     if ($duplicates.Count -ne 0) {

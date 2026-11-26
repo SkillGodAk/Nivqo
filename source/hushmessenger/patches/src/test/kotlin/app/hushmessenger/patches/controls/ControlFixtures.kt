@@ -193,11 +193,17 @@ internal fun inboxRefreshRouteMethod(body: String = "const-string v0, \"\"\nretu
 internal fun logoutRouteMethod(body: String = "const-string v0, \"\"\nreturn-object v0", flags: Int = AccessFlags.STATIC.value) =
     fixtureMethod(LOGOUT_ROUTE, body, 1, flags)
 
+internal fun tabSwipeRouteMethod(body: String = "const-string v0, \"\"\nreturn-object v0", flags: Int = AccessFlags.STATIC.value) =
+    fixtureMethod(TAB_SWIPE_ROUTE, body, 1, flags)
+
+internal fun aiUserRouteMethod(body: String = "const-string v0, \"\"\nreturn-object v0", flags: Int = AccessFlags.STATIC.value) =
+    fixtureMethod(AI_USER_ROUTE, body, 1, flags)
+
 /** The factory and the extension classes every settings run touches, as a supported APK plus the extension has them. */
 internal fun screenHostClasses() = listOf(
     fixtureClass(FACTORY_TYPE, listOf(factoryActivity(), factoryApplication())),
     fixtureClass(HOST_SCREENS, listOf(bundledControlsMethod(), originalBuildMethod(), nativeBubbleRoutesMethod(), inboxRefreshRouteMethod(),
-        logoutRouteMethod())),
+        logoutRouteMethod(), tabSwipeRouteMethod(), aiUserRouteMethod())),
     fixtureClass(INBOX_REFRESH, listOf(fixtureMethod(INBOX_ITEMS_CALL, "return-void", 1, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value))),
 )
 
@@ -374,7 +380,7 @@ internal fun peopleStoryMethod(
 internal fun peopleJewelMethod(
     key: String = "LX/JTx;->A01:LX/1BL;",
     resultRegister: String = "v0",
-    serverFlag: String = "72344137076128710L",
+    serverFlag: String = "72344141371096311L",
     serverTarget: String = ":shown",
     flags: Int = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
     inlinedReset: Boolean = false,

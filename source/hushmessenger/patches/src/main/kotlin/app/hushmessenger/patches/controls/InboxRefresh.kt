@@ -2,8 +2,9 @@ package app.hushmessenger.patches.controls
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
-import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.patch.classDefByOrNull
+import app.morphe.patcher.patch.mutableClassDefBy
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -26,7 +27,10 @@ internal const val INBOX_SUPPLIER =
     "Lcom/facebook/messaging/msys/threadlist/plugins/core/itemsupplier/ThreadListItemSupplierImplementation;"
 /** The supplier's items read starts by tracing under this name. */
 internal const val INBOX_ITEMS_TRACE = "ThreadListItemSupplierImplementation.getInboxItems"
-/** Only the supplier's static subscribe call warns with this, before it creates the list observer. */
+/**
+ * Only the supplier's static subscribe call warns with this before it creates the list observer, itself up to 587 and
+ * from 588 in the static helper it asks for the subscription's options.
+ */
 internal const val INBOX_SUBSCRIBE_WARNING =
     "useSecondaryParentThreadKey set without a parentThreadKey; folder read falls back to the full Meta AI inbox"
 internal const val INBOX_REFRESH = "Lapp/hushmessenger/extension/InboxRefresh;"
@@ -74,9 +78,17 @@ internal fun resolveInboxRefresh(items: Method, classOf: (String) -> ClassDef?):
     items.validateInboxItems()
     val supplier = classOf(INBOX_SUPPLIER) ?: routeChanged()
     if (!AccessFlags.FINAL.isSet(supplier.accessFlags)) routeChanged()
+    fun Method.warns() = implementation?.instructions?.any { it.string() == INBOX_SUBSCRIBE_WARNING } == true
+    // 588 moves the warning into a static (supplier, flag) helper that builds the subscription's options, which the
+    // subscribe call asks before it creates the observer.
+    val helpers = supplier.methods.filter { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType != "V" && method.parameterTypes == SUBSCRIBE_PARAMS && method.warns()
+    }.map { it.hookId() }.toSet()
     val subscribe = supplier.methods.filter { method ->
         AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameterTypes == SUBSCRIBE_PARAMS &&
-            method.implementation?.instructions?.any { it.string() == INBOX_SUBSCRIBE_WARNING } == true
+            (method.warns() || method.implementation?.instructions?.any {
+                it.opcode == Opcode.INVOKE_STATIC && ((it as ReferenceInstruction).reference as? MethodReference)?.toString() in helpers
+            } == true)
     }.singleOrNull() ?: routeChanged()
     val code = subscribe.implementation!!.instructions.toList()
     fun signature(i: Instruction) = ((i as? ReferenceInstruction)?.reference as? MethodReference)?.let {
@@ -146,7 +158,7 @@ internal fun MutableMethod.writeInboxRefreshRoute(route: InboxRefreshRoute) {
 }
 
 /** Checks the extension's half before any edit and returns the stub the route goes into. */
-internal fun BytecodePatchContext.inboxRefreshStub(): MutableMethod {
+internal fun inboxRefreshStub(): MutableMethod {
     val call = classDefByOrNull(INBOX_REFRESH)?.methods?.singleOrNull { it.hookId() == INBOX_ITEMS_CALL }
     if (call == null || !AccessFlags.STATIC.isSet(call.accessFlags) || !AccessFlags.PUBLIC.isSet(call.accessFlags)) extensionChanged()
     val stub = mutableClassDefBy(HOST_SCREENS).methods.singleOrNull { it.hookId() == INBOX_REFRESH_ROUTE } ?: extensionChanged()

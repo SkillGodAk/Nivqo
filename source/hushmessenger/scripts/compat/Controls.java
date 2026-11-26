@@ -67,11 +67,14 @@ final class Controls {
         if (community != null) found.get("community_inbox").add(community.render());
         found.get("emoji_drawer").addAll(emojiDrawerReaders(classes));
         found.get("inbox_search_bar").addAll(searchIconReaders(classes));
+        found.get("longer_notes").addAll(longerNotes(classes));
         found.get("emoji_search").addAll(emojiSearchWatchers(classes));
         found.get("tab_badges").addAll(tabBadgeDispatchers(classes));
         found.get("facebook_badge").addAll(facebookBadgeChecks(classes));
         found.get("facebook_profile_header").addAll(profileHeaders(classes));
         found.get("tab_config").addAll(tabConfigurations(classes));
+        found.get("tab_labels").addAll(tabDescriptions(classes));
+        found.get("tab_icons").addAll(tabIconBuilders(classes));
         found.get("ai_mentions").addAll(aiMentionDispatchers(classes));
         found.get("ai_commands").addAll(aiCommandLists(classes));
         var searchBars = searchBarBuilders(classes);
@@ -89,19 +92,32 @@ final class Controls {
         found.get("message_actions_more").addAll(messageActionsMore(classes));
         found.get("hide_read_receipts").addAll(chatSeenBroadcasts(classes));
         found.get("reply_read").addAll(replyReadDispatches(classes));
+        found.get("delivery_receipt").addAll(deliveryReceiptSends(classes));
+        found.get("reaction_read").addAll(reactionSends(classes, stringTables));
         found.get("analytics_uploads").addAll(analyticsUploads(classes));
         found.get("analytics_uploads").addAll(boundUploadTasks(classes));
         found.get("analytics_uploads").addAll(xanalyticsUploadTimers(classes));
         found.get("analytics_uploads").addAll(inProcessUploadStarts(classes, stringTables));
         found.get("attribution_uploads").addAll(attributionUploads(classes));
         found.get("ad_events").addAll(adEvents(classes));
+        found.get("dwell_tracking").addAll(dwellTracking(classes));
         found.get("mqtt_telemetry").addAll(mqttTelemetry(classes));
         pinnedChats(classes).forEach((hook, methods) -> found.get(hook).addAll(methods));
         hiddenChats(classes, inboxTypes).forEach((hook, methods) -> found.get(hook).addAll(methods));
         found.get("nearby_scans").addAll(nearbyScans(classes));
         found.get("wifi_identity").addAll(wifiIdentityReads(classes));
         found.get("phone_id_sync").addAll(phoneIdSync(classes));
+        found.get("passkey_login").addAll(passkeyLogin(classes));
+        found.get("recovery_code_row").addAll(recoveryCodeRow(classes));
+        found.get("search_sections").addAll(searchSections(classes));
+        found.get("search_items").addAll(searchItems(classes));
+        found.get("ai_chat_open").addAll(aiChatOpen(classes));
+        found.get("story_create_tile").addAll(storyCreateTile(classes));
+        found.get("pinned_bar").addAll(pinnedBar(classes));
+        found.get("open_chat_sound").addAll(openChatSound(classes));
         found.get("story_hold").addAll(storyHold(classes));
+        found.get("inbox_typing").addAll(inboxTyping(classes));
+        found.get("media_caption").addAll(mediaCaption(classes));
         found.get("chat_preview").addAll(chatPreview(classes));
         found.get("chat_preview_size").addAll(chatPreviewSize(classes));
         found.get("landscape_lock").addAll(portraitLock(classes));
@@ -113,13 +129,16 @@ final class Controls {
         found.get("floating_tab_bar").addAll(tabBarBuilders(classes, true));
         found.get("tab_bar_overlay").addAll(tabBarBuilders(classes, false));
         found.get("tab_bar_scroll_away").addAll(tabBarScrollAway(classes));
+        found.get("tab_swipe").addAll(tabSwipe(classes));
         found.get("avatar_shape").addAll(avatarShape(classes));
         found.get("story_ring").addAll(storyRing(classes));
         found.get("quiet_call_ring").addAll(quietCallRing(classes));
         found.get("quiet_call_notification").addAll(quietCallNotification(classes));
+        found.get("quiet_mode").addAll(quietModeNotify(classes));
         found.get("car_messages").addAll(carMessages(classes));
         found.get("car_extension_gate").addAll(carExtensionGate(classes));
         found.get("local_chat_search").addAll(localChatSearch(classes));
+        found.get("local_read").addAll(localRead(classes));
         found.get("call_recording").addAll(callRecording(classes));
         found.get("home_header").addAll(homeHeader(classes));
         var markRead = markReadButton(classes);
@@ -137,7 +156,6 @@ final class Controls {
             found.get("message_log_button").add(logButton.get(0));
             found.get("message_log_click").add(logButton.get(1));
         }
-        found.get("app_theme_pick").addAll(appThemePick(classes));
         found.get("auto_reply").addAll(messageLogHooks(classes));
         found.get("unsent_recall").addAll(unsentRecall(classes));
         found.get("unsent_clear").addAll(unsentClear(classes));
@@ -149,7 +167,9 @@ final class Controls {
         found.get("external_gallery").addAll(externalGalleryHooks(classes, stringTables));
         found.get("gallery_temp_file").addAll(galleryTempFileHooks(classes));
         found.get("gallery_to_chat").addAll(galleryToChatHooks(classes));
+        found.get("paste_photo").addAll(pastePhotoHooks(classes));
         found.get("instant_gallery").addAll(instantGallery(classes));
+        found.get("view_once_anywhere").addAll(viewOnceAnywhere(classes));
         found.get("special_contacts").addAll(specialContacts(classes));
         found.get("menu_blur").addAll(menuBlur(classes));
         found.get("chat_head_video").addAll(chatHeadVideo(classes));
@@ -164,8 +184,14 @@ final class Controls {
             boolean candidate = (EPHEMERAL_VIEWER.equals(cls.getType()) && (EPHEMERAL_DIALOGS.contains(method.getName()) || "onResume".equals(method.getName()))) ||
                 (QUICKSNAP_VIEWER.equals(cls.getType()) && "onCreateView".equals(method.getName()));
             if (!candidate) continue;
-            if (screenshotViewerSites(method).isEmpty()) changedViewer = true;
-            else found.get("screenshot_viewers").add(method);
+            // 588's Quicksnap viewer hands its window to a helper, whose addFlags is the site.
+            String helperId = QUICKSNAP_VIEWER.equals(cls.getType()) ? quicksnapSecureHelper(method) : null;
+            Method helper = null;
+            if (helperId != null) for (var owner : classes) if (owner.getType().equals(helperId.substring(0, helperId.indexOf("->"))))
+                for (var m : owner.getMethods()) if (hookId(m).equals(helperId)) helper = m;
+            var viewer = helperId != null ? helper : method;
+            if (viewer == null || screenshotViewerSites(viewer).isEmpty()) changedViewer = true;
+            else found.get("screenshot_viewers").add(viewer);
         }
         if (changedViewer) found.get("screenshot_viewers").clear();
         var jewelCandidates = new ArrayList<Map.Entry<Method, Set<String>>>();
@@ -289,17 +315,6 @@ final class Controls {
         var cqlRowGetters = List.of(Map.entry(msgOtidGetterName, "Ljava/lang/String;"), Map.entry(msgTimestampGetterName, "J"),
             Map.entry(msgSenderGetterName, "J"), Map.entry(msgContentTypeGetterName, "I"), Map.entry(msgContentSubtypeGetterName, "I"));
 
-        // The app icon manager maps "default" to the start screen and every other icon to a LauncherAlias.
-        var appIconManagers = new HashSet<String>();
-        for (var cls : classes) for (var m : cls.getMethods()) {
-            if (!"<clinit>".equals(m.getName()) || m.getImplementation() == null) continue;
-            var literals = new HashSet<String>();
-            for (var i : m.getImplementation().getInstructions())
-                if (i instanceof ReferenceInstruction ri && ri.getReference() instanceof StringReference sr) literals.add(sr.getString());
-            if (literals.contains("com.facebook.orca.auth.StartScreenActivity") &&
-                literals.stream().anyMatch(s -> s.startsWith("com.facebook.orca.LauncherAlias"))) appIconManagers.add(cls.getType());
-        }
-
         for (var cls : classes) {
             String original = null;
             for (var f : cls.getFields()) {
@@ -345,20 +360,6 @@ final class Controls {
                 // stories
                 if (gate && strings.contains("com.facebook.messaging.friendsinboxunit.plugins.inboxunit.FriendsInboxUnitKillSwitch")) {
                     found.get("stories").add(method);
-                }
-
-                // app_icons: the icon manager's subscription benefit checks, a static one on the session and, in 586,
-                // an instance one that also reads a Context
-                if (appIconManagers.contains(cls.getType()) && "Z".equals(method.getReturnType()) &&
-                    paramTypes.equals(isStatic ? List.of(BUBBLE_SESSION) : List.of("Landroid/content/Context;", BUBBLE_SESSION)) &&
-                    strings.contains("CUSTOM_APP_ICON")) {
-                    found.get("app_icons").add(method);
-                }
-
-                // app_themes: the one static benefit check on the session for paid themes; the generic lookup takes a String
-                if (isStatic && "Z".equals(method.getReturnType()) && paramTypes.equals(List.of(BUBBLE_SESSION)) &&
-                    strings.contains("CUSTOM_APP_THEME")) {
-                    found.get("app_themes").add(method);
                 }
 
                 // facebook, and facebook_profile for a gate that builds only the chat details Profile button
@@ -418,6 +419,18 @@ final class Controls {
                 if ("Z".equals(method.getReturnType()) && MESSENGER_BROWSER_LAUNCHER.equals(cls.getType()) && !isStatic &&
                     paramTypes.equals(List.of("Landroid/net/Uri;", BUBBLE_SESSION))) {
                     found.get("browser").add(method);
+                }
+
+                // link_player: the message handler's opener, then the launcher's two own void entries, one of them
+                // static on every tested build. Mirrors LinkPlayer.kt.
+                if ("V".equals(method.getReturnType())) {
+                    boolean chatOpen = paramTypes.size() == 7 && paramTypes.get(6).startsWith("L") &&
+                        paramTypes.subList(0, 6).equals(List.of("Landroid/content/Context;", "Landroid/net/Uri;",
+                            "Landroid/net/Uri;", BUBBLE_SESSION, MENU_MESSAGE, THREAD_KEY));
+                    boolean launch = MESSENGER_BROWSER_LAUNCHER.equals(cls.getType()) && paramTypes.size() == 5 &&
+                        paramTypes.subList(0, 3).equals(List.of("Landroid/content/Context;", "Landroid/net/Uri;", BUBBLE_SESSION)) &&
+                        paramTypes.get(3).startsWith("L") && paramTypes.get(4).startsWith("L");
+                    if (chatOpen || launch) found.get("link_player").add(method);
                 }
 
                 // people_jewel, kept once discovery knows the preference getter. It takes the suggestions logger, then its owner.
@@ -519,6 +532,21 @@ final class Controls {
                     found.get("ai_search").add(method);
                 }
 
+                // appear_offline: the msys self-report, the one method on the presence manager that takes a boolean and
+                // writes the mailbox trace while reporting it
+                if ("Lcom/facebook/presence/DefaultPresenceManager;".equals(cls.getType()) && "V".equals(method.getReturnType()) &&
+                    !isStatic && paramTypes.equals(List.of("Z")) && strings.contains("UnifiedPresenceMailboxImpl.reportUserStatus")) {
+                    found.get("appear_offline").add(method);
+                }
+
+                // availability_setting: each legacy MQTT publisher that puts the foreground availability flag in the
+                // client settings it sends
+                if ("V".equals(method.getReturnType()) && !isStatic && paramTypes.size() == 2 &&
+                    "Lcom/facebook/prefs/shared/FbSharedPreferences;".equals(paramTypes.get(0)) &&
+                    strings.contains("make_user_available_when_in_foreground") && strings.contains("/set_client_settings")) {
+                    found.get("availability_setting").add(method);
+                }
+
                 // original_photo: the encrypted-chat photo transcoder's entry points, its config and its Java decode, named the same in every build
                 if ("Lcom/facebook/msys/mci/transcoder/DefaultMediaTranscoder;".equals(cls.getType()) &&
                     !isStatic && ORIGINAL_PHOTO_HOOKS.contains(hookId(method))) {
@@ -576,11 +604,17 @@ final class Controls {
                     if ("M4TabNavigationFragment".equals(original)) found.get("chat_inbox").add(method);
                 }
 
-                // chat_jump: the chat fragment's own onViewCreated, where the chat first has a view. Mirrors ChatJump.kt.
+                // chat_jump, secure_chat, invisible_buttons, ios_bars and chat_bar_plus: the chat fragment's own
+                // onViewCreated, where the chat first has a view. Mirrors ChatJump.kt, SecureChat.kt,
+                // InvisibleButtons.kt, IosBars.kt and ChatBarPlus.kt, which all inject there.
                 if ("MsysThreadViewFragment".equals(original) && !isStatic && "onViewCreated".equals(method.getName()) &&
                     "V".equals(method.getReturnType()) && paramTypes.equals(List.of("Landroid/view/View;", "Landroid/os/Bundle;")) &&
                     method.getImplementation() != null) {
                     found.get("chat_jump").add(method);
+                    found.get("secure_chat").add(method);
+                    found.get("invisible_buttons").add(method);
+                    found.get("ios_bars").add(method);
+                    found.get("chat_bar_plus").add(method);
                 }
 
                 // chat_legacy: the chat fragment on Messenger's older route, which loads its own animation
@@ -599,6 +633,13 @@ final class Controls {
                 if (isStatic && "Z".equals(method.getReturnType()) && paramTypes.equals(List.of(cls.getType())) &&
                     refs.stream().anyMatch(r -> storyCardKeys.contains(r.toString()))) {
                     found.get("growth_story_card").add(method);
+                }
+
+                // growth_active_status: the upsell check the chat header's Turn on active status line waits on
+                if (isStatic && "Z".equals(method.getReturnType()) && paramTypes.size() == 2 &&
+                    "Lcom/facebook/auth/usersession/FbUserSession;".equals(paramTypes.get(0)) &&
+                    strings.contains("an_upsell_thread_header_dismiss_count")) {
+                    found.get("growth_active_status").add(method);
                 }
 
                 // people_tab: the People tab suggestion handler handing its list and filter map to the tab
@@ -737,6 +778,10 @@ final class Controls {
             if (methods != null && methods.stream().anyMatch(m -> !hasLocal(m) &&
                 (!"ad_events".equals(key) || AccessFlags.STATIC.isSet(m.getAccessFlags())))) methods.clear();
         }
+        var profileMenus = profileMenuItems(classes);
+        found.get("profile_menu_items").addAll(profileMenus);
+        found.get("profile_menu_call").addAll(profileMenuCalls(classes, profileMenus, stringTables));
+        found.get("refresh_rate").addAll(refreshRate(classes));
         return found;
     }
 }

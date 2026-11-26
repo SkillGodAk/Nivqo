@@ -33,11 +33,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.facebook.rtc.fbwebrtc.overlayconfig.overlayconfiglayer.OverlayConfigLayerInterface;
@@ -80,9 +82,19 @@ public final class CallRecording {
         FileChannel channel();
 
         void close(boolean keep) throws IOException;
+
+        /** Where the kept recording ended up, for the notification that says so (#193). Null when there's no such thing. */
+        default Uri uri() {
+            return null;
+        }
+
+        /** The file itself, which a format written through Android's own muxer needs. Null when there's no such thing. */
+        default java.io.FileDescriptor descriptor() {
+            return null;
+        }
     }
 
-    static volatile Store store = new SharedAudio();
+    static volatile Store store = new Saving();
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static volatile boolean callActive;
@@ -95,9 +107,17 @@ public final class CallRecording {
     private static volatile boolean complained;
     // Main thread only from here on.
     private static Activity top;
+    private static LinearLayout bar;
     private static TextView pill;
+    private static TextView pausePill;
     private static Session session;
     private static BroadcastReceiver stopReceiver;
+    /** Messenger itself, for a call that records itself with no screen of its own in front. */
+    private static Context application;
+    /** Whether the call in progress has already had its one look at the chosen scope. */
+    private static boolean startedThisCall;
+    /** Keeps the time on the button going while a recording runs. */
+    private static final Runnable TICKING = CallRecording::refreshPill;
 
     private CallRecording() {}
 
@@ -108,10 +128,15 @@ public final class CallRecording {
         heldForRecording = heldForCaptions = false;
         complained = false;
         top = null;
+        bar = null;
         pill = null;
+        pausePill = null;
         session = null;
         stopReceiver = null;
-        store = new SharedAudio();
+        application = null;
+        startedThisCall = false;
+        MAIN.removeCallbacks(TICKING);
+        store = new Saving();
         CallCaptions.resetForTests();
     }
 
@@ -232,7 +257,7 @@ public final class CallRecording {
      */
     public static void heard(AudioTrack track, ByteBuffer sound, int bytes) {
         Session now = listening;
-        if (now != null) {
+        if (now != null && !now.paused()) {
             try {
                 now.mix.theirs.offer(sound, bytes, track.getChannelCount(), track.getSampleRate(), now.elapsed());
             } catch (Throwable error) {
@@ -245,7 +270,7 @@ public final class CallRecording {
     /** This phone's next frame, on its way to the far side. A mute has already cleared it by here. */
     public static void spoke(AudioRecord record, ByteBuffer sound, int bytes) {
         Session now = listening;
-        if (now == null) return;
+        if (now == null || now.paused()) return;
         try {
             now.mix.mine.offer(sound, bytes, record.getChannelCount(), record.getSampleRate(), now.elapsed());
         } catch (Throwable error) {
@@ -268,7 +293,10 @@ public final class CallRecording {
         try {
             callActive = running;
             MAIN.post(() -> {
-                if (!callActive && session != null) session.finishUp();
+                if (!callActive) {
+                    if (session != null) session.finishUp();
+                    startedThisCall = false;
+                }
                 CallCaptions.call(callActive);
                 refresh();
             });
@@ -278,8 +306,9 @@ public final class CallRecording {
     }
 
     /** Watches for which of Messenger's screens is showing. It does nothing else until a call starts. */
-    static void register(Application application) {
-        application.registerActivityLifecycleCallbacks(new Screens());
+    static void register(Application messenger) {
+        application = messenger;
+        messenger.registerActivityLifecycleCallbacks(new Screens());
     }
 
     static final class Screens implements Application.ActivityLifecycleCallbacks {
@@ -306,8 +335,32 @@ public final class CallRecording {
     }
 
     private static void refresh() {
+        autoStart();
         refreshPill();
         CallCaptions.screen(top);
+    }
+
+    /**
+     * Starts a recording on its own when Calls to record asks for it (#193). It runs again on every screen change
+     * while the call is up, since an outgoing call is only named once its screen is in front, and it gives up on the
+     * call once it has started one.
+     */
+    private static void autoStart() {
+        try {
+            if (!callActive || session != null || startedThisCall) return;
+            if (!Settings.wouldUse(KEY) || !Settings.available(KEY)) return;
+            Context context = top != null ? top.getApplicationContext() : application;
+            if (context == null) return;
+            String name = CallName.of(top == null ? null : top.findViewById(android.R.id.content));
+            if (!CallRecordings.wants(name)) return;
+            startedThisCall = true;
+            session = new Session(context, name);
+            session.start();
+            showNotification(context);
+        } catch (RuntimeException error) {
+            Settings.hookFailedPrivately(KEY, "Couldn't start the recording on its own", error);
+            session = null;
+        }
     }
 
     private static void refreshPill() {
@@ -317,68 +370,140 @@ public final class CallRecording {
                 removePill();
                 return;
             }
-            if (pill == null || pill.getParent() != found) {
+            if (bar == null || bar.getParent() != found) {
                 removePill();
-                pill = makePill(top);
-                ((ViewGroup) found).addView(pill, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+                bar = makeBar(top);
+                ((ViewGroup) found).addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
             }
-            boolean recording = session != null;
-            pill.setText(new SettingsText(top).get(recording ? "call_recording_stop_pill" : "call_recording_start"));
-            GradientDrawable shape = new GradientDrawable();
-            shape.setCornerRadius(pill.getResources().getDisplayMetrics().density * 12);
-            shape.setColor(recording ? SettingsUi.RECORDING : SettingsUi.CALL_SCRIM);
-            // Shows the tap, so a press during a call reads as taken before the recording starts or stops.
-            pill.setBackground(new android.graphics.drawable.RippleDrawable(
-                android.content.res.ColorStateList.valueOf(SettingsUi.CALL_RIPPLE), shape, null));
+            Session running = session;
+            boolean paused = running != null && running.paused();
+            SettingsText text = new SettingsText(top);
+            // The time stands on the button while it records, and stops where it is while it's held (#193).
+            pill.setText(running == null ? text.get("call_recording_start")
+                : text.get(paused ? "call_recording_paused_time" : "call_recording_stop_time", clock(running.elapsed())));
+            pill.setContentDescription(running == null ? null : text.get("call_recording_stop_pill"));
+            paint(pill, running != null ? SettingsUi.RECORDING : SettingsUi.CALL_SCRIM);
+            pausePill.setVisibility(running == null ? View.GONE : View.VISIBLE);
+            pausePill.setText(text.get(paused ? "call_recording_resume" : "call_recording_pause"));
+            paint(pausePill, SettingsUi.CALL_SCRIM);
+            MAIN.removeCallbacks(TICKING);
+            if (running != null && !paused) MAIN.postDelayed(TICKING, 1000);
         } catch (RuntimeException error) {
             Settings.hookFailedPrivately(KEY, "Couldn't show the Record button", error);
         }
     }
 
-    private static void removePill() {
-        if (pill != null && pill.getParent() instanceof ViewGroup) ((ViewGroup) pill.getParent()).removeView(pill);
-        pill = null;
+    /** A recording's time, as a phone's own call screen counts it. */
+    static String clock(long millis) {
+        long seconds = Math.max(0, millis) / 1000;
+        return seconds >= 3600 ? String.format(Locale.ROOT, "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
+            : String.format(Locale.ROOT, "%d:%02d", seconds / 60, seconds % 60);
     }
 
-    private static TextView makePill(Activity activity) {
+    /** Shows the tap, so a press during a call reads as taken before the recording starts, stops or waits. */
+    private static void paint(TextView view, int color) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setCornerRadius(view.getResources().getDisplayMetrics().density * 12);
+        shape.setColor(color);
+        view.setBackground(new android.graphics.drawable.RippleDrawable(
+            android.content.res.ColorStateList.valueOf(SettingsUi.CALL_RIPPLE), shape, null));
+    }
+
+    private static void removePill() {
+        if (bar != null && bar.getParent() instanceof ViewGroup) ((ViewGroup) bar.getParent()).removeView(bar);
+        bar = null;
+        pill = null;
+        pausePill = null;
+        MAIN.removeCallbacks(TICKING);
+    }
+
+    /**
+     * How far above the bottom of the screen the button sits, in dp: clear of Messenger's own row of call buttons,
+     * which stands about 78dp tall above the navigation bar, with room to spare on a taller row (#105).
+     */
+    static final int ABOVE_CALL_BUTTONS_DP = 112;
+
+    /** Pause, then the Record button itself, so the one that stops a recording keeps the place it always had. */
+    private static LinearLayout makeBar(Activity activity) {
+        float density = activity.getResources().getDisplayMetrics().density;
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setTag("call_recording_bar");
+        pausePill = makePill(activity, "call_recording_pause", clicked -> pauseTapped());
+        pill = makePill(activity, "call_recording_pill", clicked -> tapped(activity));
+        LinearLayout.LayoutParams hold = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        // On the Hold button, so a call that isn't recording still centers the Record button on the screen.
+        hold.setMarginEnd((int) (density * 8));
+        row.addView(pausePill, hold);
+        row.addView(pill, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        // Above the call buttons, however this screen lays itself out. Moving it waits until this layout pass is over.
+        row.addOnLayoutChangeListener((self, left, up, right, down, oldLeft, oldUp, oldRight, oldDown) -> self.post(() -> place(self)));
+        return row;
+    }
+
+    private static TextView makePill(Activity activity, String tag, View.OnClickListener tap) {
         float density = activity.getResources().getDisplayMetrics().density;
         TextView view = new TextView(activity);
+        view.setTag(tag);
         view.setTextColor(Color.WHITE);
-        view.setTextSize(14);
+        view.setTextSize(13);
         view.setTypeface(Typeface.DEFAULT_BOLD);
         view.setGravity(Gravity.CENTER);
-        view.setMinHeight((int) (density * 48));
-        view.setPadding((int) (density * 20), 0, (int) (density * 20), 0);
+        view.setMinHeight((int) (density * 40));
+        view.setPadding((int) (density * 16), 0, (int) (density * 16), 0);
         view.setElevation(density * 24);
-        view.setOnClickListener(clicked -> tapped(activity));
-        // Below the status bar, however this screen lays itself out. Moving it waits until this layout pass is over.
-        view.addOnLayoutChangeListener((self, left, up, right, down, oldLeft, oldUp, oldRight, oldDown) -> self.post(() -> place(self)));
+        view.setOnClickListener(tap);
         return view;
     }
 
-    private static void place(View view) {
+    /**
+     * Keeps the button above Messenger's own call buttons and clear of the navigation bar. It used to sit under the
+     * status bar, where it covered the name of the person you were calling as the call started (#105).
+     */
+    static void place(View view) {
         View parent = (View) view.getParent();
         if (parent == null) return;
         Rect visible = new Rect();
         int[] where = new int[2];
         parent.getWindowVisibleDisplayFrame(visible);
         parent.getLocationOnScreen(where);
-        int margin = Math.max(0, visible.top - where[1]) + (int) (view.getResources().getDisplayMetrics().density * 8);
+        float density = view.getResources().getDisplayMetrics().density;
+        int underTheBar = Math.max(0, where[1] + parent.getHeight() - visible.bottom);
+        int margin = underTheBar + (int) (density * ABOVE_CALL_BUTTONS_DP);
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) view.getLayoutParams();
-        if (params.topMargin == margin) return;
-        params.topMargin = margin;
+        if (params.bottomMargin == margin) return;
+        params.bottomMargin = margin;
         view.setLayoutParams(params);
+    }
+
+    /**
+     * Holds a recording where it is, or carries it on (#193). The time it waited is left out of the file, so what
+     * comes back after is the next thing said, not a stretch of silence.
+     */
+    private static void pauseTapped() {
+        try {
+            Session running = session;
+            if (running == null) return;
+            running.pause(!running.paused());
+            refresh();
+        } catch (RuntimeException error) {
+            Settings.hookFailedPrivately(KEY, "Couldn't hold the recording", error);
+        }
     }
 
     private static void tapped(Context screen) {
         try {
+            // A tap settles this call either way, so a scope that records on its own doesn't start it up again.
+            startedThisCall = true;
             if (session != null) {
                 session.finishUp();
                 return;
             }
             Context context = screen.getApplicationContext();
-            session = new Session(context);
+            // Who the call's with comes off the screen in front of the person tapping, while it's still showing.
+            session = new Session(context, CallName.of(top == null ? null : top.findViewById(android.R.id.content)));
             session.start();
             showNotification(context);
             refresh();
@@ -454,7 +579,57 @@ public final class CallRecording {
 
     /** Like "Call 2026-10-31 14.05.33.wav". */
     static String name(Date when) {
-        return "Call " + new SimpleDateFormat("yyyy-MM-dd HH.mm.ss", Locale.ROOT).format(when) + "." + VoiceMessages.Format.WAV.extension;
+        return name(when, null);
+    }
+
+    /**
+     * "Call with Alex Kim 2026-10-31 14.05.33.wav" when the call screen said who it was with (#193), and the plain
+     * name when it didn't. Every recording still starts with "Call ", which is what a tidy-up goes looking for.
+     */
+    static String name(Date when, String with) {
+        String who = fileSafe(with);
+        return "Call " + (who.isEmpty() ? "" : "with " + who + " ")
+            + new SimpleDateFormat("yyyy-MM-dd HH.mm.ss", Locale.ROOT).format(when) + "." + CallRecordings.format().extension;
+    }
+
+    /** Longest a name can run in a file's name, leaving room for the date and the folder it goes in. */
+    private static final int LONGEST_NAME = 48;
+
+    /** [text] with what a file name can't carry turned to spaces, run together, trimmed and cut short. */
+    static String fileSafe(String text) {
+        if (text == null) return "";
+        StringBuilder safe = new StringBuilder();
+        for (int i = 0; i < text.length(); ) {
+            int point = text.codePointAt(i);
+            i += Character.charCount(point);
+            // Direction marks go too, since one of those turns the rest of a file's name around.
+            boolean refused = Character.isISOControl(point) || Character.getType(point) == Character.FORMAT
+                || "/\\:*?\"<>|".indexOf(point) >= 0;
+            safe.appendCodePoint(refused || Character.isWhitespace(point) ? ' ' : point);
+        }
+        String one = safe.toString();
+        while (one.contains("  ")) one = one.replace("  ", " ");
+        one = one.trim();
+        while (one.startsWith(".")) one = one.substring(1).trim();
+        if (one.codePointCount(0, one.length()) > LONGEST_NAME) {
+            one = one.substring(0, one.offsetByCodePoints(0, LONGEST_NAME)).trim();
+        }
+        return one;
+    }
+
+    /**
+     * How the file is written: Opus when that's what the name says, since the format is settled before the file is
+     * made, and the plain WAV otherwise. An encoder that won't start takes the WAV rather than the call (#193).
+     */
+    private static CallMix.Sink sink(Target target, String name, int channels) throws IOException {
+        if (name.endsWith("." + VoiceMessages.Format.OGG.extension) && target.descriptor() != null) {
+            try {
+                return new CallOpus(target.descriptor(), channels);
+            } catch (IOException | RuntimeException unusable) {
+                Settings.hookFailedPrivately(KEY, "Couldn't record this call as Opus", unusable);
+            }
+        }
+        return new CallMix.Wav(target.channel(), channels);
     }
 
     /** One recording, on a thread of its own, since writing the file shouldn't hold up the call or Messenger's screens. */
@@ -462,13 +637,34 @@ public final class CallRecording {
         private final Context context;
         private final long began = SystemClock.elapsedRealtime();
         private final CountDownLatch stop = new CountDownLatch(1);
+        /** Who the call screen said the call was with, or null. Only the file's name uses it. */
+        private final String with;
+        /** When the recording was held, or 0 while it runs, and how long it has waited in all so far. */
+        private volatile long heldAt;
+        private volatile long heldFor;
         /** Set before the audio threads can see this session. */
         CallMix mix;
 
-        Session(Context context) {
+        Session(Context context, String with) {
             super("HushCallRecording");
             setDaemon(true);
             this.context = context;
+            this.with = with;
+        }
+
+        boolean paused() {
+            return heldAt != 0;
+        }
+
+        /** Holds the recording or carries it on. The clock the file is written against stops while it waits. */
+        void pause(boolean hold) {
+            if (hold == paused()) return;
+            if (hold) {
+                heldAt = SystemClock.elapsedRealtime();
+                return;
+            }
+            heldFor += SystemClock.elapsedRealtime() - heldAt;
+            heldAt = 0;
         }
 
         // Never an interrupt: one that lands during a write closes the file before its last header goes in.
@@ -485,16 +681,20 @@ public final class CallRecording {
         }
 
         long elapsed() {
-            return SystemClock.elapsedRealtime() - began;
+            long now = SystemClock.elapsedRealtime();
+            long waiting = heldAt == 0 ? 0 : now - heldAt;
+            return now - began - heldFor - waiting;
         }
 
         @Override public void run() {
             boolean kept = false;
             boolean failed = false;
             Target target = null;
+            String saved = name(new Date(), with);
             try {
-                target = store.open(context, name(new Date()));
-                mix = new CallMix(target.channel());
+                int channels = CallRecordings.channels();
+                target = store.open(context, saved);
+                mix = new CallMix(sink(target, saved, channels), channels);
                 listening = this;
                 try {
                     while (!mix.full() && !stopped()) mix.pump(elapsed());
@@ -510,14 +710,95 @@ public final class CallRecording {
                 Settings.hookFailedPrivately(KEY, "Couldn't record a call", error);
             } finally {
                 try {
+                    if (mix != null) mix.release();
                     if (target != null) target.close(kept);
                 } catch (IOException | RuntimeException error) {
                     Settings.hookFailedPrivately(KEY, "Couldn't finish a call recording", error);
                 }
             }
+            // On this thread, with the file closed, so the call is long over before either of these touches the store.
+            if (kept && target != null) {
+                CallRecordings.saved(context, target.uri(), saved);
+                CallRecordings.clean(context, System.currentTimeMillis());
+            }
             boolean keptFile = kept;
             boolean failure = failed;
             MAIN.post(() -> finished(this, context, keptFile, failure));
+        }
+    }
+
+    /**
+     * Where a recording goes: the folder picked under the switch when there is one, and the phone's own Recordings
+     * folder otherwise. A picked folder that has been moved, renamed or taken away since falls back rather than
+     * losing the call (#193).
+     */
+    @TargetApi(29)
+    static final class Saving implements Store {
+        @Override public Target open(Context context, String name) throws IOException {
+            Uri picked = CallRecordings.folder();
+            if (picked != null) {
+                try {
+                    return new PickedFolder(picked).open(context, name);
+                } catch (IOException | RuntimeException unusable) {
+                    Settings.hookFailedPrivately(KEY, "Couldn't write to the folder picked", unusable);
+                }
+            }
+            return new SharedAudio().open(context, name);
+        }
+    }
+
+    /** A recording written into a folder the person picked, through the document it makes there. */
+    static final class PickedFolder implements Store {
+        private final Uri tree;
+
+        PickedFolder(Uri tree) {
+            this.tree = tree;
+        }
+
+        @Override public Target open(Context context, String name) throws IOException {
+            ContentResolver resolver = context.getContentResolver();
+            Uri parent = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree));
+            Uri item = DocumentsContract.createDocument(resolver, parent, CallRecordings.format().mime, name);
+            if (item == null) throw new IOException("The folder picked made no file");
+            ParcelFileDescriptor descriptor;
+            try {
+                descriptor = resolver.openFileDescriptor(item, "rw");
+                if (descriptor == null) throw new IOException("The folder picked gave no file");
+            } catch (IOException | RuntimeException error) {
+                remove(resolver, item);
+                throw error;
+            }
+            FileOutputStream stream = new FileOutputStream(descriptor.getFileDescriptor());
+            return new Target() {
+                @Override public FileChannel channel() {
+                    return stream.getChannel();
+                }
+
+                @Override public void close(boolean keep) throws IOException {
+                    try {
+                        stream.close();
+                        descriptor.close();
+                    } finally {
+                        if (!keep) remove(resolver, item);
+                    }
+                }
+
+                @Override public Uri uri() {
+                    return item;
+                }
+
+                @Override public java.io.FileDescriptor descriptor() {
+                    return descriptor.getFileDescriptor();
+                }
+            };
+        }
+
+        private static void remove(ContentResolver resolver, Uri item) {
+            try {
+                DocumentsContract.deleteDocument(resolver, item);
+            } catch (IOException | RuntimeException gone) {
+                // Nothing left to take away, which is where this was headed anyway.
+            }
         }
     }
 
@@ -532,7 +813,7 @@ public final class CallRecording {
             ContentResolver resolver = context.getContentResolver();
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-            values.put(MediaStore.MediaColumns.MIME_TYPE, VoiceMessages.Format.WAV.mime);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, CallRecordings.format().mime);
             values.put(MediaStore.MediaColumns.RELATIVE_PATH, folder());
             // Never pending: a crash has to leave a file people can find, and Android removes pending ones after a week.
             Uri item = resolver.insert(VoiceMessages.SharedAudio.collection(), values);
@@ -558,6 +839,14 @@ public final class CallRecording {
                     } finally {
                         if (!keep) resolver.delete(item, null, null);
                     }
+                }
+
+                @Override public Uri uri() {
+                    return item;
+                }
+
+                @Override public java.io.FileDescriptor descriptor() {
+                    return descriptor.getFileDescriptor();
                 }
             };
         }

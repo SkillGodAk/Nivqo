@@ -1,14 +1,17 @@
 package app.hushmessenger.patches.misc
 
 import app.hushmessenger.patches.controls.ControlProfile
-import app.hushmessenger.patches.controls.PROFILE_347415262
+import app.hushmessenger.patches.controls.PROFILE_347617497
 import app.hushmessenger.patches.controls.activeProfile
 import app.hushmessenger.patches.controls.hookId
 import app.hushmessenger.patches.controls.settingsExtension
+import app.hushmessenger.patches.isExtension
+import app.hushmessenger.patches.messengerClasses
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.mutableClassDefBy
+import app.morphe.patcher.patch.patch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -35,7 +38,7 @@ internal const val SELF_VERSION_READS = 66
 internal const val ARMV7_SELF_VERSION_READS = 75
 
 internal fun selfVersionReadsFor(profile: ControlProfile) =
-    if (profile === PROFILE_347415262) ARMV7_SELF_VERSION_READS else SELF_VERSION_READS
+    if (profile === PROFILE_347617497) ARMV7_SELF_VERSION_READS else SELF_VERSION_READS
 
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference?.toString()
 
@@ -57,7 +60,7 @@ private fun Instruction.isVersionRead() = reference().let { it == VERSION_FIELD 
  * reads the installed code on purpose.
  */
 internal fun findSelfVersionReads(methods: Iterable<Method>): Map<Method, Int> = methods
-    .filterNot { it.definingClass.startsWith("Lapp/hushmessenger/") }
+    .filterNot { it.isExtension() }
     .mapNotNull { method -> method.code().count { it.isVersionRead() }.takeIf { it > 0 }?.let { method to it } }
     .toMap()
 
@@ -106,11 +109,11 @@ internal fun MutableMethod.answerOwnVersionReads() {
  * Android reports. Every version read goes through OwnVersion, which leaves other apps' codes alone. Runs only as part
  * of that patch.
  */
-internal val spoofSelfReadsPatch = bytecodePatch(description = "Answer Messenger's own version reads with its original code") {
+internal val spoofSelfReadsPatch = patch(description = "Answer Messenger's own version reads with its original code") {
     dependsOn(settingsExtension)
     execute {
         val methods = mutableListOf<Method>()
-        classDefForEach { methods.addAll(it.methods) }
+        messengerClasses().forEach { methods.addAll(it.methods) }
         // settingsExtension picked the build's profile before this runs.
         val targets = planSelfVersionReads(methods, selfVersionReadsFor(activeProfile)).map { id ->
             mutableClassDefBy(id.substringBefore("->")).methods.single { it.hookId() == id }
