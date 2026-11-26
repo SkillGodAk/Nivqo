@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-25T16:53:38",
-  "description": "Nivqo Patches 1.4.0：Facebook 127＋Messenger 98，共 225 個補丁。HushFacebook 0.24.0（127 個補丁），支援 Facebook 588.0.0.42.55，新增影片緩衝大小、背景播放下一部 Reels、留言自動翻譯、App 內代理、限時動態控制與平板版面改進；修正 Android 9／10 相容性。Manager 2.7.1 修正修補時無法開啟包含中文等非 ASCII 字元的檔案路徑。Patcher 2.5.0 和 HushMessenger 0.30.0（98 個補丁）保持不變。保留 Nivqo 原簽章、繁中設定、獨立更新來源、Messenger 頂部按鈕及離線核心；合併補丁 1.4.0 共 225 項。",
-  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/a462a64b497873f6154781b655aba368bbbe49e7/updates/bundles/nivqo-patches.mpp",
+  "created_at": "2026-11-27T03:33:12",
+  "description": "Nivqo Patches 1.5.0（257 項）：HushFacebook 0.25.0（128）＋HushMessenger 0.31.0（129）。Manager 2.8.0，Patcher 2.6.0；保留 Nivqo 自家 OTA、繁體中文、Facebook Messenger 按鈕路由和原 Ed25519 簽章。",
+  "download_url": "https://raw.githubusercontent.com/SkillGodAk/Nivqo/4841d3c1f21840f01dd6e4fe9a81ece73541fc61/updates/bundles/nivqo-patches.mpp",
   "signature_download_url": "",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "public_key": "fMGzMRGjstF23zuh75Ik2udYy4iBfajArK08d+qHd2U="
 }
